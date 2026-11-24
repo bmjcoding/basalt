@@ -351,7 +351,8 @@ describe("modes", () => {
 describe("development errors", () => {
   test("cardinality without references, a referenced end of many, and some keys stated and not all", async () => {
     const core = await import(pathToFileURL(path.join(pkg, "dist", "diagram-core.js")).href);
-    const warns = (tables) => core.buildModel(schema(tables)).warnings;
+    // 5.1's first list: errors (Model.errors, which the figure reports with console.error), never warnings (the decider's ruling 1 on the re-check).
+    const warns = (tables) => core.buildModel(schema(tables)).errors;
     const b = table("b", 2, 1, [col("id", { key: "PK" })]);
     assert.ok(warns([table("a", 1, 1, [{ name: "x", cardinality: { from: "one" } }]), b]).some((w) => /a\.x states a cardinality but references nothing/.test(w)));
     assert.ok(warns([table("a", 1, 1, [fk("x", "b.id", "one", "one-or-many")]), b]).some((w) => /references one row at most/.test(w)));
@@ -359,6 +360,7 @@ describe("development errors", () => {
     assert.ok(warns([table("a", 1, 1, [fk("x", "b.id", "many")]), b]).some((w) => /not one, zero-or-one, one-or-many or zero-or-many/.test(w)));
     // None of them in a figure that states every key.
     assert.deepEqual(core.buildModel(B.schema).warnings, []);
+    assert.deepEqual(core.buildModel(B.schema).errors, []);
     // The referenced end defaults to one.
     assert.deepEqual(core.buildModel(schema([table("a", 1, 1, [fk("x", "b.id", "zero-or-many")]), b])).edges[0].card, { from: "zero-or-many", to: "one" });
   });

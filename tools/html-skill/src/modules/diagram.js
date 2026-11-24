@@ -38,7 +38,7 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
     var tree = figureTree(model, {}, options(base, spec, viewer));
     var html = toHtml(tree, slots(model, spec, base, false));
     var open = html.indexOf('>');
-    return { open: html.slice(0, open + 1), inner: html.slice(open + 1, html.length - '</figure>'.length), warnings: model.warnings };
+    return { open: html.slice(0, open + 1), inner: html.slice(open + 1, html.length - '</figure>'.length), warnings: model.errors.map(function (e) { return 'error: ' + e; }).concat(model.warnings) };
   }
 
   // The attributes the figure's markup sets on the figure itself; a redraw clears them before it writes the new ones.
@@ -84,13 +84,15 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
       figure.insertAdjacentHTML('beforeend', made.inner);
     }
     model.warnings.forEach(function (w) { console.warn('Basalt diagram: ' + w); });
-    if (model.motion.animated && model.motion.firstVisit && !figure.id) console.warn('Basalt diagram: "entrance": "first-visit" needs an id on the figure: without one the entrance plays on every visit');
+    // 5.1's first list is an error (the decider's ruling 1 on the re-check): console.error, and the figure is drawn as it would be anyway.
+    model.errors.forEach(function (e) { console.error('Basalt diagram: ' + e); });
+    if (model.motion.animated && model.motion.firstVisit && !figure.id) console.error('Basalt diagram: "entrance": "first-visit" needs an id on the figure: without one the entrance plays on every visit');
     var opts = options(base, spec, viewer);
     var state = {};
     var measured = null;
     var focusTrace = null, hoverTrace = null, touchTrace = null;
     var warned = Object.create(null);
-    var warn = function (m) { if (!warned[m]) { warned[m] = 1; console.warn('Basalt diagram: ' + m); } };
+    var warn = function (m, level) { if (!warned[m]) { warned[m] = 1; (level === 'error' ? console.error : console.warn)('Basalt diagram: ' + m); } };
     var apply = function (d) { syncAttributes(figure, figureTree(model, d, opts)); };
     var ink = figure.querySelector('.diagram-ink');
     var toggle = figure.querySelector('.diagram-toggle');

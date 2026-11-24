@@ -147,6 +147,14 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
   const [dirAt, setDirAt] = React.useState(0);
   // The reasons last warned when no direction draws (DECISIONS 322, rule 5): a new width with the same reasons is not a new warning.
   const autoWarned = React.useRef<string | null>(null);
+  // The errors this figure has reported, so each is said once for it.
+  const errored = React.useRef<Set<string> | null>(null);
+  const errorOnce = React.useCallback((message: string) => {
+    errored.current ??= new Set();
+    if (errored.current.has(message)) return;
+    errored.current.add(message);
+    console.error(`Basalt ${component}: ${message}`);
+  }, [component]);
   // The viewer's figure takes the placements this figure has (DECISIONS 306, 8.4: elk runs once a direction), loaded ones included (DECISIONS 322).
   const viewerSpec = React.useMemo<DiagramSpec>(() => (auto && !given.length && loaded ? { ...spec, placement: loaded } : spec), [auto, given, loaded, spec]);
   const placementFor = React.useCallback((k: number) => placements.find((p) => p.direction === order[k]), [placements, order]);
@@ -189,7 +197,9 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
   // Development only: a bundler that sets NODE_ENV to production drops this block, strings included.
   React.useEffect(() => {
     if (process.env.NODE_ENV !== "production") for (const w of model.warnings) warnOnce(component, w);
-    if (process.env.NODE_ENV !== "production" && model.motion.firstVisit && !props.id) warnOnce(component, 'entrance="first-visit" needs an id: without one the entrance plays on every visit');
+    // 5.1's first list is an error (the decider's ruling 1): console.error, once for this figure and the message; the figure is drawn as production draws it.
+    if (process.env.NODE_ENV !== "production") for (const e of model.errors) errorOnce(e);
+    if (process.env.NODE_ENV !== "production" && model.motion.firstVisit && !props.id) errorOnce('entrance="first-visit" needs an id: without one the entrance plays on every visit');
   }, [model, component, props.id]);
 
   const measure = React.useCallback(() => {
@@ -255,7 +265,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
       }
       if (pick !== dirAt) { setDirAt(pick); return; }
     }
-    const warn = process.env.NODE_ENV !== "production" ? (message: string) => warnOnce(component, message) : undefined;
+    const warn = process.env.NODE_ENV !== "production" ? (message: string, level?: "error") => (level === "error" ? errorOnce(message) : warnOnce(component, message)) : undefined;
     const apply = (d: Dyn) => syncAttributes(fig, figureTree(model, d, options));
     const result = (viewer ? viewer.measure : measureFigure)(fig, model, P, base, dynRef.current, apply, warn);
     // The text variant (1.2): the art where its widest line fits the block, the transcript otherwise; the art's module loads the first time.
@@ -294,7 +304,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     // A figure hidden (the viewer's list is open) was not measured: the viewer keeps the drawing's size and place it had. A text figure's art is in the DOM
     // only once React has written it, so its size is read after that (below).
     if (viewer && result.tokens && !model.text) viewer.onMeasured(result, fig);
-  }, [model, base, options, component, viewer, rtl, auto, given, loaded, placements, order, placementFor, dirAt, spec, textModule, transcriptHtml]);
+  }, [model, base, options, component, viewer, rtl, auto, given, loaded, placements, order, placementFor, dirAt, spec, textModule, transcriptHtml, errorOnce]);
 
   // The viewer's text figure (9.3): its size is read once React has written the art it measured, so the zoom fits the art and not the transcript.
   React.useLayoutEffect(() => {

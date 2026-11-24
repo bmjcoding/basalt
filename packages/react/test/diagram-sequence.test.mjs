@@ -150,14 +150,14 @@ createRoot(document.getElementById("root")).render(<B.SequenceDiagram id="text" 
     await page.close();
   });
 
-  test("the bars: a bar left open closes at its participant's last message; development errors for a deactivate with no bar, a fourth bar and frames", async () => {
+  test("the bars: a bar left open closes at its participant's last message; development errors (Model.errors, the figure's console.error) for a deactivate with no bar, a fourth bar and frames", async () => {
     const core = await import(pathToFileURL(path.join(pkg, "dist", "diagram-core.js")).href);
     const seq = (steps) => core.buildModel({ type: "sequence", title: "t", summary: "s", participants: [{ id: "a", name: "A" }, { id: "b", name: "B" }], steps });
     const open = seq([{ from: "a", to: "b", label: "1", activate: true }, { from: "a", to: "b", label: "2" }, { from: "b", to: "a", label: "3" }]);
     assert.deepEqual(open.bars.map((x) => [x.who, x.from, x.to]), [["b", 1, 3]]);
-    assert.ok(seq([{ from: "a", to: "b", label: "1", deactivate: true }]).warnings.some((w) => /closes a bar on a, which has none open/.test(w)));
-    assert.ok(seq([1, 2, 3, 4].map((n) => ({ from: "a", to: "b", label: String(n), activate: true }))).warnings.some((w) => /fourth bar/.test(w)));
-    assert.ok(seq([{ frame: "alt", branches: [{ label: "one", steps: [{ from: "a", to: "b", label: "x" }] }] }]).warnings.some((w) => /alt frame has one branch/.test(w)));
-    assert.ok(seq([{ frame: "opt", label: "o", steps: [{ frame: "opt", label: "p", steps: [{ frame: "opt", label: "q", steps: [{ from: "a", to: "b", label: "x" }] }] }] }]).warnings.some((w) => /third level/.test(w)));
+    assert.ok(seq([{ from: "a", to: "b", label: "1", deactivate: true }]).errors.some((w) => /closes a bar on a, which has none open/.test(w)));
+    assert.ok(seq([1, 2, 3, 4].map((n) => ({ from: "a", to: "b", label: String(n), activate: true }))).errors.some((w) => /fourth bar/.test(w)));
+    assert.ok(seq([{ frame: "alt", branches: [{ label: "one", steps: [{ from: "a", to: "b", label: "x" }] }] }]).errors.some((w) => /alt frame has one branch/.test(w)));
+    assert.ok(seq([{ frame: "opt", label: "o", steps: [{ frame: "opt", label: "p", steps: [{ frame: "opt", label: "q", steps: [{ from: "a", to: "b", label: "x" }] }] }] }]).errors.some((w) => /third level/.test(w)));
   });
 });

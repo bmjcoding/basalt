@@ -235,6 +235,8 @@ export interface Model {
   text?: boolean;
   /** A schema that draws cardinality marks (1.1): its column gap is space-12 plus space-3. */
   marks?: boolean;
+  /** 5.1's first list, in a development build: reported as errors (console.error), the figure drawn as production draws it. */
+  errors: string[];
 }
 
 const SIDES: DiagramSide[] = ["top", "right", "bottom", "left"];
@@ -272,6 +274,9 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   const checks = dev && options.checks !== false;
   const warnings: string[] = [];
   const warn = (message: string) => { warnings.push(message); };
+  // 5.1's first list (the decider's ruling 1 on the re-check): reported as an error, once for a figure, and the figure is drawn as production draws it.
+  const errors: string[] = [];
+  const error = (message: string) => { errors.push(message); };
   const legendIn = (spec.legend ?? {}) as Record<string, unknown>;
   const legend: DiagramLegend = {};
   for (const k of ["main", "plain", "dashed", "focal", "group", "activation"] as const) { const w = txt(legendIn[k]); if (w) legend[k] = w; }
@@ -325,9 +330,9 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       const depthOf = (g: (typeof raw)[number]): number => {
         if (!g.parent) return 1;
         const p = byGroup.get(g.parent);
-        if (!p) { dev && warn(`the group "${g.label}" names the parent "${g.parent}", which is not a group`); g.parent = undefined; return 1; }
-        if (p.parent === g.id || p.id === g.id) { dev && warn(`the groups "${g.label}" and "${p.label}" are each other's parent`); g.parent = undefined; return 1; }
-        if (p.parent) { dev && warn(`the group "${g.label}" is a third level: groups nest two deep`); g.parent = undefined; return 1; }
+        if (!p) { dev && error(`the group "${g.label}" names the parent "${g.parent}", which is not a group`); g.parent = undefined; return 1; }
+        if (p.parent === g.id || p.id === g.id) { dev && error(`the groups "${g.label}" and "${p.label}" are each other's parent`); g.parent = undefined; return 1; }
+        if (p.parent) { dev && error(`the group "${g.label}" is a third level: groups nest two deep`); g.parent = undefined; return 1; }
         return 2;
       };
       const depths = raw.map(depthOf);
@@ -361,22 +366,22 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       for (const s of list ?? []) {
         if (!s || typeof s !== "object") continue;
         if ("band" in s) {
-          if (depth > 0) dev && warn(`the band "${String(s.band)}" is inside a frame: a band is the whole figure's`);
+          if (depth > 0) dev && error(`the band "${String(s.band)}" is inside a frame: a band is the whole figure's`);
           steps.push({ band: String(s.band ?? "") });
           continue;
         }
         if ("frame" in s) {
-          if (depth >= 2) { dev && warn("a frame is a third level: frames nest two deep"); continue; }
+          if (depth >= 2) { dev && error("a frame is a third level: frames nest two deep"); continue; }
           const op = s.frame === "alt" || s.frame === "loop" || s.frame === "opt" ? s.frame : "opt";
           const branches = op === "alt" ? ((s as { branches?: Array<{ label: string; steps: SequenceStep[] }> }).branches ?? []) : [{ label: (s as { label: string }).label, steps: (s as { steps: SequenceStep[] }).steps }];
-          if (op === "alt" && branches.length < 2) dev && warn("an alt frame has one branch: it needs two or more");
+          if (op === "alt" && branches.length < 2) dev && error("an alt frame has one branch: it needs two or more");
           const label = String(branches[0]?.label ?? "");
-          if (label.length > 40) dev && warn(`the frame label "${label}" is over 40 characters`);
+          if (label.length > 40) dev && error(`the frame label "${label}" is over 40 characters`);
           const at = steps.length;
           steps.push({ open: op, label, depth: depth + 1, a: 0, b: 0 });
           branches.forEach((br, k) => {
-            if (k) { const l = String(br.label ?? ""); if (l.length > 40) dev && warn(`the frame label "${l}" is over 40 characters`); steps.push({ otherwise: l, depth: depth + 1 }); }
-            if (!br.steps?.length) dev && warn(`a frame or branch ("${String(br.label ?? "")}") is empty`);
+            if (k) { const l = String(br.label ?? ""); if (l.length > 40) dev && error(`the frame label "${l}" is over 40 characters`); steps.push({ otherwise: l, depth: depth + 1 }); }
+            if (!br.steps?.length) dev && error(`a frame or branch ("${String(br.label ?? "")}") is empty`);
             const [x, y] = walk(br.steps ?? [], depth + 1);
             a = Math.min(a, x); b = Math.max(b, y);
             const open = steps[at] as { a: number; b: number };
@@ -388,7 +393,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
         n++;
         const label = String(s.label ?? "");
         // A message's second line is its note (1.4): a break in its label is an error, and it is drawn on one line.
-        if (label.includes("\n")) dev && warn(`message ${n}'s label has a break: a message's second line is its note`);
+        if (label.includes("\n")) dev && error(`message ${n}'s label has a break: a message's second line is its note`);
         const from = String(s.from ?? ""), to = String(s.to ?? "");
         steps.push({ n, from, to, label: said(label), note: txt(s.note), kind: kindOf(s.kind, `message ${n}`), activate: s.activate === true || undefined, deactivate: s.deactivate === true || undefined });
         const ca = colOf.get(from) ?? 1, cb = colOf.get(to) ?? 1;
@@ -441,14 +446,14 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       const inside = nodes.filter((n) => !g.all.includes(n.id) && n.col >= c1 && n.col <= c2 && n.row >= r1 && n.row <= r2);
       if (inside.length) { unplaced = true; dev && warn(`the placement puts ${inside.map((n) => n.id).join(", ")} inside the box of the group "${g.label}", so it is not used`); }
     }
-  } else if (spec.layout === "auto") dev && warn(`layout="auto" is for an architecture, a flowchart or a schema, not a ${type}`);
+  } else if (spec.layout === "auto") dev && error(`layout="auto" is for an architecture, a flowchart or a schema, not a ${type}`);
   // Link cards (1.4): any card but a sequence's participant (its stacked chip has no room for a 44px target).
   const rawCards = (type === "schema" ? spec.tables : type === "sequence" ? spec.participants : spec.nodes) as Array<{ href?: unknown; target?: unknown }> | undefined;
   (rawCards ?? []).forEach((raw, k) => {
     if (!raw || raw.href === undefined || raw.href === null) return;
     const href = String(raw.href);
-    if (type === "sequence") { dev && warn(`${nodes[k]?.id}: a participant cannot be a link (href)`); return; }
-    if (!href.trim()) { dev && warn(`${nodes[k]?.id}'s href is empty`); return; }
+    if (type === "sequence") { dev && error(`${nodes[k]?.id}: a participant cannot be a link (href)`); return; }
+    if (!href.trim()) { dev && error(`${nodes[k]?.id}'s href is empty`); return; }
     const n = nodes[k];
     if (n) { n.href = href; n.blank = raw.target === "_blank"; }
   });
@@ -465,16 +470,16 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       if (v === undefined || v === null) return undefined;
       const o = v as { from?: unknown; to?: unknown };
       const from = CARDS.includes(o.from as DiagramCardinality) ? (o.from as DiagramCardinality) : undefined;
-      if (!from) { dev && warn(`${where}'s cardinality "from" is ${JSON.stringify(o.from)}, not one, zero-or-one, one-or-many or zero-or-many: it is left out`); return undefined; }
+      if (!from) { dev && error(`${where}'s cardinality "from" is ${JSON.stringify(o.from)}, not one, zero-or-one, one-or-many or zero-or-many: it is left out`); return undefined; }
       if (o.to === undefined || o.to === null) return { from, to: "one" };
       if (o.to === "one" || o.to === "zero-or-one") return { from, to: o.to };
       // A foreign key points at one row at most.
-      dev && warn(`${where}'s cardinality "to" is ${JSON.stringify(o.to)}: a foreign key references one row at most (one or zero-or-one), so it is drawn as one`);
+      dev && error(`${where}'s cardinality "to" is ${JSON.stringify(o.to)}: a foreign key references one row at most (one or zero-or-one), so it is drawn as one`);
       return { from, to: "one" };
     };
     (spec.tables ?? []).forEach((t) => (t.columns ?? []).forEach((c, k) => {
       const ref = txt(c.references);
-      if (!ref && c.cardinality !== undefined && c.cardinality !== null) dev && warn(`${String(t.name)}.${String(c.name)} states a cardinality but references nothing`);
+      if (!ref && c.cardinality !== undefined && c.cardinality !== null) dev && error(`${String(t.name)}.${String(c.name)} states a cardinality but references nothing`);
       if (!ref) return;
       const [table, column] = ref.split(".");
       const target = byId.get(table ?? "");
@@ -488,15 +493,15 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     }));
     // All of a figure's foreign keys state how many, or none (1.1). In production an unstated line draws as today, and the key shows both.
     const stated = edges.filter((e) => e.card).length;
-    if (stated && stated < edges.length) dev && warn(`cardinality is stated on ${stated} of ${edges.length} foreign keys: state it on every one or none (${edges.filter((e) => !e.card).map((e) => `${e.from}.${byId.get(e.from)!.columns![e.fromRow!]!.name}`).join(", ")} ${edges.length - stated === 1 ? "has" : "have"} none)`);
+    if (stated && stated < edges.length) dev && error(`cardinality is stated on ${stated} of ${edges.length} foreign keys: state it on every one or none (${edges.filter((e) => !e.card).map((e) => `${e.from}.${byId.get(e.from)!.columns![e.fromRow!]!.name}`).join(", ")} ${edges.length - stated === 1 ? "has" : "have"} none)`);
   } else if (type !== "sequence") {
     for (const e of spec.edges ?? []) {
       const from = String(e.from ?? ""), to = String(e.to ?? "");
       if (!byId.has(from) || !byId.has(to)) { dev && warn(`a line names ${!byId.has(from) ? from : to}, which is not a node`); continue; }
       const label = txt(e.label);
       const lines = label?.split("\n") ?? [];
-      if (lines.length > 2) dev && warn(`the label "${said(label!)}" has more than one break: a label is two lines at most`);
-      if (lines.some((l) => l.length > MAX_LABEL)) dev && warn(`a line of the label "${said(label!)}" is over ${MAX_LABEL} characters: longer words belong in the node or the summary`);
+      if (lines.length > 2) dev && error(`the label "${said(label!)}" has more than one break: a label is two lines at most`);
+      if (lines.some((l) => l.length > MAX_LABEL)) dev && error(`a line of the label "${said(label!)}" is over ${MAX_LABEL} characters: longer words belong in the node or the summary`);
       edges.push({ i: edges.length, from, to, kind: kindOf(e.kind, `the line from ${from} to ${to}`), label, fromSide: sideOf(e.fromSide), toSide: sideOf(e.toSide), flow: type !== "flowchart" && (e as DiagramFlowEdge).flow === true ? true : undefined });
     }
   } else if (dev) {
@@ -563,13 +568,13 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       if (!("n" in st)) continue;
       if (st.activate) {
         const stack = open.get(st.to) ?? [];
-        if (stack.length >= 3) dev && warn(`message ${st.n} opens a fourth bar on ${st.to}: three deep at most`);
+        if (stack.length >= 3) dev && error(`message ${st.n} opens a fourth bar on ${st.to}: three deep at most`);
         else { const bar = { who: st.to, from: st.n, to: st.n, depth: stack.length + 1 }; stack.push(bar); bars.push(bar); open.set(st.to, stack); }
       }
       if (st.deactivate) {
         const stack = open.get(st.from);
         const top = stack?.pop();
-        if (!top) dev && warn(`message ${st.n} closes a bar on ${st.from}, which has none open`);
+        if (!top) dev && error(`message ${st.n} closes a bar on ${st.from}, which has none open`);
         else top.to = st.n;
       }
     }
@@ -590,7 +595,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     cols = Math.max(1, placed?.cols ?? 1, ...nodes.map((n) => n.col));
   }
   const rows = type === "data-flow" ? Math.max(1, lanes.length) : Math.max(1, placed?.rows ?? 1, ...nodes.map((n) => n.row2));
-  const model: Model = { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, bars, frameWords, cols, rows, shapeLabels, stepWord, warnings, motion, memo: new Map(), rtl: options.rtl || undefined, unplaced: unplaced || undefined, text: (type === "sequence" && spec.variant === "text") || undefined, marks: edges.some((e) => e.card) || undefined };
+  const model: Model = { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, bars, frameWords, cols, rows, shapeLabels, stepWord, warnings, errors, motion, memo: new Map(), rtl: options.rtl || undefined, unplaced: unplaced || undefined, text: (type === "sequence" && spec.variant === "text") || undefined, marks: edges.some((e) => e.card) || undefined };
   if (spec.layout === "auto" && !unplaced && type !== "schema") chooseSides(model);
   if (checks) for (const [id, h0] of Object.entries(portFloors(model))) if (h0 >= 48) warn(`${id} grows to ${h0}px to hold the lines on one side: use another side`);
   // A figure with no cells yet (an automatic one before its placement) has no spatial keys to check.
@@ -2838,7 +2843,7 @@ export interface Measured { dyn: Dyn; geo: Geo | null; ink: string; tokens: Toke
  * word, every label seats and no line passes through a node; otherwise the stack. `apply` writes a state into the DOM (the same markup the
  * tree gives for it), so each try is measured as it would be drawn.
  */
-export function measureFigure(fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn?: (s: string) => void, sizeTo?: (least: number) => void): Measured {
+export function measureFigure(fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn?: (s: string, level?: "error") => void, sizeTo?: (least: number) => void): Measured {
   // Development only (the warnings): first, so a minifier sees it is a constant and drops what it guards.
   const dev = process.env.NODE_ENV !== "production";
   const drawing = fig.querySelector<HTMLElement>(`.${P}-drawing`);
@@ -2964,7 +2969,7 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     if (geo.unseated.length) dev && warn?.(`the stacked drawing has no clean seat for ${[...new Set(geo.unseated)].map((k) => `"${said(m.edges[k]?.label ?? "")}"`).join(", ")}, so its lines are not drawn; the list holds every connection`);
     if (geo.through.length) dev && warn?.(`in the stacked drawing ${names(geo, geo.through)} would pass through a node, so its lines are not drawn`);
     if (geo.outside.length) dev && warn?.(`in the stacked drawing ${names(geo, geo.outside)} would leave the drawing, so its lines are not drawn`);
-    if (dev && plan.third) warn?.("the stacked drawing would need a fifth end lane, so its lines are not drawn");
+    if (dev && plan.third) warn?.("the stacked drawing would need a fifth end lane, so its lines are not drawn", "error");
     // Dressed as where scripting is off (1.13): no line in the key, no key hint, no stops, and the list open when the figure becomes bare.
     const bare: Geo = { ...geo, lines: [], labels: [], crossings: [] };
     const dyn = stopOf({ ...d, grow: record(), bare: true, open: current.bare ? current.open : true, autoOpen: current.bare ? current.autoOpen : current.open ? undefined : true });
