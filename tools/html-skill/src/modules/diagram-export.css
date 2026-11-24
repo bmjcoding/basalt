@@ -1,0 +1,10 @@
+@layer basalt {
+  /* A download that made no file says so (diagrams-cimip ruling 2): one line under the foot's buttons, the last thing in the foot on a row of its own,
+     space-2 under them (the foot's own gap). text-xs at 400 in secondary ink, balanced, wrapped and never cut. No icon, no colour, no rim: the words carry it.
+     In the viewer it is last in the controls' row, on the end edge, under the buttons it answers. */
+  .diagram-export-note { flex: 0 0 100%; margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); text-wrap: balance; }
+  .diagram-viewer-row > .diagram-export-note { text-align: end; }
+  @media (forced-colors: active) {
+    .diagram-export-note { color: CanvasText; }
+  }
+}

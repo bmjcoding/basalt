@@ -2026,6 +2026,7 @@ over its lifeline; a stacked chip draws the mark before the name.
   runs; named sides swap; the arrow keys stay physical; the text art stays left to right.
 - Export: a linked card's arrow is not drawn in a file. A PNG is drawn through an image, so under a content policy `img-src` must allow
   `blob:` or `data:`; where it allows neither, `diagramToPng` rejects with an error that says so and no file is made (the SVG needs neither).
+  The skill's "Download PNG" then says so in a note under the foot's buttons and is switched off; the console names the `img-src` to allow.
   A figure that is not displayed cannot be measured: the promise rejects with an error that says so and no file is made.
 
 ### Diagram tokens

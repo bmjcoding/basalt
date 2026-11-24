@@ -1,0 +1,1 @@
+@layer basalt{.diagram-export-note{flex:0 0 100%;margin:0;color:var(--basalt-text-secondary);font:var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);text-wrap:balance}.diagram-viewer-row>.diagram-export-note{text-align:end}@media(forced-colors:active){.diagram-export-note{color:CanvasText}}}

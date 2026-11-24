@@ -281,14 +281,16 @@ async function drawable(svg: string): Promise<{ source: CanvasImageSource; done:
       return { source: img, done };
     } catch { done(); }
   }
-  throw new Error("Basalt diagramToPng: the PNG could not be drawn. A canvas draws the figure's SVG through an image, and this page refused it both as a blob: URL and as a data: URL: a content policy allows them with `img-src 'self' blob:` (or `data:`). diagramToSvg needs neither");
+  // Named, so a caller can tell the page's policy from any other failure without reading the words (the skill's note, diagrams-cimip ruling 2).
+  throw Object.assign(new Error("Basalt diagramToPng: the PNG could not be drawn. A canvas draws the figure's SVG through an image, and this page refused it both as a blob: URL and as a data: URL: a content policy allows them with `img-src 'self' blob:` (or `data:`). diagramToSvg needs neither"), { name: "DiagramPolicyError" });
 }
 
 /**
  * The figure as a PNG file, at `scale` (2 by default), always drawn with the faces embedded.
  *
  * A canvas draws SVG only through an image: under a `Content-Security-Policy`, `img-src` must allow `blob:` or `data:` (where the browser decodes an SVG
- * Blob with `createImageBitmap`, neither is needed). Where the page allows neither, the promise rejects with an error that says so, and no file is made.
+ * Blob with `createImageBitmap`, neither is needed). Where the page allows neither, the promise rejects with an error that says so (its `name` is
+ * "DiagramPolicyError"), and no file is made.
  * A figure that is not displayed rejects too, and no file is made.
  */
 export async function diagramToPng(figure: HTMLElement, options: DiagramExportOptions = {}): Promise<Blob> {
