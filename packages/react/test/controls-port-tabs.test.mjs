@@ -49,13 +49,15 @@ describe("D12: link tabs", () => {
     for (const link of await page.getByRole("link").all()) assert.equal(await link.evaluate((el) => el.tabIndex), 0);
   });
 
-  test("heights 36, 48 and 56; 16px text from 48; 24px between two labels; the first has no start padding", async () => {
-    for (const [size, h, font] of [["", 36, "13px"], ['size="3xl"', 48, "16px"], ['size="5xl"', 56, "16px"]]) {
+  test("heights 36, 48 and 56; 16px text from 48; 24px between two labels; every link keeps its padding and the first label is on the content edge (DECISIONS 358)", async () => {
+    for (const [size, h, font, pad] of [["", 36, "13px", 8], ['size="3xl"', 48, "16px", 10], ['size="5xl"', 56, "16px", 10]]) {
       const { page } = await open(LINKS(size), DESKTOP);
       const links = page.getByRole("link");
       assert.equal((await box(links.nth(1))).height, h, size);
       assert.equal((await css(links.nth(1), "fontSize")).fontSize, font);
-      assert.equal((await css(links.nth(0), "paddingLeft")).paddingLeft, "0px", "the first link's label is on the content edge");
+      assert.equal((await css(links.nth(0), "paddingLeft")).paddingLeft, `${pad}px`, "the first link keeps its padding");
+      assert.equal((await box(links.nth(0).locator(".basalt-link-tab-label"))).x, 16, "the first link's label is on the content edge");
+      assert.equal((await box(links.nth(0))).x, 16 - pad, "its box hangs into the padding by its own padding");
       if (size) {
         const [a, b] = [await box(links.nth(1).locator(".basalt-link-tab-label")), await box(links.nth(2).locator(".basalt-link-tab-label"))];
         assert.equal(b.x - (a.x + a.width), 24, "24px between two labels");

@@ -949,15 +949,35 @@
     position: relative;
     display: flex;
     gap: var(--basalt-space-1);
-    box-shadow: inset 0 calc(-1 * var(--basalt-size-hairline)) 0 var(--basalt-border-divider);
   }
 
-  /* An icon in a tab sits on the label's centre line, 6px before it, as it does in a button. */
+  /* The horizontal bar hangs as a ghost control at an edge does (DECISIONS 358): the first label sits on the content line and every tab's box
+     hangs into the padding by its own inline padding (--_px), narrowed only where a box declares less room than that padding and the ring's
+     4 (--_room), so the ring at +2 always keeps 4. The divider starts on the content line (it is ::before, from the hang) and ends at the box's
+     end. Logical properties only, so right to left mirrors. */
+  .basalt-tabs-list:not([data-orientation="vertical"]) {
+    --_px: var(--basalt-space-2);
+    --_room: calc(var(--basalt-size-focus-width) + var(--basalt-size-focus-offset));
+    --_hang: min(var(--_px), calc(var(--basalt-edge-room-start, calc(var(--_px) + var(--_room))) - var(--_room)));
+    margin-inline-start: calc(-1 * var(--_hang));
+  }
+  .basalt-tabs-list:not([data-orientation="vertical"])::before {
+    content: "";
+    position: absolute;
+    inset-inline: var(--_hang) 0;
+    bottom: 0;
+    height: var(--basalt-size-hairline);
+    background: var(--basalt-border-divider);
+    pointer-events: none;
+  }
+
+  /* An icon in a tab sits on the label's centre line, 6px before it, as it does in a button. The content starts at the tab's start, so a short
+     label drawn 44 wide on touch stays on the line. */
   .basalt-tab {
     position: relative;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: var(--basalt-space-1-5);
     height: var(--_basalt-control-lg, var(--basalt-size-control-lg));
     padding: 0 var(--basalt-space-2);
@@ -981,12 +1001,14 @@
   .basalt-tab[data-active] { color: var(--basalt-text-primary); }
   .basalt-tab[data-disabled] { color: var(--basalt-text-disabled); cursor: not-allowed; }
 
-  /* The active tab in a horizontal bar is marked by a 2px underline (shape, not only colour) that slides between tabs. */
+  /* The active tab in a horizontal bar is marked by a 2px underline (shape, not only colour) that slides between tabs. It is as wide as the
+     chosen tab's content (its label, icon and count), never its padding (DECISIONS 358): --_line-left and --_line-right are the chosen tab's
+     physical insets to its content, measured by TabsList; until they are, the tab's padding stands in. */
   .basalt-tabs-indicator {
     position: absolute;
     bottom: 0;
-    left: var(--active-tab-left);
-    width: var(--active-tab-width);
+    left: calc(var(--active-tab-left) + var(--_line-left, var(--_px)));
+    width: calc(var(--active-tab-width) - var(--_line-left, var(--_px)) - var(--_line-right, var(--_px)));
     height: var(--basalt-size-indicator);
     background: var(--basalt-text-primary);
     transition-property: left, width;
@@ -1024,7 +1046,6 @@
     padding: var(--basalt-space-1);
     border-radius: var(--basalt-radius-lg);
     background: var(--basalt-surface-sunken-strong);
-    box-shadow: none;
   }
   .basalt-tabs-list[data-orientation="vertical"] .basalt-tab {
     display: flex;
@@ -1048,6 +1069,7 @@
      underline is the same 2px element as at 36. */
   .basalt-tabs[data-size="3xl"] > .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab { height: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); }
   .basalt-tabs[data-size="5xl"] > .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab { height: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); }
+  .basalt-tabs:is([data-size="3xl"], [data-size="5xl"]) > .basalt-tabs-list:not([data-orientation="vertical"]) { --_px: var(--basalt-space-2-5); }
   .basalt-tabs:is([data-size="3xl"], [data-size="5xl"]) > .basalt-tabs-list:not([data-orientation="vertical"]) .basalt-tab {
     padding-inline: var(--basalt-space-2-5);
     border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0;
@@ -1073,18 +1095,33 @@
 
   /* ---- Link tabs (DECISIONS 154, D12) ----
      A nav of links on a hairline. The current link is its label at 600 in primary ink (400 in secondary at rest, each label reserving its 600 width, as a tab's
-     does: decisions 138 and 149) with a 2px underline: a real element (so forced colours keep it), static, not sliding. Focus is the control ring at +2 outside the link, never an inset outline. Padding is 8 either side at 36, 10 at 48 and 56 (24px
-     between two labels), the gap 4 and the first link has no padding at its start. Hover lifts the ink. */
+     does: decisions 138 and 149) with a 2px underline as wide as its content: a real element (so forced colours keep it), static, not sliding. Focus is the control ring at +2 outside the link, never an inset outline. Padding is 8 either side at 36, 10 at 48 and 56 (24px
+     between two labels), on every link, and the gap 4. The row hangs as Tabs' does (DECISIONS 358): each line's first label sits on the content line and every link's box hangs into
+     the padding by its own padding (--_px), narrowed only where a box declares less room than that and the ring's 4; the divider starts on the content line. Hover lifts the ink. */
   .basalt-link-tabs { margin: 0; padding: 0; }
   .basalt-link-tabs > ul {
+    --_px: var(--basalt-space-2);
+    --_room: calc(var(--basalt-size-focus-width) + var(--basalt-size-focus-offset));
+    --_hang: min(var(--_px), calc(var(--basalt-edge-room-start, calc(var(--_px) + var(--_room))) - var(--_room)));
+    position: relative;
     display: flex;
     flex-wrap: wrap;
     gap: 0 var(--basalt-space-1);
     margin: 0;
+    margin-inline-start: calc(-1 * var(--_hang));
     padding: 0;
     list-style: none;
-    box-shadow: inset 0 calc(-1 * var(--basalt-size-hairline)) 0 var(--basalt-border-divider);
   }
+  .basalt-link-tabs > ul::before {
+    content: "";
+    position: absolute;
+    inset-inline: var(--_hang) 0;
+    bottom: 0;
+    height: var(--basalt-size-hairline);
+    background: var(--basalt-border-divider);
+    pointer-events: none;
+  }
+  .basalt-link-tabs:is([data-size="3xl"], [data-size="5xl"]) > ul { --_px: var(--basalt-space-2-5); }
   .basalt-link-tab {
     --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg));
     position: relative;
@@ -1112,8 +1149,7 @@
   @container (width < 640px) {
     .basalt-link-tabs[data-size="5xl"] .basalt-link-tab { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); }
   }
-  .basalt-link-tabs > ul > li:first-child > .basalt-link-tab { padding-inline-start: 0; }
-  .basalt-link-tab-line { position: absolute; inset-inline: 0; bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-text-primary); opacity: 0; pointer-events: none; }
+  .basalt-link-tab-line { position: absolute; inset-inline: var(--_px); bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-text-primary); opacity: 0; pointer-events: none; }
   .basalt-link-tab[aria-current] { color: var(--basalt-text-primary); }
   .basalt-link-tab[aria-current] > .basalt-link-tab-line { opacity: 1; }
   @media (hover: hover) {
