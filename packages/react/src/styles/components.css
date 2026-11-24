@@ -4170,7 +4170,8 @@
 
   .basalt-code-pre {
     margin: 0;
-    padding: var(--basalt-space-3) var(--basalt-space-12) var(--basalt-space-3) var(--basalt-space-4);
+    padding-block: var(--basalt-space-3);
+    padding-inline: var(--basalt-space-4) var(--basalt-space-12);
     overflow-x: auto;
     font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-size-code-line-height) var(--basalt-font-family-mono);
     white-space: pre;
@@ -4178,7 +4179,7 @@
     outline: none;
   }
 
-  .basalt-code[data-titled] .basalt-code-pre { padding-right: var(--basalt-space-4); }
+  .basalt-code[data-titled] .basalt-code-pre { padding-inline-end: var(--basalt-space-4); }
   /* wrap: a long line breaks at a space and nowhere else. Each run between spaces is a word that never breaks inside (white-space: nowrap on the word;
      the break between a space and the next word belongs to the line, which wraps), so a flag, a path or a hyphenated name stays whole; a word longer than
      the line still scrolls the block sideways. With no prompt each line is a row whose continuation is indented 2ch; beside a prompt the gutter marks a line. */
