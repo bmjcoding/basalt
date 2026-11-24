@@ -570,8 +570,9 @@ describe("the top edge", () => {
   });
   // The window scrolled by the reader, then the frame after it (the edge runs in the scroll callback).
   const scrollTo = async (page, y) => { await page.evaluate((y) => { document.querySelector(".basalt-run-steps-window").scrollTop = y; }, y); await frames(page); };
-  // Today's edge on the same page: no mask anywhere. A picture taken with this on is today's, pixel for pixel.
-  const TODAY = ".basalt-run-step { mask-image: none !important; }";
+  // Today's edge on the same page: no mask on the timeline's box, its window or anything in it, so a stale mask on the window (the decision as first
+  // written) would show as a difference too. A picture taken with this on is today's, pixel for pixel.
+  const TODAY = ".basalt-run-steps-box, .basalt-run-steps-box * { mask-image: none !important; }";
   const shot = (page, clip) => pixels(page, clip);
   const winClip = (page) => page.evaluate(() => { const r = document.querySelector(".basalt-run-steps-window").getBoundingClientRect(); const x = Math.floor(r.left); const y = Math.floor(r.top); return { x, y, width: Math.ceil(r.right) - x, height: Math.ceil(r.bottom) - y }; });
   // The hold stills the running ring and hides its running time, so two pictures of the same frame can be compared.
@@ -622,6 +623,7 @@ describe("the top edge", () => {
       await hold(page);
       const runningTop = await page.evaluate(() => document.querySelector(".basalt-run-step[data-state=running]").offsetTop - document.querySelector(".basalt-run-steps").offsetTop);
       await scrollTo(page, runningTop + 13);
+      assert.equal(await page.evaluate(() => { const w = document.querySelector(".basalt-run-steps-window"); return Math.round(w.getBoundingClientRect().top - document.querySelector(".basalt-run-step[data-state=running]").getBoundingClientRect().top); }), 13, "the running row is 13px above the edge");
       assert.deepEqual(await edgeState(page), { cut: [], masked: [] });
       const ink = () => page.evaluate(() => { const li = document.querySelector(".basalt-run-step[data-state=running]"); const s = getComputedStyle(li.querySelector(".basalt-run-step-sentence")); return [s.color, getComputedStyle(li).maskImage, getComputedStyle(li.querySelector(".basalt-run-step-line")).opacity]; });
       const clip = await winClip(page);
@@ -675,18 +677,39 @@ describe("the top edge", () => {
           const now = [await shot(page, top), await shot(page, side)];
           const today = await withToday(page, async () => [await shot(page, top), await shot(page, side)]);
           assert.deepEqual(now, today);
+          // And the ring is drawn: the middle of the top band's ring row (offset 2, width 2: the band's first two CSS rows; this samples its second, 3px above the window) is the focus colour.
+          const focus = await page.evaluate(() => { const p = document.createElement("span"); p.style.color = "var(--basalt-border-focus)"; document.body.append(p); const c = getComputedStyle(p).color.match(/[\d.]+/g).slice(0, 3).map(Number); p.remove(); return c; });
+          const dpr = await page.evaluate(() => devicePixelRatio);
+          const ring = now[0][Math.floor(dpr) * Math.round(top.width * dpr) + Math.round((top.width * dpr) / 2)];
+          assert.ok(ring.every((c, i) => Math.abs(c - focus[i]) <= 3), `the ring pixel ${ring} is the focus colour ${focus}`);
         } finally { if (b !== browser) await b.close(); }
       });
     }
   }
 
-  // 5.
-  for (const [name, initial, vw, w] of [["the finding rolls", SHIPPED().slice(0, 7), 390, 390], ["the approval with its detail rolls", SHIPPED(), 1440, 1000]]) {
+  // 5. Both landings at 1440, where no full row wraps (the decision's fixtures: the finding lands with the failed row cut at depth 3, 10px; the
+  // approval and its detail land with a passed row cut at depth 5, 4px). The landing is read in the task that ends the roll: a MutationObserver's
+  // callback runs straight after the handler that takes data-rolling away, before any scroll callback could repair a missing update.
+  for (const [name, initial, expected] of [["the finding rolls", SHIPPED().slice(0, 7), { cut: "10px", depth: "3", state: "failed" }], ["the approval with its detail rolls", SHIPPED(), { cut: "4px", depth: "5", state: "success" }]]) {
     test(`5. ${name}: the card's bottom moves 0px, no row is masked while it rolls, and on the landing frame the new cut row has its --_cut`, async () => {
-      const page = await open(APP({ width: w }), { initial, width: vw });
+      const page = await open(APP({ width: 1000 }), { initial, width: 1440 });
       const bottom = () => page.evaluate(() => document.querySelector("#after").getBoundingClientRect().top);
       const was = await bottom();
       const clock = await freezeAnimations(page);
+      await page.evaluate(() => {
+        const win = document.querySelector(".basalt-run-steps-window");
+        let seen = false;
+        window.__landed = new Promise((resolve) => {
+          const observer = new MutationObserver(() => {
+            if (win.hasAttribute("data-rolling")) { seen = true; return; }
+            if (!seen) return;
+            observer.disconnect();
+            const top = win.getBoundingClientRect().top;
+            resolve([...document.querySelectorAll(".basalt-run-step")].filter((li) => li.hasAttribute("data-cut")).map((li) => ({ cut: li.style.getPropertyValue("--_cut"), visible: Math.round((li.getBoundingClientRect().bottom - top) * 100) / 100, depth: li.dataset.depth, state: li.dataset.state, mask: getComputedStyle(li).maskImage })));
+          });
+          observer.observe(win, { attributes: true, attributeFilter: ["data-rolling"] });
+        });
+      });
       await page.evaluate((s) => window.add(s), POST);
       let rolled = false;
       for (let t = 0; t < 400; t += 25) {
@@ -696,13 +719,15 @@ describe("the top edge", () => {
         assert.equal(await bottom(), was, `${t}ms: the card's bottom`);
       }
       assert.ok(rolled, "the change rolled");
+      const landed = await page.evaluate(() => window.__landed);
+      assert.equal(landed.length, 1, `one marked row on the landing: ${JSON.stringify(landed)}`);
+      const [row] = landed;
+      assert.deepEqual({ cut: row.cut, depth: row.depth, state: row.state }, expected);
+      assert.ok(Math.abs(Number.parseFloat(row.cut) - row.visible) < 0.5, `the band is the row's visible height: ${JSON.stringify(row)}`);
+      assert.match(row.mask, new RegExp(`linear-gradient\\(to top, .+ ${row.cut}\\)`), "its mask paints on the landing");
       await clock.thaw();
       await settle(page);
-      await frames(page);
-      const s = await edgeState(page);
       assert.equal(await bottom(), was);
-      for (const c of s.cut) assert.ok(Math.abs(Number.parseFloat(c.cut) - c.visible) < 0.5, JSON.stringify(s));
-      assert.deepEqual(s.masked, s.cut.map((c) => c.i));
     });
   }
 
@@ -745,14 +770,22 @@ describe("the top edge", () => {
     await settle(page);
     await page.evaluate(() => { window.__win.scrollTop = 7; });
     await frames(page);
-    const top = await page.evaluate(() => window.__win.scrollTop);
-    await page.evaluate(() => { window.KEEP = 2; window.set((all) => [...all]); });
+    const top = () => page.evaluate(() => window.__win.scrollTop);
+    assert.equal(await top(), 7, "the reader's scroll took");
+    for (const keep of [2, 3]) {
+      await page.evaluate((keep) => { window.KEEP = keep; window.set((all) => [...all]); }, keep);
+      await settle(page);
+      assert.deepEqual({ ...(await same()), atEnd: undefined }, { node: true, focus: true, atEnd: undefined }, `keep changed to ${keep}`);
+      assert.equal(await top(), 7, `its scrollTop is kept at keep ${keep}`);
+    }
+    for (const click of [1, 2]) { await page.locator(".basalt-run-steps-toggle").click(); await settle(page); assert.equal((await same()).node, true, `toggle ${click}`); }
+    // keep={false} is the whole record with no window (the shipped rule, above): the window goes, and comes back clean, at its end, with a toggle.
+    await page.evaluate(() => { window.KEEP = false; window.set((all) => [...all]); });
     await settle(page);
-    assert.deepEqual({ ...(await same()), atEnd: undefined }, { node: true, focus: true, atEnd: undefined }, "keep changed");
+    assert.equal(await page.locator(".basalt-run-steps-window, .basalt-run-steps-toggle-line").count(), 0, "keep={false}: no window");
     await page.evaluate(() => { window.KEEP = 3; window.set((all) => [...all]); });
     await settle(page);
-    assert.equal(await page.evaluate(() => window.__win.scrollTop), top, "its scrollTop is kept");
-    for (const click of [1, 2]) { await page.locator(".basalt-run-steps-toggle").click(); await settle(page); assert.equal((await same()).node, true, `toggle ${click}`); }
+    assert.deepEqual(await page.evaluate(() => { const w = document.querySelector(".basalt-run-steps-window"); return [!!w, w.scrollHeight - w.scrollTop - w.clientHeight <= 2, !!document.querySelector(".basalt-run-steps-toggle"), document.querySelectorAll(".basalt-run-step[data-cut]").length <= 1]; }), [true, true, true, true], "back to keep 3");
     assert.deepEqual(page.errors, []);
   });
 
@@ -786,9 +819,14 @@ describe("the top edge", () => {
             const win = document.querySelector(".basalt-run-steps-window");
             const list = win.firstElementChild;
             win.scrollTop = to === "running" ? document.querySelector(".basalt-run-step[data-state=running]").offsetTop - list.offsetTop + 3 : win.scrollHeight;
-            const r = document.querySelector(".basalt-run-step[data-cut]").getBoundingClientRect();
-            return { top: r.top, bottom: r.bottom };
+            window.__marked = document.querySelector(".basalt-run-step[data-cut]");
+            const r = window.__marked.getBoundingClientRect();
+            const w = win.getBoundingClientRect();
+            const running = document.querySelector(".basalt-run-step[data-state=running]");
+            return { top: r.top, bottom: r.bottom, arriving: running ? Math.round(w.top - running.getBoundingClientRect().top) : null, atEnd: win.scrollHeight - win.scrollTop - win.clientHeight <= 1 };
           }, to);
+          if (to === "running") assert.equal(box.arriving, 3, `${name}: the running row is 3px past the edge`);
+          else assert.equal(box.atEnd, true, `${name}: the jump landed at the end`);
           await frames(page);
           const clip = await winClip(page);
           const stale = await shot(page, clip);
@@ -799,6 +837,7 @@ describe("the top edge", () => {
           const rowOf = (n) => clip.y + Math.floor(n / width) / dpr;
           const differs = stale.map((p, n) => (p.join() === today[n].join() ? null : rowOf(n))).filter((y) => y !== null && !(y >= box.top && y < box.bottom));
           assert.deepEqual(differs, [], `${name}: no pixel differs outside the marked row`);
+          assert.deepEqual(await page.evaluate(() => [window.__marked.hasAttribute("data-cut"), document.querySelectorAll(".basalt-run-step[data-cut]").length, window.__marked === document.querySelectorAll(".basalt-run-step")[0]]), [true, 1, true], `${name}: the first row stayed marked through both pictures (the edge did not run)`);
           await page.evaluate(() => { document.removeEventListener("scroll", window.__stop, true); document.querySelector(".basalt-run-steps-window").dispatchEvent(new Event("scroll")); });
           await frames(page);
           const settled = await edgeState(page);
