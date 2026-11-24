@@ -7,12 +7,20 @@ const chart = { title: "T" + p(1), source: "S" + p(2), kind: "bar", unit: "u" + 
 const line = { ...chart, kind: "line", series: [{ id: "x", name: "L1" + p(45), values: [1, 2, 3] }, { id: "y", name: "L2" + p(46), values: [3, null, 1], reasons: [null, "r" + p(47), null] }] };
 const spark = { label: "Req" + p(10), data: [1, 2, 3] }; const sparkEmpty = { label: "E" + p(48), data: [], empty: "none" + p(11) };
 const commands = { groups: [{ label: "G" + p(29), items: [{ id: "i" + a(49), label: "New" + p(30), icon: "TerminalWindow", description: "D" + p(31), keys: ["⌘", "N" + p(28)], keywords: ["k" + p(50)], hint: "h" + p(25) }, { id: "r", label: "Ren", href: "#r" + a(51), icon: "Nope" + a(27) }] }] };
+const diagram = { type: "architecture", title: "D" + p(81), summary: "S" + p(82), legend: { main: "M" + p(83), plain: "P" + p(84), dashed: "Dd" + p(85), focal: "F" + p(86) },
+  groups: [{ id: "g" + a(87), label: "G" + p(88) }],
+  nodes: [{ id: "a", kind: "K" + p(89), name: "A" + p(90), col: 1, row: 1, group: "g" + a(87) }, { id: "b", name: "B" + p(91), detail: "dt" + p(92), focal: true, col: 2, row: 1 }],
+  edges: [{ from: "a", to: "b", kind: "main" }] };
+const textSequence = { type: "sequence", variant: "text", export: true, title: "TX" + p(93), source: "So" + p(94), summary: "Su" + p(95), legend: { main: "LM" + p(96) },
+  participants: [{ id: "a", name: "PA" + p(97) }, { id: "b", name: "PB" + p(98) }], steps: [{ from: "a", to: "b", label: "Msg" + p(99), note: "Nt" + p(100) }, { frame: "opt", label: "Fr" + p(101), steps: [{ from: "b", to: "a", label: "Back" + p(102) }] }] };
 export const hostileBody = () => `<title>xss probe</title>
 <script>window.__hits=[];window.__x=function(n){window.__hits.push(n)};</script>
 <h1>Probe</h1>
 <figure class="chart"><script type="application/json" data-chart>${JSON.stringify(chart)}</script></figure>
 <figure class="chart"><script type="application/json" data-chart>${JSON.stringify(line)}</script></figure>
 <div class="sparkline"><script type="application/json" data-sparkline>${JSON.stringify(spark)}</script></div>
+<figure class="diagram"><script type="application/json" data-diagram>${JSON.stringify(diagram).replace(/</g, "\\u003c")}</script></figure>
+<figure class="diagram"><script type="application/json" data-diagram>${JSON.stringify(textSequence).replace(/</g, "\\u003c")}</script></figure>
 <div class="sparkline"><script type="application/json" data-sparkline>${JSON.stringify(sparkEmpty)}</script></div>
 <span id="bell"></span>
 <div class="command-list" data-label='Console${a(32).replace(/"/g, "&quot;")}' data-noun='cmd${a(33).replace(/"/g, "&quot;")}' data-placeholder='ph${a(34).replace(/"/g, "&quot;")}'><script type="application/json" data-commands>${JSON.stringify(commands)}</script></div>

@@ -445,6 +445,8 @@ function SkillDemo({ page, state, height }: { page: "menu" | "glide"; state: str
   return (
     <div style={{ ...col, maxWidth: 760 }}>
       {caption(page === "menu" ? "The HTML skill's narrow menu, built by script from the bar's markup. When the bar has a loops toggle, the first row after the band is the pressed-toggle button \"Pause animations\" (DECISIONS 148). It shows at 390; at 1440 the bar's own links are drawn and the menu does not exist." : "The HTML skill's chart: a new data set 120ms into the entrance. Every mark glides from where it was drawn, a line along its path and its markers from their centres, as React's do. Held at 90ms into the glide.")}
+      {/* sink: a page compose.mjs built at review-build time from this round's synthetic body; the frame runs the page's own script, which posts only when its still is ready */}
+      {/* oxlint-disable-next-line react/iframe-missing-sandbox -- a page compose.mjs built at review-build time from a synthetic body; the frame runs the page's own script */}
       <iframe title="The HTML skill's page" srcDoc={source} style={{ width: "100%", height, border: "1px solid var(--basalt-border-input)", borderRadius: 8, background: "transparent" }} />
     </div>
   );

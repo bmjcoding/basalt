@@ -141,7 +141,9 @@ export default async function Page() {
 } catch (error) {
   if (error.stdout) process.stderr.write(error.stdout);
   if (error.stderr) process.stderr.write(error.stderr);
-  throw new Error("Packed consumer verification failed; see the compiler or installer output above.");
+  // An assertion on the built pages has no output of its own: its message is the failure.
+  if (!error.stdout && !error.stderr) process.stderr.write(`${error.message}\n`);
+  throw new Error("Packed consumer verification failed; see the compiler or installer output above.", { cause: error });
 } finally {
   fs.rmSync(consumer, { recursive: true, force: true });
 }

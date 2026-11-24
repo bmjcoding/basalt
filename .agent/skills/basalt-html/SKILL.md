@@ -14,6 +14,8 @@ Standalone HTML that looks and behaves like Basalt: one file, no network, dark a
 3. Run `node .agent/skills/basalt-html/compose.mjs report.body.html` (writes `report.html`; `--out <page.html>` names it). It adds the doctype, meta and theme bootstrap, Geist inlined, the core, only the modules your markup uses, and the icons you name in quotes. It prints what it added, and one warning line for each module added. `--no-fonts` skips Geist (only for a file a tool reads, never a file a person opens), `--lang fr` sets the language, `--all` adds every module.
 4. Open the page in both themes at 1440 and 390 wide before you hand it over. It follows the system theme; the toggle or `Basalt.toggleTheme()` switches it.
 
+**Data you did not write** (a file, an API, a user) goes in as `textContent`; a link from it passes `Basalt.safeHref` (relative, http, https, mailto, tel); an option comes from a fixed list. Never into markup, a `<script>`, `style` or an `on…` attribute.
+
 `examples/static.body.html`, `sales.body.html` (reports) and `interactive.body.html` (inputs, tabs, a palette) are bodies to copy. Never open or paste `parts/`: it is minified output.
 
 ## Modules
@@ -67,7 +69,7 @@ Markup your script builds (a `.row`) isn't seen: add `<!-- basalt:use rows -->` 
 - **diagram-motion** `"motion": "animated"`: added for you, with `loops`; a flow line needs a label; one mover a figure.
 - **diagram-zoom** `.diagram`: added for you, with `dialog`; `"zoom": false` drops Expand.
 - **diagram-export** `"export": true`: added for you; SVG and PNG downloads in the foot.
-- **diagram-text** `"variant": "text"`: added for you; a sequence as box-drawing art; the transcript if too wide.
+- **diagram-text** `"variant": "text"`: added for you; a sequence in box-drawing art, else its transcript.
 - **sparkline** `.sparkline`: JSON in `script[data-sparkline]`; one line, no axes or series (that is a `chart`).
 - **palette** `data-open-palette`, `Basalt.init({ palette })`: `keys` is an array, `['⌘', 'S']`: ⌘, ⌃ or ⌥ plus one key.
 - **command-list** `.command-list`: the script builds it; items are the palette's; ⌘K goes to the palette when the page has one.

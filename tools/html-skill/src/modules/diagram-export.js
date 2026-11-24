@@ -24,7 +24,9 @@ import { diagramToPng, diagramToSvg, exportName } from "../../../../packages/rea
     b.className = 'btn diagram-download';
     b.setAttribute('data-variant', 'secondary');
     b.setAttribute('data-size', 'sm');
-    b.innerHTML = '<span>' + words + '</span>';
+    var label = document.createElement('span');
+    label.textContent = words;
+    b.appendChild(label);
     b.addEventListener('click', run);
     return b;
   }

@@ -41,6 +41,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const THEME_INIT = `(function(){var t,c,r=document.documentElement;try{t=localStorage.getItem("basalt-theme")}catch(e){}c=t==="light"||t==="dark"?t:"system";if(c==="system")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";r.setAttribute("data-theme",t);r.setAttribute("data-theme-choice",c);try{if(sessionStorage.getItem("basalt-keyboard")==="hardware")document.documentElement.setAttribute("data-keyboard","hardware")}catch(e){}})();`;
 
 // A page with the loops module sets a stored hold before first paint (React's loopsBootstrap), beside the theme's line.
+// The modules that draw a loop (their own held rules travel with them), and the toggle's.
+const LOOPING = new Set(["loops", "spinner", "braille", "sparkline", "ambient"]);
 const LOOPS_INIT = `(function(){try{if(localStorage.getItem("basalt-loops")==="held")document.documentElement.setAttribute("data-loops","held")}catch(e){}})();`;
 
 const read = (dir, name) => fs.readFileSync(path.join(dir, name), "utf8");
@@ -473,6 +475,26 @@ const staysInFile = (url) => /^(?:#|(?:data|blob|about|javascript|mailto|tel):)/
  */
 function externalReferences(held, markup) {
   const found = new Set();
+  // The URLs of a srcset, read the way HTML reads one: a URL runs to whitespace (a data: URL's own commas included; trailing commas end the
+  // candidate), then its descriptors run to the next comma outside parentheses.
+  const srcsetUrls = (value) => {
+    const out = [];
+    let at = 0;
+    while (at < value.length) {
+      while (at < value.length && /[\s,]/.test(value[at])) at++;
+      let end = at;
+      while (end < value.length && !/\s/.test(value[end])) end++;
+      let url = value.slice(at, end);
+      const bare = url.replace(/,+$/, "");
+      at = end;
+      if (bare.length === url.length) {
+        for (let depth = 0; at < value.length && (depth > 0 || value[at] !== ","); at++) depth += value[at] === "(" ? 1 : value[at] === ")" ? -1 : 0;
+      }
+      url = bare;
+      if (url) out.push(url);
+    }
+    return out;
+  };
   const tags = (text) => {
     for (let at = text.indexOf("<"); at !== -1; at = text.indexOf("<", at + 1)) {
       if (!isAlpha(text[at + 1] ?? "")) continue;
@@ -483,8 +505,12 @@ function externalReferences(held, markup) {
         if (tag.name === "link" && rel === "canonical" && key === "href") continue;
         if (key === "style") for (const url of cssUrls(value)) found.add(`<${tag.name} style> url(${url})`);
         if (!["src", "href", "xlink:href", "data", "poster", "srcset"].includes(key)) continue;
-        const urls = key === "srcset" ? value.split(",").map((candidate) => candidate.trim().split(/\s+/)[0]) : [value];
-        for (const url of urls) if (url && !staysInFile(url)) found.add(`<${tag.name} ${key}="${url}">${tag.name === "a" || tag.name === "area" ? " (a link)" : ""}`);
+        const urls = key === "srcset" ? srcsetUrls(value) : [value];
+        for (const url of urls) {
+          if (url && !staysInFile(url)) found.add(`<${tag.name} ${key}="${url}">${tag.name === "a" || tag.name === "area" ? " (a link)" : ""}`);
+          // A script link stays in the file but runs code when followed: listed, so a link written from data is seen (the safe-sinks rule; Basalt.safeHref refuses it).
+          else if (/^\s*javascript:/i.test(url)) found.add(`<${tag.name} ${key}="${url.slice(0, 40)}"> (a script link: runs code when followed)`);
+        }
       }
       at = tag.end - 1;
     }
@@ -593,7 +619,8 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     `<title>${title}</title>`,
     ...headTags,
     `<script>${THEME_INIT}</script>`,
-    ...(chosen.modules.includes("loops") ? [`<script>${LOOPS_INIT}</script>`] : []),
+    // Any page that draws a loop keeps a hold the reader stored on another page of the origin, not only a page with the toggle.
+    ...(chosen.modules.some((n) => LOOPING.has(n)) ? [`<script>${LOOPS_INIT}</script>`] : []),
     ...(fonts ? ["<style data-basalt-fonts>", read(parts, "geist.css").trim(), "</style>"] : []),
     `<style>${css}</style>`,
     ...styles.map((style) => `<style${style.media === undefined ? "" : ` media="${style.media.replaceAll('"', "&quot;")}"`}>${style.css}</style>`),

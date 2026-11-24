@@ -113,6 +113,18 @@ test("every pixel width in a media or container query of React's sheet is a brea
   for (const { query, number } of found) assert.ok(WIDTHS.has(number), `${query}: ${number}px is not a token`);
 });
 
+test("a media query (the viewport) changes layout at 720 and 1024 only, in React's sheet, the skill and the sites: the other widths are a container's", () => {
+  const sheets = [
+    read("packages", "react", "src", "styles", "components.css"),
+    read("tools", "html-skill", "src", "core.css"),
+    ...fs.readdirSync(path.join(repo, "tools", "html-skill", "src", "modules")).filter((file) => file.endsWith(".css")).map((file) => read("tools", "html-skill", "src", "modules", file)),
+    ...fs.readdirSync(path.join(repo, "sites"), { recursive: true }).filter((file) => String(file).endsWith(".css") && !/(^|\/)(dist|node_modules)\//.test(String(file))).map((file) => read("sites", String(file))),
+  ];
+  const media = sheets.flatMap((css) => [...css.matchAll(/@media\b[^{]*\{/g)].flatMap((query) => [...query[0].matchAll(/(\d+(?:\.\d+)?)px/g)].map((match) => ({ query: query[0].trim(), number: Number(match[1]) }))));
+  assert.ok(media.length > 20, "the scan found no media queries");
+  for (const { query, number } of media) assert.ok(number === breakpoint.md || number === breakpoint.lg, `${query}: a viewport query at ${number}px (layout changes at ${breakpoint.md} and ${breakpoint.lg} only)`);
+});
+
 test("every pixel width in a query of the HTML skill's sources and built parts is a breakpoint token (or the same sums)", () => {
   const sources = fs.readdirSync(path.join(repo, "tools", "html-skill", "src", "modules")).filter((file) => file.endsWith(".css")).map((file) => read("tools", "html-skill", "src", "modules", file));
   const parts = fs.readdirSync(path.join(repo, ".agent", "skills", "basalt-html", "parts")).filter((file) => file.endsWith(".css")).map((file) => read(".agent", "skills", "basalt-html", "parts", file));
@@ -133,4 +145,13 @@ test("the confirmation's hold: React reads the token, and the skill's copy and t
     assert.match(built, new RegExp(`\\},${duration.confirm}\\)`), `the built ${name}.js does not hold for the token's ${duration.confirm}ms`);
     assert.ok(!built.includes("%duration-"), `${name}.js has an unreplaced placeholder`);
   }
+});
+
+test("a wash written as a percentage in React's sheet is state-hover's or state-selected's own alpha: white's in dark, black's in light", () => {
+  const alpha = (theme, name) => Math.round(Number(/\/\s*([\d.]+)\)/.exec(json[theme][name].oklch)[1]) * 100);
+  const allowed = { "neutral-100": new Set([alpha("dark", "state-hover"), alpha("dark", "state-selected")]), "neutral-0": new Set([alpha("light", "state-hover"), alpha("light", "state-selected")]) };
+  const css = read("packages", "react", "src", "styles", "components.css");
+  const washes = [...css.matchAll(/color-mix\(in srgb, var\(--basalt-(neutral-100|neutral-0)\) ([\d.]+)%/g)].map((m) => ({ ink: m[1], percent: Number(m[2]) }));
+  assert.ok(washes.length >= 10, "the scan found no washes");
+  for (const { ink, percent } of washes) assert.ok(allowed[ink].has(percent), `a ${ink} wash at ${percent}% is not a state token's alpha (${[...allowed[ink]].join(" or ")}%): change the tokens and the sheet together`);
 });

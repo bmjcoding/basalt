@@ -20,7 +20,7 @@ test("the text art's glyph is measured at 100%: offsetWidth on one unbreakable r
   const figure = fs.readFileSync(path.join(pkg, "src", "diagram-figure.tsx"), "utf8");
   const skill = fs.readFileSync(path.join(root, "tools", "html-skill", "src", "modules", "diagram-text.js"), "utf8");
   for (const [who, src] of [["React", figure], ["the skill", skill]]) {
-    const at = src.search(/"─"\.repeat\(40\)|new Array\(41\)\.join\('─'\)/);
+    const at = src.search(/["']─["']\.repeat\(40\)/);
     assert.ok(at > 0, `${who}: the probe`);
     const probe = src.slice(at - 400, at + 400);
     assert.match(probe, /["']display:inline-block;white-space:pre["']/, `${who}: one unbreakable run`);
@@ -105,4 +105,28 @@ test("a text sequence has no Clear highlight in React, as in the skill: the Reac
   const skill = fs.readFileSync(path.join(root, "tools", "html-skill", "src", "modules", "diagram.js"), "utf8");
   assert.match(skill, /var want = touched && !viewer && ink && ink\.innerHTML !== '';/);
   assert.doesNotMatch(html(B.textSequence), /class="basalt-diagram-ink"/, "a text figure's markup has no ink layer");
+});
+
+test("the viewer's list and key (its two sinks) carry hostile words as text: figureList and figureKey through toHtml escape every text and attribute; so do the text art and the transcript", async () => {
+  const p = (n) => `<img src=x onerror=__x(${n})>`;
+  const a = (n) => `"><img src=x onerror=__x(${n})>`;
+  const specs = [
+    { type: "architecture", title: "T" + p(1), summary: "S" + p(2), legend: { main: "M" + p(3), plain: "P" + p(4), dashed: "D" + p(5), focal: "F" + p(6) },
+      groups: [{ id: "g" + a(7), label: "G" + p(8) }],
+      nodes: [{ id: "a" + a(9), kind: "K" + p(10), name: "A" + p(11), detail: "dt" + p(12), col: 1, row: 1, group: "g" + a(7) }, { id: "b", name: "B" + p(13), focal: true, col: 2, row: 1 }],
+      edges: [{ from: "a" + a(9), to: "b", kind: "main", label: "L" + p(14) }, { from: "b", to: "a" + a(9), kind: "dashed", label: "R" + p(15) }] },
+    { type: "sequence", variant: "text", title: "T" + p(16), summary: "S" + p(17), legend: { main: "M" + p(18) },
+      participants: [{ id: "a", name: "PA" + p(19) }, { id: "b", name: "PB" + p(20) }], steps: [{ band: "Bd" + p(21) }, { from: "a", to: "b", label: "Msg" + p(22), note: "N" + p(23) }, { frame: "alt", label: "F" + p(24), branches: [{ label: "x" + p(25), steps: [{ from: "b", to: "a", label: "y" + p(26) }] }, { label: "z" + p(27), steps: [{ from: "a", to: "b", label: "w" + p(28) }] }] }] },
+    { type: "schema", title: "T" + p(29), summary: "S" + p(30), tables: [{ name: "t" + p(31), col: 1, row: 1, columns: [{ name: "id" + p(32), key: "PK", type: "uuid" + p(33) }] }, { name: "u", col: 2, row: 1, columns: [{ name: "k", key: "FK", references: "t" + p(31) + ".id" + p(32) }] }] },
+  ];
+  const text = await import(pathToFileURL(path.join(pkg, "dist", "diagram-text.js")).href);
+  for (const spec of specs) {
+    const m = core.buildModel(spec, { checks: false });
+    const list = core.figureList("basalt-diagram", m).map((v) => core.toHtml(v)).join("");
+    const key = core.figureKey("basalt-diagram", m);
+    const out = [list, key ? core.toHtml(key) : "", ...(m.text ? [...core.transcript("basalt-diagram", m).map((v) => core.toHtml(v)), text.textArt(m).html] : [])].join("");
+    assert.ok(out.length > 0);
+    assert.doesNotMatch(out, /<img/i, `${spec.type}: no element from data`);
+    assert.match(out, /&lt;img src=x onerror=__x\(/, `${spec.type}: the words are there, as text`);
+  }
 });

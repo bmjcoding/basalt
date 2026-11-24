@@ -108,6 +108,14 @@ describe("what a body gets", () => {
     assert.ok(!compose("<h1>x</h1>", { fonts: false }).html.includes("basalt-loops"));
   });
 
+  test("a page that draws a loop without the toggle (a ring, braille, a loading sparkline) keeps a stored hold too, and carries the indicator's own held rule", () => {
+    for (const [body, rule] of [['<span class="spinner" role="status" aria-label="Loading"></span>', /:root\[data-loops="?held"?\] \.spinner\{animation:none/], ['<braille-spinner></braille-spinner>', /:root\[data-loops="?held"?\] \.braille-dot\[data-dot\]\{animation:none/]]) {
+      const html = compose(body, { fonts: false }).html;
+      assert.match(html.split("</head>")[0], /localStorage\.getItem\("basalt-loops"\)/, body);
+      assert.match(html, rule, body);
+    }
+  });
+
   test("the art tokens come only to a page that names one: art, aspect, stage headroom and chart tokens bring the art module, and a page that names none gets none", () => {
     for (const name of ["--basalt-art-tone-2", "--basalt-art-quiet-limit", "--basalt-aspect-photo", "--basalt-size-stage-headroom", "--basalt-chart-observed", "--basalt-size-chart-plot"]) {
       assert.deepEqual(used(`<style>.hero { background: var(${name}); }</style><div class="hero"></div>`), ["art"], name);

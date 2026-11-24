@@ -313,6 +313,8 @@ function SkillFrame({ page, label }: { page: string; label: string }) {
   return (
     <div style={{ ...col, flex: "1 1 320px", minWidth: 0, gap: 12 }}>
       <Text size="md" weight="medium">{label}</Text>
+      {/* sink: a page compose.mjs built at review-build time from this round's synthetic body; the frame runs the page's own script, which posts only when its still is ready */}
+      {/* oxlint-disable-next-line react/iframe-missing-sandbox -- a page compose.mjs built at review-build time from a synthetic body; the frame runs the page's own script */}
       <iframe title={label} srcDoc={source} style={{ width: "100%", height: 560, border: "1px solid var(--basalt-border-input)", borderRadius: 8, background: "transparent" }} />
     </div>
   );

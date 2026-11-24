@@ -90,6 +90,7 @@ function toReact(v: VNode, slots: Record<string, React.ReactNode>, ink: { __html
     else props[CAMEL[k] ?? k] = value === true ? (k === "hidden" ? true : "") : value;
   }
   if (typeof v.a.class === "string" && v.a.class.endsWith("-ink")) {
+    // sink: the figure's ink, serialised by diagram-core's h() from the model; every text and attribute is escaped there; test/repo-review.test.mjs (a diagram's hostile labels)
     props.dangerouslySetInnerHTML = ink;
     return React.createElement(v.t, props);
   }
@@ -197,7 +198,11 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
   // A trace on touch (DECISIONS 306, 1.5), the third source after keyboard focus. "On touch" is the media's, or a figure that has taken a touch tap.
   const [touchTrace, setTouchTrace] = React.useState<string | null>(null);
   const [touched, setTouched] = React.useState(false);
-  const options = React.useMemo(() => ({ prefix: P, base, level, hasSource: source !== undefined && source !== null, hiddenClass: "basalt-visually-hidden", viewer: viewer?.keys }), [base, level, source, viewer]);
+  // On whether there is a source, not the node itself: a parent's render makes a new node each time, which would measure the figure again on every render.
+  // The viewer's keys likewise, by the value the tree reads.
+  const hasSource = source !== undefined && source !== null;
+  const viewerKeys = viewer?.keys;
+  const options = React.useMemo(() => ({ prefix: P, base, level, hasSource, hiddenClass: "basalt-visually-hidden", viewer: viewerKeys }), [base, level, hasSource, viewerKeys]);
 
   // Development only: a bundler that sets NODE_ENV to production drops this block, strings included.
   React.useEffect(() => {

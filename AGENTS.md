@@ -252,6 +252,17 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   does nothing. Build registries, sets and caches lazily, inside functions.
 - **Heavy dependencies load on demand.** A component that needs a large library
   imports it dynamically, the way `CodeBlock` loads Shiki and each grammar.
+- **Data is drawn as text, and a destination is checked** (the safe-sinks rule: decided by the owner, Fable, Astra and Muse, 23 Nov 2026). A value this repo's
+  source did not write (a prop, an option, an entry, a file's contents, a URL) reaches the page as text (React children, `textContent`, or the escape inside a
+  reviewed HTML builder: `_.esc` in the skill, `escapeHtml` in the package, double-quoted attributes only), as an attribute picked from a fixed list
+  (`_.pick`), or as a destination that passed `safeHref` (relative, `http`, `https`, `mailto`, `tel`; it returns the string or `null`) before it is
+  rendered, navigated to or handed to an event or callback. Markup, attribute names, CSS and script are never built from it. The HTML sinks (`innerHTML`,
+  `outerHTML`, `insertAdjacentHTML`, `dangerouslySetInnerHTML`, `srcdoc`, `document.write`) and an unchecked navigation are exceptions: in
+  `tools/html-skill/src` each file's count is in `sinks.allowed.json` with what it takes and why it is safe (a file that takes data is in the hostile-input
+  probe); anywhere else the comment just above says `sink: <where the value comes from>; <why it is safe>; <the test that proves it>` (`tools/review` may
+  leave out the test). No `eval`, `new Function` or string timer outside tests. `postMessage` names its origin, never `"*"`, and a receiver checks
+  `origin`. A link that opens a new tab carries `rel="noopener"`. A build script that reads a path from input checks the real path stays in its folder.
+  Work sized by input has a bound. A composed page's body is the author's own code and is not linted; compose lists a `javascript:` link in it.
 - **No third-party types in the public API.** Declare our own types for exported
   signatures, so an app's type-check never compiles a dependency's declarations.
 - **New runtime dependencies need the owner's approval.** Add the package to
@@ -289,9 +300,9 @@ skill folder.
 
 | Command | What it checks | When |
 |---|---|---|
-| `npm run lint` | Token-only CSS (Stylelint) and the dependency allowlist. Takes seconds. | Before every commit. The pre-commit hook runs it for you. |
+| `npm run lint` | Token-only CSS (Stylelint), type-aware JS/TS/JSX correctness (Oxlint, the sink rules among it), the dependency allowlist, the sink check (`scripts/check-sinks.mjs`, read from the syntax tree), and the public-surface vocabulary. Takes seconds. | Before every commit. The pre-commit hook runs it for you. |
 | `npm test` | The tokens' tests (contrast and the generated outputs), the React package's typecheck, build and browser tests (behaviour, accessibility with axe in both themes, bundle size and the size table, the browser floor), then the HTML skill's, the brand's and the sites' tests | Before every push |
-| `npm run check` | Everything CI runs on Linux: lint, tests, reference previews, packed-package consumer | Before opening a PR |
+| `npm run check` | Everything CI runs on Linux but the generated-Swift drift check (it compares with the commit, so `ci:local` runs it): lint, tests, reference previews, packed-package consumer | Before opening a PR |
 | `npm run ci:local` | Both CI jobs, from `ci.yml`'s own steps: the Linux job above plus the generated-Swift drift check, then `swift build` and `swift test` | Before every merge while CI can't run (GitHub Actions minutes run out), on the PR's exact head and again after resolving conflicts. Post the result on the PR. |
 | `npm run ci:local -- --fresh` | The same steps, from a new `git worktree` of the head with `npm ci`, removed afterwards | When a stale `node_modules` or an ignored folder in your checkout could be deciding the result. It checks the commit, not uncommitted changes. |
 

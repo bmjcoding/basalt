@@ -11,7 +11,7 @@ import { ariaShortcut, shortcutKeys, spokenShortcut } from "./shortcut";
 import type { Align, ChangeDetails, ChoiceValue, FocusTarget, HighlightDetails, IconComponent, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopupActions, Side } from "./types";
 import { join, withClass } from "./utils";
 import { inLevel, useFloatingLayer, usePopupLevel } from "./layers";
-import { WaitContext, isThenable, waitFor } from "./wait";
+import { WaitContext, isThenable, takeClick, waitFor } from "./wait";
 
 export interface MenuProps {
   open?: boolean;
@@ -157,7 +157,9 @@ export interface MenuItemProps extends MenuRowProps {
   waitForAnswer?: boolean;
 }
 
-export function MenuItem({ icon, shortcut, danger, description, className, children, label, waitForAnswer = true, onClick, "aria-describedby": describedBy, ...props }: MenuItemProps) {
+export function MenuItem({ icon, shortcut, danger, description, className, children, label, waitForAnswer = true, onClick: ownClick, render: given, "aria-describedby": describedBy, ...props }: MenuItemProps) {
+  // A `render` element's own click is taken into the item's, so the menu's wait guards it too (Base UI would call it before the guard).
+  const [render, onClick] = takeClick(given, ownClick);
   const spoken = React.useId();
   const apple = useApplePlatform();
   const keys = shortcut ? shortcutKeys(shortcut, apple) : [];
@@ -165,6 +167,7 @@ export function MenuItem({ icon, shortcut, danger, description, className, child
   return (
     <BaseMenu.Item
       {...props}
+      render={render}
       onClick={(event) => {
         if (waitForAnswer && wait?.pending()) {
           (event as { preventBaseUIHandler?: () => void }).preventBaseUIHandler?.();

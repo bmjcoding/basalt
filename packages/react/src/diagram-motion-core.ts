@@ -341,7 +341,8 @@ class Figure implements MotionController {
       return { lead, dur, tail: lead + Math.max(dur, 0.85 * dur + t.slow, sequence ? t.slower : 0) };
     });
     let f = 1;
-    for (let k = 1; k < own.length; k++) f = Math.min(f, Math.max(0, (t.limit - own[k]!.tail) / (k * step)));
+    // A step of 0 (the tokens unread: no stylesheet) staggers nothing, and 0 / 0 would hand animate() a NaN delay, which throws.
+    if (step > 0) for (let k = 1; k < own.length; k++) f = Math.min(f, Math.max(0, (t.limit - own[k]!.tail) / (k * step)));
     if (factor !== undefined) f = Math.min(f, factor);
     const plans = new Map<number, Plan>();
     lines.forEach((l, k) => { const at = k * step * f; plans.set(l.i, { start: at + own[k]!.lead, dur: own[k]!.dur, end: at + own[k]!.tail }); });

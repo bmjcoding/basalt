@@ -213,10 +213,26 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
               {viewer ? <DiagramFigure spec={still} component={component} title={model.title} summary={summary} viewer={viewer} /> : null}
             </div>
           </div>
-          {showList ? <div className={`${P}-list ${P}-viewer-list`} dangerouslySetInnerHTML={listHtml} /> : null}
+          {showList ? (
+            <div
+              className={`${P}-list ${P}-viewer-list`}
+              // sink: the figure's list, written by diagram-core's figureList and toHtml from the model; every text and attribute is escaped there; test/diagram-recheck.test.mjs (hostile words in the viewer's list and key)
+              // oxlint-disable-next-line react/no-danger -- the engine's own escaped markup (the sink: comment above)
+              dangerouslySetInnerHTML={listHtml}
+            />
+          ) : null}
         </div>
         <footer className={`basalt-sheet-foot ${P}-viewer-foot`}>
-          {key ? <div className={`${P}-viewer-key`} data-layout={layout.layout} data-bare={layout.bare ? "" : undefined} dangerouslySetInnerHTML={keyHtml} /> : null}
+          {key ? (
+            <div
+              className={`${P}-viewer-key`}
+              data-layout={layout.layout}
+              data-bare={layout.bare ? "" : undefined}
+              // sink: the figure's key, written by diagram-core's figureKey and toHtml from the model; every text and attribute is escaped there; test/diagram-recheck.test.mjs (hostile words in the viewer's list and key)
+              // oxlint-disable-next-line react/no-danger -- the engine's own escaped markup (the sink: comment above)
+              dangerouslySetInnerHTML={keyHtml}
+            />
+          ) : null}
           <div className={`${P}-viewer-row`}>
             <div className={`${P}-zoom`}>
               {/* At a limit, or with the list open, a control is disabled as Basalt's are (B1 of the pixel review): it stays mounted and focusable, loses its
