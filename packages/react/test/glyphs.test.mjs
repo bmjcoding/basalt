@@ -27,7 +27,7 @@ const close = (a, b, tolerance = 0.0015) => a.length === b.length && a.every((v,
 
 test("the drawn set is the council's, and passes its own lint", () => {
   assert.deepEqual(lint(), []);
-  assert.equal(set.length, 38, "38 glyphs: 17 line actions, 4 rich actions, 12 navigation, 5 Blacksand");
+  assert.equal(set.length, 38, "38 glyphs: 16 line actions, 5 rich actions, 12 navigation, 5 Blacksand");
 });
 
 test("the glyph modules are what the drawn set generates (no drift)", () => {

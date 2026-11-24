@@ -830,10 +830,11 @@ const CHOICES = [
     ],
   },
   {
-    // DECISIONS 326: a text toggle carries its glyph; the seat shows it at rest and hands over to the check while pressed. The case above is a page written before.
+    // DECISIONS 326: a text toggle carries its glyph; the seat shows it at rest and hands over to the check while pressed, where the glyph has no selected form
+    // (copy; pause had none when this was written). The case above is a page written before.
     id: "pressed toggle with its glyph",
-    react: `<><Button icon={B.PauseGlyph} pressed>Pause animations</Button><Button icon={B.PauseGlyph} pressed={false}>Pause animations</Button><Button variant="ghost" icon={B.PauseGlyph} pressed>Ghost</Button><Button variant="ghost" icon={B.PauseGlyph} pressed={false}>Ghost</Button></>`,
-    skill: `<button class="btn" aria-pressed="true"><span class="btn-check" data-glyph="pause" aria-hidden="true"></span>Pause animations</button><button class="btn" aria-pressed="false"><span class="btn-check" data-glyph="pause" aria-hidden="true"></span>Pause animations</button><button class="btn" data-variant="ghost" aria-pressed="true"><span class="btn-check" data-glyph="pause" aria-hidden="true"></span>Ghost</button><button class="btn" data-variant="ghost" aria-pressed="false"><span class="btn-check" data-glyph="pause" aria-hidden="true"></span>Ghost</button>`,
+    react: `<><Button icon={B.CopyGlyph} pressed>Copy on save</Button><Button icon={B.CopyGlyph} pressed={false}>Copy on save</Button><Button variant="ghost" icon={B.CopyGlyph} pressed>Ghost</Button><Button variant="ghost" icon={B.CopyGlyph} pressed={false}>Ghost</Button></>`,
+    skill: `<button class="btn" aria-pressed="true"><span class="btn-check" data-glyph="copy" aria-hidden="true"></span>Copy on save</button><button class="btn" aria-pressed="false"><span class="btn-check" data-glyph="copy" aria-hidden="true"></span>Copy on save</button><button class="btn" data-variant="ghost" aria-pressed="true"><span class="btn-check" data-glyph="copy" aria-hidden="true"></span>Ghost</button><button class="btn" data-variant="ghost" aria-pressed="false"><span class="btn-check" data-glyph="copy" aria-hidden="true"></span>Ghost</button>`,
     pairs: [
       ["secondary pressed", ".basalt-button[data-variant=secondary][aria-pressed=true]", ".btn:not([data-variant])[aria-pressed=true]", [...BOX, "boxWidth"]],
       ["secondary rest", ".basalt-button[data-variant=secondary][aria-pressed=false]", ".btn:not([data-variant])[aria-pressed=false]", [...BOX, "boxWidth"]],
@@ -845,6 +846,18 @@ const CHOICES = [
       ["glyph, pressed", ".basalt-button[data-variant=secondary][aria-pressed=true] .basalt-button-check .basalt-icon:first-child", ".btn:not([data-variant])[aria-pressed=true] .btn-check > svg", ["opacity"]],
       ["check, pressed", ".basalt-button[data-variant=secondary][aria-pressed=true] .basalt-button-check .basalt-icon:last-child", ".btn:not([data-variant])[aria-pressed=true] .btn-check", ["opacity", "ink"], { skillPseudo: "::before" }],
       ["check, rest", ".basalt-button[data-variant=secondary][aria-pressed=false] .basalt-button-check .basalt-icon:last-child", ".btn:not([data-variant])[aria-pressed=false] .btn-check", ["opacity"], { skillPseudo: "::before" }],
+    ],
+  },
+  {
+    // DECISIONS 361: pause has a selected form, so the seat shows its bars filled while pressed, and no check: React's own icon, the skill's pair.
+    id: "pressed toggle with pause",
+    react: `<><Button icon={B.PauseGlyph} pressed>Pause animations</Button><Button icon={B.PauseGlyph} pressed={false}>Pause animations</Button></>`,
+    skill: `<button class="btn" aria-pressed="true"><span class="btn-check" data-glyph="pause" aria-hidden="true"></span>Pause animations</button><button class="btn" aria-pressed="false"><span class="btn-check" data-glyph="pause" aria-hidden="true"></span>Pause animations</button>`,
+    pairs: [
+      ["secondary pressed", ".basalt-button[data-variant=secondary][aria-pressed=true]", ".btn:not([data-variant])[aria-pressed=true]", [...BOX, "boxWidth"]],
+      ["secondary rest", ".basalt-button[data-variant=secondary][aria-pressed=false]", ".btn:not([data-variant])[aria-pressed=false]", [...BOX, "boxWidth"]],
+      ["glyph, pressed", ".basalt-button[data-variant=secondary][aria-pressed=true] > .basalt-icon", ".btn:not([data-variant])[aria-pressed=true] .btn-check > [data-pair] > svg:last-child", ["boxWidth", "boxHeight", "opacity", "ink"]],
+      ["glyph, rest", ".basalt-button[data-variant=secondary][aria-pressed=false] > .basalt-icon", ".btn:not([data-variant])[aria-pressed=false] .btn-check > [data-pair] > svg:first-child", ["boxWidth", "boxHeight", "opacity", "ink"]],
     ],
   },
   {

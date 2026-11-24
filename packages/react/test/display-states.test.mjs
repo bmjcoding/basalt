@@ -637,19 +637,20 @@ describe("the pressed toggle", () => {
 
 // ---- A text toggle carries its glyph (DECISIONS 326) ----
 
-// Each toggle twice, one at rest and one pressed, and a third that is pressed by a click. Pause has no selected form, so its seat hands over to the check;
-// Notifications has its own (it closes and fills), so it is the button's icon and there is no check.
+// Each toggle twice, one at rest and one pressed, and a third that is pressed by a click. Copy has no selected form (an action keeps its drawing), so its
+// seat hands over to the check; Notifications has its own (it closes and fills), so it is the button's icon and there is no check. (Pause had no selected
+// form when this was written; its bars fill now, DECISIONS 361.)
 const GLYPH_TOGGLES = `
 const { Button, Card } = B;
 function App() {
   const [on, setOn] = React.useState(false);
-  const row = (size, variant) => ["Pause", "Notifications"].map((name) => {
-    const icon = name === "Pause" ? B.PauseGlyph : B.NotificationsGlyph;
+  const row = (size, variant) => ["Copy", "Notifications"].map((name) => {
+    const icon = name === "Copy" ? B.CopyGlyph : B.NotificationsGlyph;
     const id = name.toLowerCase() + "-" + size + "-" + variant;
     return <div key={id} style={{ display: "flex", gap: 12 }}>
-      <Button id={id + "-rest"} size={size} variant={variant} icon={icon} pressed={false}>{name === "Pause" ? "Pause animations" : "Alerts"}</Button>
-      <Button id={id + "-on"} size={size} variant={variant} icon={icon} pressed>{name === "Pause" ? "Pause animations" : "Alerts"}</Button>
-      <Button id={id + "-click"} size={size} variant={variant} icon={icon} pressed={on} onClick={() => setOn(!on)}>{name === "Pause" ? "Pause animations" : "Alerts"}</Button>
+      <Button id={id + "-rest"} size={size} variant={variant} icon={icon} pressed={false}>{name === "Copy" ? "Copy on save" : "Alerts"}</Button>
+      <Button id={id + "-on"} size={size} variant={variant} icon={icon} pressed>{name === "Copy" ? "Copy on save" : "Alerts"}</Button>
+      <Button id={id + "-click"} size={size} variant={variant} icon={icon} pressed={on} onClick={() => setOn(!on)}>{name === "Copy" ? "Copy on save" : "Alerts"}</Button>
     </div>;
   });
   return <Card style={{ margin: 16, padding: 16, display: "grid", gap: 12, justifyItems: "start" }}>
@@ -673,7 +674,7 @@ describe("a text toggle carries its glyph (DECISIONS 326)", () => {
       const { page, errors } = await open(GLYPH_TOGGLES, { theme, ...DESKTOP });
       if (forced) await page.emulateMedia({ forcedColors: "active" });
       await settle(page);
-      for (const size of ["sm", "md"]) for (const variant of ["secondary", "ghost"]) for (const name of ["pause", "notifications"]) {
+      for (const size of ["sm", "md"]) for (const variant of ["secondary", "ghost"]) for (const name of ["copy", "notifications"]) {
         const id = `#${name}-${size}-${variant}`;
         const rest = await toggleGeometry(page, `${id}-rest`);
         const on = await toggleGeometry(page, `${id}-on`);
@@ -681,7 +682,7 @@ describe("a text toggle carries its glyph (DECISIONS 326)", () => {
         assert.equal(on.width, rest.width, `${where}: one width`);
         assert.equal(on.labelX, rest.labelX, `${where}: the label's x, 0px`);
         assert.ok(Math.abs(rest.before - rest.after) <= 0.5, `${where}: ${rest.before} before the glyph, ${rest.after} after the label`);
-        if (name === "pause") {
+        if (name === "copy") {
           assert.ok(rest.seat && on.seat, `${where}: the seat holds the glyph and the check`);
           assert.deepEqual(rest.shown, [1, 0], `${where}: the glyph at rest`);
           assert.deepEqual(on.shown, [0, 1], `${where}: the check while pressed`);
@@ -707,27 +708,31 @@ describe("a text toggle carries its glyph (DECISIONS 326)", () => {
 
   test("the seat crossfades over duration-fast with or without reduced motion, and is HighlightText while pressed in forced colours", async () => {
     const { page } = await open(GLYPH_TOGGLES, { theme: "dark", ...DESKTOP });
-    const fade = () => page.locator("#pause-md-secondary-rest .basalt-button-check .basalt-icon").evaluateAll((icons) => icons.map((i) => [getComputedStyle(i).transitionProperty, getComputedStyle(i).transitionDuration]));
+    const fade = () => page.locator("#copy-md-secondary-rest .basalt-button-check .basalt-icon").evaluateAll((icons) => icons.map((i) => [getComputedStyle(i).transitionProperty, getComputedStyle(i).transitionDuration]));
     assert.deepEqual(await fade(), [["opacity", "0.1s"], ["opacity", "0.1s"]]);
     await page.emulateMedia({ reducedMotion: "reduce" });
     assert.deepEqual(await fade(), [["opacity", "0.1s"], ["opacity", "0.1s"]]);
     await page.emulateMedia({ reducedMotion: "no-preference", forcedColors: "active" });
-    const ink = await page.locator("#pause-md-secondary-on .basalt-button-check .basalt-icon").last().evaluate((n) => getComputedStyle(n).color);
+    const ink = await page.locator("#copy-md-secondary-on .basalt-button-check .basalt-icon").last().evaluate((n) => getComputedStyle(n).color);
     assert.equal(ink, await colourOf(page, "HighlightText"));
     await page.close();
   });
 
-  test("LoopsToggle's Button form carries the pause glyph at rest and the check while held", async () => {
+  test("LoopsToggle's Button form carries the pause glyph at rest and the bars filled while held (DECISIONS 361), with no check", async () => {
     const body = render(`<div style={{ padding: 16 }}><B.LoopsToggle form="button" /></div>`);
     const { page } = await open(body, { theme: "dark", ...DESKTOP });
-    const shown = () => page.locator(".basalt-button").evaluate((n) => [n.getAttribute("aria-pressed"), [...n.querySelectorAll(".basalt-button-check[data-glyph] > .basalt-icon")].map((i) => Number(getComputedStyle(i).opacity)), n.getBoundingClientRect().width]);
+    const shown = () => page.locator(".basalt-button").evaluate((n) => {
+      const label = n.querySelector(".basalt-button-label").getBoundingClientRect();
+      return [n.getAttribute("aria-pressed"), n.querySelectorAll(".basalt-button-check").length, n.querySelectorAll(':scope > .basalt-icon[data-glyph="pause"] path[fill="currentColor"]').length, n.getBoundingClientRect().width, label.x - n.getBoundingClientRect().x];
+    });
     const rest = await shown();
-    assert.deepEqual(rest.slice(0, 2), ["false", [1, 0]]);
+    assert.deepEqual(rest.slice(0, 3), ["false", 0, 0], "the bars at rest, no check");
     await page.locator(".basalt-button").click();
     await page.mouse.move(0, 0);
     await settle(page);
+    await page.waitForTimeout(400); // the morph runs at duration-slow
     const held = await shown();
-    assert.deepEqual(held, ["true", [0, 1], rest[2]]);
+    assert.deepEqual(held, ["true", 0, 1, rest[3], rest[4]], "the bars filled, one width, the label still");
     await page.close();
   });
 });
