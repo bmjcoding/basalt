@@ -4,6 +4,8 @@
 // ships none of elkjs. A figure without `placement` loads this module on demand, at 640 or wider, and never at a phone's width. Nothing runs at load.
 
 import type { DiagramEdge, DiagramGroup, DiagramPlacement, SchemaTable } from "./diagram-core";
+import { graphOf, H, mainInTheMiddle, partsOf, W } from "./diagram-layout-graph";
+import type { Card, ElkNode, Line } from "./diagram-layout-graph";
 
 /** What a figure is placed from: its type and the component's own props (cards, lines, groups). */
 export interface DiagramPlacementInput {
@@ -14,77 +16,6 @@ export interface DiagramPlacementInput {
   groups?: DiagramGroup[];
 }
 
-interface ElkNode { id: string; width?: number; height?: number; x?: number; y?: number; children?: ElkNode[]; layoutOptions?: Record<string, string>; edges?: Array<{ id: string; sources: string[]; targets: string[] }> }
-
-// Every card one box of one size (only the layer and the order are read, so the result never depends on a measured pixel), and one fixed set of options:
-// layered, randomSeed 1, model order for nodes and edges, cycle breaking by model order, node placement by network simplex. Partitioning is never switched on.
-// The ruling on DECISIONS 306 and 313 (automatic layout): network simplex in place of Brandes and Köpf, because it reads a line's straightness priority, and a
-// main line carries one (STRAIGHT): the main path comes out as one straight run in both directions.
-const W = 200, H = 80;
-const STRAIGHT = "10";
-const options = (direction: "right" | "down"): Record<string, string> => ({
-  "elk.algorithm": "layered",
-  "elk.direction": direction === "right" ? "RIGHT" : "DOWN",
-  "elk.randomSeed": "1",
-  "elk.hierarchyHandling": "INCLUDE_CHILDREN",
-  "elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
-  "elk.layered.cycleBreaking.strategy": "MODEL_ORDER",
-  "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
-  "elk.layered.spacing.nodeNodeBetweenLayers": "64",
-  "elk.spacing.nodeNode": "48",
-  "elk.edgeRouting": "ORTHOGONAL",
-});
-
-interface Card { id: string; group?: string; way?: boolean }
-interface Line { from: string; to: string; main: boolean; k: number }
-
-/** The cards and the lines a figure is placed from, in the author's order. */
-function partsOf(input: DiagramPlacementInput): { cards: Card[]; lines: Line[]; groups: DiagramGroup[] } {
-  const cards: Card[] = input.type === "schema" ? (input.tables ?? []).map((t) => ({ id: String(t.name) })) : (input.nodes ?? []).map((n) => ({ id: String(n.id), group: n.group }));
-  const raw = input.type === "schema"
-    ? (input.tables ?? []).flatMap((t) => (t.columns ?? []).filter((c) => c.references).map((c) => ({ from: String(t.name), to: String(c.references).split(".")[0]!, main: false })))
-    : (input.edges ?? []).map((e) => ({ from: String(e.from), to: String(e.to), main: e.kind === "main" }));
-  const ids = new Set(cards.map((c) => c.id));
-  const lines = raw.filter((e) => ids.has(e.from) && ids.has(e.to)).map((e, k) => ({ ...e, k }));
-  return { cards, lines, groups: input.type === "architecture" ? input.groups ?? [] : [] };
-}
-
-/**
- * The main line goes straight on (the ruling, rule 2): a card with three or more leaving lines, exactly one of them main, hands elk its leaving lines with
- * the main one in the middle (half the others, rounded down, before it), each of the others in the author's order. Every other line keeps its place.
- */
-export function mainInTheMiddle<T extends { from: string; main: boolean }>(lines: T[]): T[] {
-  const bySource = new Map<string, number[]>();
-  lines.forEach((e, k) => { if (!bySource.has(e.from)) bySource.set(e.from, []); bySource.get(e.from)!.push(k); });
-  const out = lines.slice();
-  for (const slots of bySource.values()) {
-    const main = slots.filter((k) => lines[k]!.main);
-    if (slots.length < 3 || main.length !== 1) continue;
-    const rest = slots.filter((k) => k !== main[0]);
-    const order = [...rest.slice(0, Math.floor(rest.length / 2)), main[0]!, ...rest.slice(Math.floor(rest.length / 2))];
-    slots.forEach((slot, j) => { out[slot] = lines[order[j]!]!; });
-  }
-  return out;
-}
-
-/** The graph handed to elk: cards in the author's order (a way's boxes before the card its line ends on), groups as hierarchy, lines as ordered above. */
-function graphOf(cards: Card[], lines: Line[], groups: DiagramGroup[], direction: "right" | "down"): ElkNode {
-  const kids = new Map<string, ElkNode[]>([["", []]]);
-  for (const g of groups) kids.set(g.id, []);
-  for (const c of cards) (kids.get(c.group ?? "") ?? kids.get("")!).push({ id: c.id, width: W, height: H });
-  const children = [...kids.get("")!];
-  for (const g of groups) {
-    const box: ElkNode = { id: `group:${g.id}`, children: kids.get(g.id), layoutOptions: { "elk.padding": "[top=32,left=16,bottom=16,right=16]" } };
-    (g.parent && kids.has(g.parent) ? kids.get(g.parent)! : children).push(box);
-  }
-  return { id: "root", layoutOptions: options(direction), children, edges: lines.map((e, k) => ({ id: `e${k}`, sources: [e.from], targets: [e.to], ...(e.main ? { layoutOptions: { "elk.layered.priority.straightness": STRAIGHT } } : {}) })) };
-}
-
-/** The graph of the first run, as the first decision's tests read it. */
-export function elkGraph(input: DiagramPlacementInput, direction: "right" | "down"): ElkNode {
-  const { cards, lines, groups } = partsOf(input);
-  return graphOf(cards, mainInTheMiddle(lines), groups, direction);
-}
 
 /** Cards' boxes, absolute, from elk's result (a child's place is its parent's plus its own). */
 function absolute(node: ElkNode, ox = 0, oy = 0, out = new Map<string, { x: number; y: number; w: number; h: number }>()) {
@@ -126,7 +57,8 @@ async function cellsOf(graph: ElkNode): Promise<Cells> {
 function unusable(cards: Card[], groups: DiagramGroup[], cells: Cells): boolean {
   const seen = new Set<string>();
   for (const c of cards) { const at = cells[c.id]; if (!at) return true; const key = `${at.col},${at.row}`; if (seen.has(key)) return true; seen.add(key); }
-  const chain = (id?: string) => { const out: string[] = []; for (let g = id; g; g = groups.find((x) => x.id === g)?.parent) out.push(g); return out; };
+  // A group's chain, outermost last; a parent named twice (a cycle) ends it (Neon's P2 of the code review).
+  const chain = (id?: string) => { const out: string[] = []; for (let g = id; g && !out.includes(g); g = groups.find((x) => x.id === g)?.parent) out.push(g); return out; };
   for (const g of groups) {
     const mine = cards.filter((c) => chain(c.group).includes(g.id));
     if (!mine.length) continue;
@@ -150,7 +82,8 @@ export async function placeDiagram(input: DiagramPlacementInput, direction: "rig
   const lines = mainInTheMiddle(authored);
   const first = await cellsOf(graphOf(cards, lines, groups, direction));
   const layer = (id: string) => (direction === "down" ? first[id]!.row : first[id]!.col);
-  const chain = (id?: string) => { const out: string[] = []; for (let g = id; g; g = groups.find((x) => x.id === g)?.parent) out.push(g); return out; };
+  // A group's chain, outermost last; a parent named twice (a cycle) ends it (Neon's P2 of the code review).
+  const chain = (id?: string) => { const out: string[] = []; for (let g = id; g && !out.includes(g); g = groups.find((x) => x.id === g)?.parent) out.push(g); return out; };
   const groupOf = new Map(cards.map((c) => [c.id, c.group]));
   const all = cards.slice();
   const chained: Line[] = [];
@@ -176,13 +109,13 @@ export async function placeDiagram(input: DiagramPlacementInput, direction: "rig
     all.splice(all.findIndex((c) => c.id === e.to), 0, ...boxes);
     ways++;
   }
-  const span = (c: Cells) => ({ cols: Math.max(...Object.values(c).map((x) => x.col)), rows: Math.max(...Object.values(c).map((x) => x.row)) });
+  const span = (c: Cells) => ({ cols: Math.max(1, ...Object.values(c).map((x) => x.col)), rows: Math.max(1, ...Object.values(c).map((x) => x.row)) });
   if (!ways) return { direction, ...span(first), cells: first };
   const second = await cellsOf(graphOf(all, chained, groups, direction));
   const cells: Cells = {};
   for (const c of cards) cells[c.id] = second[c.id]!;
   // The second run stands only if it can be used and has no more layers than the first: a way fills layers that exist and never adds one.
-  const layers = (c: Cells) => Math.max(...cards.map((x) => (direction === "down" ? c[x.id]!.row : c[x.id]!.col)));
+  const layers = (c: Cells) => Math.max(1, ...cards.map((x) => (direction === "down" ? c[x.id]!.row : c[x.id]!.col)));
   // The tracks are counted over the cards and the ways together (`cols`, `rows`), so a track that holds only a way is still a track.
   return unusable(cards, groups, cells) || layers(cells) > layers(first) ? { direction, ...span(first), cells: first } : { direction, ...span(second), cells };
 }

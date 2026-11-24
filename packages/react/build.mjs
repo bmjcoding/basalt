@@ -108,10 +108,13 @@ ${elk}
 }).call(globalThis, elkModule, elkModule.exports, undefined, undefined);
 export default elkModule.exports;
 `);
+  // Its licence goes with the copy (Neon's B11 of the code review): the package redistributes the file, so it carries the text it is distributed under.
+  fs.mkdirSync(path.join(dist, "elkjs"), { recursive: true });
+  fs.copyFileSync(path.join(packageDir("elkjs"), "LICENSE.md"), path.join(dist, "elkjs", "LICENSE.md"));
 }
 
-// The diagram viewer is the fourth (DECISIONS 310, 9.13): "Expand" loads it at its first hover, focus or touch, and it brings Dialog, the sheet's parts and the
-// buttons with it, inlined for the same reason as the motion's. It imports the figure and the engine only as types: the figure hands them over when it opens
+// The diagram viewer is the fourth (DECISIONS 310, 9.13): "Expand" loads it at its first hover, focus or touch, and it brings the form dialog's box (on a native
+// <dialog>, no Base UI dialog), the sheet's parts and the buttons with it, inlined for the same reason as the motion's. It imports the figure and the engine only as types: the figure hands them over when it opens
 // the viewer (ViewerKit), so this chunk never holds a second copy of the engine.
 await esbuild.build({
   bundle: true,
