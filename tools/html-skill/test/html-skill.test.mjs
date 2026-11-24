@@ -1092,7 +1092,7 @@ describe("touch and anchors", () => {
 describe("the SKILL's rules", () => {
   test("the new rules are written down: the ones every page needs in SKILL.md, a module's own in its usage text", () => {
     for (const rule of [
-      /`--no-fonts` skips Geist \(only for a file a tool reads, never a file a person opens\)/,
+      /`--no-fonts` skips Geist \(for a file only a tool reads\)/,
       /node \.agent\/skills\/basalt-html\/compose\.mjs report\.body\.html/,
       /Need another icon\? Add its name to tools\/html-skill\/src\/icons\.json and rebuild\. Never draw one, never use an emoji\./,
       /\*\*Selected\*\* is a shape or weight, never a wash alone: a segment or tab label at 600 \(400 at rest\) on its pill or underline, a row's filled background, a checked box\. No vertical bar; an outline never marks a state\./,
