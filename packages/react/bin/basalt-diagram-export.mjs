@@ -24,10 +24,11 @@ import {
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pkgRoot = path.resolve(here, "..");
+const pkgVersion = JSON.parse(fs.readFileSync(path.join(pkgRoot, "package.json"), "utf8")).version || "0.0.0";
 const VALID_FORMATS = ["drawio", "vsdx", "lucid", "lucid-json"];
 const VALID_THEMES = ["light", "dark", "adaptive"];
 const VALID_MARKS = ["omit", "embed"];
-const HEADLESS_ENGINE = "Basalt headless (approximate)";
+const HEADLESS_ENGINE = `Basalt ${pkgVersion} headless (approximate)`;
 const CHROMIUM_LAUNCH_OPTS = {
   headless: true,
   args: ["--blink-settings=forceAndroidOverlayScrollbar=true", "--disable-partial-raster"],
@@ -261,7 +262,7 @@ async function measureInBrowser(items, width) {
   }
 
   try {
-    const measuredBy = `Chromium ${browser.version()}`;
+    const measuredBy = `Chromium ${browser.version()}, ${process.platform}, Basalt ${pkgVersion}`;
     const stylesCss = fs.readFileSync(stylesPath, "utf8");
     const fontCss = fs.existsSync(sansFontPath) && fs.existsSync(monoFontPath)
       ? `@font-face{font-family:"Geist";src:url("data:font/woff2;base64,${fs.readFileSync(sansFontPath).toString("base64")}") format("woff2");font-weight:100 900;font-style:normal}` +
@@ -282,8 +283,9 @@ async function measureInBrowser(items, width) {
       `const entries = ${entriesJson};\n` +
       `const targetWidth = ${width};\n` +
       `const host = document.getElementById("host");\n` +
+      `await Promise.all([...document.fonts].map((f) => f.load()));\n` +
+      `await document.fonts.ready;\n` +
       `window.__measureAll = async () => {\n` +
-      `  await document.fonts.ready;\n` +
       `  const out = [];\n` +
       `  for (let idx = 0; idx < entries.length; idx++) {\n` +
       `    const { spec, placements } = entries[idx];\n` +
@@ -300,10 +302,15 @@ async function measureInBrowser(items, width) {
       `      const fig = wrap.firstElementChild;\n` +
       `      fig.id = base;\n` +
       `      host.appendChild(fig);\n` +
+      `      await document.fonts.ready;\n` +
+      `      if (!document.fonts.check('600 14px Geist') || !document.fonts.check('12px "Geist Mono"')) {\n` +
+      `        throw new Error("Geist fonts did not load before measuring figure " + idx);\n` +
+      `      }\n` +
       `      await new Promise((r) => requestAnimationFrame(r));\n` +
-      `      const sizeTo = allowWiden ? (least) => { if (least > targetWidth) host.style.width = Math.ceil(least) + "px"; } : undefined;\n` +
+      `      let widenedTo = null;\n` +
+      `      const sizeTo = allowWiden ? (least) => { if (least > targetWidth) { widenedTo = Math.ceil(least); host.style.width = widenedTo + "px"; } } : undefined;\n` +
       `      const res = measureFigure(fig, model, "basalt-diagram", base, { layout: "drawn" }, (d) => syncAttributes(fig, figureTree(model, d, opts)), undefined, sizeTo);\n` +
-      `      return { res, extras: readMeasuredExtras(fig, "basalt-diagram"), placement };\n` +
+      `      return { res, extras: readMeasuredExtras(fig, "basalt-diagram"), placement, widenedTo };\n` +
       `    };\n` +
       `    let chosen = null;\n` +
       `    for (const placement of candidates) {\n` +
@@ -316,7 +323,7 @@ async function measureInBrowser(items, width) {
       `        if (attempt?.res?.dyn?.layout === "drawn" && attempt.res.geo) { chosen = attempt; break; }\n` +
       `      }\n` +
       `    }\n` +
-      `    out.push(chosen ? { geo: chosen.res.geo, extras: chosen.extras, placement: chosen.placement } : { geo: null, extras: {}, placement: candidates[0] });\n` +
+      `    out.push(chosen ? { geo: chosen.res.geo, extras: chosen.extras, placement: chosen.placement, widenedTo: chosen.widenedTo } : { geo: null, extras: {}, placement: candidates[0], widenedTo: null });\n` +
       `  }\n` +
       `  return out;\n` +
       `};\n` +
@@ -490,8 +497,11 @@ async function main() {
       measuredBy = m.measuredBy;
     } catch (err) {
       if (opts.mode === "browser" || !err?.basaltBrowserUnavailable) throw err;
+      const detail = String(err.message || "").replace(/^basalt-diagram-export:\s*/i, "");
+      const hasAuto = items.some((it) => it.spec.layout === "auto");
+      const autoNote = hasAuto ? " (an automatic figure may take another direction if text wraps differently)" : "";
       process.stderr.write(
-        `basalt-diagram-export: warning: ${err.message}; falling back to approximate headless geometry\n`,
+        `basalt-diagram-export: warning: ${detail}; falling back to approximate headless geometry${autoNote}\n`,
       );
     }
   }
@@ -508,8 +518,16 @@ async function main() {
     const useMeasured = Boolean(measured?.geo);
     const engineLabel = useMeasured ? measuredBy : HEADLESS_ENGINE;
     if (measuredList && !useMeasured) {
+      if (opts.mode === "browser") {
+        throw new Error(`basalt-diagram-export: "${name}" did not fit drawn in Chromium (--browser)`);
+      }
       process.stderr.write(
         `basalt-diagram-export: warning: "${name}" did not fit drawn in Chromium; falling back to approximate headless geometry\n`,
+      );
+    }
+    if (useMeasured && measured.widenedTo) {
+      process.stderr.write(
+        `basalt-diagram-export: note: "${name}" widened to ${measured.widenedTo}px (from --width ${opts.width}) to fit drawn\n`,
       );
     }
     const baseOpts = {
