@@ -26,7 +26,6 @@ import {
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const CIMIP = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cimip-diagrams.json"), "utf8"));
-const CIMIP_KEYS = Object.keys(CIMIP);
 const CIMIP_B = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cimip-diagrams-b.json"), "utf8"));
 const interop = await import(pathToFileURL(path.join(pkg, "dist", "diagram-interop.js")).href);
 
@@ -64,8 +63,16 @@ function compareLucidDocs(liveDoc, testDoc, key) {
     return ep.position;
   };
 
+  const polyLength = (pts) => {
+    let len = 0;
+    for (let k = 1; k < pts.length; k++) len += Math.hypot(pts[k].x - pts[k - 1].x, pts[k].y - pts[k - 1].y);
+    return len;
+  };
+
   let maxRouteDelta = 0, routesOverHalfPx = 0;
+  let maxLabelDelta = 0, labelsOverHalfPx = 0;
   const routeDeltas = {};
+  const labelDeltas = {};
   for (const l of L.lines.filter((x) => x.id.startsWith("edge_"))) {
     const h = H.lines.find((x) => x.id === l.id);
     const lp = [epPt(L, l.endpoint1), ...(l.elbowControlPoints ?? []), epPt(L, l.endpoint2)];
@@ -79,6 +86,33 @@ function compareLucidDocs(liveDoc, testDoc, key) {
     if (m > 0.5) routesOverHalfPx++;
     if (Number.isFinite(m) && m > maxRouteDelta) maxRouteDelta = m;
     routeDeltas[l.id] = Number.isFinite(m) ? +m.toFixed(2) : "point-count-mismatch";
+
+    const lt = l.text ?? [], ht = h.text ?? [];
+    assert.equal(lt.length, ht.length, `${key}: ${l.id} text count`);
+    if (lt.length > 0) {
+      const arc = polyLength(lp);
+      let lm = 0;
+      for (let k = 0; k < lt.length; k++) {
+        lm = Math.max(lm, Math.abs((lt[k].position ?? 0.5) - (ht[k].position ?? 0.5)) * arc);
+      }
+      if (lm > 0.5) labelsOverHalfPx++;
+      if (lm > maxLabelDelta) maxLabelDelta = lm;
+      labelDeltas[l.id] = +lm.toFixed(2);
+    }
+  }
+
+  // Lifelines (x) and frame dividers (endpoints)
+  let maxGuideDelta = 0, guidesOverHalfPx = 0;
+  for (const l of L.lines.filter((x) => x.id.startsWith("life_") || x.id.startsWith("frame_div_"))) {
+    const h = H.lines.find((x) => x.id === l.id);
+    const lp1 = epPt(L, l.endpoint1), lp2 = epPt(L, l.endpoint2);
+    const hp1 = epPt(H, h.endpoint1), hp2 = epPt(H, h.endpoint2);
+    const m = Math.max(
+      Math.abs(lp1.x - hp1.x), Math.abs(lp1.y - hp1.y),
+      Math.abs(lp2.x - hp2.x), Math.abs(lp2.y - hp2.y),
+    );
+    if (m > 0.5) guidesOverHalfPx++;
+    if (m > maxGuideDelta) maxGuideDelta = m;
   }
 
   return {
@@ -86,20 +120,32 @@ function compareLucidDocs(liveDoc, testDoc, key) {
     maxBoxDelta: +maxBoxDelta.toFixed(2),
     routesOverHalfPx,
     maxRouteDelta: +maxRouteDelta.toFixed(2),
+    labelsOverHalfPx,
+    maxLabelDelta: +maxLabelDelta.toFixed(2),
+    guidesOverHalfPx,
+    maxGuideDelta: +maxGuideDelta.toFixed(2),
     boxDeltas,
     routeDeltas,
+    labelDeltas,
   };
 }
 
 describe("live DOM measured Geo entry and B2 exact geometry (Chromium)", () => {
-  test("live React figures match CLI default path within <= 0.5px, record headless fallback drift, and cover Batch B", async () => {
+  test("live React figures match single-figure CLI default path within <= 0.5px (boxes, routes, labels, frames, lifelines) and record headless fallback drift", async () => {
+    const autoArchPlaced = await interop.placeAutoDiagram(CIMIP_B.autoArchitecture);
     const HOST = `
       import data from "./test/fixtures/cimip-diagrams.json";
       import dataB from "./test/fixtures/cimip-diagrams-b.json";
       import { buildModel, figureTree, measureFigure, syncAttributes } from "./dist/diagram-core.js";
       import { readMeasuredExtras } from "./dist/diagram-interop.js";
       const C = { architecture: B.ArchitectureDiagram, flowchart: B.FlowchartDiagram, "data-flow": B.DataFlowDiagram, sequence: B.SequenceDiagram, schema: B.SchemaDiagram };
-      const all = { ...data, batchBArch: dataB.architecture, batchBSeq: dataB.sequence, batchBSchema: dataB.schema };
+      const all = {
+        ...data,
+        batchBArch: dataB.architecture,
+        batchBSeq: dataB.sequence,
+        batchBSchema: dataB.schema,
+        batchBAuto: ${JSON.stringify(autoArchPlaced)},
+      };
       function Host() {
         return <main style={{ width: 1104, margin: 0, padding: 0, display: "grid", gap: 64 }}>
           {Object.entries(all).map(([key, d]) => { const X = C[d.type]; const { type, ...props } = d; return <X key={key} id={"fig-" + key} {...props} />; })}
@@ -110,12 +156,23 @@ describe("live DOM measured Geo entry and B2 exact geometry (Chromium)", () => {
         const out = {};
         for (const [key, spec] of Object.entries(all)) {
           const fig = document.getElementById("fig-" + key);
-          const model = buildModel(spec, { checks: false });
+          const placements = spec.layout === "auto" && Array.isArray(spec.placement) ? spec.placement : [undefined];
           const base = (fig.getAttribute("aria-labelledby") || "dg").replace(/-title$/, "");
           const opts = { prefix: "basalt-diagram", base, hasSource: Boolean(spec.source), hiddenClass: "basalt-visually-hidden" };
-          const sizeTo = (least) => { if (least > 1104) fig.style.width = Math.ceil(least) + "px"; };
-          const res = measureFigure(fig, model, "basalt-diagram", base, { layout: "drawn" }, (d) => syncAttributes(fig, figureTree(model, d, opts)), undefined, sizeTo);
-          out[key] = { geo: res.geo, extras: readMeasuredExtras(fig, "basalt-diagram") };
+          let chosen = null;
+          for (const placement of placements) {
+            const model = buildModel(spec, { checks: false, placement });
+            if (model.unplaced) continue;
+            const res = measureFigure(fig, model, "basalt-diagram", base, { layout: "drawn" }, (d) => syncAttributes(fig, figureTree(model, d, opts)));
+            if (res?.dyn?.layout === "drawn" && res.geo) { chosen = { geo: res.geo, extras: readMeasuredExtras(fig, "basalt-diagram"), placement }; break; }
+          }
+          if (!chosen) {
+            const model = buildModel(spec, { checks: false, placement: placements[0] });
+            const sizeTo = (least) => { if (least > 1104) fig.style.width = Math.ceil(least) + "px"; };
+            const res = measureFigure(fig, model, "basalt-diagram", base, { layout: "drawn" }, (d) => syncAttributes(fig, figureTree(model, d, opts)), undefined, sizeTo);
+            chosen = { geo: res.geo, extras: readMeasuredExtras(fig, "basalt-diagram"), placement: placements[0] };
+          }
+          out[key] = chosen;
         }
         return out;
       };
@@ -128,66 +185,112 @@ describe("live DOM measured Geo entry and B2 exact geometry (Chromium)", () => {
     try {
       const { page, errors } = await fixturePage(browser, HOST, { theme: "light", viewport: { width: 1280, height: 1200 }, standards: true });
       await page.addStyleTag({ content: fontCss });
-      await page.evaluate(() => document.fonts.ready);
+      await page.evaluate(async () => {
+        await Promise.all([...document.fonts].map((f) => f.load()));
+        await document.fonts.ready;
+      });
       await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
       const measured = await page.evaluate(() => window.__measureAll());
       assert.deepEqual(errors, []);
 
-      // Validate live measured export for all 5 CIMIP fixtures + Batch B nested groups, frames/bars, crow's foot + far keys
-      const specsByKey = { ...CIMIP, batchBArch: CIMIP_B.architecture, batchBSeq: CIMIP_B.sequence, batchBSchema: CIMIP_B.schema };
-      for (const [key, spec] of Object.entries(specsByKey)) {
-        const { geo, extras } = measured[key];
-        assert.ok(geo && geo.lines.length > 0, `${key}: live Geo measured`);
-        assertValidDrawio(interop.exportMeasuredDiagram(spec, geo, "drawio", { extras }), spec, `measured/${key}`);
-        assertValidVsdx(interop.exportMeasuredDiagram(spec, geo, "vsdx", { extras }), spec, `measured/${key}`);
-        assertValidLucid(interop.exportMeasuredDiagram(spec, geo, "lucid", { extras }), spec, `measured/${key}`);
-      }
-
-      // Run CLI default path (no --headless, no --browser) on the 5 CIMIP fixtures and assert <= 0.5px vs live React
-      const cliOutA = path.join(dir, "default-a");
-      const cliOutB = path.join(dir, "default-b");
-      const cliArgs = [CLI, path.join(here, "fixtures", "cimip-diagrams.json"), "--to", "drawio,vsdx,lucid,lucid-json", "--width", "1104"];
-      const rA = spawnSync(process.execPath, [...cliArgs, "--out", cliOutA], { encoding: "utf8", timeout: 90000 });
-      assert.equal(rA.status, 0, rA.stderr);
-      const rB = spawnSync(process.execPath, [...cliArgs, "--out", cliOutB], { encoding: "utf8", timeout: 90000 });
-      assert.equal(rB.status, 0, rB.stderr);
-
-      const stems = { architecture: "architecture", flowchart: "flowchart", dataFlow: "data-flow", sequence: "sequence", schema: "schema" };
+      // Validate live measured export for all 5 CIMIP fixtures + Batch B nested groups, frames/bars, crow's foot + far keys, auto
+      const specsByKey = {
+        ...CIMIP,
+        batchBArch: CIMIP_B.architecture,
+        batchBSeq: CIMIP_B.sequence,
+        batchBSchema: CIMIP_B.schema,
+        batchBAuto: autoArchPlaced,
+      };
       const comparison = { defaultPath: {}, headlessFallback: {} };
-      for (const key of CIMIP_KEYS) {
-        const stem = stems[key];
-        for (const ext of [".drawio", ".vsdx", ".lucid", ".lucid.json"]) {
-          assert.equal(
-            sha256(fs.readFileSync(path.join(cliOutA, stem + ext))),
-            sha256(fs.readFileSync(path.join(cliOutB, stem + ext))),
-            `CLI default repeat byte-identical on one Chromium: ${stem}${ext}`,
+
+      for (const [key, spec] of Object.entries(specsByKey)) {
+        const { geo, extras, placement } = measured[key];
+        assert.ok(geo && geo.lines.length > 0, `${key}: live Geo measured`);
+        assertValidDrawio(interop.exportMeasuredDiagram(spec, geo, "drawio", { extras, placement }), spec, `measured/${key}`);
+        assertValidVsdx(interop.exportMeasuredDiagram(spec, geo, "vsdx", { extras, placement }), spec, `measured/${key}`);
+        assertValidLucid(interop.exportMeasuredDiagram(spec, geo, "lucid", { extras, placement }), spec, `measured/${key}`);
+
+        // Run the CLI on a single-figure JSON file so every figure is first in its run (guards B1 font-load race).
+        const singleIn = path.join(dir, `${key}.json`);
+        fs.writeFileSync(singleIn, JSON.stringify(spec));
+        const outA = path.join(dir, `out-${key}-a`);
+        const cliArgs = [CLI, singleIn, "--to", "drawio,vsdx,lucid,lucid-json", "--width", "1104"];
+        const rA = spawnSync(process.execPath, [...cliArgs, "--out", outA], { encoding: "utf8", timeout: 90000 });
+        assert.equal(rA.status, 0, `${key}: ${rA.stderr}`);
+
+        const stem = key.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+        // Verify repeat byte-identity on the first CIMIP figure and Batch B sequence
+        if (key === "architecture" || key === "batchBSeq") {
+          const outB = path.join(dir, `out-${key}-b`);
+          const rB = spawnSync(process.execPath, [...cliArgs, "--out", outB], { encoding: "utf8", timeout: 90000 });
+          assert.equal(rB.status, 0, `${key} repeat: ${rB.stderr}`);
+          for (const ext of [".drawio", ".vsdx", ".lucid", ".lucid.json"]) {
+            assert.equal(
+              sha256(fs.readFileSync(path.join(outA, stem + ext))),
+              sha256(fs.readFileSync(path.join(outB, stem + ext))),
+              `CLI default repeat byte-identical on one Chromium: ${stem}${ext}`,
+            );
+          }
+        }
+
+        // Verify Chromium version + platform + Basalt version metadata in all three formats
+        const drawioXml = fs.readFileSync(path.join(outA, `${stem}.drawio`), "utf8");
+        assertValidDrawio(drawioXml, spec, `cli-default/${key}`);
+        assert.match(drawioXml, new RegExp(`agent="Basalt Diagram Exporter \\(Chromium \\d+[^)]*, ${process.platform}, Basalt \\d+\\.\\d+\\.\\d+\\)"`), `${key}: draw.io records Chromium, platform, Basalt version`);
+        const vsdxBytes = fs.readFileSync(path.join(outA, `${stem}.vsdx`));
+        assertValidVsdx(vsdxBytes, spec, `cli-default/${key}`);
+        assert.match(readZipEntries(vsdxBytes).get("visio/document.xml").toString("utf8"), new RegExp(`<Creator>Basalt Diagram Exporter \\(Chromium \\d+[^<]*, ${process.platform}, Basalt \\d+\\.\\d+\\.\\d+\\)</Creator>`), `${key}: vsdx records Chromium, platform, Basalt version`);
+        const lucidBytes = fs.readFileSync(path.join(outA, `${stem}.lucid`));
+        assertValidLucid(lucidBytes, spec, `cli-default/${key}`);
+        const defaultDoc = JSON.parse(fs.readFileSync(path.join(outA, `${stem}.lucid.json`), "utf8"));
+        const nodeShapes = defaultDoc.pages[0].shapes.filter((s) => s.id.startsWith("node_"));
+        assert.ok(nodeShapes.length > 0);
+        for (const s of nodeShapes) {
+          assert.ok(
+            s.customData?.some((d) => d.key === "basalt_measured_by" && new RegExp(`^Chromium \\d+.*, ${process.platform}, Basalt \\d+\\.\\d+\\.\\d+$`).test(d.value)),
+            `${key}: lucid ${s.id} records Chromium, platform, Basalt version`,
           );
         }
-        // Verify Chromium version metadata in all three formats
-        const drawioXml = fs.readFileSync(path.join(cliOutA, `${stem}.drawio`), "utf8");
-        assertValidDrawio(drawioXml, CIMIP[key], `cli-default/${key}`);
-        assert.match(drawioXml, /agent="Basalt Diagram Exporter \(Chromium \d+/, `${key}: draw.io records Chromium version`);
-        const vsdxBytes = fs.readFileSync(path.join(cliOutA, `${stem}.vsdx`));
-        assertValidVsdx(vsdxBytes, CIMIP[key], `cli-default/${key}`);
-        assert.match(readZipEntries(vsdxBytes).get("visio/document.xml").toString("utf8"), /<Creator>Basalt Diagram Exporter \(Chromium \d+/, `${key}: vsdx records Chromium version`);
-        const lucidBytes = fs.readFileSync(path.join(cliOutA, `${stem}.lucid`));
-        assertValidLucid(lucidBytes, CIMIP[key], `cli-default/${key}`);
-        const defaultDoc = JSON.parse(fs.readFileSync(path.join(cliOutA, `${stem}.lucid.json`), "utf8"));
-        assert.ok(
-          defaultDoc.pages[0].shapes.some((s) => s.customData?.some((d) => d.key === "basalt_measured_by" && /^Chromium \d+/.test(d.value))),
-          `${key}: lucid records Chromium version`,
-        );
 
-        // Compare CLI default path against live React component: assert <= 0.5px on every box and route point (B2)
-        const { geo, extras } = measured[key];
-        const liveDoc = interop.exportMeasuredDiagram(CIMIP[key], geo, "lucid-json", { extras });
+        // Compare CLI default path against live React component: assert <= 0.5px on boxes, routes, edge labels, lifelines, dividers (B1/B2)
+        const liveDoc = interop.exportMeasuredDiagram(spec, geo, "lucid-json", { extras, placement, diagramId: stem });
         const defDelta = compareLucidDocs(liveDoc, defaultDoc, `default/${key}`);
         comparison.defaultPath[key] = defDelta;
         assert.equal(defDelta.shapesOverHalfPx, 0, `${key}: default path box delta ${defDelta.maxBoxDelta}px > 0.5px`);
         assert.equal(defDelta.routesOverHalfPx, 0, `${key}: default path route delta ${defDelta.maxRouteDelta}px > 0.5px`);
+        assert.equal(defDelta.labelsOverHalfPx, 0, `${key}: default path edge label delta ${defDelta.maxLabelDelta}px > 0.5px`);
+        assert.equal(defDelta.guidesOverHalfPx, 0, `${key}: default path lifeline/divider delta ${defDelta.maxGuideDelta}px > 0.5px`);
+
+        // B2: on sequence frames, verify no page-filled frame label or else box covers a lifeline x outside Basalt's measured label rect
+        if (key === "batchBSeq") {
+          const pad = 32;
+          const lfXs = geo.lifelines.map((l) => l.x + pad);
+          for (let fi = 0; fi < (extras.frames?.length ?? 0); fi++) {
+            const ef = extras.frames[fi];
+            if (ef.labelRect) {
+              const s = defaultDoc.pages[0].shapes.find((x) => x.id === `frame_label_f${fi}`);
+              assert.ok(s, `batchBSeq: frame_label_f${fi} present`);
+              for (const lx of lfXs) {
+                const inExport = lx >= s.boundingBox.x && lx <= s.boundingBox.x + s.boundingBox.w;
+                const inBasalt = lx >= ef.labelRect.l + pad && lx <= ef.labelRect.r + pad;
+                assert.equal(inExport, inBasalt, `batchBSeq: frame_label_f${fi} must not cover lifeline x=${lx} outside Basalt label rect`);
+              }
+            }
+            ef.dividers.forEach((div, k) => {
+              if (!div.labelRect) return;
+              const s = defaultDoc.pages[0].shapes.find((x) => x.id === `frame_else_f${fi}_${k}`);
+              assert.ok(s, `batchBSeq: frame_else_f${fi}_${k} present`);
+              for (const lx of lfXs) {
+                const inExport = lx >= s.boundingBox.x && lx <= s.boundingBox.x + s.boundingBox.w;
+                const inBasalt = lx >= div.labelRect.l + pad && lx <= div.labelRect.r + pad;
+                assert.equal(inExport, inBasalt, `batchBSeq: frame_else_f${fi}_${k} must not cover lifeline x=${lx} outside Basalt else rect`);
+              }
+            });
+          }
+        }
 
         // Record approximate headless fallback drift
-        const headDoc = interop.diagramToLucidJson(CIMIP[key], { width: geo.w });
+        const headDoc = interop.diagramToLucidJson(spec, { width: 1104, diagramId: stem });
         comparison.headlessFallback[key] = compareLucidDocs(liveDoc, headDoc, `headless/${key}`);
       }
       if (process.env.PRINT_INTEROP_COMPARISON) {

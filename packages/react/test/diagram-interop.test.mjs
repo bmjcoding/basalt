@@ -6,7 +6,7 @@
 //   - Official draw.io XSD validation (mxfile-1.0.xsd), Visio OPC + Connects + ConFixedCode=2, Lucid Standard Import JSON
 //   - Exact port axis-alignment invariant across every edge in every format (including RunTask negative fixture)
 //   - Marks on architecture cards, data-flow steps, and sequence participants against manifest terms
-//   - `par` sequence frames, `measuredBy` metadata across formats, unplaced auto-layout error
+//   - Frame header/else word-sized boxes, auto-layout direction, `measuredBy` metadata across formats, unplaced auto-layout error
 //   - CLI (--headless) determinism across TZ/LC_ALL, symlink execution, HTML script[data-diagram], Batch B auto-layout
 //   - Subpath isolation (outside root index, no "use client", no React/UI imports, lazy elkjs)
 import assert from "node:assert/strict";
@@ -246,55 +246,89 @@ describe("Batch B parts in all three formats (DECISIONS 324, 327)", () => {
     }
   });
 
-  test("par sequence frame with divider works across draw.io, Visio, and Lucid via MeasuredFrame", () => {
-    const seq = CIMIP.sequence;
-    const baseScene = interop.measureDiagramHeadless(seq);
-    const fakeGeo = {
-      w: baseScene.width,
-      h: baseScene.height,
-      nodes: baseScene.nodes.map((n, i) => ({ id: n.id, shape: n.shape, i, rect: { l: n.box.x, t: n.box.y, r: n.box.x + n.box.w, b: n.box.y + n.box.h } })),
-      lines: baseScene.edges.map((e) => ({ i: e.messageNumber, from: e.from, to: e.to, kind: e.kind, pts: e.pts, tip: e.pts[e.pts.length - 1], dir: "right", width: e.kind === "main" ? 2 : 1 })),
-      lifelines: baseScene.lifelines.map((l) => ({ x: l.x, y1: l.y1, y2: l.y2 })),
-      labels: [], crossings: [], through: [], unseated: [], outside: [], ox: 0, oy: 0,
-    };
-    const extras = {
-      frames: [
-        {
-          operator: "par",
-          label: "In parallel",
-          depth: 1,
-          rect: { l: 0, t: 80, r: 500, b: 260 },
-          tabRect: { l: 1, t: 81, r: 47, b: 105 },
-          dividers: [{ y: 170, h: 28, label: "Also" }],
-        },
-      ],
-    };
-    const drawio = interop.exportMeasuredDiagram(seq, fakeGeo, "drawio", { extras });
-    assert.match(drawio, /id="frame-tab-f0" value="par"/);
-    assert.match(drawio, /id="frame-div-f0-0"/);
-    assert.match(drawio, /Also/);
-    const vsdxPage = readZipEntries(interop.exportMeasuredDiagram(seq, fakeGeo, "vsdx", { extras })).get("visio/pages/page1.xml").toString("utf8");
-    assert.match(vsdxPage, /NameU="FrameTab_f0" Name="par"/);
-    assert.match(vsdxPage, /NameU="FrameDiv_f0_0"/);
-    const lucidDoc = interop.exportMeasuredDiagram(seq, fakeGeo, "lucid-json", { extras });
-    assert.ok(lucidDoc.pages[0].shapes.some((s) => s.id === "frame_f0" && s.customData?.some((d) => d.key === "basalt_frame_op" && d.value === "par")));
-    assert.ok(lucidDoc.pages[0].lines.some((l) => l.id === "frame_div_f0_0"));
+  test("frame header labels and else rows are sized to their words and never cut uncovered lifelines (B2)", () => {
+    const seq = CIMIP_B.sequence;
+    const scene = interop.measureDiagramHeadless(seq);
+    const pad = scene.pad;
+    const drawio = interop.diagramToDrawio(seq);
+    const vsdxPage = readZipEntries(interop.diagramToVsdx(seq)).get("visio/pages/page1.xml").toString("utf8");
+    const lucidDoc = interop.diagramToLucidJson(seq);
+    const page = lucidDoc.pages[0];
+
+    // Check Lucid shapes: every frame_label_* and frame_else_* matches labelBox width (not full frame width)
+    // and never covers a lifeline x outside its scene labelBox.
+    const lifelineXs = scene.lifelines.map((l) => l.x + pad);
+    for (const f of scene.frames) {
+      if (f.label && f.labelBox) {
+        const s = page.shapes.find((x) => x.id === `frame_label_${f.id}`);
+        assert.ok(s, `Lucid frame_label_${f.id} present`);
+        assert.ok(s.boundingBox.w < f.box.w - 40, `frame_label_${f.id} (${s.boundingBox.w}px) must be sized to words, not full frame (${f.box.w}px)`);
+        assert.ok(Math.abs(s.boundingBox.w - f.labelBox.w) <= 0.5, `Lucid frame_label_${f.id} matches labelBox width`);
+        assert.match(s.text, /font-weight:\s*500/, `Lucid frame_label_${f.id} uses weight 500`);
+        for (const lx of lifelineXs) {
+          const inExport = lx >= s.boundingBox.x && lx <= s.boundingBox.x + s.boundingBox.w;
+          const inScene = lx >= f.labelBox.x + pad && lx <= f.labelBox.x + pad + f.labelBox.w;
+          assert.equal(inExport, inScene, `Lucid frame_label_${f.id} lifeline x=${lx} coverage matches Basalt label rect`);
+        }
+        // Check draw.io frame-label-* geometry & weight
+        const mDrawio = drawio.match(new RegExp(`id="frame-label-${f.id}"[^>]*value="([^"]*)"[^>]*>\\s*<mxGeometry[^>]*width="([\\d.]+)"`));
+        assert.ok(mDrawio, `draw.io frame-label-${f.id} present`);
+        assert.match(mDrawio[1], /font-weight:500/, `draw.io frame-label-${f.id} uses weight 500`);
+        assert.ok(Math.abs(Number(mDrawio[2]) - f.labelBox.w) <= 0.5, `draw.io frame-label-${f.id} matches labelBox width`);
+        // Check Visio FrameLabel_* width
+        const mVsdx = vsdxPage.match(new RegExp(`NameU="FrameLabel_${f.id}"[\\s\\S]*?<Cell N="Width" V="([\\d.]+)"`));
+        assert.ok(mVsdx, `Visio FrameLabel_${f.id} present`);
+        assert.ok(Math.abs(Number(mVsdx[1]) * 96 - f.labelBox.w) <= 0.5, `Visio FrameLabel_${f.id} matches labelBox width`);
+      }
+      f.dividers.forEach((div, k) => {
+        if (!div.labelBox) return;
+        const s = page.shapes.find((x) => x.id === `frame_else_${f.id}_${k}`);
+        assert.ok(s, `Lucid frame_else_${f.id}_${k} present`);
+        assert.ok(s.boundingBox.w < f.box.w - 40, `frame_else_${f.id}_${k} (${s.boundingBox.w}px) must be sized to words, not full frame (${f.box.w}px)`);
+        for (const lx of lifelineXs) {
+          const inExport = lx >= s.boundingBox.x && lx <= s.boundingBox.x + s.boundingBox.w;
+          const inScene = lx >= div.labelBox.x + pad && lx <= div.labelBox.x + pad + div.labelBox.w;
+          assert.equal(inExport, inScene, `Lucid frame_else_${f.id}_${k} lifeline x=${lx} coverage matches Basalt label rect`);
+        }
+        const mDrawio = drawio.match(new RegExp(`id="frame-else-${f.id}-${k}"[^>]*>\\s*<mxGeometry[^>]*width="([\\d.]+)"`));
+        assert.ok(mDrawio, `draw.io frame-else-${f.id}-${k} present`);
+        assert.ok(Math.abs(Number(mDrawio[1]) - div.labelBox.w) <= 0.5, `draw.io frame-else-${f.id}-${k} matches labelBox width`);
+        const mVsdx = vsdxPage.match(new RegExp(`NameU="FrameElse_${f.id}_${k}"[\\s\\S]*?<Cell N="Width" V="([\\d.]+)"`));
+        assert.ok(mVsdx, `Visio FrameElse_${f.id}_${k} present`);
+        assert.ok(Math.abs(Number(mVsdx[1]) * 96 - div.labelBox.w) <= 0.5, `Visio FrameElse_${f.id}_${k} matches labelBox width`);
+      });
+    }
+    const tab = page.shapes.find((x) => x.id === "frame_tab_f0");
+    assert.match(tab.text, /font-weight:\s*600/, "Lucid frame tab uses weight 600");
   });
 
-  test("measuredBy engine metadata is written across draw.io (XSD-valid), Visio Creator, and Lucid customData", () => {
-    const engine = "Chromium 146.0.7680.16";
+  test("headless auto-layout picks the first direction whose minimum width fits target width (Polish 2)", async () => {
+    const placed = await interop.placeAutoDiagram(CIMIP_B.autoArchitecture);
+    const at1104 = interop.measureDiagramHeadless(placed, { width: 1104 });
+    const at1800 = interop.measureDiagramHeadless(placed, { width: 1800 });
+    const cols1104 = Math.max(...at1104.nodes.map((n) => n.col));
+    const cols1800 = Math.max(...at1800.nodes.map((n) => n.col));
+    assert.ok(cols1104 < cols1800, `autoArchitecture at 1104px takes down (${cols1104} cols) while at 1800px takes right (${cols1800} cols)`);
+  });
+
+  test("measuredBy engine metadata is written across draw.io (XSD-valid), Visio Creator, and every Lucid node", () => {
+    const engine = "Chromium 146.0.7680.16, darwin, Basalt 0.1.0";
     const xml = interop.diagramToDrawio(CIMIP.architecture, { measuredBy: engine });
     assertValidDrawio(xml, CIMIP.architecture, "metadata-drawio");
-    assert.match(xml, /<mxfile compressed="false" agent="Basalt Diagram Exporter \(Chromium 146\.0\.7680\.16\)">/);
+    assert.match(xml, /<mxfile compressed="false" agent="Basalt Diagram Exporter \(Chromium 146\.0\.7680\.16, darwin, Basalt 0\.1\.0\)">/);
 
     const vsdx = interop.diagramToVsdx(CIMIP.architecture, { measuredBy: engine });
     assertValidVsdx(vsdx, CIMIP.architecture, "metadata-vsdx");
-    assert.match(readZipEntries(vsdx).get("visio/document.xml").toString("utf8"), /<Creator>Basalt Diagram Exporter \(Chromium 146\.0\.7680\.16\)<\/Creator>/);
+    assert.match(readZipEntries(vsdx).get("visio/document.xml").toString("utf8"), /<Creator>Basalt Diagram Exporter \(Chromium 146\.0\.7680\.16, darwin, Basalt 0\.1\.0\)<\/Creator>/);
 
     const lucid = interop.diagramToLucid(CIMIP.architecture, { measuredBy: engine });
     assertValidLucid(lucid, CIMIP.architecture, "metadata-lucid");
     const doc = JSON.parse(readZipEntries(lucid).get("document.json").toString("utf8"));
-    assert.ok(doc.pages[0].shapes.some((s) => s.customData?.some((d) => d.key === "basalt_measured_by" && d.value === engine)));
+    const nodeShapes = doc.pages[0].shapes.filter((s) => s.id.startsWith("node_"));
+    assert.ok(nodeShapes.length > 0);
+    for (const s of nodeShapes) {
+      assert.ok(s.customData?.some((d) => d.key === "basalt_measured_by" && d.value === engine), `Lucid ${s.id} carries basalt_measured_by`);
+    }
   });
 });
 
@@ -435,7 +469,7 @@ describe("basalt-diagram-export CLI (Node-only --headless mode)", () => {
           assert.equal(sha256(fa), sha256(fb), `CLI repeat deterministic across TZ/LC_ALL: ${stem}${ext}`);
         }
       }
-      assert.match(fs.readFileSync(path.join(outA, "architecture.drawio"), "utf8"), /Basalt headless \(approximate\)/);
+      assert.match(fs.readFileSync(path.join(outA, "architecture.drawio"), "utf8"), /Basalt \d+\.\d+\.\d+ headless \(approximate\)/);
 
       // 1b. Symlink execution (as npm installs node_modules/.bin/basalt-diagram-export)
       const symLink = path.join(dir, "basalt-diagram-export-link");

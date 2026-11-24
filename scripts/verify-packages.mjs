@@ -135,13 +135,14 @@ console.log('Packed consumer: runtime, server rendering, exact token types, expo
   );
   assert.equal(fallbackRun.status, 0, `packed default fallback failed: ${fallbackRun.stderr}`);
   assert.match(fallbackRun.stderr, /approximate/i, "default CLI fallback without Playwright must warn that geometry is approximate");
+  assert.doesNotMatch(fallbackRun.stderr, /warning:\s*basalt-diagram-export:/i, "fallback warning must not duplicate basalt-diagram-export prefix");
   for (const ext of [".drawio", ".vsdx", ".lucid"]) {
     const f = path.join(cliOut, `sample${ext}`);
     assert.ok(fs.existsSync(f) && fs.statSync(f).size > 0, `installed bin did not write ${f}`);
   }
   const drawioOut = fs.readFileSync(path.join(cliOut, "sample.drawio"), "utf8");
   assert.match(drawioOut, /background="#000000"/, "dark drawio background");
-  assert.match(drawioOut, /Basalt headless \(approximate\)/, "drawio records approximate engine metadata");
+  assert.match(drawioOut, /Basalt \d+\.\d+\.\d+ headless \(approximate\)/, "drawio records approximate engine metadata with Basalt version");
   assert.match(fs.readFileSync(path.join(cliOut, "sample.vsdx")).toString("latin1"), /PageBackground/, "dark vsdx PageBackground");
   // Without Playwright installed in the consumer, strict --browser fails cleanly with an actionable install message.
   let browserErr = "";
