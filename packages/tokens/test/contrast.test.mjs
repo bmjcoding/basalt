@@ -1060,3 +1060,59 @@ for (const theme of THEMES) {
     if (theme === "light") assert.ok(ratio(color(theme, "text-tertiary"), color(theme, "plate-0")) < 4.5, "light: tertiary on plate-0 needs the step to secondary");
   });
 }
+
+// ---- Stages and runs (DECISIONS 316, 2.2): the tail's first step, a failed row's 0.88, the queued breath and the connector; the four deeper steps
+// are the one named exception (foundations, Principles) and are read by nothing but a run timeline's tail ----
+
+const RUN_OPACITY = (name) => Number(tokens.primitives[`opacity-${name}`].css);
+const RUN_ONTO = (theme) => [...surfaces(theme), ...LEVELS.map((n) => [n, color(theme, n)])];
+
+for (const theme of THEMES) {
+  test(`${theme}: a tail's first step (text-tertiary, whole) and a failed row's (status-danger at opacity-recede-danger) hold 4.5:1 on every surface, well and level, and under more contrast`, () => {
+    const danger = RUN_OPACITY("recede-danger");
+    assert.equal(danger, 0.88);
+    for (const [bgName, bg] of RUN_ONTO(theme)) {
+      const first = ratio(over(color(theme, "text-tertiary"), bg), bg);
+      assert.ok(first >= 4.5, `${theme}: the first step on ${bgName} is ${fmt(first)}:1`);
+      const failed = ratio(over({ ...color(theme, "status-danger"), alpha: danger }, bg), bg);
+      assert.ok(failed >= 4.5, `${theme}: a failed row's first step on ${bgName} is ${fmt(failed)}:1`);
+      // Under more contrast nothing recedes: tertiary steps to secondary, and a failed row is full danger ink.
+      assert.ok(ratio(over(more(theme, "text-tertiary"), bg), bg) >= 4.5, `${theme}: the first step on ${bgName} under more contrast`);
+      assert.ok(ratio(over(more(theme, "status-danger"), bg), bg) >= 4.5, `${theme}: a failed row on ${bgName} under more contrast`);
+    }
+  });
+
+  test(`${theme}: the queued breath, text-secondary at opacity-queued, is 3:1 or better on every surface, well and level at its lowest, and under more contrast`, () => {
+    const floor = RUN_OPACITY("queued");
+    assert.equal(floor, 0.65);
+    for (const [bgName, bg] of RUN_ONTO(theme)) {
+      const r = ratio(over({ ...more(theme, "text-secondary"), alpha: floor }, bg), bg);
+      assert.ok(r >= 3, `${theme}: the queued mark at its lowest on ${bgName} is ${fmt(r)}:1`);
+    }
+  });
+
+  test(`${theme}: the connector and the rail's track (border-input, a hairline) hold 3:1 on every surface and level`, () => {
+    atLeast(theme, "border-input", 3, RUN_ONTO(theme));
+  });
+
+  test(`${theme}: the tail's steps 2 to 5 are the named exception, below 4.5:1 on purpose; reported with their ratios`, (t) => {
+    const steps = [2, 3, 4, 5].map((n) => [n, RUN_OPACITY(`recede-${n}`)]);
+    assert.deepEqual(steps.map(([, v]) => v), [0.5, 0.32, 0.2, 0.12], "the owner's steps");
+    for (const [n, alpha] of steps) {
+      const bg = color(theme, "surface-1");
+      const neutral = ratio(over({ ...color(theme, "text-secondary"), alpha }, bg), bg);
+      const failed = ratio(over({ ...color(theme, "status-danger"), alpha }, bg), bg);
+      assert.ok(neutral < 4.5, `${theme}: step ${n} is the exception; if it held 4.5:1 it would not need one`);
+      t.diagnostic(`${theme}, level 1: step ${n} at ${alpha} is ${fmt(neutral)}:1, a failed row ${fmt(failed)}:1`);
+    }
+  });
+}
+
+test("opacity-recede-2 to -5 are read by a run timeline's tail and nothing else in the stylesheet", () => {
+  const css = fs.readFileSync(new URL("../../react/src/styles/components.css", import.meta.url), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const readers = [];
+  for (const m of css.matchAll(/([^{}]*)\{[^{}]*--basalt-opacity-recede-[2-5]\b[^{}]*\}/g)) readers.push(m[1].trim());
+  for (const selector of readers) assert.ok(selector.split(",").every((s) => /\.basalt-run-steps\b/.test(s)), `${selector} reads a tail step and is not a run timeline's tail`);
+  const skill = new URL("../../../tools/html-skill/src/modules/runs.css", import.meta.url);
+  if (fs.existsSync(skill)) assert.ok(!/--basalt-opacity-recede-[2-5]\b/.test(fs.readFileSync(skill, "utf8")), "the HTML skill draws no tail");
+});

@@ -13,14 +13,21 @@ const foundations = flat(read("docs/foundations.md"));
 const motion = flat(read("docs/motion.md"));
 const agents = flat(read("AGENTS.md"));
 
-// DECISIONS 292 (5.3, 5.9) added a third kind, an animated diagram's live lines; foundations names them, AGENTS.md keeps the shorter form.
-const LOOPS = "Three kinds of thing loop, and nothing else: a mark that says work is running (the ring, braille, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar, Sparkline's loading line, Skeleton's pulse and a written field's fill), a page's one ambient loop, opacity only, in its art, and an animated diagram's live lines";
-const SENTENCE = `${LOOPS} (a flow line, a pulse, a packet that repeats); \`data-loops="held"\` stops all three.`;
-const AGENTS_SENTENCE = `${LOOPS}; \`data-loops="held"\` stops all three.`;
+// DECISIONS 292 (5.3, 5.9) added a third kind, an animated diagram's live lines; DECISIONS 316 (4.1) a fourth, a queued stage's mark. Foundations names
+// the diagram's lines; AGENTS.md gives the queued mark's bounds and keeps the shorter form of the lines.
+const RUNNING = "Four kinds of thing loop, and nothing else: a mark that says work is running (the ring, braille, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar, Sparkline's loading line, Skeleton's pulse and a written field's fill)";
+const SENTENCE = `${RUNNING}, a queued stage's mark, a page's one ambient loop, opacity only, in its art, and an animated diagram's live lines (a flow line, a pulse, a packet that repeats); \`data-loops="held"\` stops all four.`;
+const AGENTS_SENTENCE = `${RUNNING}, a queued stage's mark (\`StageMark\`, opacity 0.65 to 1 on \`duration-loop-fade\`, never under 3:1, never a badge's ring), a page's one ambient loop, opacity only, in its art, and an animated diagram's live lines; \`data-loops="held"\` stops all four.`;
+const QUEUED = "**A queued stage's mark** (`StageMark` at `queued`: work that waits to start) breathes by opacity alone, from `opacity-queued` (0.65) to 1 and back on `duration-loop-fade` and `ease-in-out`, in secondary ink, on the shared clock, and is 3:1 or better against its ground at every moment. It is the `StageMark` only: a `Badge`'s pending ring, a dot and a word never breathe. It is still, at full, under reduced motion, under the hold, in forced colours and in print. A stage that has finished never loops.";
 
-test("the one sentence for loops is in foundations and in AGENTS.md, and the three older wordings are gone", () => {
+test("the one sentence for loops is in foundations and in AGENTS.md, and the older wordings are gone", () => {
   assert.ok(foundations.includes(SENTENCE), "foundations");
+  assert.ok(foundations.includes(QUEUED), "foundations: the queued mark's bounds");
   assert.ok(agents.includes(AGENTS_SENTENCE), "AGENTS.md");
+  for (const [name, text] of [["foundations", foundations], ["AGENTS.md", agents]]) {
+    assert.ok(!/Three kinds of thing loop/.test(text) && !/Two kinds of thing loop/.test(text) && !/stops all three/.test(text), `${name}: the old count`);
+  }
+  assert.ok(/\*\*The queued breath\*\* \(DECISIONS 316\) is a `StageMark`'s at `queued`, and no other mark's/.test(motion), "motion: the queued breath in Spinners");
   for (const [name, text] of [["foundations", foundations], ["motion", motion], ["AGENTS.md", agents]]) {
     assert.ok(!/Nothing loops except spinners/.test(text), `${name}: the old sentence`);
     assert.ok(!/Nothing overshoots or loops, except spinners/.test(text), `${name}: the old sentence`);
@@ -83,4 +90,14 @@ test("the second amendment (DECISIONS 148) is in the docs: beforeprint, and the 
   assert.ok(/the browser's own `beforeprint`/.test(foundations) && /the browser's own `beforeprint`/.test(motion));
   assert.ok(/The HTML skill's narrow menu has the same row/.test(foundations));
   assert.ok(/a line along its drawn path and its markers from their drawn centres/.test(motion));
+});
+
+test("stages and runs (DECISIONS 316): the new section's status line, the hold's exception, and motion's table", () => {
+  const status = "Decided by the council for the owner's handoff (DECISIONS 302, 304, 307, 312 and 316); the implementation hasn't been reviewed.";
+  const at = foundations.indexOf("## Stages and runs");
+  assert.ok(at >= 0 && foundations.slice(at, at + 400).includes(status), "foundations: the section and its status line");
+  const m = motion.indexOf("## Stages and runs");
+  assert.ok(m >= 0 && motion.slice(m, m + 400).includes("decided by the council for the owner's handoff (DECISIONS 302, 304, 307, 312 and 316); the implementation hasn't been reviewed."), "motion: the table and its status line");
+  assert.ok(foundations.includes("A column that holds an elapsed time is wide enough for the held form. **A run is the one exception to both sentences about an elapsed time.**"), "the hold's line names itself as the exception, directly after the sentence it excepts");
+  assert.ok(foundations.includes("Sparkline's loading line, Skeleton's pulse and a written field's fill, a queued `StageMark`'s breath, and the page's ambient loop"), "the hold stops the breath");
 });

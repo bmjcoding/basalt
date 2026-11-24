@@ -48,7 +48,7 @@ let joining: HTMLElement[] | undefined;
  * paint shows frame 0 and corrects once, here, after hydration. Under reduced motion braille runs no animation, so
  * there is nothing to sync.
  */
-function useSharedClock(ref: React.RefObject<HTMLElement | null>) {
+export function useSharedClock(ref: React.RefObject<HTMLElement | null>) {
   React.useLayoutEffect(() => {
     const el = ref.current;
     if (!el || typeof el.getAnimations !== "function") return;
