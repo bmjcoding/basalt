@@ -129,7 +129,7 @@ describe("all five CIMIP fixtures: determinism, schemas, glue and exact port axi
     assert.ok(beginOff <= 2e-6, `RunTask Begin (${begin.x},${begin.y}) on its Connection row (${from.x},${from.y}; formula ${from.fx},${from.fy})`);
     assert.ok(endOff <= 2e-6, `RunTask End (${end.x},${end.y}) on its Connection row (${to.x},${to.y}; formula ${to.fx},${to.fy})`);
 
-    const rows = [...runTask[2].matchAll(/<Row T="(MoveTo|LineTo)" IX="\d+"><Cell N="X" V="([^"]+)"\/><Cell N="Y" V="([^"]+)"\/><\/Row>/g)];
+    const rows = [...runTask[2].matchAll(/<Row T="(MoveTo|LineTo)" IX="\d+"><Cell N="X" V="([^"]+)"(?: F="[^"]*")?\/><Cell N="Y" V="([^"]+)"(?: F="[^"]*")?\/><\/Row>/g)];
     assert.equal(rows.length, 3, "RunTask has exactly 3 geometry vertices");
     assert.equal(rows[1][2], "0.000000", "first bend stays strictly on X === 0");
     assert.equal(rows[1][3], rows[2][3], "final leg stays strictly horizontal into ECS");

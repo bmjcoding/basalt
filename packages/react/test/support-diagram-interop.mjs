@@ -387,15 +387,16 @@ export function assertValidVsdx(bytes, spec, context) {
   assert.equal(connects.length, connectors.length * 2, `${context}: 2 Connect records per connector`);
 
   const expectCard = schemaHasCardinality(spec);
-  let labelledCount = 0;
   let gluedToBar = 0;
+  const usedPorts = new Set();
   for (const c of connectors) {
     assert.equal(cellVal(c.body, "ShapeRouteStyle"), "1", `${context} ${c.nameU}: ShapeRouteStyle=1`);
     assert.equal(cellVal(c.body, "ConFixedCode"), "2", `${context} ${c.nameU}: ConFixedCode=2`);
-    if (c.body.includes("<Text>")) labelledCount++;
     if (expectCard) {
       assert.ok(VSDX_CARDS.has(cellVal(c.body, "BeginArrow")), `${context} ${c.nameU}: Visio crow's-foot BeginArrow`);
       assert.ok(VSDX_CARDS.has(cellVal(c.body, "EndArrow")), `${context} ${c.nameU}: Visio crow's-foot EndArrow`);
+      assert.equal(cellVal(c.body, "BeginArrowSize"), "0", `${context} ${c.nameU}: compact crow's-foot BeginArrowSize=0`);
+      assert.equal(cellVal(c.body, "EndArrowSize"), "0", `${context} ${c.nameU}: compact crow's-foot EndArrowSize=0`);
     }
 
     const beginConn = connects.find((k) => k.fromSheet === c.id && k.fromPart === 9);
@@ -429,11 +430,39 @@ export function assertValidVsdx(bytes, spec, context) {
     assert.ok(Math.abs(ex - endPort.x) <= 2e-6 && Math.abs(ey - endPort.y) <= 2e-6,
       `${context} ${c.nameU}: End (${ex},${ey}) != Connection (${endPort.x},${endPort.y})`);
 
-    const geomRows = [...c.body.matchAll(/<Row T="(MoveTo|LineTo)" IX="\d+"><Cell N="X" V="([^"]+)"\/><Cell N="Y" V="([^"]+)"\/><\/Row>/g)]
+    const geomRows = [...c.body.matchAll(/<Row T="(MoveTo|LineTo)" IX="\d+"><Cell N="X" V="([^"]+)"(?: F="[^"]*")?\/><Cell N="Y" V="([^"]+)"(?: F="[^"]*")?\/><\/Row>/g)]
       .map((m) => ({ x: bx + Number(m[2]), y: by + Number(m[3]) }));
     assertAxisAlignedRoute(geomRows, startPort, endPort, 2e-5, `${context} vsdx ${c.nameU}`);
   }
-  assert.equal(labelledCount, expectedLabelCount(spec), `${context}: all labelled edges have connector <Text>`);
+
+  for (const c of connectors) {
+    assert.equal(cellVal(c.body, "ConLineJumpCode"), "1", `${context} ${c.nameU}: ConLineJumpCode=1`);
+    const beginConn = connects.find((k) => k.fromSheet === c.id && k.fromPart === 9);
+    const endConn = connects.find((k) => k.fromSheet === c.id && k.fromPart === 12);
+    for (const k of [beginConn, endConn]) {
+      const portKey = `${k.toSheet}:${k.toPart}`;
+      assert.ok(!usedPorts.has(portKey), `${context} ${c.nameU}: port ${portKey} shared by multiple connectors`);
+      usedPorts.add(portKey);
+    }
+  }
+
+  const pagesXml = entries.get("visio/pages/pages.xml").toString("utf8");
+  assert.match(pagesXml, /<Cell N="LineJumpCode" V="0"\/>/, `${context}: Visio PageSheet disables line jumps (LineJumpCode=0)`);
+
+  // Every edge label is emitted as a dedicated opaque page-colour EdgeLabel_* shape AFTER all connectors/bars
+  const shapeOrder = topShapes.map((s) => attrVal(s.attrs, "NameU") ?? "");
+  const lastConnectorIdx = shapeOrder.reduce((acc, n, i) => (n.startsWith("Connector_") ? i : acc), -1);
+  const lastBarIdx = shapeOrder.reduce((acc, n, i) => (n.startsWith("Bar_") ? i : acc), -1);
+  const edgeLabels = [...byId.values()].filter((s) => s.nameU.startsWith("EdgeLabel_"));
+  assert.equal(edgeLabels.length, expectedLabelCount(spec), `${context}: all labelled edges have opaque EdgeLabel_* shapes`);
+  for (const el of edgeLabels) {
+    assert.equal(cellVal(el.body, "FillPattern"), "1", `${context} ${el.nameU}: opaque page-colour backdrop`);
+    assert.ok(shapeOrder.indexOf(el.nameU) > lastConnectorIdx, `${context} ${el.nameU}: painted above connectors`);
+  }
+  for (const fl of [...byId.values()].filter((s) => /^(FrameTab_|FrameLabel_|FrameElse_|BandLabel_)/.test(s.nameU))) {
+    assert.equal(cellVal(fl.body, "FillPattern"), "1", `${context} ${fl.nameU}: opaque page-colour backdrop`);
+    assert.ok(shapeOrder.indexOf(fl.nameU) > lastBarIdx, `${context} ${fl.nameU}: painted above activation bars`);
+  }
 
   // Architecture groups (including nested depth-2 containers)
   if (spec.type === "architecture" && spec.groups?.length) {
