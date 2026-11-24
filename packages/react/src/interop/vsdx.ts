@@ -38,7 +38,17 @@ interface ConnEntry {
   /** Exact local connection X and Y in Visio inches (computed directly so straight lines stay aligned to 0.000000 in). */
   cx: number;
   cy: number;
+  /** Outward unit normal in Visio Y-up coordinates so Visio and Lucidchart know which edge the port leaves. */
+  dirX: number;
+  dirY: number;
   ix: number;
+}
+
+function sideNormal(side: "top" | "right" | "bottom" | "left"): { dirX: number; dirY: number } {
+  if (side === "left") return { dirX: -1, dirY: 0 };
+  if (side === "right") return { dirX: 1, dirY: 0 };
+  if (side === "top") return { dirX: 0, dirY: 1 };
+  return { dirX: 0, dirY: -1 };
 }
 
 interface PlacedShape {
@@ -96,9 +106,17 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     });
   }
 
-  // Collect deduplicated Connection rows required on each target shape/lifeline/bar
+  // Allocate one dedicated Connection row per connector end (never sharing a port between two connectors,
+  // which causes Lucidchart's Visio importer to re-route or collapse segments).
   const connsByKey = new Map<string, ConnEntry[]>();
-  const getConnIndex = (key: string, fx: number, fy: number, exactCx?: number, exactCy?: number): number => {
+  const allocConnIndex = (
+    key: string,
+    fx: number,
+    fy: number,
+    side: "top" | "right" | "bottom" | "left",
+    exactCx?: number,
+    exactCy?: number,
+  ): number => {
     const g = geomByKey.get(key);
     const rfx = round6(Math.max(0, Math.min(1, fx)));
     const rfy = round6(Math.max(0, Math.min(1, fy)));
@@ -106,10 +124,9 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     const cy = exactCy !== undefined ? n6(exactCy) : n6((1 - rfy) * (g?.hIn ?? 0));
     let list = connsByKey.get(key);
     if (!list) { list = []; connsByKey.set(key, list); }
-    const existing = list.find((c) => Math.abs(c.cx - cx) < 1e-6 && Math.abs(c.cy - cy) < 1e-6);
-    if (existing) return existing.ix;
     const ix = list.length;
-    list.push({ fx: rfx, fy: rfy, cx, cy, ix });
+    const { dirX, dirY } = sideNormal(side);
+    list.push({ fx: rfx, fy: rfy, cx, cy, dirX, dirY, ix });
     return ix;
   };
 
@@ -124,7 +141,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     const toG = geomByKey.get(toKey);
     const fromFx = e.sequence && !fromKey.startsWith("bar:") ? 0.5 : e.fromPort.x;
     const toFx = e.sequence && !toKey.startsWith("bar:") ? 0.5 : e.toPort.x;
-    const fromIx = getConnIndex(fromKey, fromFx, e.fromPort.y);
+    const fromIx = allocConnIndex(fromKey, fromFx, e.fromPort.y, e.fromPort.side);
     let toIx: number;
     if (e.pts.length === 2 && fromG && toG) {
       const fc = connsByKey.get(fromKey)![fromIx]!;
@@ -135,15 +152,15 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
         const toBottom = toG.pinY - n6(toG.hIn / 2);
         const exactCy = n6(startPageY - toBottom);
         const alignedFy = toG.hIn > 0 ? round6(1 - exactCy / toG.hIn) : e.toPort.y;
-        toIx = getConnIndex(toKey, toFx, alignedFy, undefined, exactCy);
+        toIx = allocConnIndex(toKey, toFx, alignedFy, e.toPort.side, undefined, exactCy);
       } else {
         const toLeft = toG.pinX - n6(toG.wIn / 2);
         const exactCx = n6(startPageX - toLeft);
         const alignedFx = toG.wIn > 0 ? round6(exactCx / toG.wIn) : toFx;
-        toIx = getConnIndex(toKey, alignedFx, e.toPort.y, exactCx, undefined);
+        toIx = allocConnIndex(toKey, alignedFx, e.toPort.y, e.toPort.side, exactCx, undefined);
       }
     } else {
-      toIx = getConnIndex(toKey, toFx, e.toPort.y);
+      toIx = allocConnIndex(toKey, toFx, e.toPort.y, e.toPort.side);
     }
     return { fromKey, toKey, fromIx, toIx };
   });
@@ -163,6 +180,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
   for (const n of scene.nodes) nodeSheetId.set(n.id, nextId++);
 
   const shapeXml: string[] = [];
+  const topLabelXml: string[] = [];
   const connectXml: string[] = [];
   const placed = new Map<string, PlacedShape>();
   const mediaFiles: Array<{ rId: string; fileName: string; svg: string }> = [];
@@ -373,6 +391,8 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     const hIn = n6(band.h / DPI);
     const pinX = toVisioX(band.w / 2);
     const pinY = toVisioY(band.y + band.h / 2);
+    // Emit the band's divider line in the background layer and its word-sized page-colour plate in the top label layer
+    // so lifelines and activation bars never strike through the band words.
     shapeXml.push(
       `    <Shape ID="${id}" NameU="Band_${bIdx}" Name="${escXml(band.text)}" Type="Shape">\n` +
       `      <Cell N="PinX" V="${f6(pinX)}"/>\n` +
@@ -386,8 +406,37 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
       `      <Cell N="LineColor" V="${P.divider}"/>\n` +
       `      <Cell N="LineWeight" V="${ptToIn(0.75)}"/>\n` +
       `      <Cell N="LinePattern" V="1"/>\n` +
+      `      <Cell N="ObjType" V="4"/>\n` +
+      `      <Section N="Geometry" IX="0">\n` +
+      `        <Cell N="NoFill" V="1"/>\n` +
+      `        <Cell N="NoLine" V="0"/>\n` +
+      `        <Cell N="NoShow" V="0"/>\n` +
+      `        <Row T="MoveTo" IX="1"><Cell N="X" V="0"/><Cell N="Y" V="${f6(n6(hIn / 2))}" F="Height*0.5"/></Row>\n` +
+      `        <Row T="LineTo" IX="2"><Cell N="X" V="${f6(wIn)}" F="Width*1"/><Cell N="Y" V="${f6(n6(hIn / 2))}" F="Height*0.5"/></Row>\n` +
+      `      </Section>\n` +
+      `    </Shape>`,
+    );
+    const bandLblId = nextId++;
+    const bandLblW = Math.min(band.w - 16, Math.max(48, band.text.length * 6.8 + 20));
+    const blwIn = n6(bandLblW / DPI);
+    const blhIn = n6(18 / DPI);
+    topLabelXml.push(
+      `    <Shape ID="${bandLblId}" NameU="BandLabel_${bIdx}" Name="${escXml(band.text)}" Type="Shape">\n` +
+      `      <Cell N="PinX" V="${f6(pinX)}"/>\n` +
+      `      <Cell N="PinY" V="${f6(pinY)}"/>\n` +
+      `      <Cell N="Width" V="${f6(blwIn)}"/>\n` +
+      `      <Cell N="Height" V="${f6(blhIn)}"/>\n` +
+      `      <Cell N="LocPinX" V="${f6(n6(blwIn / 2))}" F="Width*0.5"/>\n` +
+      `      <Cell N="LocPinY" V="${f6(n6(blhIn / 2))}" F="Height*0.5"/>\n` +
+      `      <Cell N="Angle" V="0"/>\n` +
+      `      <Cell N="FillForegnd" V="${P.page}"/>\n` +
+      `      <Cell N="FillPattern" V="1"/>\n` +
+      `      <Cell N="LinePattern" V="0"/>\n` +
       `      <Cell N="VerticalAlign" V="1"/>\n` +
-      `      <Cell N="TextBkgnd" V="${P.page}"/>\n` +
+      `      <Cell N="LeftMargin" V="0"/>\n` +
+      `      <Cell N="RightMargin" V="0"/>\n` +
+      `      <Cell N="TopMargin" V="0"/>\n` +
+      `      <Cell N="BottomMargin" V="0"/>\n` +
       `      <Cell N="ObjType" V="4"/>\n` +
       `      <Section N="Character">\n` +
       `        <Row IX="0"><Cell N="Font" V="0"/><Cell N="Color" V="${P.textSecondary}"/><Cell N="Style" V="0"/><Cell N="Size" V="${ptToIn(9)}"/></Row>\n` +
@@ -396,11 +445,14 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
       `        <Row IX="0"><Cell N="HorzAlign" V="1"/></Row>\n` +
       `      </Section>\n` +
       `      <Section N="Geometry" IX="0">\n` +
-      `        <Cell N="NoFill" V="1"/>\n` +
-      `        <Cell N="NoLine" V="0"/>\n` +
+      `        <Cell N="NoFill" V="0"/>\n` +
+      `        <Cell N="NoLine" V="1"/>\n` +
       `        <Cell N="NoShow" V="0"/>\n` +
-      `        <Row T="MoveTo" IX="1"><Cell N="X" V="0"/><Cell N="Y" V="${f6(n6(hIn / 2))}" F="Height*0.5"/></Row>\n` +
-      `        <Row T="LineTo" IX="2"><Cell N="X" V="${f6(wIn)}" F="Width*1"/><Cell N="Y" V="${f6(n6(hIn / 2))}" F="Height*0.5"/></Row>\n` +
+      `        <Row T="MoveTo" IX="1"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row>\n` +
+      `        <Row T="LineTo" IX="2"><Cell N="X" V="${f6(blwIn)}" F="Width*1"/><Cell N="Y" V="0"/></Row>\n` +
+      `        <Row T="LineTo" IX="3"><Cell N="X" V="${f6(blwIn)}" F="Width*1"/><Cell N="Y" V="${f6(blhIn)}" F="Height*1"/></Row>\n` +
+      `        <Row T="LineTo" IX="4"><Cell N="X" V="0"/><Cell N="Y" V="${f6(blhIn)}" F="Height*1"/></Row>\n` +
+      `        <Row T="LineTo" IX="5"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row>\n` +
       `      </Section>\n` +
       `      <Text><cp IX="0"/><pp IX="0"/>${escXml(band.text)}</Text>\n` +
       `    </Shape>`,
@@ -462,7 +514,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     const thIn = n6(f.tabBox.h / DPI);
     const tPinX = toVisioX(f.tabBox.x + f.tabBox.w / 2);
     const tPinY = toVisioY(f.tabBox.y + f.tabBox.h / 2);
-    shapeXml.push(
+    topLabelXml.push(
       `    <Shape ID="${tabId}" NameU="FrameTab_${escXml(f.id)}" Name="${escXml(f.operator)}" Type="Shape">\n` +
       `      <Cell N="PinX" V="${f6(tPinX)}"/>\n` +
       `      <Cell N="PinY" V="${f6(tPinY)}"/>\n` +
@@ -508,7 +560,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
       };
       const lwIn = n6(lb.w / DPI);
       const lhIn = n6(Math.max(18, lb.h + 2) / DPI);
-      shapeXml.push(
+      topLabelXml.push(
         `    <Shape ID="${lblId}" NameU="FrameLabel_${escXml(f.id)}" Name="${escXml(f.label)}" Type="Shape">\n` +
         `      <Cell N="PinX" V="${f6(toVisioX(lb.x + lb.w / 2))}"/>\n` +
         `      <Cell N="PinY" V="${f6(toVisioY(lb.y + lb.h / 2))}"/>\n` +
@@ -517,20 +569,30 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
         `      <Cell N="LocPinX" V="${f6(n6(lwIn / 2))}" F="Width*0.5"/>\n` +
         `      <Cell N="LocPinY" V="${f6(n6(lhIn / 2))}" F="Height*0.5"/>\n` +
         `      <Cell N="Angle" V="0"/>\n` +
-        `      <Cell N="FillPattern" V="0"/>\n` +
+        `      <Cell N="FillForegnd" V="${P.page}"/>\n` +
+        `      <Cell N="FillPattern" V="1"/>\n` +
         `      <Cell N="LinePattern" V="0"/>\n` +
         `      <Cell N="VerticalAlign" V="1"/>\n` +
         `      <Cell N="LeftMargin" V="${pxToIn(4)}"/>\n` +
         `      <Cell N="RightMargin" V="${pxToIn(4)}"/>\n` +
         `      <Cell N="TopMargin" V="0"/>\n` +
         `      <Cell N="BottomMargin" V="0"/>\n` +
-        `      <Cell N="TextBkgnd" V="${P.page}"/>\n` +
         `      <Cell N="ObjType" V="4"/>\n` +
         `      <Section N="Character">\n` +
         `        <Row IX="0"><Cell N="Font" V="0"/><Cell N="Color" V="${P.textSecondary}"/><Cell N="Style" V="0"/><Cell N="Size" V="${ptToIn(9)}"/></Row>\n` +
         `      </Section>\n` +
         `      <Section N="Paragraph">\n` +
         `        <Row IX="0"><Cell N="HorzAlign" V="0"/></Row>\n` +
+        `      </Section>\n` +
+        `      <Section N="Geometry" IX="0">\n` +
+        `        <Cell N="NoFill" V="0"/>\n` +
+        `        <Cell N="NoLine" V="1"/>\n` +
+        `        <Cell N="NoShow" V="0"/>\n` +
+        `        <Row T="MoveTo" IX="1"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row>\n` +
+        `        <Row T="LineTo" IX="2"><Cell N="X" V="${f6(lwIn)}" F="Width*1"/><Cell N="Y" V="0"/></Row>\n` +
+        `        <Row T="LineTo" IX="3"><Cell N="X" V="${f6(lwIn)}" F="Width*1"/><Cell N="Y" V="${f6(lhIn)}" F="Height*1"/></Row>\n` +
+        `        <Row T="LineTo" IX="4"><Cell N="X" V="0"/><Cell N="Y" V="${f6(lhIn)}" F="Height*1"/></Row>\n` +
+        `        <Row T="LineTo" IX="5"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row>\n` +
         `      </Section>\n` +
         `      <Text><cp IX="0"/><pp IX="0"/>${escXml(f.label)}</Text>\n` +
         `    </Shape>`,
@@ -581,7 +643,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
         const txtXml = isAlt
           ? `<cp IX="0"/><pp IX="0"/>else${div.label ? `<cp IX="1"/> ${escXml(div.label)}` : ""}`
           : `<cp IX="0"/><pp IX="0"/>${escXml(div.label)}`;
-        shapeXml.push(
+        topLabelXml.push(
           `    <Shape ID="${elseId}" NameU="FrameElse_${escXml(f.id)}_${k}" Name="${escXml(div.label || "else")}" Type="Shape">\n` +
           `      <Cell N="PinX" V="${f6(toVisioX(eb.x + eb.w / 2))}"/>\n` +
           `      <Cell N="PinY" V="${f6(toVisioY(eb.y + eb.h / 2))}"/>\n` +
@@ -590,20 +652,30 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
           `      <Cell N="LocPinX" V="${f6(n6(ewIn / 2))}" F="Width*0.5"/>\n` +
           `      <Cell N="LocPinY" V="${f6(n6(ehIn / 2))}" F="Height*0.5"/>\n` +
           `      <Cell N="Angle" V="0"/>\n` +
-          `      <Cell N="FillPattern" V="0"/>\n` +
+          `      <Cell N="FillForegnd" V="${P.page}"/>\n` +
+          `      <Cell N="FillPattern" V="1"/>\n` +
           `      <Cell N="LinePattern" V="0"/>\n` +
           `      <Cell N="VerticalAlign" V="1"/>\n` +
           `      <Cell N="LeftMargin" V="${pxToIn(4)}"/>\n` +
           `      <Cell N="RightMargin" V="${pxToIn(4)}"/>\n` +
           `      <Cell N="TopMargin" V="0"/>\n` +
           `      <Cell N="BottomMargin" V="0"/>\n` +
-          `      <Cell N="TextBkgnd" V="${P.page}"/>\n` +
           `      <Cell N="ObjType" V="4"/>\n` +
           `      <Section N="Character">\n` +
           `${charXml}\n` +
           `      </Section>\n` +
           `      <Section N="Paragraph">\n` +
           `        <Row IX="0"><Cell N="HorzAlign" V="0"/></Row>\n` +
+          `      </Section>\n` +
+          `      <Section N="Geometry" IX="0">\n` +
+          `        <Cell N="NoFill" V="0"/>\n` +
+          `        <Cell N="NoLine" V="1"/>\n` +
+          `        <Cell N="NoShow" V="0"/>\n` +
+          `        <Row T="MoveTo" IX="1"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row>\n` +
+          `        <Row T="LineTo" IX="2"><Cell N="X" V="${f6(ewIn)}" F="Width*1"/><Cell N="Y" V="0"/></Row>\n` +
+          `        <Row T="LineTo" IX="3"><Cell N="X" V="${f6(ewIn)}" F="Width*1"/><Cell N="Y" V="${f6(ehIn)}" F="Height*1"/></Row>\n` +
+          `        <Row T="LineTo" IX="4"><Cell N="X" V="0"/><Cell N="Y" V="${f6(ehIn)}" F="Height*1"/></Row>\n` +
+          `        <Row T="LineTo" IX="5"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row>\n` +
           `      </Section>\n` +
           `      <Text>${txtXml}</Text>\n` +
           `    </Shape>`,
@@ -933,11 +1005,35 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     const fromConn = fromPlaced.conns[ec.fromIx]!;
     const toConn = toPlaced.conns[ec.toIx]!;
 
-    // Exact start and end in Visio inches from the placed shape's Connection rows (eliminates RunTask jog)
+    // Exact start and end in Visio inches from the placed shape's Connection rows
     const p0 = connectionPagePt(fromPlaced, fromConn);
     const pN = connectionPagePt(toPlaced, toConn);
     const rawVisioPts: Pt[] = e.pts.map((pt) => ({ x: toVisioX(pt.x), y: toVisioY(pt.y) }));
     const vPts = snapRouteToPorts(rawVisioPts, p0, pN, e.fromPort.side, e.toPort.side);
+
+    // On 6-point schema corridor routes, Lucidchart can collapse a short (< 27px) final horizontal stub
+    // into a diagonal across an intermediate table. When the target gutter has clearance, widen the final stub to ~35px.
+    if (e.fk && vPts.length === 6) {
+      const p3 = vPts[3]!, p4 = vPts[4]!, p5 = vPts[5]!;
+      const stubDx = p4.x - p5.x;
+      if (Math.abs(p4.y - p5.y) < 1e-4 && Math.abs(p3.x - p4.x) < 1e-4 && Math.abs(stubDx) > 1e-4 && Math.abs(stubDx) < 0.28) {
+        const candX = n6(p5.x + Math.sign(stubDx) * 0.36);
+        const yMin = Math.min(p3.y, p4.y), yMax = Math.max(p3.y, p4.y);
+        const clear = scene.nodes.every((nd) => {
+          const g = geomByKey.get(`node:${nd.id}`);
+          if (!g) return true;
+          const nL = g.pinX - g.wIn / 2 - 0.14;
+          const nR = g.pinX + g.wIn / 2 + 0.14;
+          const nB = g.pinY - g.hIn / 2;
+          const nT = g.pinY + g.hIn / 2;
+          return !(candX > nL && candX < nR && yMax > nB && yMin < nT);
+        });
+        if (clear) {
+          vPts[3] = { x: candX, y: p3.y };
+          vPts[4] = { x: candX, y: p4.y };
+        }
+      }
+    }
 
     const wIn = n6(pN.x - p0.x);
     const hIn = n6(pN.y - p0.y);
@@ -954,45 +1050,77 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     const linePattern = isDashed ? 2 : 1;
     const beginArrow = e.card ? VSDX_CARD[e.card.from] : e.fk ? 10 : 0; // crow's-foot codes 25/28/29/30, or 10 = filled circle dot for FK origin
     const endArrow = e.card ? VSDX_CARD[e.card.to] : e.openTip ? 1 : 4; // crow's-foot codes, or 1 = open V, 4 = filled block triangle
+    // Visio Medium (2) crow's-foot markers import oversized in Lucidchart and collide across 28px table rows; Very Small (0) fits cleanly.
+    const arrowSize = e.card ? 0 : 2;
     const radIn = n6((e.sequence && e.from === e.to ? 4 : 8) / DPI);
 
+    // Bind aligned bend coordinates to Visio's 0 / Width*1 / Height*1 formulas so if an importer shifts an endpoint
+    // magnet by a few pixels, 3-point L-bends and end stubs stay strictly collinear instead of forming a small jog.
     const geomRows = vPts.map((pt, k) => {
-      const lx = k === 0 ? 0 : k === vPts.length - 1 ? wIn : n6(pt.x - p0.x);
-      const ly = k === 0 ? 0 : k === vPts.length - 1 ? hIn : n6(pt.y - p0.y);
-      const tag = k === 0 ? "MoveTo" : "LineTo";
-      return `        <Row T="${tag}" IX="${k + 1}"><Cell N="X" V="${f6(lx)}"/><Cell N="Y" V="${f6(ly)}"/></Row>`;
+      const isStart = k === 0;
+      const isEnd = k === vPts.length - 1;
+      const lx = isStart ? 0 : isEnd ? wIn : n6(pt.x - p0.x);
+      const ly = isStart ? 0 : isEnd ? hIn : n6(pt.y - p0.y);
+      const tag = isStart ? "MoveTo" : "LineTo";
+      const fxAttr = isStart ? "" : isEnd ? ' F="Width*1"' : Math.abs(lx) < 1e-6 ? ' F="0"' : Math.abs(lx - wIn) < 1e-6 ? ' F="Width*1"' : "";
+      const fyAttr = isStart ? "" : isEnd ? ' F="Height*1"' : Math.abs(ly) < 1e-6 ? ' F="0"' : Math.abs(ly - hIn) < 1e-6 ? ' F="Height*1"' : "";
+      return `        <Row T="${tag}" IX="${k + 1}"><Cell N="X" V="${f6(lx)}"${fxAttr}/><Cell N="Y" V="${f6(ly)}"${fyAttr}/></Row>`;
     }).join("\n");
 
     const fromOneBased = ec.fromIx + 1;
     const toOneBased = ec.toIx + 1;
 
-    let textBlockXml = "";
-    let textXml = "";
+    // Emit every edge label as a dedicated word-sized opaque page-colour shape in the top label layer
+    // (Lucidchart ignores TextBkgnd on connectors, so inline connector text gets struck through by lines/lifelines).
     if (e.label) {
-      const lcx = n6(toVisioX(e.label.box.x + e.label.box.w / 2) - p0.x);
-      const lcy = n6(toVisioY(e.label.box.y + e.label.box.h / 2) - p0.y);
-      const lw = n6((e.label.box.w + 12) / DPI);
-      const lh = n6(((e.label.note ? 34 : e.label.box.h) + 4) / DPI);
+      const lblId = nextId++;
+      const lPinX = toVisioX(e.label.box.x + e.label.box.w / 2);
+      const lPinY = toVisioY(e.label.box.y + e.label.box.h / 2);
+      const lwIn = n6((e.label.box.w + 8) / DPI);
+      const lhIn = n6(((e.label.note ? 32 : Math.max(18, e.label.box.h)) + 4) / DPI);
       const noteChar = e.label.note
         ? `\n        <Row IX="1"><Cell N="Font" V="0"/><Cell N="Color" V="${P.textTertiary}"/><Cell N="Style" V="0"/><Cell N="Size" V="${ptToIn(8.5)}"/></Row>`
         : "";
-      textBlockXml =
-        `      <Cell N="TxtPinX" V="${f6(lcx)}"/>\n` +
-        `      <Cell N="TxtPinY" V="${f6(lcy)}"/>\n` +
-        `      <Cell N="TxtWidth" V="${f6(lw)}"/>\n` +
-        `      <Cell N="TxtHeight" V="${f6(lh)}"/>\n` +
-        `      <Cell N="TxtLocPinX" V="${f6(n6(lw / 2))}" F="TxtWidth*0.5"/>\n` +
-        `      <Cell N="TxtLocPinY" V="${f6(n6(lh / 2))}" F="TxtHeight*0.5"/>\n` +
-        `      <Cell N="TextBkgnd" V="${e.label.on || e.sequence ? P.page : "0"}"/>\n` +
+      const txtXml = e.label.note
+        ? `<cp IX="0"/><pp IX="0"/>${escXml(e.label.text)}\n<cp IX="1"/><pp IX="0"/>${escXml(e.label.note)}`
+        : `<cp IX="0"/><pp IX="0"/>${escXml(e.label.text)}`;
+      topLabelXml.push(
+        `    <Shape ID="${lblId}" NameU="EdgeLabel_${e.index}" Name="${escXml(e.label.text)}" Type="Shape">\n` +
+        `      <Cell N="PinX" V="${f6(lPinX)}"/>\n` +
+        `      <Cell N="PinY" V="${f6(lPinY)}"/>\n` +
+        `      <Cell N="Width" V="${f6(lwIn)}"/>\n` +
+        `      <Cell N="Height" V="${f6(lhIn)}"/>\n` +
+        `      <Cell N="LocPinX" V="${f6(n6(lwIn / 2))}" F="Width*0.5"/>\n` +
+        `      <Cell N="LocPinY" V="${f6(n6(lhIn / 2))}" F="Height*0.5"/>\n` +
+        `      <Cell N="Angle" V="0"/>\n` +
+        `      <Cell N="FillForegnd" V="${P.page}"/>\n` +
+        `      <Cell N="FillPattern" V="1"/>\n` +
+        `      <Cell N="LinePattern" V="0"/>\n` +
+        `      <Cell N="VerticalAlign" V="1"/>\n` +
+        `      <Cell N="LeftMargin" V="0"/>\n` +
+        `      <Cell N="RightMargin" V="0"/>\n` +
+        `      <Cell N="TopMargin" V="0"/>\n` +
+        `      <Cell N="BottomMargin" V="0"/>\n` +
+        `      <Cell N="ObjType" V="4"/>\n` +
         `      <Section N="Character">\n` +
         `        <Row IX="0"><Cell N="Font" V="1"/><Cell N="Color" V="${e.sequence ? P.textPrimary : P.edgePlain}"/><Cell N="Style" V="0"/><Cell N="Size" V="${ptToIn(9)}"/></Row>${noteChar}\n` +
         `      </Section>\n` +
         `      <Section N="Paragraph">\n` +
         `        <Row IX="0"><Cell N="HorzAlign" V="1"/></Row>\n` +
-        `      </Section>\n`;
-      textXml = e.label.note
-        ? `      <Text><cp IX="0"/><pp IX="0"/>${escXml(e.label.text)}\n<cp IX="1"/><pp IX="0"/>${escXml(e.label.note)}</Text>\n`
-        : `      <Text><cp IX="0"/><pp IX="0"/>${escXml(e.label.text)}</Text>\n`;
+        `      </Section>\n` +
+        `      <Section N="Geometry" IX="0">\n` +
+        `        <Cell N="NoFill" V="0"/>\n` +
+        `        <Cell N="NoLine" V="1"/>\n` +
+        `        <Cell N="NoShow" V="0"/>\n` +
+        `        <Row T="MoveTo" IX="1"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row>\n` +
+        `        <Row T="LineTo" IX="2"><Cell N="X" V="${f6(lwIn)}" F="Width*1"/><Cell N="Y" V="0"/></Row>\n` +
+        `        <Row T="LineTo" IX="3"><Cell N="X" V="${f6(lwIn)}" F="Width*1"/><Cell N="Y" V="${f6(lhIn)}" F="Height*1"/></Row>\n` +
+        `        <Row T="LineTo" IX="4"><Cell N="X" V="0"/><Cell N="Y" V="${f6(lhIn)}" F="Height*1"/></Row>\n` +
+        `        <Row T="LineTo" IX="5"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row>\n` +
+        `      </Section>\n` +
+        `      <Text>${txtXml}</Text>\n` +
+        `    </Shape>`,
+      );
     }
 
     shapeXml.push(
@@ -1014,22 +1142,21 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
       `      <Cell N="ShapeRouteStyle" V="1"/>\n` +
       `      <Cell N="ConFixedCode" V="2"/>\n` +
       `      <Cell N="ConLineRouteExt" V="1"/>\n` +
+      `      <Cell N="ConLineJumpCode" V="1"/>\n` +
       `      <Cell N="LineColor" V="${lineColor}"/>\n` +
       `      <Cell N="LineWeight" V="${lineWeight}"/>\n` +
       `      <Cell N="LinePattern" V="${linePattern}"/>\n` +
       `      <Cell N="Rounding" V="${f6(radIn)}"/>\n` +
       `      <Cell N="BeginArrow" V="${beginArrow}"/>\n` +
-      (beginArrow ? `      <Cell N="BeginArrowSize" V="2"/>\n` : "") +
+      (beginArrow ? `      <Cell N="BeginArrowSize" V="${arrowSize}"/>\n` : "") +
       `      <Cell N="EndArrow" V="${endArrow}"/>\n` +
-      `      <Cell N="EndArrowSize" V="2"/>\n` +
-      textBlockXml +
+      `      <Cell N="EndArrowSize" V="${arrowSize}"/>\n` +
       `      <Section N="Geometry" IX="0">\n` +
       `        <Cell N="NoFill" V="1"/>\n` +
       `        <Cell N="NoLine" V="0"/>\n` +
       `        <Cell N="NoShow" V="0"/>\n` +
       `${geomRows}\n` +
       `      </Section>\n` +
-      textXml +
       `    </Shape>`,
     );
 
@@ -1100,8 +1227,8 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     `      <Cell N="PageScale" V="1"/>\n` +
     `      <Cell N="DrawingScale" V="1"/>\n` +
     `      <Cell N="RouteStyle" V="1"/>\n` +
-    `      <Cell N="LineJumpCode" V="1"/>\n` +
-    `      <Cell N="LineJumpStyle" V="1"/>\n` +
+    `      <Cell N="LineJumpCode" V="0"/>\n` +
+    `      <Cell N="LineJumpStyle" V="0"/>\n` +
     `    </PageSheet>\n` +
     `    <Rel r:id="rId1"/>\n` +
     `  </Page>\n` +
@@ -1116,6 +1243,10 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
   const connectsBlock = connectXml.length
     ? `  <Connects>\n${connectXml.join("\n")}\n  </Connects>\n`
     : "";
+
+  // 6. Topmost label layer: all opaque page-colour plates (bands, frame tabs/labels/else, edge labels)
+  // emitted after lifelines, activation bars, and connectors so lines and bars never cut across words.
+  shapeXml.push(...topLabelXml);
 
   const page1Xml =
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n` +
@@ -1159,8 +1290,8 @@ function renderConnectionRows(conns: readonly ConnEntry[], wIn: number, hIn: num
     `        <Row T="Connection" IX="${c.ix}">\n` +
     `          <Cell N="X" V="${f6(c.cx)}" F="Width*${fmtF(c.cx, wIn, c.fx)}"/>\n` +
     `          <Cell N="Y" V="${f6(c.cy)}" F="Height*${fmtF(c.cy, hIn, 1 - c.fy)}"/>\n` +
-    `          <Cell N="DirX" V="0"/>\n` +
-    `          <Cell N="DirY" V="0"/>\n` +
+    `          <Cell N="DirX" V="${c.dirX}"/>\n` +
+    `          <Cell N="DirY" V="${c.dirY}"/>\n` +
     `          <Cell N="Type" V="0"/>\n` +
     `        </Row>`
   ));
