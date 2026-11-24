@@ -635,6 +635,29 @@ describe("Chart readout", () => {
     await page.close();
   });
 
+  // DECISIONS 336, section 7: the headline's unit keeps its x on every day, a missing day ("—") and a number that gains a digit included, and the gap from
+  // the value's seat to the unit is space-2. The legend's keys are held by the test above (0px on every box across days, a gap day included).
+  test("with the headline, the unit keeps its x on every day (a missing day and a number with more digits included), space-2 after the value's seat", async () => {
+    for (const chart of ["sleep", "train"]) {
+      const { page } = await chartPage({ cfg: { chart, data: chart === "sleep" ? "sleep" : "train", extra: { headline: true } } });
+      const space2 = await tokenPx(page, "space-2");
+      const days = await dayBoxes(page);
+      const read = () => page.evaluate(() => { const seat = document.querySelector(".basalt-chart-seat").getBoundingClientRect(); const unit = document.querySelector(".basalt-chart-unit").getBoundingClientRect(); const shown = document.querySelector(".basalt-chart-seat > :not(.basalt-chart-reserve)").textContent; return { x: unit.x, gap: unit.x - seat.right, shown }; });
+      const rest = await read();
+      assert.ok(Math.abs(rest.gap - space2) <= 0.5, `${chart}: the unit is ${rest.gap} after the seat`);
+      const seen = new Set();
+      for (let i = 0; i < days.length; i++) {
+        await page.mouse.move(days[i].x + days[i].width / 2, days[i].y + 40);
+        await frames(page, 3);
+        const here = await read();
+        seen.add(here.shown.replace(/\d/g, "9"));
+        assert.equal(here.x, rest.x, `${chart}: the unit moved on day ${i} (${here.shown})`);
+      }
+      assert.ok(seen.size >= 2, `${chart}: the days shown take more than one form: ${[...seen]}`);
+      await page.close();
+    }
+  });
+
   test("each key is a 16px swatch, the name and its value; the plan's swatch is its stroke and a band's is its two edges", async () => {
     const { page } = await chartPage();
     const sw = await page.locator(".basalt-chart-swatch").first().evaluate((el) => { const r = el.getBoundingClientRect(); return [r.width, r.height]; });
