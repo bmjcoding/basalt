@@ -6437,6 +6437,10 @@
      wash, no weight change, no press scale. It takes its container's text size. The core arrow comes after the name for a new tab. */
   .basalt-social-links { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--basalt-space-4); row-gap: var(--basalt-space-1); margin: 0; padding: 0; list-style: none; }
   .basalt-social-links[data-icon-only] { column-gap: var(--basalt-space-1); }
+  /* An icon-only row's first link is hung at the start, its glyph on the line, only where the box round it declares room: a card's space-4
+     (DECISIONS 336, S9). A row that ends a card hangs its spare half into the card's padding, so the glyph's foot is the card's line. */
+  .basalt-card-content > .basalt-social-links[data-icon-only] { --basalt-edge-room: var(--basalt-space-4); }
+  .basalt-card-content:last-child > .basalt-social-links[data-icon-only]:last-child { margin-block-end: calc((var(--basalt-size-icon-sm) - var(--basalt-size-control-md)) / 2); }
   /* The item is a flex box, not a line box: an inline-flex link in a line box takes its baseline from its glyph, which sat a word without a glyph 2px lower. */
   .basalt-social-item { display: flex; }
   .basalt-social-link {
@@ -6468,6 +6472,7 @@
   @media (pointer: coarse), (width < 720px) {
     .basalt-social-links:not([data-icon-only]) { gap: 0; margin-inline: calc(-1 * var(--basalt-space-2)); }
     .basalt-social-links:not([data-icon-only]) .basalt-social-link { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); justify-content: center; padding-inline: var(--basalt-space-2); }
+    .basalt-card-content:last-child > .basalt-social-links[data-icon-only]:last-child { margin-block-end: calc((var(--basalt-size-icon-sm) - var(--basalt-size-tap-min)) / 2); }
   }
 
   /* The long form: rows in the list's rhythm (a 44px hit area with a 40px row inside, 12px padding and gap, 14/20 secondary ink, the

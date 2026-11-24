@@ -34,6 +34,8 @@ export type SocialSize = 16 | 20;
 interface RowState {
   size: SocialSize;
   iconOnly: boolean;
+  /** The row's first link, hung at the start in an icon-only row. */
+  first?: boolean;
 }
 const RowContext = React.createContext<RowState>({ size: 16, iconOnly: false });
 
@@ -53,9 +55,14 @@ export interface SocialLinksProps extends React.ComponentProps<"ul"> {
  */
 export function SocialLinks({ size = 16, iconOnly = false, className, children, ...props }: SocialLinksProps) {
   const value = React.useMemo(() => ({ size, iconOnly }), [size, iconOnly]);
+  // An icon-only row's first link is hung at the start (DECISIONS 336, S9): its glyph on the line where the box round the row declares room.
+  const first = React.useMemo(() => ({ size, iconOnly, first: true }), [size, iconOnly]);
+  const items = iconOnly
+    ? React.Children.toArray(children).map((child, at) => (at === 0 ? <RowContext.Provider key="first" value={first}>{child}</RowContext.Provider> : child))
+    : children;
   return (
     <ul {...props} data-icon-only={iconOnly ? "" : undefined} className={join("basalt-social-links", className)}>
-      <RowContext.Provider value={value}>{children}</RowContext.Provider>
+      <RowContext.Provider value={value}>{items}</RowContext.Provider>
     </ul>
   );
 }
@@ -81,7 +88,7 @@ export function SocialLink({ service, children, target, rel, newTabLabel, classN
   if (row.iconOnly && mark) {
     return (
       <li className="basalt-social-item">
-        <IconButton variant="ghost" size="md" icon={mark} label={children} newTabLabel={newTabLabel} nativeButton={false} render={<a {...props} target={target} rel={rel} />} />
+        <IconButton variant="ghost" size="md" edge={row.first ? "start" : undefined} icon={mark} label={children} newTabLabel={newTabLabel} nativeButton={false} render={<a {...props} target={target} rel={rel} />} />
       </li>
     );
   }

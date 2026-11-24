@@ -27,5 +27,9 @@
   }
 
   B.newTabCue = cue;
-  _.step(50, 'newTabCue', function () { cue(); });
+  _.step(50, 'newTabCue', function () {
+    cue();
+    // An icon-only row's first link is hung at its start (DECISIONS 336); it hangs only where the row's box declares room.
+    document.querySelectorAll('.links[data-icon-only] > li:first-child > .btn:not([data-edge])').forEach(function (b) { b.setAttribute('data-edge', 'start'); });
+  });
 })(window.Basalt);
