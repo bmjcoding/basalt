@@ -63,9 +63,12 @@ export function graphOf(cards: Card[], lines: Line[], groups: DiagramGroup[], di
   for (const g of groups) kids.set(g.id, []);
   for (const c of cards) (kids.get(c.group ?? "") ?? kids.get("")!).push({ id: c.id, width: W, height: H });
   const children = [...kids.get("")!];
+  // A group goes into its parent unless its chain of parents comes back to it (a cycle, the engine's development error): then it is a group of the root,
+  // so elk is never handed a hierarchy that holds itself (Neon's P2 of the code review).
+  const cycles = (g: DiagramGroup) => { const seen = new Set<string>([g.id]); for (let p = g.parent; p; p = groups.find((x) => x.id === p)?.parent) { if (seen.has(p)) return true; seen.add(p); } return false; };
   for (const g of groups) {
     const box: ElkNode = { id: `group:${g.id}`, children: kids.get(g.id), layoutOptions: { "elk.padding": "[top=32,left=16,bottom=16,right=16]" } };
-    (g.parent && kids.has(g.parent) ? kids.get(g.parent)! : children).push(box);
+    (g.parent && kids.has(g.parent) && !cycles(g) ? kids.get(g.parent)! : children).push(box);
   }
   return { id: "root", layoutOptions: options(direction), children, edges: lines.map((e, k) => ({ id: `e${k}`, sources: [e.from], targets: [e.to], ...(e.main ? { layoutOptions: { "elk.layered.priority.straightness": STRAIGHT } } : {}) })) };
 }

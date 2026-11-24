@@ -77,9 +77,17 @@ function graphOf(cards, lines, groups, direction) {
   for (const g of groups) kids.set(g.id, []);
   for (const c of cards) (kids.get(c.group ?? "") ?? kids.get("")).push({ id: c.id, width: W, height: H });
   const children = [...kids.get("")];
+  const cycles = (g) => {
+    const seen = /* @__PURE__ */ new Set([g.id]);
+    for (let p = g.parent; p; p = groups.find((x) => x.id === p)?.parent) {
+      if (seen.has(p)) return true;
+      seen.add(p);
+    }
+    return false;
+  };
   for (const g of groups) {
     const box = { id: `group:${g.id}`, children: kids.get(g.id), layoutOptions: { "elk.padding": "[top=32,left=16,bottom=16,right=16]" } };
-    (g.parent && kids.has(g.parent) ? kids.get(g.parent) : children).push(box);
+    (g.parent && kids.has(g.parent) && !cycles(g) ? kids.get(g.parent) : children).push(box);
   }
   return { id: "root", layoutOptions: options(direction), children, edges: lines.map((e, k) => ({ id: `e${k}`, sources: [e.from], targets: [e.to], ...e.main ? { layoutOptions: { "elk.layered.priority.straightness": STRAIGHT } } : {} })) };
 }

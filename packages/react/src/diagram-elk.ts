@@ -3,6 +3,6 @@
 // chunk. Only diagram-layout imports it, on demand. Its type here is Basalt's own: no elkjs type is in any declaration (AGENTS.md).
 import ELK from "elkjs/lib/elk.bundled.js";
 
-/** elkjs's layout, as diagram-layout calls it. */
+/** The layout class, as diagram-layout calls it. */
 const Elk = ELK as unknown as new () => { layout: (graph: object) => Promise<object> };
 export default Elk;
