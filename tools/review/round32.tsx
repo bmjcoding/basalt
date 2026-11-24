@@ -121,7 +121,7 @@ function EntranceDemo({ state }: { state: string }) {
       {caption("One chart is this page's entrance: on a first visit its marks draw once, each over duration-figure (600ms) on ease-out, 22ms apart, every start within 200ms of the first. The words, the number, the frame, the legend and the controls are at rest in the first frame.")}
       <div style={row}>
         <Button onClick={() => { forgetEntrance(); setRun((n) => n + 1); }}>Replay</Button>
-        <Button id="wt-bench-b" pressed={bench === "b"} onClick={() => setBench((b) => (b === "a" ? "b" : "a"))}>Another bench</Button>
+        <Button id="wt-bench-b" aria-pressed={bench === "b"} onClick={() => setBench((b) => (b === "a" ? "b" : "a"))}>Another bench</Button>
         <Text size="sm" tone="secondary">Total <span id="wt-total"><NumberTicker value={total} glide /></span> min</Text>
       </div>
       <TimeChart

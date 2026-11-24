@@ -33,7 +33,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **select** `<select>`: wrap in `.select`, class `input`; a second line is `.option-description`.
 - **choice** `type="checkbox"`, `role="switch"`: bare inputs in a `label.choice`; radios in `.radio-group`.
 - **choice-card** `.choice-card`: a `label.panel` around a hidden radio or checkbox; words only, no link or control inside.
-- **toggle** `aria-pressed`: secondary or ghost `.btn` only; your script flips it; the `.btn-check` seat comes first.
+- **toggle** `aria-pressed`: secondary or ghost `.btn` only; your script flips it; its glyph's `.btn-check` seat comes first.
 - **rows** `.rows`, `.row`: `.input-row` is a panel's first child; `data-active` is the lit row's fill, never a bar.
 - **glide** `.plate`: the palette's, a menu's and the centre's shared plate; never write one.
 - **links** `.links`, `target="_blank"`: a glyph then the name, none for a service without a mark; never write the arrow.
@@ -63,6 +63,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **app-tile** `.app-tile`: `aria-hidden`, the company's name beside it in words; never ship a company's icon file.
 - **period** `.period`: two ghost icon buttons round `.period-label`; at an end `aria-disabled`, never `disabled`.
 - **terminal** `.terminal`: with `.code`; lines are `span[data-kind]`; the script draws the gutter.
+- **runs** `.run-stages`, `.run-rail`, `.run-steps`, `.run-mark`: write every state's word; no counter.
 - **chart** `.chart`: JSON in `script[data-chart]`; `null` is a day not observed, never zero; needs a `summary`.
 - **diagram** `.diagram`: JSON in `script[data-diagram]`; sides only to change the default; needs a `summary`.
 - **diagram-motion** `"motion": "animated"`: added for you, with `loops`; a flow line needs a label; one mover a figure.
@@ -106,4 +107,4 @@ Your own CSS goes in a `<style>` in the body (moved to the head, after Basalt's)
 - **No** CDN, framework, web font request, glow, gradient, dot grid, outer frame around the page, bounce, press scale beyond `.btn`'s .98, red fill, or decorative colour. Danger is red text with a red hairline.
 - **Brand SVG file** (from `brand/`): paste it with `data-brand` on its `<svg>`; compose hides it and drops its title. The link round it needs `aria-label`.
 - **A dot between words** is `.dot-sep`, never an `aria-hidden` dot with a hidden comma; a value and its unit need a space between them (`--usage core`).
-- Icons: Phosphor Bold via `<i data-icon="Name"></i>`, 16px (`data-size="20"` beside 18 to 24px text). Available: Command, Option, Control, Sun, Moon, Info, Warning, ArrowRight, ArrowLeft, ArrowUp, ArrowDown, CaretUpDown, Trash, Download, ArrowClockwise, CheckCircle, XCircle, GithubLogo, XLogo, LinkedinLogo, InstagramLogo, YoutubeLogo, EnvelopeSimple, TerminalWindow. Check, close, chevrons, copy, plus, minus, search: core glyphs (`data-glyph`), not icons. A script that names one writes it as a quoted string (`icon: 'Trash'`). Need another icon? Add its name to tools/html-skill/src/icons.json and rebuild. Never draw one, never use an emoji.
+- Icons: Phosphor Bold via `<i data-icon="Name"></i>`, 16px (`data-size="20"` beside 18 to 24px text). Available: Command, Option, Control, Sun, Moon, Info, Warning, ArrowRight, ArrowLeft, ArrowUp, ArrowDown, CaretUpDown, Trash, Download, ArrowClockwise, CheckCircle, XCircle, MinusCircle, Prohibit, GithubLogo, XLogo, LinkedinLogo, InstagramLogo, YoutubeLogo, EnvelopeSimple, TerminalWindow. Check, close, chevrons, copy, plus, minus, search: core glyphs (`data-glyph`), not icons. A script that names one writes it as a quoted string (`icon: 'Trash'`). Need another icon? Add its name to tools/html-skill/src/icons.json and rebuild. Never draw one, never use an emoji.

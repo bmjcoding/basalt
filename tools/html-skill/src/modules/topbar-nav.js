@@ -72,7 +72,7 @@
     if (inner.querySelector('[data-loops-toggle]')) {
       var row = el('div', 'topbar-menu-loops');
       var pause = el('button', 'btn', { type: 'button', 'data-loops-toggle': '', 'aria-pressed': 'false' });
-      pause.innerHTML = '<span class="btn-check" aria-hidden="true"></span>Pause animations';
+      pause.innerHTML = '<span class="btn-check" data-glyph="pause" aria-hidden="true"></span>Pause animations';
       row.appendChild(pause);
       d.appendChild(row);
     }

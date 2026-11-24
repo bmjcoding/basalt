@@ -3,7 +3,7 @@ import * as React from "react";
 
 import { CheckGlyph } from "./glyphs/check";
 import { ControlIcon, useGlyphSlot } from "./control-icon";
-import { glyphOf } from "./control-seat";
+import { changes, glyphOf } from "./control-seat";
 import { Icon } from "./icon";
 import { NewTabGlyph, NewTabWords, newTabRender, newTabWords } from "./new-tab";
 import { Reserve } from "./reserve";
@@ -54,9 +54,18 @@ type BaseProps = Omit<PartProps<"button">, "children"> & {
  */
 type Toggle = { variant?: "secondary" | "ghost"; pressed?: boolean } | { variant: "primary" | "danger" | "outline"; pressed?: never };
 
+/**
+ * Button's toggle, as `Toggle`, and a text toggle carries its glyph (DECISIONS 326): `pressed` needs `icon`, so the seat before the label is never empty. A caller that writes
+ * `aria-pressed` itself, untyped, keeps the old seat (the check while pressed, empty while not) and is not warned.
+ */
+type ButtonToggle = { variant?: "secondary" | "ghost"; pressed: boolean; icon: IconComponent } | { variant?: ButtonVariant; pressed?: undefined; icon?: IconComponent };
+
 export type ButtonProps = BaseProps &
-  Toggle & {
-    /** An icon before the label. On a toggle it is the toggle's glyph: pressed shows its selected form, and the toggle carries no check. */
+  ButtonToggle & {
+    /**
+     * An icon before the label. On a toggle (`pressed`, which needs it) it is the toggle's glyph, shown at rest; pressed shows its selected form, or
+     * the core check in the same seat where the glyph has none (an action glyph such as pause, a long-tail glyph not `fillSafe`). The two crossfade.
+     */
     icon?: IconComponent;
     /** An icon after the label, e.g. a caret. A button that opens a new tab has no other trailing icon, so this is ignored there. */
     iconEnd?: IconComponent;
@@ -87,6 +96,9 @@ export type ButtonProps = BaseProps &
 
 const iconSize = (size: ControlSize) => (size === "xl" ? 20 : 16);
 
+declare const process: { env: { NODE_ENV?: string } };
+let warnedBare = false;
+
 /** A button. Its label says what happens: "Deploy", not "OK". */
 export function Button({ variant = "secondary", size = "md", fullWidth, icon, iconEnd, fillSafe, pressed, amount, amountReserve, count, note, loading: loadingProp = false, waitForAnswer = true, disabled, onClick, className, children, newTabLabel, render, ref, ...props }: ButtonProps) {
   // A button rendered as a link that opens a new tab draws the arrow in its trailing slot and says so in its name.
@@ -95,6 +107,13 @@ export function Button({ variant = "secondary", size = "md", fullWidth, icon, ic
   const link = newTabRender(rendered);
   const toggles = (variant === "secondary" || variant === "ghost") && (pressed !== undefined || props["aria-pressed"] !== undefined);
   const isPressed = toggles && (pressed ?? (props["aria-pressed"] === true || props["aria-pressed"] === "true"));
+  if (process.env.NODE_ENV !== "production" && toggles && pressed !== undefined && !icon && !warnedBare) {
+    warnedBare = true;
+    console.warn("Basalt Button: `pressed` needs `icon`, so the seat is never empty (DECISIONS 326)");
+  }
+  // A glyph with a selected form of its own (a core glyph that closes or fills, a long-tail one marked fillSafe) shows it; any other hands its seat to the check.
+  const data = icon ? glyphOf(icon) : undefined;
+  const own = data ? changes(data) : Boolean(fillSafe);
   const wait = usePressWait(handler, { loading: loadingProp, waitForAnswer, submits: props.type === "submit", form: props.form });
   const loading = wait.shown;
   return (
@@ -115,8 +134,15 @@ export function Button({ variant = "secondary", size = "md", fullWidth, icon, ic
       className={withClass("basalt-button", className)}
       onClick={wait.press}
     >
-      {icon ? <ControlIcon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} eager={toggles} /> : null}
-      {/* A text toggle's 16px seat holds the check while pressed and is empty while not, so both are one width. */}
+      {icon && !(toggles && !own) ? <ControlIcon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} eager={toggles} /> : null}
+      {/* A text toggle's seat holds its glyph at rest and, pressed, the check where the glyph has no selected form; the two crossfade, so both states are one width. */}
+      {toggles && icon && !own ? (
+        <span className="basalt-button-check" data-glyph="" aria-hidden="true">
+          <Icon icon={icon} size={iconSize(size)} />
+          <Icon icon={CheckGlyph} size={iconSize(size)} />
+        </span>
+      ) : null}
+      {/* Untyped (aria-pressed with no icon): the old seat, the check while pressed and empty while not. */}
       {toggles && !icon ? <span className="basalt-button-check" aria-hidden="true"><Icon icon={CheckGlyph} size={16} /></span> : null}
       {note ? (
         <span className="basalt-button-lines">

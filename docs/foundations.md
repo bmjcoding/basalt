@@ -12,7 +12,15 @@ of Basalt's accent classes, in its named roles, and nowhere else.
 
 - **Meet WCAG 2.2 AA by construction.** Every text, boundary and focus pair is tested on
   every surface it can appear on (`packages/tokens/test/contrast.test.mjs`). A token change
-  that breaks a pair fails the build.
+  that breaks a pair fails the build. **One exception: a run timeline's tail.** In a `RunTimeline` with `keep`, a finished step
+  older than the newest `keep` recedes: the first is `text-tertiary`, then `text-secondary` at `opacity-recede-2` to `-5` (0.5, 0.32,
+  0.2, 0.12) over its own ground, and a failed step the same from `status-danger` (0.88 first), so it stays a muted red. The first
+  step is 4.5:1 on every surface; the rest are below it on purpose. It is allowed because the page offers the same content at full
+  contrast, by WCAG's own technique (G174): a control that is itself 4.5:1 sits directly above the tail, opens the whole record in
+  full ink and in full, and says when the tail holds a failure. Five things hold it: a step that is running, waiting or retrying
+  never recedes; a failure was said when it happened and stood in full while it was among the newest; everything a tail row says
+  stays in the accessibility tree; under more contrast and in forced colours nothing recedes; and no other text in Basalt uses these
+  tokens. A test holds each to it.
 - **The page is the darkest layer, in both themes.** Anything closer to you is lighter.
   Light mode never puts a full white page in front of you.
 - **Borders build structure; shadows exist only for things that float.**
@@ -340,6 +348,15 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   underline or plate; any of many, and on, is a check in a reserved seat or a filled choice box; a glyph closes and fills.
   The ink steps to primary with it. The wash alone, and the ink step alone, are never the cue. The silhouette follows the
   furniture the state sits in; the weight, the ink step and the shape do not change.
+- **Reserved room.** A seat is room held so nothing moves when a word or state changes (DECISIONS 326). A drawn box (a border, a
+  fill or a plate) hugs what it shows, with equal padding on facing sides, and never holds room for a word, a mark or a row that is
+  not showing. The seat is an unseen cell around the box: what it shows sits against the edge that faces its fixed neighbour, and
+  the spare room falls where the row is already open. A seat is never put where its spare room opens a gap between two things a
+  fixed distance apart, and it is centred only where its row is. A control's box never changes size, so a seat inside a control is
+  never empty: at rest it holds its mark's rest form and, on, its on form. A control whose words change is as wide as its widest
+  words, centred; a control with words at its start and an amount at its end anchors each to its own end. Room every row of a
+  list, menu or table shares is a column, not a seat. A box changes face by fading out and in; no width animates. A label's 600
+  width (DECISIONS 150) stands.
 - **The choice card** (`ChoiceCard`, in a `ChoiceCardGroup`) is a native radio (one of many) or checkbox (any of many)
   wearing a card: the whole card is the label and the input is visually hidden but focusable. Plain `Card` gets no selected
   prop, because paint without semantics ends up on a `div` nothing can operate. A real choice box (`size-choice`, the
@@ -361,11 +378,11 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   primary (a latched primary reads as the action) and never danger (a latched red reads as an error). Pressed is the
   selected plate as one solid fill per level (never a layered wash, so forced colours can replace it; on the page itself, with no level, it is the wash over `surface-page` in light, about `#e8e8e8`, and the next level plus the wash in dark), the label steps to
   `text-primary` with no weight change, a secondary's hairline steps to `border-hover`, a ghost gains its rectangle, and the
-  radius does not change. A text toggle holds a 16px seat at the label's inline start that shows the core `check` while
-  pressed and is empty while not, so a pressed and an unpressed toggle of one label are the same width; the check swaps,
-  it does not morph. An icon toggle, and every IconButton toggle, carries no check: the plate, the ink step and the glyph's
+  radius does not change. A text toggle carries its glyph (`icon`) in a 16px seat before the label. Pressed, the seat shows the
+  glyph's selected form, or the core check where the glyph has none; the two crossfade over `duration-fast`. The seat is never
+  empty, and both states are one width. An IconButton toggle carries no check: the plate, the ink step and the glyph's
   selected form (a core glyph closes and fills; a `fillSafe` Phosphor glyph fills) say it. The momentary .98 press stays
-  Button's. In forced colours it is `Highlight` with `HighlightText` for the fill, the label and the check, at rest,
+  Button's. In forced colours it is `Highlight` with `HighlightText` for the fill, the label and the seat, at rest,
   hovered, pressed and focused. Reduced motion is the 100ms crossfade. A text-only on/off with no glyph to fill is a
   `Switch`; exactly one of many is a segmented control, never toggle buttons.
 - **External links** (`Link`, and a `Button` or `IconButton` rendered as an anchor; council, DECISIONS 95). The arrow means
@@ -564,9 +581,11 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     "$" in Chromium). `CodeBlock`'s optional `prompt` puts every line in the gutter, and a line after a trailing `\` gets an
     empty one; copy still takes `code` exactly as given. The terminal's copy button says "Copy commands" and copies the
     commands only, one per line. Static by default: a `figure` with a named `pre` (`tabindex="0"`) and no live region. A
-    live transcript is `role="log"` only while lines arrive, never idle, paused or finished; it has a fixed height of nine
+    live transcript is `role="log"` only while lines arrive, never idle, paused or finished, and a stage transcript (`stages`,
+    declared when it mounts and not read from its lines) is never one at any moment, because its run's `RunAnnouncer` speaks; it has a fixed height of nine
     lines that scrolls inside, so arriving lines never move the page, and follows new lines only while the reader is at
-    the end. A replay has a pause control, and every word that changes in place in the head reserves its widest form.
+    the end. Its window draws no scrollbar on either axis (the owner, DECISIONS 312), and neither does a `RunTimeline`'s. Each stays
+    a named tab stop that the keys, the wheel and a finger scroll. A static `Terminal` and a `CodeBlock` keep the system's. A replay has a pause control, and every word that changes in place in the head reserves its widest form.
     Long lines scroll sideways, as `CodeBlock`'s do unless it is given `wrap` (see [Lists and facts](#lists-and-facts)). (Decision 98.) The gutter is one column for the whole block, `CodeBlock`'s
     too: the prompt's width plus 1ch, at least 24px, measured by the browser and never counted in characters, so `$` is exactly
     24px and a longer prompt ("PS>") or a wide glyph widens the column for every line and the text of every line starts on one
@@ -583,13 +602,16 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   is the default, and it turns in 640ms in a button, in the command menu's loading slot and wherever
   a spinner stands without a visible word. Braille is for a status: work that runs while a word
   beside it says so, in a table, a list row, a toast or a log line; never in a button, and never
-  without its word. Braille is Basalt's own six-dot cell drawn in SVG, 6 by 10 with 2px dots on
+  without its word. One more place has the ring: the running form of a `StageMark`, a 16px status mark whose other states are
+  circles of its size, so the mark keeps its outline from queued to passed. It is the ring with or without a word beside it.
+  Braille keeps the 6px status seat (a `Badge`, a table, a list row, a toast) and a log's gutter. One object has one running
+  mark, never both. Braille is Basalt's own six-dot cell drawn in SVG, 6 by 10 with 2px dots on
   whole pixels, stepping through ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏) in 800ms; unlit dots are not drawn. It
   takes the status dot's place and gap, in its word's colour. Spinners on a page share one clock.
   Under reduced motion the ring fades and braille holds its first frame.
   **A page can hold every loop.** `data-loops="held"` on `<html>` stops every loop Basalt draws,
   portals included: braille, the ring, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar,
-  Sparkline's loading line, Skeleton's pulse and a written field's fill, and the page's ambient loop (its marks hold at full opacity); under the hold nothing
+  Sparkline's loading line, Skeleton's pulse and a written field's fill, a queued `StageMark`'s breath, and the page's ambient loop (its marks hold at full opacity); under the hold nothing
   starts by itself: an entrance is drawn at rest and a demonstration does not send itself. There is no per-spinner prop, and the attribute
   can't be set on a subtree. Braille holds its first frame and the ring stands still at its
   drawing, at full opacity; nothing is hidden, swapped for another glyph or announced, and the
@@ -618,7 +640,11 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   started ("Started 3:47 PM", with the date for another day) and a streaming count or step line
   hides while the status word stays; on release the current text is written. A result lands as
   usual: the word turns to Passed or Failed and a toast speaks once. A column that holds an
-  elapsed time is wide enough for the held form. A step line under a name (a two-line cell) hides
+  elapsed time is wide enough for the held form. **A run is the one exception to both sentences about an elapsed time.** Its head
+  timer alone takes the held form ("Started 3:47 PM", from when the run first started), in a seat that holds it. A stage's, a step's,
+  a rail node's and a stage line's own running time is not given the held form, and its column is not sized for it: it hides with
+  `visibility: hidden`, its box kept, and the current figure is written on release. Under the hold every change of a stage's state
+  lands at once. A step line under a name (a two-line cell) hides
   with `visibility: hidden` while held, which keeps its box and takes it out of the accessibility
   tree; on release the current text is written into the same box, so neither the hold nor its
   release moves a row. (A step line in a column of its own just empties.) A Select's placeholder
@@ -1460,8 +1486,11 @@ Basalt allows a short list of vertical lines. Each is structure, and none is a s
 ruling against the vertical bar is about marks): the 1px divider at a pinned table column's edge while the table is scrolled,
 the app sidebar's 1px edge, a meter's labelled target tick, the vertical `Separator` between groups of controls (1px
 `border-divider`, as tall as the controls), the edges between a `NumberField`'s value and its steppers (part of the
-field's own boundary), a diagram's connector (a line that joins two nodes and ends in a head, with its stems, rails and buses) and a
-sequence diagram's lifeline. A connector is never drawn without both its nodes and its head, and neither is ever a mark of state.
+field's own boundary), a diagram's connector (a line that joins two nodes and ends in a head, with its stems, rails and buses) a
+sequence diagram's lifeline, and a stage list's or a run timeline's connector: a 1px line in `border-input` that joins one stage's
+mark to the next. It is drawn between every two consecutive marks, beside an open detail too, and it never fills, breaks, moves or
+changes colour with a stage's state: the mark and its word carry the state. A rail's links are horizontal and are not on this list;
+they fill as their stage passes, repeating the check before them. A connector is never drawn without both its nodes and its head, and neither is ever a mark of state.
 Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the diagram's connector and lifeline decided by the
 council (DECISIONS 281, a handoff); the implementation hasn't been reviewed.
 
@@ -2113,10 +2142,13 @@ else (no row, card, menu item, command row or the parts of a field; there is no 
 Combobox, Popover, Tooltip) enters from opacity 0 and scale .98, from where it grew
 (`--transform-origin`), with no offset, in `duration-base` on `ease-out`, and leaves at three
 quarters of that on `ease-in`. A Dialog enters the same way from its own centre (it grows from no opener), in `duration-slow`, and leaves at three quarters of that on `ease-in`. The horizontal tab underline, and the panel that moves 8px with it, run on
-`duration-slow` `ease-out`; the panel never remounts. Three kinds of thing loop, and nothing else: a mark that says work is running
+`duration-slow` `ease-out`; the panel never remounts. Four kinds of thing loop, and nothing else: a mark that says work is running
 (the ring, braille, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar, Sparkline's loading line, Skeleton's pulse and a written field's fill), a
-page's one ambient loop, opacity only, in its art, and an animated diagram's live lines (a flow line, a pulse, a packet that repeats);
-`data-loops="held"` stops all three.
+queued stage's mark, a page's one ambient loop, opacity only, in its art, and an animated diagram's live lines (a flow line, a pulse, a packet that repeats);
+`data-loops="held"` stops all four. **A queued stage's mark** (`StageMark` at `queued`: work that waits to start) breathes by opacity alone,
+from `opacity-queued` (0.65) to 1 and back on `duration-loop-fade` and `ease-in-out`, in secondary ink, on the shared clock, and is 3:1 or
+better against its ground at every moment. It is the `StageMark` only: a `Badge`'s pending ring, a dot and a word never breathe. It is
+still, at full, under reduced motion, under the hold, in forced colours and in print. A stage that has finished never loops.
 
 **The sliding pill.** A one-of-many control, the segmented control and vertical tabs, holds one pill, and it slides to
 the chosen item by `transform` and size (`width`, and `height` for the vertical list) on `duration-slow` and `ease-out`,
@@ -2642,6 +2674,97 @@ at it, as a `Terminal` does, and says what must be heard through `StatusLine`. B
 - **Loading.** The stream's parts are drawn by `LoadingShape` like any others: an avatar is a bone in its disc, the name, time and words are bars as
   long as their words, a mark is a bone in its box. Nothing in them is sized by hand for loading.
 
+## Stages and runs
+
+**Status.** Decided by the council for the owner's handoff (DECISIONS 302, 304, 307, 312 and 316); the implementation hasn't been reviewed.
+
+Work that runs in stages and reports as it goes: a deploy pipeline, a CI job list, an agent's run. Seven parts carry it (`StageMark`,
+`StageList` and `StageRail` with their `RunStage` rows, `RunTimeline` with its `RunStep` rows, `RunTimer`, `StageBadge` and `RunAnnouncer`), and
+`Terminal` takes stage lines. Nothing new is named `stage` alone: `Stage` is the full-bleed art, and every class here begins `basalt-run-`
+(the skill's `run-`, in its `runs` module).
+
+- **The seven states and their mark.** One mark a state at 16px (`size-icon-sm`; 20 and 24 by the status seat's rule), `aria-hidden`, in a seat
+  that never changes size; the word carries the state. Queued is Phosphor Bold `Circle` in `text-secondary`, breathing (see Motion); running is
+  the ring in `text-primary`; passed the outline `CheckCircle` in `text-secondary`; failed the outline `XCircle` in `status-danger`; skipped
+  `MinusCircle` and canceled `Prohibit` in `text-tertiary`; retrying is the ring, as running. No filled disc anywhere. The default words are
+  Queued, Running, Passed, Failed, Skipped, Canceled and Retrying (US English); the app may change any of them ("Investigating", "Waiting for
+  approval", "Retrying, 2 of 3"). A stage held up by a failure above it is skipped with the word "Blocked by Test". A change of state crossfades:
+  both marks stand in the one seat, the old fading out as the new fades in, over `duration-fast` on `ease-out`, kept under reduced motion. In
+  forced colours a mark is `currentColor` and names no system colour.
+- **Where each state's word is drawn.** Every state's word is always in the accessibility tree, after the name, and this table is the rule:
+
+  | Part | Drawn | Said and not drawn | Not a state there |
+  |---|---|---|---|
+  | `StageList` | Queued, running, failed, skipped, canceled, retrying | Passed | |
+  | `StageRail` | Failed, skipped, canceled, retrying, in the node's status seat | Queued, running, passed | |
+  | `RunTimeline`, a full step | Queued, failed, skipped, canceled, retrying, and any word the app gives | Running, passed | |
+  | `RunTimeline`, a tail row | Failed, skipped, canceled, and the app's word | Passed | Queued, running and retrying: they never roll |
+  | `Terminal` stage line | Skipped, canceled, and any word the app gives | Running, done, failed (the mark is a named image) | Queued and retrying |
+  | `StageBadge` | Always, all seven | | |
+
+  A state is said once: where the word is drawn the mark is `aria-hidden`; where it is not, the mark is a named image (the log) or a visually
+  hidden word follows the name. A passed stage is its outline check and its duration.
+- **`StageList`.** A known sequence of named stages, an `ol` named by `label`. A row is the mark (16), `space-3`, the name and its word
+  (`space-2` apart, one line, never wrapped), the meta and the timer, at `text-sm`, `space-2` above and below: 34px. The name is primary, and
+  secondary while queued, skipped or canceled; the word secondary, primary while running or retrying, `status-danger` at 500 when failed, tertiary
+  while queued, skipped or canceled; the meta tertiary at `text-xs`, hidden under 480px of the list's own container. The connector is a 1px
+  `border-input` line on the marks' centre line from `space-1` under one mark to `space-1` above the next, beside an open detail too, and never a
+  state (see Vertical lines). A stage's detail (`detail`, `action`: a failure's reason and Retry, what waits and Approve) opens under it, indented
+  to the name, by height and opacity over `duration-slow` on `ease-out`, closing at 0.75 on `ease-in`, `inert` while closed; inside it `code` is
+  Geist Mono at 1em. A detail opens under its stage and moves the rows under it. `reserveDetail` holds the room for one detail from the
+  start; it is off unless asked for, and is for a list on the open page, never inside a card or panel. Retry and Approve are `Button`s whose `onClick` returns the app's promise. When a detail closes or its action
+  leaves while focus is inside it, focus goes to that stage's name, whoever resolved it.
+- **`StageRail`.** The same rows on one line: two to four stages at any width, five or six from 480px of its own container (under it, drawn as
+  the list). A node is the mark in a `space-6` row, the name (`text-sm`, centred) and one status seat (`text-xs`): its time while running or
+  passed, its word when it failed (`status-danger` at 500), was skipped or canceled (tertiary) or is retrying (primary), in one `Reserve` cell.
+  A link is a horizontal 1px `border-input` track with a `text-secondary` fill that grows from the inline start over `duration-slower` on
+  `ease-out` when its stage passes, empties at once on a retry and stays empty after a failure; it repeats the check before it and is never the
+  only sign of anything. No bead and no pulse: the running ring is the rail's only moving thing. `Progress`'s value takes tabular figures and the
+  room of "100%".
+- **`StageBadge`.** A `Badge` bound to the seven states (the pending ring, braille, the success, danger and neutral dots), `outline` in a run's
+  head and `plain` in a list or table. Its seat is as wide as its widest face; each face is a pill as wide as its own words. The seat comes
+  from a static measure and is never narrower under width pressure; its figures are tabular, so a changed digit changes no width. A change of face is sequential: the old face
+  fades and rises `space-1` over 0.75 of `duration-base` on `ease-in`, then the new one fades in from `space-1` below over `duration-base` on
+  `ease-out`. One accessible name at every moment.
+- **The deploy log** is a `Terminal` declared `stages`, with lines `{ kind: "stage", state, text, word?, start?, end? }`. The gutter holds braille
+  while running, the core check in secondary when done, `XCircle` in danger when failed (the error line), the core minus in tertiary when skipped
+  and `Prohibit` in tertiary when canceled. Skipped and canceled lines draw their word first ("Skipped cache restore (no cache)"). A duration
+  stands at the line's end in tertiary, one column down the log. The head gains the run's time. A stage transcript is never a `log`: from its
+  first frame its window is a named `region` (a `group` while empty) and the run's `RunAnnouncer` speaks. With `keep`, lines older than the
+  newest `keep` stages step back once (see Logs, status and forms); a command never does.
+- **`RunTimeline` and the counter.** An append-only `ol` of steps, a sentence each: the mark, `space-3`, the sentence, the meta (a result and
+  the time), at `text-sm`; the sentence is primary while the step runs, retries or waits, secondary once it has finished. From 640px of its own container the meta ends on the row's end edge, the time's seat `space-3` after the result with no dot between
+  them; under it the meta goes under the sentence, a middle dot between the result and the time. The comma is said at both. A detail and an action are always drawn under a full step. `keep` (3 when left out; `false` is the whole record) is the counter:
+  the newest `keep` steps stay in full and a finished step older than those rolls into the tail (a step running, retrying or waiting never
+  rolls, and nothing after it does). A tail row is `text-xs` at 400, 20px, one line cut with an ellipsis, its mark still 16, no connector and
+  no detail, its ink its depth's step (see Principles); everything it says stays in the accessibility tree. The window is the list's
+  scrolling box, its floor the larger of `keep` and `minRows` rows plus two and a half tail rows, only growing; it draws no scrollbar and is a named tab stop while it
+  overflows. A roll moves the rows inside the window by transform over `duration-slow` on `ease-out`, the ink stepping on the same clock and
+  the arrival fading over `duration-base`; past 48 counted rows it lands at once, as `Reflow` does. It follows new steps only while the reader
+  is at its end (read from its geometry), holds still while a control in it has focus or the pointer, and starts at its end. The toggle above
+  it ("Show 5 earlier steps", "Show 5 earlier steps, 1 failed"; open, "Hide earlier steps") holds its line from the first frame and opens the
+  whole record in full form. Hover and focus lift the tail to its first step. Nothing here speaks.
+- **`RunTimer`.** Geist Mono at `text-xs`, tertiary, tabular, a `time` with an ISO duration, never a live region: "12.3 s" under a minute
+  (every 100ms), "12 min 34 s" to an hour, "12 hr 34 min" to a day, then "3 days". One shared interval. Its seat is one `Reserve` cell as wide as its scale's longest form and never empty, the figure end-aligned in a column, centred under a rail's node and
+  start-aligned right after a `Terminal` head's state word (under 480px of the `Terminal`'s own width a head with a run's time is two rows:
+  the title and the copy button on its end edge, then the state and its time from the title's start edge, `space-2` between the lines and `space-3`
+  under the status, 70px at 390 and 320); a list sets one scale for all its timers. A run's head seat also holds today's held form
+  ("Started 12:59 PM"); a run that started on another day widens it once when the hold is pressed, as a time that outgrows its scale does. It counts from `start`, is frozen at `end`,
+  adds `carried` across a retry, and its held form reads from `since`. A run's time counts while it runs, retries or waits for an approval, and
+  is frozen while it has failed, is canceled or has passed.
+- **`RunAnnouncer`.** One a run: a visually hidden `role="log"`, polite, additions only, each event its own appended element, said once and in
+  order; a repeated `id` is quiet and events present at mount are not said. An app sends the run's start, a failure with its reason, a retry
+  when it starts, an approval needed or given by someone else, a cancel and who made it, and the run's end with its outcome and time; never a
+  timer, a spinner's frame, a log line, a stage that passed, a roll, the hold or the reader's own press. Never `role="alert"`, and no toast for
+  the same result.
+- **Modes.** Reduced motion: nothing moves, grows or travels; the mark's crossfade stays; the queued mark is still at full; a rail's fill, a
+  detail and a roll land at once; an arriving step fades over 100ms; the badge's faces only fade; timers tick. The hold: the ring and braille
+  stand still, the queued mark is still at full, every change of state lands at once, and a stage's own running time hides (see "A page can
+  hold every loop"). A demonstration asks the hold when it would start and does not start under it; a run the reader starts runs whatever the
+  hold. More contrast: no tail, every stepped-back line at the first step and a failed one full `status-danger`. Forced colours: marks and
+  words are `currentColor`, nothing steps back, the queued mark is still and connectors are real borders. Print: as the hold, with the tail
+  open.
+
 ## Loading in the page's own shape
 
 **Status.** Decided by Opus and approved by the owner (DECISIONS 247, 248, 249b and 258: the shape of what it stands for, known words kept and icons hidden,
@@ -2718,7 +2841,7 @@ as if it were known, which Basalt can't detect.
 
 ## What the HTML skill does not draw
 
-The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of the form gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, and the scrim closing a form only while nothing has been entered (the skill's scrim closes it), a list's `scroller`, and an explainer on a header that does not sort. React's alone too: `LoadingShape` and its parts (DECISIONS 258; the skill's loading shape is a follow-up batch). React's alone too: `Composer`, `Mention` and `MentionPicker` (cimip-gaps-2, B3; see [Writing to someone](#writing-to-someone-the-composer-the-mention-and-the-picker)). So are the conversation stream's parts (`Stream` and its entries, `StreamQuote`, the arrived mark, `DisclosureRow`, `ActivityList` and `Presence`; round 56, a follow-up batch). React's alone as well: `NotificationList` (the center's page form), a group's reveal track (the skill's group opens at once), and the search over a server (`SearchField`, `SearchPassages`, `SearchPassage`, `markMatches`); the skill's `notifications` module draws the pending ring and groups (cimip-gaps-2, B7). The app shell's gaps (cimip-gaps-2, B4) are in the skill: `data-capped` on `.app-shell` (the `app-shell` module, cap 4,300 from 3,250, the skip link on the brand's start edge included), `.app-heading` and `.app-facts` under the title, the primary kept under 720, `data-size="sm"` on a `.nav` (the `nav` module, cap 5,350 from 4,800), and the `pane` module (`.pane-layout`, cap 1,700), whose script makes an overflowing pane a tab stop, including when its content arrives or grows after the page. React's alone too: the parts of [Lists and facts](#lists-and-facts) (`PanelList`, `SelectableList`, `DescriptionList narrow`, `CodeBlock wrap`, `Select toolbar` and the form dialog body's stack); a later batch may bring them to the skill. Whether the skill gets the links and the charts is not decided.
+The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of the form gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, and the scrim closing a form only while nothing has been entered (the skill's scrim closes it), a list's `scroller`, and an explainer on a header that does not sort. React's alone too: `LoadingShape` and its parts (DECISIONS 258; the skill's loading shape is a follow-up batch). React's alone too: `Composer`, `Mention` and `MentionPicker` (cimip-gaps-2, B3; see [Writing to someone](#writing-to-someone-the-composer-the-mention-and-the-picker)). So are the conversation stream's parts (`Stream` and its entries, `StreamQuote`, the arrived mark, `DisclosureRow`, `ActivityList` and `Presence`; round 56, a follow-up batch). React's alone as well: `NotificationList` (the center's page form), a group's reveal track (the skill's group opens at once), and the search over a server (`SearchField`, `SearchPassages`, `SearchPassage`, `markMatches`); the skill's `notifications` module draws the pending ring and groups (cimip-gaps-2, B7). The app shell's gaps (cimip-gaps-2, B4) are in the skill: `data-capped` on `.app-shell` (the `app-shell` module, cap 4,300 from 3,250, the skip link on the brand's start edge included), `.app-heading` and `.app-facts` under the title, the primary kept under 720, `data-size="sm"` on a `.nav` (the `nav` module, cap 5,350 from 4,800), and the `pane` module (`.pane-layout`, cap 1,700), whose script makes an overflowing pane a tab stop, including when its content arrives or grows after the page. React's alone too: the parts of [Lists and facts](#lists-and-facts) (`PanelList`, `SelectableList`, `DescriptionList narrow`, `CodeBlock wrap`, `Select toolbar` and the form dialog body's stack); a later batch may bring them to the skill. The stages and runs (DECISIONS 316) are in the skill as states, not machinery: the `runs` module draws the seven marks (`.run-mark`), a stage list and a rail (`.run-stages`, `.run-rail`, `.run-stage`) and a timeline's full rows (`.run-steps`, `.run-step`), and `terminal` takes `data-stages` (a replay that is never a `log`), stage lines and no scrollbar on a replay's window. React's alone: the counter, a ticking `RunTimer`, `StageBadge`'s swap (the skill's `status` badge is swapped at once), `RunAnnouncer`, the held room and the focus rules. Whether the skill gets the links and the charts is not decided.
 
 ## Logs, status and forms
 
@@ -2727,7 +2850,9 @@ shortcuts and time parts (DECISIONS 162: the council voted, four members, 3 of 4
 implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X10 and X11; X3 is `Reserve`, already built.
 
 - **A log line's fields** (V1, V2; `LogFields`, `LogLine`, `Terminal`'s `fields`). The fields that say what happened are primary ink at 400 and the rest secondary at
-  400. Nothing steps back with age. A refused field stays primary and its own word ("denied") says it: no colour. A refused command's status word is
+  400. Nothing steps back with age, with one exception: in a `Terminal` given `keep`, a stage line older than the
+  newest `keep` stage lines, and the output under it (never a command), is `text-tertiary` (a failed one `status-danger` at `opacity-recede-danger`). That is one
+  step and it is 4.5:1 on every surface; a transcript never goes below it, because it has no open form to switch to. A refused field stays primary and its own word ("denied") says it: no colour. A refused command's status word is
   primary at 500 beside `exit N`. A line may be a node; copy still takes the plain text.
 - **The command block** (`CommandBlock`; R1 to R3): a sticky head, opaque in the page colour, over the output. The core chevron, the command at 500 in primary ink, then
   the status, `exit N` and the time in tertiary; 16 on 24; 20 above and 16 below the head; 28 between the command and its meta; a hairline between blocks and `space-16`

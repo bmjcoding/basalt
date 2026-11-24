@@ -51,8 +51,9 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   diagram's card. Never decorative. Colour never carries meaning alone: pair it with
   a word, icon or shape. Syntax colours never carry status (diff colours are a deferred
   exception).
-- **WCAG 2.2 AA everywhere:** 4.5:1 for text, 3:1 for boundaries, focus and icons, on
-  every surface the pair can appear on, in both themes. Contrast tests prove it; add a
+- **WCAG 2.2 AA everywhere:** 4.5:1 for text, 3:1 for boundaries, focus and icons, on every surface the pair can appear on, in both
+  themes. One exception, by name: a `RunTimeline`'s tail recedes below 4.5:1 from its second row (`opacity-recede-2` to `-5`), because
+  the control above it opens the whole record at full contrast (WCAG G174); it never recedes under more contrast or in forced colours. Contrast tests prove it; add a
   pair to them when you add a token.
 - **Borders build structure; shadows are only for things that float.** No gradient
   borders, glow or bounce, and no press scale beyond Button and IconButton's .98. Hover
@@ -123,13 +124,16 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   tabs that scrolls, a sortable header cell (a header band that is itself a button), a phone tab bar cell, and a cut cell of a still table (a focus stop, which shows its own ring after Esc has closed its plate). These structural
   vertical lines are allowed, each named and never a selection, sort, active or status mark: the 1px divider at a pinned table
   column's edge while the table is scrolled, the app sidebar's 1px edge, a meter's labelled target tick, the vertical
-  `Separator` between groups of controls, the edges between a `NumberField`'s value and its steppers, a diagram's connector and a sequence diagram's lifeline. The active row in a menu, select, combobox or command menu is a rounded plate
+  `Separator` between groups of controls, the edges between a `NumberField`'s value and its steppers, a diagram's connector and a sequence diagram's lifeline, and a stage list's or run timeline's connector (1px between two marks, never
+  filled and never a state). The active row in a menu, select, combobox or command menu is a rounded plate
   (radius 8, one solid fill per level) plus a lift from secondary ink to primary, with no
   weight change: it is the row the keyboard is on, and it changes with every arrow key (WCAG 1.4.1). A selected table row is the wash band, and its checked box
   carries the state. A wash over an opaque fill (a pinned cell) is one colour from `color-mix`, never a gradient, an image or a
   pseudo-element layer, and a hovered or selected row's wash is on every cell of the row, pinned or not, in React and the skill. Horizontal tabs keep their underline: it is horizontal. In a segmented
   control and in vertical tabs one pill slides to the chosen item (`duration-slow`, `ease-out`);
   under reduced motion and in forced colours each item paints its own.
+- **Reserved room is page, not paint:** a box hugs what it shows; a seat's spare room lies outside it, on the open side; a seat
+  inside a control is never empty (a glyph at rest, its selected form or the check when on).
 - **Reservation limits:** native-element width copies are cleaned in props without an observer; opaque components need DOM cleanup and a second live instance, so server HTML can duplicate ids and controls until hydration (permanently without scripts), and an unsafe component can narrow when hydration declines it. The HTML skill still widens resting items once on initialization; build-time reservation and glyphs are a later batch (DECISIONS 150).
 - **A focusable row** (a link or button in a list, not a listbox option) takes the control ring
   at +2, outside the row, and its list keeps at least `space-1-5` from any clipping edge. A
@@ -156,9 +160,10 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   the parts of a field or a disabled, loading or busy button). In popup rows (Menu, Select, Combobox,
   command menu) one plate glides between rows (`duration-base`, `ease-out`): it appears in place
   on entry, freezes and fades on leave, keys move it at once, and it is off on touch, under
-  reduced motion and in forced colours. Nothing overshoots. Three kinds of thing loop, and nothing else: a mark that says work is running
+  reduced motion and in forced colours. Nothing overshoots. Four kinds of thing loop, and nothing else: a mark that says work is running
   (the ring, braille, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar, Sparkline's loading line, Skeleton's pulse and a written field's fill), a
-  page's one ambient loop, opacity only, in its art, and an animated diagram's live lines; `data-loops="held"` stops all three. One figure on a page's first screen may draw its marks once
+  queued stage's mark (`StageMark`, opacity 0.65 to 1 on `duration-loop-fade`, never under 3:1, never a badge's ring), a page's one ambient loop, opacity only, in its art, and
+  an animated diagram's live lines; `data-loops="held"` stops all four. One figure on a page's first screen may draw its marks once
   at load on a first visit (`duration-figure` 600ms, `duration-stagger` 22ms, at rest on a second visit and under reduced motion); a
   traveller between two resting places on screen uses `ease-in-out` (a leg of 300ms up to 150px, 2ms a pixel above, 600ms from 300px); a
   filtered or sorted list or grid moves what stays by transform and never replaces an item (past 48 items that would move, it lands at once); a number beside a figure never counts up. The hold or printing settles a running entrance at once, and a page change without a reload counts as a load.
@@ -187,7 +192,8 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   Navigation glyphs in a sidebar or rail are primary at rest; every other icon is secondary at
   rest. Don't redraw a glyph in code: change `packages/react/glyphs/source.mjs` and run
   `node packages/react/glyphs/generate.mjs`. On Apple platforms, SF Symbols for system concepts
-  (info, warning, error, success). Status icons pair with words.
+  (info, warning, error, success). Status icons pair with words. A stage's mark (`StageMark`) is seven shapes at 16, running the ring; its state's word is always said,
+  and where it is drawn differs by part: foundations' table in "Stages and runs" is the rule.
 - **Diagrams:** monochrome; one focal node, inverted. Three lines named by look (main 2px, plain 1px, dashed), and the key says what
   each means. The drawn layout is used only when it fits (640, the track minimums, a clean seat for every label); otherwise stacked, in
   the author's order, at most 480 wide. Nothing is cut and nothing overlaps at any width. Ports, routes, groups and foreign keys are derived from one
@@ -292,9 +298,9 @@ say so if you report one.
 `npm run lint`, `npm test`, `npm run check` and `npm run ci:local` run every step and fail at the end, ending in one line a step (passed or failed, and for a failed
 test step the files that failed), so one failing file does not hide the steps after it. The steps print in order, each under its own header: the first failing section
 of the log is the first failure, and the summary marks it. `ci.yml`'s own steps are unchanged. Renders and browser tests launch Chromium through
-`scripts/chromium-launch.mjs` (overlay scrollbars and full raster), so a docked laptop and an undocked one draw the same pixels. Three
+`scripts/chromium-launch.mjs` (overlay scrollbars and full raster), so a docked laptop and an undocked one draw the same pixels. Five
 tests that look at classic scrollbars (`tools/html-skill/test/parity-4.test.mjs` and `parity-8.test.mjs`, and
-`packages/react/test/table-filter.test.mjs`) launch with the module's `ignoreDefaultArgs` removed on purpose. The brand test
+`packages/react/test/table-filter.test.mjs`, `stage-transcript.test.mjs` and `run-timeline.test.mjs`) launch with the module's `ignoreDefaultArgs` removed on purpose. The brand test
 (`brand/test/brand.test.mjs`) launches Chromium without the module: nothing in `brand/` is edited alongside the tooling, so it has not been moved
 to the module, and should be the next time `brand/` is changed.
 

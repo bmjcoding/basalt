@@ -232,10 +232,10 @@ describe("the body's own parts", () => {
     assert.ok(glyph.html.includes("addGlyphs") && !glyph.html.includes('"close":['), "the table holds the glyph it names and no other");
     // The sheet alone draws none.
     assert.deepEqual(used('<dialog class="panel float modal sheet" data-side="right"><h2 class="dialog-title">x</h2></dialog>'), ["dialog", "sheet"]);
-    // The modules that draw a glyph themselves bring the part and the two glyphs they draw.
+    // The modules that draw a glyph themselves bring the part and the glyphs they draw (the menu's pause row draws pause, DECISIONS 326).
     const bar = compose('<header class="topbar"><div class="topbar-inner"><a class="brand" href="#">x</a><nav class="topbar-links" aria-label="Primary"><a href="#">a</a></nav></div></header>', { fonts: false });
     assert.ok(["glyph", "sheet", "dialog", "nav", "glide", "topbar", "topbar-nav"].every((n) => bar.modules.includes(n)), bar.modules.join(", "));
-    assert.deepEqual(bar.glyphs, ["menu", "close"]);
+    assert.deepEqual(bar.glyphs, ["menu", "close", "pause"]);
     for (const [name, m] of Object.entries(manifest.modules)) if ((m.glyphs ?? []).length) assert.ok(m.requires.includes("glyph"), `${name} draws glyphs and must require glyph`);
   });
 

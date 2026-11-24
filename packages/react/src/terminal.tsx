@@ -1,10 +1,12 @@
 import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
 import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
+import { ProhibitIcon } from "@phosphor-icons/react/dist/csr/Prohibit";
 import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
 import { CheckGlyph } from "./glyphs/check";
 import { CopyGlyph } from "./glyphs/copy";
+import { MinusGlyph } from "./glyphs/minus";
 import { Button, IconButton } from "./button";
 import { CodeLine, CodePrompt } from "./code-lines";
 import { loadFlight } from "./control-icon";
@@ -13,12 +15,20 @@ import { LogFields } from "./log-fields";
 import type { LogFieldsInput } from "./log-fields";
 import { usePanelLevel } from "./layers";
 import { Reserve } from "./reserve";
+import type { Moment } from "./run-format";
+import { RunTimer } from "./run-timer";
+import { warnRun } from "./run-warn";
 import { Spinner } from "./spinner";
 import { join } from "./utils";
 import { CONFIRM_MS } from "./constants";
 
-/** What a line is: a command, what came back, or a result (done, a warning, an error). */
-export type TerminalLineKind = "command" | "output" | "done" | "warning" | "error";
+declare const process: { env: { NODE_ENV?: string } };
+
+/** What a line is: a command, what came back, a result (done, a warning, an error), or a stage of a run (DECISIONS 316). */
+export type TerminalLineKind = "command" | "output" | "done" | "warning" | "error" | "stage";
+
+/** A stage line's state. A stage that has not started has no line; a retry is a new running line whose text the app writes. */
+export type TerminalStageState = "running" | "done" | "failed" | "skipped" | "canceled";
 
 export interface TerminalLine {
   kind: TerminalLineKind;
@@ -31,6 +41,13 @@ export interface TerminalLine {
   fields?: LogFieldsInput;
   /** Anything else a line of output holds (a link, a button, a small table). `text` is still its plain form. */
   node?: React.ReactNode;
+  /** A stage line's state (`kind: "stage"`). The app writes `text` without the state's word: a skipped stage's "cache restore (no cache)". */
+  state?: TerminalStageState;
+  /** A stage line's word, drawn before its text, when the app's differs ("Skipped", "Canceled" by default; running, done and failed draw none). */
+  word?: string;
+  /** When a stage line's stage started and ended: its duration, at the line's end. */
+  start?: Moment;
+  end?: Moment;
 }
 
 /** Where a transcript whose lines arrive over time has got to. */
@@ -57,6 +74,15 @@ export interface TerminalProps {
   interval?: number;
   /** An exit code, said beside a failed result: "Failed, exit 1". */
   exitCode?: number;
+  /**
+   * A stage transcript (DECISIONS 316): declared when it mounts and fixed for its life. Its window is never a `log`: a named region (a group while
+   * empty) from its first frame, whatever its `status` and its lines, because the run's `RunAnnouncer` speaks. Stage lines, `keep` and `time` need it.
+   */
+  stages?: boolean;
+  /** In a stage transcript, lines older than the newest `keep` stage lines (with their output) step back once, to tertiary ink. Off unless given. */
+  keep?: number;
+  /** In a stage transcript, the run's time in the head, after the state word: `start`, `end`, `carried` across a retry and `since` (see `RunTimer`). */
+  time?: { start?: Moment; end?: Moment; carried?: number; since?: Moment };
   className?: string;
 }
 
@@ -65,6 +91,16 @@ const MARKS = {
   warning: { icon: WarningIcon, name: "Warning" },
   error: { icon: XCircleIcon, name: "Error" },
 } as const;
+
+// A stage line's gutter: braille while running, the core check when done, the error's XCircle when failed, the core minus when skipped, Prohibit when
+// canceled. Running, done and failed are said by the mark (a named image); skipped and canceled by the word drawn before the text.
+const STAGE_MARKS = {
+  done: { icon: CheckGlyph, name: "Done" },
+  failed: { icon: XCircleIcon, name: "Failed" },
+  skipped: { icon: MinusGlyph, name: undefined },
+  canceled: { icon: ProhibitIcon, name: undefined },
+} as const;
+const STAGE_WORDS_DRAWN: Partial<Record<TerminalStageState, string>> = { skipped: "Skipped", canceled: "Canceled" };
 
 const REPLAY_WORDS = ["Play", "Pause", "Resume", "Replay"] as const;
 const STREAM_WORDS = ["Pause", "Resume"] as const;
@@ -79,8 +115,18 @@ const swap = (show: string, alternatives: Record<string, React.ReactNode>) => <R
  * region. A transcript whose lines arrive is a fixed-height `role="log"` that follows the end only while the reader is there, and
  * is a log only while lines arrive.
  */
-export function Terminal({ title, lines, prompt = "$", copyable = true, status, onPause, onResume, replay = false, interval = 600, exitCode, className }: TerminalProps) {
+export function Terminal({ title, lines, prompt = "$", copyable = true, status, onPause, onResume, replay = false, interval = 600, exitCode, stages: stagesProp, keep, time, className }: TerminalProps) {
   const level = usePanelLevel();
+  // A stage transcript is declared when it mounts and stays one: the mode is never read from the lines. A stage line in a transcript that did not
+  // declare it is still drawn, and makes the window silent from then on (the net, never the plan).
+  const [stages] = React.useState(() => stagesProp === true);
+  const stray = React.useRef(false);
+  if (!stages && !stray.current && lines.some((line) => line.kind === "stage")) {
+    stray.current = true;
+    if (process.env.NODE_ENV !== "production") warnRun("Terminal", "a stage line arrived in a transcript that did not declare `stages`; declare it when the transcript mounts.");
+  }
+  if (process.env.NODE_ENV !== "production" && !stages && (keep !== undefined || time !== undefined)) warnRun("Terminal", "`keep` and `time` belong to a stage transcript; declare `stages`. They do nothing here.");
+  const silent = stages || stray.current;
 
   // ---- a replay plays the lines itself
   const [shown, setShown] = React.useState(0);
@@ -98,7 +144,9 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
     return () => clearTimeout(timer);
   }, [replay, mode, shown, lines.length, interval]);
 
-  const failed = lines[lines.length - 1]?.kind === "error";
+  // A replay ends failed on an error, and on a stage line that failed (a stage transcript's own failure).
+  const last = lines[lines.length - 1];
+  const failed = last?.kind === "error" || (last?.kind === "stage" && last.state === "failed");
   const state: TerminalStatus | undefined = replay ? (mode === "finished" ? (failed ? "failed" : "done") : mode) : status;
   const live = state !== undefined;
   const visible = replay ? lines.slice(0, shown) : lines;
@@ -151,6 +199,16 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
 
   const failedWord = exitCode === undefined ? "Failed" : `Failed, exit ${exitCode}`;
   // Every state's words stand in one cell (see `Reserve`), so the head is as wide as its widest and never moves.
+  // Which lines step back (one step, tertiary ink): a stage line older than the newest `keep`, and the output under it. A command never does, and
+  // nothing before the first stage line does (ruling 7).
+  let boundary = -1;
+  let firstStage = -1;
+  if (stages && keep !== undefined && keep >= 1) {
+    const at = visible.map((line, i) => (line.kind === "stage" ? i : -1)).filter((i) => i >= 0);
+    firstStage = at[0] ?? -1;
+    if (at.length > keep) boundary = at[at.length - keep]!;
+  }
+  const recedes = (i: number) => i < boundary && i >= firstStage && visible[i]!.kind !== "command";
   const words = state === undefined ? null : (
     swap(state, {
       idle: "Not started",
@@ -169,6 +227,7 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
         <span id={captionId} className="basalt-terminal-title">{title}</span>
         <span className="basalt-terminal-actions">
           {words ? <span className="basalt-terminal-state" data-state={state}>{words}</span> : null}
+          {stages && time ? <span className="basalt-terminal-time"><RunTimer start={time.start} end={time.end} carried={time.carried} since={time.since} /></span> : null}
           {control ? (
             <Button variant="ghost" size="sm" onClick={control.onClick} disabled={control.disabled}>
               {swap(control.show, Object.fromEntries(control.words.map((word) => [word, word])))}
@@ -188,15 +247,17 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
       </figcaption>
       {/* A scrollable region is reachable by keyboard. It is a log only while lines arrive: never idle, paused or finished. Before the
           first line it is a named group, because a named element with no role and no text is not valid ARIA. */}
-      <pre ref={pre} onScroll={onScroll} className="basalt-code-pre" tabIndex={0} role={state === "running" ? "log" : visible.length === 0 ? "group" : "region"} aria-label={`${title}, transcript`}>
+      <pre ref={pre} onScroll={onScroll} className="basalt-code-pre" tabIndex={0} role={state === "running" && !silent ? "log" : visible.length === 0 ? "group" : "region"} aria-label={`${title}, transcript`} data-stages={stages ? "" : undefined}>
         <code className="basalt-code-lines">
           {replay && mode === "idle" && visible.length === 0 ? <span className="basalt-terminal-hint">Press Play to start</span> : null}
           {visible.map((line, i) => {
+            if (line.kind === "stage") return <StageLine key={i} line={line} receded={recedes(i)} />;
             const mark = line.kind === "done" || line.kind === "warning" || line.kind === "error" ? MARKS[line.kind] : null;
             return (
               <CodeLine
                 key={i}
                 kind={line.kind}
+                receded={recedes(i)}
                 gutter={line.kind === "command" ? <CodePrompt>{prompt}</CodePrompt> : mark ? <Icon icon={mark.icon} size={16} label={mark.name} className="basalt-terminal-mark" /> : null}
               >
                 {line.node ?? (line.fields ? <LogFields fields={line.fields} /> : line.text)}
@@ -206,5 +267,27 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
         </code>
       </pre>
     </figure>
+  );
+}
+
+/** A stage of a run, on one line of a stage transcript: its mark in the gutter, its word and text, and its duration at the line's end. */
+function StageLine({ line, receded }: { line: TerminalLine; receded: boolean }) {
+  const state = line.state ?? "running";
+  const word = line.word ?? STAGE_WORDS_DRAWN[state];
+  // A state is said once: where a word is drawn the mark is hidden from assistive technology; where none is, the mark is a named image.
+  const named = word ? undefined : state === "running" ? "Running" : STAGE_MARKS[state as Exclude<TerminalStageState, "running">].name;
+  const mark = state === "running"
+    ? <span role={named ? "img" : undefined} aria-label={named} aria-hidden={named ? undefined : true} className="basalt-terminal-braille"><Spinner variant="braille" /></span>
+    : <Icon icon={STAGE_MARKS[state].icon} size={16} label={named} className="basalt-terminal-mark" />;
+  const running = line.start !== undefined && line.end === undefined;
+  return (
+    <span className="basalt-code-line" data-kind="stage" data-state={state} data-receded={receded ? "" : undefined}>
+      <span className="basalt-code-gutter">{mark}</span>
+      <span className="basalt-code-text basalt-terminal-stage">
+        <span>{word ? <span className="basalt-terminal-word">{word} </span> : null}{line.node ?? (line.fields ? <LogFields fields={line.fields} /> : line.text)}</span>
+        {/* A running time is a streaming count, so it is not read: the line's text changes once a stage, when its time is final. */}
+        {line.start !== undefined ? <span className="basalt-terminal-duration" aria-hidden={running || undefined}><RunTimer start={line.start} end={line.end} whenHeld="hidden" /></span> : null}
+      </span>
+    </span>
   );
 }
