@@ -255,7 +255,9 @@ class Figure implements MotionController {
     if (!fig.hasAttribute("data-first-visit") || !fig.id) return;
     try { localStorage.setItem(visitKey(fig), "1"); } catch { /* it plays again */ }
   }
-  private hasLines() { return Boolean(this.host.geo()?.lines.length); }
+  /** A text sequence's art, where it is shown (DECISIONS 306, 1.2): its build by ink and its run are this module's, as the drawn sequence's are. */
+  private textCode(): HTMLElement | null { return this.host.model().text ? this.host.fig.querySelector<HTMLElement>(`.${this.host.P}-text[data-art] .${this.host.P}-text-ink`) : null; }
+  private hasLines() { return Boolean(this.host.geo()?.lines.length) || Boolean(this.textCode()); }
   // A figure whose viewer is open holds its loops as a traced one does (DECISIONS 310, 9.7), and they start again when it closes.
   private traced() { return this.host.fig.hasAttribute("data-tracing") || this.host.fig.hasAttribute("data-viewing"); }
 
@@ -349,6 +351,7 @@ class Figure implements MotionController {
   private lineEl(l: GLine) { return this.host.fig.querySelector<SVGGElement>(`.${this.host.P}-edge[data-edge="${l.i}"]`); }
 
   private play() {
+    if (this.textCode()) { this.playText(); return; }
     const geo = this.host.geo();
     if (!geo?.lines.length) return;
     this.host.fig.setAttribute("data-entrance", "running");
@@ -448,6 +451,38 @@ class Figure implements MotionController {
     this.sync();
   }
 
+  /**
+   * A text sequence builds by ink (1.2), when it comes into view as a drawn figure's entrance does, on the same clock and with the same settling, first visit
+   * and limit: before its turn a message's label is secondary and its arrow tertiary, and at its turn both lift to their resting ink over duration-slower,
+   * messages duration-diagram-step apart inside duration-diagram-limit. No line is hidden and there is no caret.
+   */
+  private playText() {
+    const code = this.textCode();
+    if (!code) return;
+    const fig = this.host.fig, t = this.t;
+    fig.setAttribute("data-entrance", "running");
+    this.played = true;
+    this.t0 = now();
+    const lines = [...code.querySelectorAll<HTMLElement>("[data-n]")];
+    const count = Math.max(0, ...lines.map((l) => Number(l.dataset.n)));
+    const gap = count > 1 ? Math.min(t.step, (t.limit - t.slower) / (count - 1)) : 0;
+    const cs = getComputedStyle(fig);
+    const secondary = cs.getPropertyValue("--basalt-text-secondary").trim(), tertiary = cs.getPropertyValue("--basalt-text-tertiary").trim();
+    for (const line of lines) {
+      const n = Number(line.dataset.n);
+      line.querySelectorAll<HTMLElement>('[data-ink="label"], [data-ink="main"], [data-ink="plain"]').forEach((el) => {
+        const before = el.dataset.ink === "label" ? secondary : tertiary;
+        const a = el.animate([{ color: before }, { color: before, offset: 0.001 }, { color: getComputedStyle(el).color }], { duration: t.slower, delay: (n - 1) * gap, easing: "ease-out", fill: "backwards" });
+        a.startTime = this.t0;
+        this.intro.add(a);
+      });
+    }
+    this.introEnd?.cancel();
+    this.introEnd = fig.animate([], { duration: Math.max(1, (count - 1) * gap + t.slower) });
+    this.introEnd.startTime = this.t0;
+    this.introEnd.finished.then(() => this.finishIntro(), () => {});
+  }
+
   private clearIntro() {
     for (const a of [...this.intro, ...this.labels]) a.cancel();
     this.intro.clear();
@@ -464,7 +499,9 @@ class Figure implements MotionController {
     const state = this.entrance();
     if (state === "running") {
       const geo = this.host.geo();
-      if (!geo?.lines.length) {
+      if (this.textCode()) {
+        // A text sequence's build carries on: its art is the same rows, written again.
+      } else if (!geo?.lines.length) {
         // Narrowed to a layout with no lines: at rest, with no control (1.5).
         this.clearIntro();
         this.host.fig.setAttribute("data-entrance", "done");
@@ -829,6 +866,7 @@ class Figure implements MotionController {
 
   /** The run: a packet through every message in order, each arrow a leg; at each arrival the number lifts and the receiver's head steps (1.10). */
   private playRun(from: number) {
+    if (this.textCode()) { this.playTextRun(from); return; }
     const geo = this.host.geo();
     if (!geo?.lines.length) return;
     for (const a of this.runAnims) a.cancel();
@@ -860,11 +898,43 @@ class Figure implements MotionController {
     };
     go().catch((e) => { if (!aborted(e)) throw e; });
   }
+
+  /**
+   * A text sequence's run (Neon's B6 of the code review): the colour-only run reduced motion already has, with the quiet. Each message in turn is current:
+   * its number lifts to primary, and every message after it is quiet (its label secondary, its arrow tertiary) until the run reaches it.
+   */
+  private playTextRun(from: number) {
+    const code = this.textCode();
+    if (!code) return;
+    for (const a of this.runAnims) a.cancel();
+    this.runAnims.clear();
+    const gen = ++this.runGen;
+    const live = () => gen === this.runGen;
+    const lines = [...code.querySelectorAll<HTMLElement>("[data-n]")];
+    const count = Math.max(0, ...lines.map((l) => Number(l.dataset.n)));
+    const quiet = (current: number) => { for (const l of lines) l.toggleAttribute("data-ahead", current >= 0 && Number(l.dataset.n) > current); };
+    this.runAt = from;
+    const go = async () => {
+      for (let k = from; k < count; k++) {
+        if (!live()) return;
+        this.runAt = k;
+        quiet(k + 1);
+        const these = lines.filter((l) => Number(l.dataset.n) === k + 1);
+        await this.wait(this.t.legMin + this.t.base, this.runAnims);
+        if (!live()) return;
+        for (const l of these) l.setAttribute("data-arrival", "");
+        await this.wait(this.t.rest, this.runAnims);
+        for (const l of these) l.removeAttribute("data-arrival");
+      }
+      if (live()) { this.runAt = -1; quiet(-1); this.publish(); }
+    };
+    go().catch((e) => { if (!aborted(e)) throw e; });
+  }
 }
 
 /**
  * What a development build throws on (DECISIONS 292, 4.1): an id in the pulse or the packet's path that no node has, two neighbouring ids no line joins in
- * that direction, both a pulse and a packet, flow on a dashed line, and flow on a line of the mover's route. And what it warns on: a flow line with no
+ * that direction, both a pulse and a packet, and flow on a line of the mover's route (flow on a dashed line marches its own dashes, DECISIONS 306, 1.5). And what it warns on: a flow line with no
  * label. Here, and not in the still engine, because only an animated figure reads them.
  */
 export function motionErrors(m: Model): { errors: string[]; warnings: string[] } {

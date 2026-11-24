@@ -4,7 +4,7 @@
    bundled into this module by build.mjs); the figure is drawn by the diagram module's engine (Basalt._.diagramKit), so this holds no second copy of it.
    compose.mjs adds this module to a page with a figure unless every figure on it says "zoom": false. The implementation hasn't been reviewed.
    Source: tools/html-skill/src/modules/diagram-zoom.js (do not edit the copy in the skill folder). */
-import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint } from "../../../../packages/react/src/diagram-zoom-core.ts";
+import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint, viewerTextWidth } from "../../../../packages/react/src/diagram-zoom-core.ts";
 
 (function (B) {
   'use strict';
@@ -19,7 +19,8 @@ import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint } fr
   function openViewer(page, spec, ctx, opener) {
     var kit = _.diagramKit;
     var still = Object.assign({}, spec, { motion: 'still' });
-    var model = kit.buildModel(still);
+    // An automatic figure's key hint is read from a placed model, as React's (unplaced, every card is in one cell).
+    var model = kit.buildModel(still, { placement: Array.isArray(still.placement) ? still.placement[0] : still.placement });
     var id = 'dgv' + (++serial);
     var key = kit.figureKey('diagram', model);
     var hint = viewerHint(kit.hintEntries(model, true)).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + esc(e.words) + '</span>'; }).join('');
@@ -66,6 +67,7 @@ import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint } fr
       layer: layer, avail: 0, row: 1104, contain: 480, memo: memo, measureFigure: kit.measureFigure, keys: VIEWER_KEYS,
       room: function () { var pad = parseFloat(getComputedStyle(sizer).paddingTop) || 0; return { w: stage.clientWidth - 2 * pad, h: stage.clientHeight - 2 * pad }; },
       measure: function (f, m, p, base, current, apply, warn) { return measureViewerFigure(f, m, p, base, current, apply, warn, view); },
+      textWidth: function (need) { viewerTextWidth(view, need); },
       onMeasured: function (measured, f) {
         stage.setAttribute('data-layout', measured.dyn.layout || '');
         if (keyBox) { keyBox.setAttribute('data-layout', measured.dyn.layout || ''); keyBox.toggleAttribute('data-bare', Boolean(measured.dyn.bare)); }
@@ -102,6 +104,12 @@ import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint } fr
     buttons.out.addEventListener('click', function () { if (!buttons.out.hasAttribute('aria-disabled')) zoom.zoomOut(); });
     buttons.in.addEventListener('click', function () { if (!buttons.in.hasAttribute('aria-disabled')) zoom.zoomIn(); });
     buttons.fit.addEventListener('click', function () { if (!buttons.fit.hasAttribute('aria-disabled')) zoom.fit(); });
+    // A linked card is followed on a click, a tap or Enter; a link that stays in this tab closes the viewer first (DECISIONS 310, 9.7).
+    d.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a.diagram-node[href]');
+      if (!a || !d.contains(a) || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || (a.target && a.target !== '_self')) return;
+      if (d.open) d.close();
+    });
     stage.addEventListener('focusin', function (e) {
       var node = e.target.closest && e.target.closest('.diagram-node');
       if (node && stage.contains(node)) revealIn(stage, node, px(stage, '--_clear') || 16);

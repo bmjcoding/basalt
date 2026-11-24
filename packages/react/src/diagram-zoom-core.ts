@@ -335,8 +335,14 @@ export function revealIn(stage: HTMLElement, el: Element, margin: number): void 
   if (r.top < top) stage.scrollTop -= top - r.top; else if (r.bottom > bottom) stage.scrollTop += Math.min(r.bottom - bottom, r.top - top);
 }
 
+/** A text sequence in the viewer (9.3): the layer is the art's own width, `need` being the figure's width at which the widest line just fits. */
+export function viewerTextWidth(v: ViewerLayout, need: number): void {
+  v.memo.art = Math.ceil(need);
+  v.layer.style.width = `${v.memo.art}px`;
+}
+
 /** What the viewer's figure remembers between layouts: the least width the engine was found to draw this data at (0: none). */
-export interface ViewerMemo { model?: unknown; least?: number }
+export interface ViewerMemo { model?: unknown; least?: number; art?: number }
 export interface ViewerLayout {
   /** The layer the figure is laid out in: its width is the layout width; its transform (the zoom) is taken off while it is measured. */
   layer: HTMLElement;
@@ -356,7 +362,16 @@ export interface ViewerLayout {
  */
 export function measureViewerFigure(fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn: ((s: string) => void) | undefined, v: ViewerLayout): Measured {
   const { layer, memo, measureFigure } = v;
-  if (memo.model !== m) { memo.model = m; memo.least = undefined; }
+  if (memo.model !== m) { memo.model = m; memo.least = undefined; memo.art = undefined; }
+  // A text sequence holds the art at its own width, never the transcript (9.3): the figure reports the art's width (textWidth) and the layer takes it.
+  if (m.text) {
+    layer.style.width = `${memo.art ?? Math.min(v.avail, v.row)}px`;
+    const zoomedText = layer.style.transform;
+    layer.style.transform = "none";
+    const out = measureFigure(fig, m, P, base, current, apply, warn);
+    layer.style.transform = zoomedText;
+    return out;
+  }
   const sizeTo = (least: number) => { layer.style.width = `${Math.max(memo.least || least, Math.min(v.avail, v.row))}px`; };
   // The layer has no width of its own until the first layout: it starts at the stage's, so the figure can be measured.
   if (!layer.style.width) layer.style.width = `${Math.min(v.avail, v.row)}px`;

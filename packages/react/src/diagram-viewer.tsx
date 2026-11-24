@@ -3,7 +3,7 @@ import * as React from "react";
 import { Button, IconButton } from "./button";
 import type { DiagramFigureInternalProps, DiagramViewerMode } from "./diagram-figure";
 import type { buildModel, DiagramSpec, figureKey, figureList, hintEntries, Measured, measureFigure, Model, toHtml } from "./diagram-core";
-import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint } from "./diagram-zoom-core";
+import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint, viewerTextWidth } from "./diagram-zoom-core";
 import type { ViewerMemo, ZoomController, ZoomState } from "./diagram-zoom-core";
 import { createPortal } from "react-dom";
 
@@ -57,7 +57,9 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
   const { Figure: DiagramFigure, Kbd, buildModel, figureKey, figureList, hintEntries, toHtml, inLevel, measureFigure } = kit;
   // The viewer's figure is still (9.7): no entrance, flow, mover or run, so no motion code is loaded for it.
   const still = React.useMemo<DiagramSpec>(() => ({ ...spec, motion: "still" }), [spec]);
-  const model = React.useMemo<Model>(() => buildModel(still), [still]);
+  // An automatic figure's foot (its key hint) is read from a placed model: unplaced, every card is in one cell and the hint would say two arrows where the
+  // drawing has rows and columns (the pixel review's check on the viewer's hint).
+  const model = React.useMemo<Model>(() => buildModel(still, { placement: Array.isArray(still.placement) ? still.placement[0] : still.placement }), [still]);
   const stageRef = React.useRef<HTMLDivElement>(null);
   const sizerRef = React.useRef<HTMLDivElement>(null);
   const layerRef = React.useRef<HTMLDivElement>(null);
@@ -122,6 +124,7 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
       },
       onMeasured,
       measure: (fig, m, p, base, current, apply, warn) => measureViewerFigure(fig, m, p, base, current, apply, warn, { layer, avail, row: dims.row, contain: dims.contain, memo: memo.current, measureFigure }),
+      textWidth: (need) => viewerTextWidth({ layer, avail, row: dims.row, contain: dims.contain, memo: memo.current, measureFigure }, need),
     };
   }, [avail, dims, onMeasured, measureFigure, settled]);
 
@@ -174,13 +177,21 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
       const first = all[0]!, last = all[all.length - 1]!, at = document.activeElement;
       if (e.shiftKey && (at === first || at === d)) { e.preventDefault(); last.focus(); } else if (!e.shiftKey && at === last) { e.preventDefault(); first.focus(); }
     };
+    // A linked card is followed on a click, a tap or Enter; a link that stays in this tab closes the viewer first (9.7). The dialog closes as the click is
+    // handled, and the browser then follows the link as it would anywhere: a new tab's link leaves the viewer open.
+    const onLink = (e: MouseEvent) => {
+      const a = (e.target as Element | null)?.closest?.(`a.${P}-node[href]`) as HTMLAnchorElement | null;
+      if (!a || !d.contains(a) || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || (a.target && a.target !== "_self")) return;
+      close();
+    };
     const onEntered = (e: TransitionEvent) => { if (e.target === d && e.propertyName === "transform" && d.open && !closing.current) setSettled((n) => n + 1); };
     d.addEventListener("transitionend", onEntered);
     d.addEventListener("close", onClose);
     d.addEventListener("pointerdown", onDown);
     d.addEventListener("click", onClick);
+    d.addEventListener("click", onLink);
     d.addEventListener("keydown", onKey);
-    return () => { clearTimeout(timer); d.removeEventListener("transitionend", onEntered); d.removeEventListener("close", onClose); d.removeEventListener("pointerdown", onDown); d.removeEventListener("click", onClick); d.removeEventListener("keydown", onKey); if (d.open) d.close(); };
+    return () => { clearTimeout(timer); d.removeEventListener("transitionend", onEntered); d.removeEventListener("close", onClose); d.removeEventListener("pointerdown", onDown); d.removeEventListener("click", onClick); d.removeEventListener("click", onLink); d.removeEventListener("keydown", onKey); if (d.open) d.close(); };
   }, [opener, close]);
 
   return createPortal(
@@ -208,10 +219,12 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
           {key ? <div className={`${P}-viewer-key`} data-layout={layout.layout} data-bare={layout.bare ? "" : undefined} dangerouslySetInnerHTML={keyHtml} /> : null}
           <div className={`${P}-viewer-row`}>
             <div className={`${P}-zoom`}>
-              <IconButton icon={MinusGlyph} size="sm" label="Zoom out" aria-disabled={off || zoom.atMin || undefined} onClick={() => { if (!off && !zoom.atMin) z()?.zoomOut(); }} />
+              {/* At a limit, or with the list open, a control is disabled as Basalt's are (B1 of the pixel review): it stays mounted and focusable, loses its
+                  ink, and takes no hover, press or scale. */}
+              <IconButton icon={MinusGlyph} size="sm" label="Zoom out" disabled={off || zoom.atMin} focusableWhenDisabled onClick={() => { if (!off && !zoom.atMin) z()?.zoomOut(); }} />
               <span className={`${P}-level`} aria-hidden="true" data-reserve="400%"><span>{`${zoom.level}%`}</span></span>
-              <IconButton icon={PlusGlyph} size="sm" label="Zoom in" aria-disabled={off || zoom.atMax || undefined} onClick={() => { if (!off && !zoom.atMax) z()?.zoomIn(); }} />
-              <Button variant="secondary" size="sm" className={`${P}-fit`} aria-disabled={off || zoom.atFit || undefined} onClick={() => { if (!off && !zoom.atFit) z()?.fit(); }}>Fit</Button>
+              <IconButton icon={PlusGlyph} size="sm" label="Zoom in" disabled={off || zoom.atMax} focusableWhenDisabled onClick={() => { if (!off && !zoom.atMax) z()?.zoomIn(); }} />
+              <Button variant="secondary" size="sm" className={`${P}-fit`} disabled={off || zoom.atFit} focusableWhenDisabled onClick={() => { if (!off && !zoom.atFit) z()?.fit(); }}>Fit</Button>
             </div>
             <p className={`${P}-hint ${P}-viewer-hint`} data-kbd-hint="" aria-hidden="true">{hint}</p>
             <div className={`${P}-viewer-end`}>

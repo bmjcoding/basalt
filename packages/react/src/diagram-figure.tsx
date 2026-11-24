@@ -116,6 +116,8 @@ export interface DiagramViewerMode {
   room: () => { w: number; h: number };
   /** After every layout: what was measured, and the figure. */
   onMeasured: (measured: Measured, fig: HTMLElement) => void;
+  /** A text sequence (9.3): the figure's width at which the art's widest line just fits; the viewer lays it out at that width. */
+  textWidth?: (need: number) => void;
 }
 
 export interface DiagramFigureInternalProps extends DiagramFigureProps {
@@ -137,6 +139,9 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
   const auto = spec.layout === "auto" && (spec.type === "architecture" || spec.type === "flowchart" || spec.type === "schema");
   const given = React.useMemo(() => (spec.placement ? (Array.isArray(spec.placement) ? spec.placement : [spec.placement]) : []), [spec.placement]);
   const [loaded, setLoaded] = React.useState<DiagramPlacement[] | null>(null);
+  const placing = React.useRef<DiagramSpec | null>(null);
+  // A figure that unmounts drops an answer still in flight.
+  React.useEffect(() => () => { placing.current = null; }, []);
   const placements = React.useMemo(() => (given.length ? given : loaded ?? []), [given, loaded]);
   const order = React.useMemo<Array<"right" | "down">>(() => (spec.direction ? [spec.direction] : spec.type === "flowchart" ? ["down", "right"] : ["right", "down"]), [spec.direction, spec.type]);
   const [dirAt, setDirAt] = React.useState(0);
@@ -195,9 +200,14 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     // An automatic figure with no placement loads the layout module once it is measured at 640 or wider (never at a phone's width); until it answers, and
     // if it fails, the figure is stacked with every word present. elk runs once a direction: a resize or the faces arriving never run it again.
     // The viewer's figure is laid out at its least drawn width whatever the window (9.3), so on a phone it loads the module the page's stacked figure did not.
-    if (auto && !given.length && !loaded && (viewer || fig.clientWidth >= 640)) {
+    // One placement in flight a figure (P5 of the code review): a resize or the faces arriving while it runs do not start another, and an answer for a figure
+    // that has gone is dropped.
+    if (auto && !given.length && !loaded && !placing.current && (viewer || fig.clientWidth >= 640)) {
       const input = { type: spec.type as "architecture" | "flowchart" | "schema", nodes: spec.nodes as Array<{ id: string; group?: string }>, tables: spec.tables, edges: spec.edges, groups: spec.groups };
-      loadLayout().then((mod) => Promise.all(order.map((d) => mod.placeDiagram(input, d)))).then((all) => setLoaded(all), (error: unknown) => {
+      const ask = spec;
+      placing.current = ask;
+      loadLayout().then((mod) => Promise.all(order.map((d) => mod.placeDiagram(input, d)))).then((all) => { if (placing.current === ask) { placing.current = null; setLoaded(all); } }, (error: unknown) => {
+        if (placing.current === ask) placing.current = null;
         if (process.env.NODE_ENV !== "production") warnOnce(component, `the automatic layout could not load (${String(error)}), so the figure is stacked`);
       });
     }
@@ -239,7 +249,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
         const trial = buildModel(spec, { rtl, placement: place });
         const t = viewer.measure(fig, trial, P, base, {}, (d) => syncAttributes(fig, figureTree(trial, d, options)));
         if (t.dyn.layout !== "drawn") continue;
-        const fit = Math.min(room.w / fig.offsetWidth, room.h / fig.offsetHeight);
+        // Fit as the viewer takes it (whole per cents, 200% at most), so two directions that both fit at 200% tie and the type's own stays.
+        const fit = Math.min(2, Math.floor(Math.min(room.w / fig.offsetWidth, room.h / fig.offsetHeight) * 100 + 1e-6) / 100);
         if (fit > best + 1e-6) { best = fit; pick = k; }
       }
       if (pick !== dirAt) { setDirAt(pick); return; }
@@ -260,7 +271,12 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
         const cw = probe.getBoundingClientRect().width / 40;
         probe.remove();
         const cs = getComputedStyle(pre);
-        const room = pre.clientWidth - Number.parseFloat(cs.paddingLeft) - Number.parseFloat(cs.paddingRight);
+        let room = pre.clientWidth - Number.parseFloat(cs.paddingLeft) - Number.parseFloat(cs.paddingRight);
+        // In the viewer the art is held at its own width, never the transcript (9.3): the layer takes the width the widest line needs.
+        if (viewer?.textWidth) {
+          viewer.textWidth(made.width * cw + (fig.clientWidth - room) + 1);
+          room = pre.clientWidth - Number.parseFloat(cs.paddingLeft) - Number.parseFloat(cs.paddingRight);
+        }
         if (made.width * cw <= room + 0.5) { html = made.html; art = true; }
       }
       result.dyn = { ...result.dyn, art: art || undefined };
@@ -273,9 +289,16 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     setInk(result.ink);
     // A layout with no stops traces nothing: a pointer resting on a node as the figure narrows into one leaves no trace behind.
     if (!hasStops(model, result.dyn)) { setHoverTrace(null); setTouchTrace(null); }
-    // A figure hidden (the viewer's list is open) was not measured: the viewer keeps the drawing's size and place it had.
-    if (viewer && result.tokens) viewer.onMeasured(result, fig);
+    // A figure hidden (the viewer's list is open) was not measured: the viewer keeps the drawing's size and place it had. A text figure's art is in the DOM
+    // only once React has written it, so its size is read after that (below).
+    if (viewer && result.tokens && !model.text) viewer.onMeasured(result, fig);
   }, [model, base, options, component, viewer, rtl, auto, given, loaded, placements, order, placementFor, dirAt, spec, textModule, transcriptHtml]);
+
+  // The viewer's text figure (9.3): its size is read once React has written the art it measured, so the zoom fits the art and not the transcript.
+  React.useLayoutEffect(() => {
+    const fig = figRef.current;
+    if (viewer && model.text && fig && measured.current?.tokens) viewer.onMeasured(measured.current, fig);
+  }, [viewer, model, ink]);
 
   // Measured before the first paint, then whenever the figure's width changes or the real faces arrive.
   React.useLayoutEffect(() => {
@@ -300,16 +323,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     return () => { live = false; observer.disconnect(); cancelAnimationFrame(frame); if (marks) forced.removeEventListener("change", measure); };
   }, [measure, model]);
 
-  // An animated text figure builds by ink once its art is first shown (1.2): every line present from the first frame, labels and arrows lifting in order.
-  const inked = React.useRef(false);
-  React.useLayoutEffect(() => {
-    const code = figRef.current?.querySelector<HTMLElement>(`.${P}-text-ink`);
-    if (!model.text || !animated || !textModule || !dyn.art || inked.current || !code) return;
-    inked.current = true;
-    const cs = getComputedStyle(code);
-    const ms = (name: string, fallback: number) => Number.parseFloat(cs.getPropertyValue(`--basalt-${name}`)) || fallback;
-    textModule.buildByInk(code, model.steps.filter((st) => "n" in st).length, { slower: ms("duration-slower", 300), step: ms("duration-diagram-step", 250), limit: ms("duration-diagram-limit", 5000) });
-  });
+  // An animated text figure builds by ink (1.2) as a drawn figure's entrance plays: the motion module plays it when it comes into view, settles it as it
+  // settles any entrance, and keeps the first visit's mark (below, its art counts as its lines).
   const trace = focusTrace ?? touchTrace ?? hoverTrace;
   React.useLayoutEffect(() => {
     const fig = figRef.current;
@@ -318,7 +333,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
   // In the frame an animated figure's lines are first drawn it is marked pending, before any paint (DECISIONS 292, 1.5); the module, once loaded,
   // follows the lines each time they are drawn again. What it follows is the drawing itself, not the string: if React wrote the ink again for any reason
   // (a remount, the faces arriving with the same lines), the reveal and the loops are built again on the new elements.
-  const drawn = React.useRef<{ svg: Element | null; controller: MotionController | null } | null>(null);
+  const drawn = React.useRef<{ svg: Element | null; art: Element | null; controller: MotionController | null } | null>(null);
   // The motion code failed to load. A figure hidden when it failed (inside a closed disclosure, an unselected tab) had no lines and no entrance to settle
   // then: the lines it draws when it is shown are settled in the frame they are drawn, so they are never left pending.
   const motionFailed = React.useRef(false);
@@ -326,9 +341,11 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     const fig = figRef.current;
     if (!fig || !animated || !measured.current?.tokens) return;
     const svg = fig.querySelector(`.${P}-ink > .${P}-svg`);
-    if (drawn.current && drawn.current.svg === svg && drawn.current.controller === controller) return;
-    drawn.current = { svg, controller };
-    entranceDrawn(fig, Boolean(measured.current.geo?.lines.length));
+    // A text sequence's art is its lines (1.2): the build waits for it, as an entrance waits for drawn lines.
+    const art = model.text ? fig.querySelector(`.${P}-text[data-art]`) : null;
+    if (drawn.current && drawn.current.svg === svg && drawn.current.art === art && drawn.current.controller === controller) return;
+    drawn.current = { svg, art, controller };
+    entranceDrawn(fig, Boolean(measured.current.geo?.lines.length) || Boolean(art));
     if (motionFailed.current) settleEntrance(fig);
     controller?.redrawn();
   });
@@ -503,7 +520,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
   ) : null;
   // "Clear highlight" (1.5): last in the foot, mounted whenever the figure is on touch and can be traced, aria-disabled until a trace is up.
   const clear = !viewer && (onTouch || touched) && ink ? (
-    <button type="button" className="basalt-button basalt-diagram-clear" data-variant="secondary" data-size="sm" aria-disabled={touchTrace ? undefined : true} onClick={() => { if (touchTrace) setTouchTrace(null); }}>
+    <button type="button" className="basalt-button basalt-diagram-clear" data-variant="secondary" data-size="sm" aria-disabled={touchTrace ? undefined : true} data-disabled={touchTrace ? undefined : ""} onClick={() => { if (touchTrace) setTouchTrace(null); }}>
       <span className="basalt-button-label">Clear highlight</span>
     </button>
   ) : null;

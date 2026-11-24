@@ -28,11 +28,39 @@ export function textArt(m: Model): { html: string; width: number } {
     if (!("n" in s)) continue;
     const a = m.byId.get(s.from)?.i ?? 0, b = m.byId.get(s.to)?.i ?? 0;
     const words = Math.max(len(`${s.n} ${s.label}`), len(s.note ?? ""));
-    if (a === b) { if (a + 1 < nodes.length) need(a, a + 1, words + 8); } else need(a, b, words + 4);
+    // A self-call's words go to the end side, the start side on the last participant: the neighbour there is held far enough off for them.
+    if (a === b) { if (a + 1 < nodes.length) need(a, a + 1, words + 8); else if (a > 0) need(a - 1, a, words + 8); } else need(a, b, words + 4);
   }
   const last = nodes.length - 1;
+  // A frame's header and an else row hold their words inside the frame, with both corners: a frame too narrow for them pushes the columns after it out (an
+  // inner frame by its inset too), and one on the last column widens the art (Neon's B6 of the code review).
+  const frameExtra = new Map<number, number>();
+  {
+    let depth = 0;
+    const stack: Array<{ at: number; a: number; b: number; inset: number; need: number }> = [];
+    const edgeL = (a: number, inset: number) => x[a]! - Math.floor(boxW[a]! / 2) - 1 + inset;
+    const edgeR = (b: number, inset: number) => x[b]! + Math.ceil(boxW[b]! / 2) - inset;
+    steps.forEach((s, at) => {
+      if ("open" in s) { stack.push({ at, a: s.a - 1, b: s.b - 1, inset: depth * 2, need: len(`[${s.open}]`) + 1 + len(` ${s.label} `) + 2 }); depth++; return; }
+      if ("otherwise" in s) { const f = stack[stack.length - 1]; if (f) f.need = Math.max(f.need, len("[else]") + 1 + len(` ${s.otherwise} `) + 2); return; }
+      if ("close" in s) {
+        depth = Math.max(0, depth - 1);
+        const f = stack.pop();
+        if (!f) return;
+        // What an inner frame on the same last column already took is this frame's too; only the rest pushes the columns out again.
+        const have = frameExtra.get(f.at) ?? 0;
+        const short = f.need - (edgeR(f.b, f.inset) - edgeL(f.a, f.inset)) - have;
+        if (short > 0) {
+          if (f.b < last) for (let k = f.b + 1; k < nodes.length; k++) x[k]! += short;
+          frameExtra.set(f.at, have + short);
+        }
+        const total = frameExtra.get(f.at) ?? 0;
+        if (total) for (const p of stack) if (p.b === f.b) frameExtra.set(p.at, Math.max(frameExtra.get(p.at) ?? 0, total));
+      }
+    });
+  }
   const selfWidth = Math.max(0, ...steps.map((s) => ("n" in s && s.from === s.to && (m.byId.get(s.from)?.i ?? 0) === last ? len(`${s.n} ${s.label}`) + 8 : 0)));
-  const W = (x[last] ?? 0) + Math.ceil((boxW[last] ?? 8) / 2) + selfWidth + 2;
+  const W = (x[last] ?? 0) + Math.ceil((boxW[last] ?? 8) / 2) + selfWidth + 2 + Math.max(0, ...frameExtra.values());
   const rows: Row[] = [];
   const row = (): Row => { const r = { ch: Array<string>(W).fill(" "), ink: Array<Ink>(W).fill("") }; rows.push(r); return r; };
   const put = (r: Row, from: number, text: string, ink: Ink) => { Array.from(text).forEach((c, k) => { const i = from + k; if (i >= 0 && i < W) { r.ch[i] = c; r.ink[i] = ink; } }); };
@@ -56,7 +84,7 @@ export function textArt(m: Model): { html: string; width: number } {
   const sides = (r: Row) => { for (const f of open) { put(r, f.l, "│", "frame"); put(r, f.r, "│", "frame"); } };
   const spacer = () => { const r = row(); lifelines(r); sides(r); return r; };
   spacer();
-  for (const s of steps) {
+  for (const [at, s] of steps.entries()) {
     if ("band" in s) {
       const r = row();
       const words = ` ${s.band} `;
@@ -68,7 +96,7 @@ export function textArt(m: Model): { html: string; width: number } {
     if ("open" in s) {
       const a = s.a - 1, b = s.b - 1;
       const inset = open.length * 2;
-      const f = { l: Math.max(0, x[a]! - Math.floor(boxW[a]! / 2) - 1 + inset), r: Math.min(W - 1, x[b]! + Math.ceil(boxW[b]! / 2) + (b === last && steps.some((t) => "n" in t && t.from === t.to) ? selfWidth : 0) - inset) };
+      const f = { l: Math.max(0, x[a]! - Math.floor(boxW[a]! / 2) - 1 + inset), r: Math.min(W - 1, x[b]! + Math.ceil(boxW[b]! / 2) + (b === last && steps.some((t) => "n" in t && t.from === t.to) ? selfWidth : 0) - inset + (frameExtra.get(at) ?? 0)) };
       const r = row();
       lifelines(r); sides(r);
       put(r, f.l, "┌" + "─".repeat(f.r - f.l - 1) + "┐", "frame");
@@ -141,26 +169,4 @@ export function textArt(m: Model): { html: string; width: number } {
     return r.n ? `<span data-n="${r.n}">${out}</span>` : out;
   }).join("\n");
   return { html, width: Math.max(...rows.map((r) => r.ch.join("").trimEnd().length)) };
-}
-
-/**
- * The build by ink (1.2), under motion="animated": before its turn a message's label is secondary and its arrow tertiary; at its turn both lift to their
- * resting ink over duration-slower, messages duration-diagram-step apart inside duration-diagram-limit. No line is hidden and there is no caret. It never
- * plays under reduced motion, in forced colours, under the hold or in print. Returns a function that settles it at once.
- */
-export function buildByInk(code: HTMLElement, steps: number, t: { slower: number; step: number; limit: number }): () => void {
-  if (matchMedia("(prefers-reduced-motion: reduce), (forced-colors: active), print").matches || document.documentElement.getAttribute("data-loops") === "held") return () => {};
-  const gap = steps > 1 ? Math.min(t.step, (t.limit - t.slower) / (steps - 1)) : 0;
-  const animations: Animation[] = [];
-  const cs = getComputedStyle(code);
-  const secondary = cs.getPropertyValue("--basalt-text-secondary").trim(), tertiary = cs.getPropertyValue("--basalt-text-tertiary").trim();
-  code.querySelectorAll<HTMLElement>("[data-n]").forEach((line) => {
-    const n = Number(line.dataset.n);
-    line.querySelectorAll<HTMLElement>('[data-ink="label"], [data-ink="main"], [data-ink="plain"]').forEach((el) => {
-      const rest = getComputedStyle(el).color;
-      const before = el.dataset.ink === "label" ? secondary : tertiary;
-      animations.push(el.animate([{ color: before }, { color: before, offset: 0.001 }, { color: rest }], { duration: t.slower, delay: (n - 1) * gap, easing: "ease-out", fill: "backwards" }));
-    });
-  });
-  return () => { for (const a of animations) a.finish(); };
 }
