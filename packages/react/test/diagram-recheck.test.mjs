@@ -97,3 +97,12 @@ test("the skill writes batch B's figures from the same engine: compose.mjs's mar
     assert.equal(ids(fromSkill), ids(fromEngine), key);
   }
 });
+
+test("a text sequence has no Clear highlight in React, as in the skill: the React figure mounts it only for a figure that is not text", () => {
+  const figure = fs.readFileSync(path.join(pkg, "src", "diagram-figure.tsx"), "utf8");
+  assert.match(figure, /const clear = !viewer && !model\.text && \(onTouch \|\| touched\) && ink \?/);
+  // The skill mounts it only where the figure has an ink layer with lines in it, which a text figure never has.
+  const skill = fs.readFileSync(path.join(root, "tools", "html-skill", "src", "modules", "diagram.js"), "utf8");
+  assert.match(skill, /var want = touched && !viewer && ink && ink\.innerHTML !== '';/);
+  assert.doesNotMatch(html(B.textSequence), /class="basalt-diagram-ink"/, "a text figure's markup has no ink layer");
+});

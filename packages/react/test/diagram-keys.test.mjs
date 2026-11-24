@@ -184,6 +184,17 @@ describe("the trace on touch", () => {
     await page.close();
   });
 
+  test("a text sequence, as art at 1440 and as the transcript at 390, has no Clear highlight: a tap traces nothing in it", async () => {
+    for (const width of [1440, 390]) {
+      const { page } = await touchPage({ width, items: [{ key: "text", type: "sequence", props: (({ type, ...p }) => p)(BX.textSequence) }] });
+      await page.waitForSelector(`#fig-text .${P}-text .${P}-text-ink`);
+      await page.locator(`#fig-text .${P}-text`).tap();
+      await page.waitForTimeout(200);
+      assert.equal(await page.locator(`#fig-text .${P}-clear`).count(), 0, `${width}: no Clear highlight`);
+      await page.close();
+    }
+  });
+
   test("at 390 the stacked schema and sequence, which draw no lines, show no tap hint and no Clear highlight", async () => {
     const { page } = await touchPage({ width: 390 });
     for (const key of ["schema", "sequence"]) {
