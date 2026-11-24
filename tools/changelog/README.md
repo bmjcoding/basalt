@@ -55,7 +55,7 @@ Changed the parent layout item for `FormGrid` to `.basalt-form-grid-frame`, wher
 
 - **The id** is the file's name, set once and never changed or reused: `pr120-1` (the pull request and the entry's number in it), or any
   `a-z0-9-` slug for a change with no pull request. `pr120-1.md` must say `pr: 120`, and an entry that says `pr: 120` is named `pr120-N.md`.
-  `unreleased` and anything starting `v` and a digit are reserved. A backport is its own pull request and its own entry. A pending file whose id a
+  `unreleased` and anything starting `v` and a digit are reserved for releases, and `main` and anything starting `bh-` for the page's own elements (the main landmark, and the ids the HTML skill's scripts make). A backport is its own pull request and its own entry. A pending file whose id a
   shipped release holds stops the build (a candidate's pending files are kept on purpose until its stable version ships). The parts' own
   element ids end `__words`, `__heading` and the like, outside the ids' alphabet, so an entry named `fix-words` never meets one.
 - **The head** is `key: value` lines between two `---`. It is not YAML. An unknown key, a key written twice or a line that is not `key: value`

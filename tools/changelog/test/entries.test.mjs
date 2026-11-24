@@ -86,6 +86,13 @@ test("the head's grammar: --- first, closed, key: value lines, known keys only, 
   assert.match(stops(() => read("---\ntype: improved\npr: 120\n---\nImproved it\n")), /type "improved" is one of security, deprecated, removed, added, changed, fixed/);
 });
 
+test("an id the page itself uses is refused: main (the skip link's landmark) and the HTML skill's bh- ids (recheck 4)", () => {
+  for (const name of ["main", "bh-pop-1", "bh-tooltip", "bh-"]) {
+    assert.equal(stops(() => read(entryText({ type: "fixed" }), `.changes/${name}.md`)), `.changes/${name}.md: the id "${name}" is the page's own ("main", or the "bh-" ids the HTML skill makes)`);
+  }
+  for (const name of ["mainline", "main-menu", "bh", "fix-words", "fix-sources"]) assert.equal(read(entryText({ type: "fixed" }), `.changes/${name}.md`).id, name);
+});
+
 test("the id is the file's name: pr120-1.md says pr: 120; a slug is lowercase; unreleased and v-digit ids are reserved", () => {
   assert.equal(stops(() => read(entryText({ type: "fixed", pr: 121 }), FILE)), `${FILE}: the file is named for pull request 120, so it says "pr: 120", not 121`);
   assert.match(stops(() => read(entryText({ type: "fixed" }), FILE)), /so it says "pr: 120"$/);

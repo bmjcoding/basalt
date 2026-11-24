@@ -22,6 +22,12 @@ const ID = /^[a-z0-9][a-z0-9-]*$/;
 /** Whether an id is reserved for a release's address: "unreleased", and anything that starts with a v and a digit (2.10). */
 export const reservedId = (id) => id === "unreleased" || /^v[0-9]/.test(id);
 
+/**
+ * Whether an id is one the page itself uses: "main", the main landmark a skip link opens, and anything starting "bh-", the ids the HTML skill's
+ * scripts make (a popover's title, a tooltip, a dialog's parts). An entry holding one would share its address with that element.
+ */
+export const pageId = (id) => id === "main" || id.startsWith("bh-");
+
 /** The `key: value` lines between two `---` at the top of a file. Returns the head (with each key's line number) and the body's lines. */
 export function readHead(source, file, keys) {
   const lines = source.replace(/\r\n?/g, "\n").split("\n");
@@ -68,6 +74,7 @@ export function readEntry(source, file, config) {
   if (!file.endsWith(".md")) throw new Error(`${file}: an entry is a .md file`);
   if (!ID.test(id)) throw new Error(`${file}: the id "${id}" is lowercase letters, digits and hyphens`);
   if (reservedId(id)) throw new Error(`${file}: the id "${id}" is reserved for a release's address`);
+  if (pageId(id)) throw new Error(`${file}: the id "${id}" is the page's own ("main", or the "bh-" ids the HTML skill makes)`);
   const { head, at, body } = readHead(source, file, KEYS);
   const line = (key) => `${file}:${at[key]}`;
 
