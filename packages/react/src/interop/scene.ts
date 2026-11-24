@@ -1596,8 +1596,8 @@ function layoutSequenceHeadless(
         fromPort = { x: bx, y: round6(clamp01((yt - bar.box.y) / bar.box.h)), side };
         toPort = { x: bx, y: round6(clamp01((yb - bar.box.y) / bar.box.h)), side };
       } else {
-        fromPort = { x: 0.5, y: round4((yt - lf1.y1) / span1), side };
-        toPort = { x: 0.5, y: round4((yb - lf2.y1) / span2), side };
+        fromPort = { x: 0.5, y: round6(clamp01((yt - lf1.y1) / span1)), side };
+        toPort = { x: 0.5, y: round6(clamp01((yb - lf2.y1) / span2)), side };
       }
     } else {
       const dirRight = lf2.x >= lf1.x;
@@ -1610,13 +1610,13 @@ function layoutSequenceHeadless(
         fromBarId = sb.id;
         fromPort = { x: dirRight ? 1 : 0, y: round6(clamp01((s.y - sb.box.y) / sb.box.h)), side: dirRight ? "right" : "left" };
       } else {
-        fromPort = { x: 0.5, y: round4((s.y - lf1.y1) / span1), side: dirRight ? "right" : "left" };
+        fromPort = { x: 0.5, y: round6(clamp01((s.y - lf1.y1) / span1)), side: dirRight ? "right" : "left" };
       }
       if (rb) {
         toBarId = rb.id;
         toPort = { x: dirRight ? 0 : 1, y: round6(clamp01((s.y - rb.box.y) / rb.box.h)), side: dirRight ? "left" : "right" };
       } else {
-        toPort = { x: 0.5, y: round4((s.y - lf2.y1) / span2), side: dirRight ? "left" : "right" };
+        toPort = { x: 0.5, y: round6(clamp01((s.y - lf2.y1) / span2)), side: dirRight ? "left" : "right" };
       }
     }
     const text = `${s.n}  ${s.label}`;

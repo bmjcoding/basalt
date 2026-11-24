@@ -1132,12 +1132,16 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
   return makeDeterministicZip(entries);
 }
 
-function renderConnectionRows(conns: readonly ConnEntry[], _wIn: number, _hIn: number): string {
+function renderConnectionRows(conns: readonly ConnEntry[], wIn: number, hIn: number): string {
   if (!conns.length) return "";
+  const fmtF = (val: number, dim: number, fallback: number): string => {
+    const f = dim > 0 ? Math.max(0, Math.min(1, val / dim)) : fallback;
+    return Number(f.toFixed(8)).toString();
+  };
   const rows = conns.map((c) => (
     `        <Row T="Connection" IX="${c.ix}">\n` +
-    `          <Cell N="X" V="${f6(c.cx)}" F="Width*${c.fx}"/>\n` +
-    `          <Cell N="Y" V="${f6(c.cy)}" F="Height*${round6(1 - c.fy)}"/>\n` +
+    `          <Cell N="X" V="${f6(c.cx)}" F="Width*${fmtF(c.cx, wIn, c.fx)}"/>\n` +
+    `          <Cell N="Y" V="${f6(c.cy)}" F="Height*${fmtF(c.cy, hIn, 1 - c.fy)}"/>\n` +
     `          <Cell N="DirX" V="0"/>\n` +
     `          <Cell N="DirY" V="0"/>\n` +
     `          <Cell N="Type" V="0"/>\n` +

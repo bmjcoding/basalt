@@ -1,478 +1,40 @@
-// Tests for @srasyndicate/basalt/diagram-interop and basalt-diagram-export CLI (DECISIONS 311, 314).
+// Pure-Node tests for @srasyndicate/basalt/diagram-interop and basalt-diagram-export CLI (DECISIONS 311, 314, 324, 327).
+// Runs with zero browser/Chromium launches (browser comparison and live DOM tests live in diagram-interop-browser.test.mjs).
 // Covers:
-//   - Byte-identical SHA-256 determinism for all 5 CIMIP fixtures across .drawio, .vsdx, .lucid and Lucid JSON
-//   - Official draw.io XSD validation (mxfile-1.0.xsd) across all 5 figures and light/dark/adaptive themes
-//   - Visio .vsdx OPC parts, XML well-formedness, Connects glue, ConFixedCode=2, and zero-drift port snapping
-//   - Lucid Standard Import JSON contract (containers, swimLanes, tables, lineEndpoints, elbowControlPoints, labels)
-//   - Exact port axis-alignment invariant for every first and last segment (fixes the RunTask jog) across all 5 figures x 3 formats
-//   - Live DOM measured Geo entry (exportMeasuredDiagram + readMeasuredExtras) on all 5 CIMIP React figures
-//   - Mark terms policy against packages/react/marks/manifest.json (default omit; embed only manifest-permitted marks)
-//   - CLI end-to-end (single JSON, multi-diagram JSON, HTML script[data-diagram], flags, errors)
-//   - Subpath isolation (outside root index, no "use client", no React/third-party deps)
+//   - Byte-identical SHA-256 determinism across all 5 CIMIP fixtures and all Batch B fixtures (crow's foot,
+//     far keys through corridors, nested groups, sequence frames + activation bars, automatic layout)
+//   - Official draw.io XSD validation (mxfile-1.0.xsd), Visio OPC + Connects + ConFixedCode=2, Lucid Standard Import JSON
+//   - Exact port axis-alignment invariant across every edge in every format (including RunTask negative fixture)
+//   - Marks on architecture cards, data-flow steps, and sequence participants against manifest terms
+//   - `par` sequence frames, `measuredBy` metadata across formats, unplaced auto-layout error
+//   - CLI (--headless) determinism across TZ/LC_ALL, symlink execution, HTML script[data-diagram], Batch B auto-layout
+//   - Subpath isolation (outside root index, no "use client", no React/UI imports, lazy elkjs)
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import zlib from "node:zlib";
 
-import { fixturePage, launch, pkg } from "./support.mjs";
+import {
+  assertValidDrawio,
+  assertValidLucid,
+  assertValidVsdx,
+  CLI,
+  pkg,
+  readForeignZipEntries,
+  readZipEntries,
+  repo,
+  sha256,
+} from "./support-diagram-interop.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const repo = path.resolve(pkg, "..", "..");
 const CIMIP = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cimip-diagrams.json"), "utf8"));
 const CIMIP_KEYS = Object.keys(CIMIP);
-const XSD = path.join(here, "fixtures", "mxfile-1.0.xsd");
-const CLI = path.join(pkg, "bin", "basalt-diagram-export.mjs");
+const CIMIP_B = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "cimip-diagrams-b.json"), "utf8"));
+const LAYOUT_FIXTURES = JSON.parse(fs.readFileSync(path.join(here, "fixtures", "diagram-layout.json"), "utf8")).figures;
 const interop = await import(pathToFileURL(path.join(pkg, "dist", "diagram-interop.js")).href);
-
-const sha256 = (data) => crypto.createHash("sha256").update(data).digest("hex");
-
-function xmllint(xml, schema = null) {
-  const args = ["--noout"];
-  if (schema) args.push("--schema", schema);
-  args.push("-");
-  const res = spawnSync("xmllint", args, { input: xml, encoding: "utf8" });
-  return { ok: res.status === 0, stderr: (res.stderr || "").trim() };
-}
-
-/** Minimal store-mode ZIP parser (verifies local/central headers, CRC-32, and fixed 1980-01-01 timestamps). */
-function readZipEntries(bytes) {
-  const buf = Buffer.from(bytes);
-  // Find EOCD
-  let eocd = -1;
-  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) {
-    if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
-  }
-  assert.ok(eocd >= 0, "ZIP EOCD signature missing");
-  const entryCount = buf.readUInt16LE(eocd + 10);
-  const cdOffset = buf.readUInt32LE(eocd + 16);
-  const entries = new Map();
-  let p = cdOffset;
-  for (let i = 0; i < entryCount; i++) {
-    assert.equal(buf.readUInt32LE(p), 0x02014b50, `central dir sig at entry ${i}`);
-    const method = buf.readUInt16LE(p + 10);
-    const modTime = buf.readUInt16LE(p + 12);
-    const modDate = buf.readUInt16LE(p + 14);
-    const compSize = buf.readUInt32LE(p + 20);
-    const uncompSize = buf.readUInt32LE(p + 24);
-    const nameLen = buf.readUInt16LE(p + 28);
-    const extraLen = buf.readUInt16LE(p + 30);
-    const commentLen = buf.readUInt16LE(p + 32);
-    const localOff = buf.readUInt32LE(p + 42);
-    const name = buf.subarray(p + 46, p + 46 + nameLen).toString("utf8");
-    assert.equal(method, 0, `${name}: expected store method 0`);
-    assert.equal(modTime, 0x0000, `${name}: expected fixed DOS time 00:00:00`);
-    assert.equal(modDate, 0x0021, `${name}: expected fixed DOS date 1980-01-01`);
-    assert.equal(compSize, uncompSize, `${name}: store sizes must match`);
-    assert.equal(buf.readUInt32LE(localOff), 0x04034b50, `${name}: local header sig`);
-    const lNameLen = buf.readUInt16LE(localOff + 26);
-    const lExtraLen = buf.readUInt16LE(localOff + 28);
-    const dataStart = localOff + 30 + lNameLen + lExtraLen;
-    entries.set(name, buf.subarray(dataStart, dataStart + uncompSize));
-    p += 46 + nameLen + extraLen + commentLen;
-  }
-  return entries;
-}
-
-/** Reads any ZIP's entries (stored or deflated, any timestamps): for fixtures written by other tools, such as the RunTask proof. */
-function readForeignZipEntries(bytes) {
-  const buf = Buffer.from(bytes);
-  let eocd = -1;
-  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) {
-    if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
-  }
-  assert.ok(eocd >= 0, "ZIP EOCD signature missing");
-  const entries = new Map();
-  let p = buf.readUInt32LE(eocd + 16);
-  for (let i = 0, n = buf.readUInt16LE(eocd + 10); i < n; i++) {
-    const method = buf.readUInt16LE(p + 10);
-    const compSize = buf.readUInt32LE(p + 20);
-    const nameLen = buf.readUInt16LE(p + 28);
-    const localOff = buf.readUInt32LE(p + 42);
-    const name = buf.subarray(p + 46, p + 46 + nameLen).toString("utf8");
-    const dataStart = localOff + 30 + buf.readUInt16LE(localOff + 26) + buf.readUInt16LE(localOff + 28);
-    const raw = buf.subarray(dataStart, dataStart + compSize);
-    assert.ok(method === 0 || method === 8, `${name}: method ${method}`);
-    entries.set(name, method === 8 ? zlib.inflateRawSync(raw) : raw);
-    p += 46 + nameLen + buf.readUInt16LE(p + 30) + buf.readUInt16LE(p + 32);
-  }
-  return entries;
-}
-
-function expectedEdgeCount(spec) {
-  if (spec.type === "sequence") return spec.steps.filter((s) => !("band" in s)).length;
-  if (spec.type === "schema") {
-    const byName = new Map(spec.tables.map((t) => [t.name, t]));
-    let n = 0;
-    for (const t of spec.tables) {
-      for (const c of t.columns) {
-        if (!c.references) continue;
-        const target = byName.get(c.references.split(".")[0]);
-        if (target && Math.abs(target.col - t.col) <= 1) n++;
-      }
-    }
-    return n;
-  }
-  return spec.edges.length;
-}
-
-function expectedLabelCount(spec) {
-  if (spec.type === "sequence") return spec.steps.filter((s) => !("band" in s)).length;
-  if (spec.type === "schema") return 0;
-  return spec.edges.filter((e) => Boolean(e.label)).length;
-}
-
-/** Verifies every segment in `pts` is orthogonal and first/last segments are axis-aligned with `start` and `end`. */
-function assertAxisAlignedRoute(pts, start, end, tol, label) {
-  assert.ok(pts.length >= 2, `${label}: at least 2 points`);
-  assert.ok(Math.abs(pts[0].x - start.x) <= tol && Math.abs(pts[0].y - start.y) <= tol,
-    `${label}: start (${pts[0].x},${pts[0].y}) != port (${start.x},${start.y}) [tol ${tol}]`);
-  const last = pts[pts.length - 1];
-  assert.ok(Math.abs(last.x - end.x) <= tol && Math.abs(last.y - end.y) <= tol,
-    `${label}: end (${last.x},${last.y}) != port (${end.x},${end.y}) [tol ${tol}]`);
-  for (let i = 1; i < pts.length; i++) {
-    const dx = Math.abs(pts[i].x - pts[i - 1].x);
-    const dy = Math.abs(pts[i].y - pts[i - 1].y);
-    assert.ok(dx <= tol || dy <= tol,
-      `${label}: segment ${i - 1}->${i} (${pts[i - 1].x},${pts[i - 1].y})->(${pts[i].x},${pts[i].y}) is not axis-aligned (dx=${dx}, dy=${dy}, tol=${tol})`);
-  }
-}
-
-/** Parses and validates draw.io XML structure, XSD conformance, glue, labels, and port axis-alignment. */
-function assertValidDrawio(xml, spec, context) {
-  assert.ok(!xml.includes("<!--"), `${context}: no XML comments allowed in draw.io`);
-  const xsd = xmllint(xml, XSD);
-  assert.ok(xsd.ok, `${context}: mxfile-1.0.xsd failed: ${xsd.stderr}`);
-
-  // Parse all mxCell elements and their mxGeometry
-  const cellBlocks = [...xml.matchAll(/<mxCell\b([^>]*?)(?:\/>|>([\s\S]*?)<\/mxCell>)/g)];
-  const vertices = new Map();
-  const edges = [];
-  const edgeLabels = [];
-
-  const attr = (s, name) => s.match(new RegExp(`\\b${name}="([^"]*)"`))?.[1];
-  const styleVal = (style, key) => style.match(new RegExp(`(?:^|;)${key}=([^;]+)`))?.[1];
-
-  for (const [, attrs, body = ""] of cellBlocks) {
-    const id = attr(attrs, "id");
-    const parent = attr(attrs, "parent");
-    const style = attr(attrs, "style") ?? "";
-    const isVertex = attr(attrs, "vertex") === "1";
-    const isEdge = attr(attrs, "edge") === "1";
-    if (isVertex) {
-      const geoAttrs = body.match(/<mxGeometry\b([^>]*)/)?.[1] ?? "";
-      const isEdgeLabel = style.includes("edgeLabel");
-      if (isEdgeLabel) {
-        edgeLabels.push({ id, parent, value: attr(attrs, "value") ?? "" });
-      } else {
-        vertices.set(id, {
-          id,
-          parent,
-          x: Number(attr(geoAttrs, "x") ?? 0),
-          y: Number(attr(geoAttrs, "y") ?? 0),
-          w: Number(attr(geoAttrs, "width") ?? 0),
-          h: Number(attr(geoAttrs, "height") ?? 0),
-          style,
-        });
-      }
-    } else if (isEdge) {
-      const pts = [...body.matchAll(/<mxPoint\b([^>]*)\/>/g)]
-        .filter((m) => !attr(m[1], "as"))
-        .map((m) => ({ x: Number(attr(m[1], "x")), y: Number(attr(m[1], "y")) }));
-      edges.push({
-        id,
-        parent,
-        source: attr(attrs, "source"),
-        target: attr(attrs, "target"),
-        style,
-        innerPts: pts,
-      });
-    }
-  }
-
-  // Compute world box of any vertex by walking parent chain
-  const worldBox = (id) => {
-    const v = vertices.get(id);
-    assert.ok(v, `${context}: missing vertex ${id}`);
-    let x = v.x, y = v.y, cur = v.parent;
-    while (cur && cur !== "1" && cur !== "0") {
-      const p = vertices.get(cur);
-      assert.ok(p, `${context}: missing parent container ${cur}`);
-      x += p.x;
-      y += p.y;
-      cur = p.parent;
-    }
-    return { x, y, w: v.w, h: v.h };
-  };
-
-  assert.equal(edges.length, expectedEdgeCount(spec), `${context}: exact single connector count`);
-
-  const labelParents = new Set(edgeLabels.map((l) => l.parent));
-  const expectedLabels = expectedLabelCount(spec);
-  assert.ok(labelParents.size >= expectedLabels, `${context}: ${labelParents.size} labelled edges < ${expectedLabels} expected`);
-  for (const l of edgeLabels) {
-    assert.ok(edges.some((e) => e.id === l.parent), `${context}: edgeLabel ${l.id} parent ${l.parent} must be an edge`);
-  }
-
-  for (const e of edges) {
-    assert.ok(e.source && e.target, `${context}: edge ${e.id} must be glued to source and target`);
-    const sb = worldBox(e.source);
-    const tb = worldBox(e.target);
-    const ex = Number(styleVal(e.style, "exitX"));
-    const ey = Number(styleVal(e.style, "exitY"));
-    const nx = Number(styleVal(e.style, "entryX"));
-    const ny = Number(styleVal(e.style, "entryY"));
-    assert.ok(Number.isFinite(ex) && Number.isFinite(ey) && Number.isFinite(nx) && Number.isFinite(ny),
-      `${context}: edge ${e.id} missing explicit fractional port coordinates`);
-    assert.equal(styleVal(e.style, "exitPerimeter"), "0", `${context}: edge ${e.id} exitPerimeter=0`);
-    assert.equal(styleVal(e.style, "entryPerimeter"), "0", `${context}: edge ${e.id} entryPerimeter=0`);
-    const start = { x: sb.x + ex * sb.w, y: sb.y + ey * sb.h };
-    const end = { x: tb.x + nx * tb.w, y: tb.y + ny * tb.h };
-    assertAxisAlignedRoute([start, ...e.innerPts, end], start, end, 0.02, `${context} drawio ${e.id}`);
-  }
-}
-
-/** Parses and validates Visio .vsdx OPC archive, XML well-formedness, glue, ConFixedCode=2, and Visio-inch port alignment. */
-function assertValidVsdx(bytes, spec, context) {
-  const entries = bytes instanceof Map ? bytes : readZipEntries(bytes);
-  const required = [
-    "[Content_Types].xml",
-    "_rels/.rels",
-    "visio/document.xml",
-    "visio/_rels/document.xml.rels",
-    "visio/pages/pages.xml",
-    "visio/pages/_rels/pages.xml.rels",
-    "visio/pages/page1.xml",
-  ];
-  for (const name of required) {
-    assert.ok(entries.has(name), `${context}: missing OPC part ${name}`);
-    const check = xmllint(entries.get(name).toString("utf8"));
-    assert.ok(check.ok, `${context}: invalid XML in ${name}: ${check.stderr}`);
-  }
-
-  const page1 = entries.get("visio/pages/page1.xml").toString("utf8");
-  // Extract top-level <Shape> blocks cleanly even when a Type="Group" contains nested <Shape> children.
-  const topShapes = [];
-  const tagRe = /<Shape\b([^>]*)>|<\/Shape>/g;
-  let depth = 0, startIdx = -1, openEnd = -1, openAttrs = "";
-  for (const m of page1.matchAll(tagRe)) {
-    if (m[0].startsWith("</Shape")) {
-      depth--;
-      if (depth === 0 && startIdx >= 0) {
-        topShapes.push({ attrs: openAttrs, body: page1.slice(openEnd, m.index) });
-        startIdx = -1;
-      }
-    } else {
-      if (depth === 0) {
-        startIdx = m.index;
-        openEnd = m.index + m[0].length;
-        openAttrs = m[1] ?? "";
-      }
-      depth++;
-    }
-  }
-  const byId = new Map();
-  const connectors = [];
-
-  const attrVal = (s, name) => s.match(new RegExp(`\\b${name}="([^"]+)"`))?.[1];
-  const cellVal = (body, name) => body.match(new RegExp(`<Cell N="${name}" V="([^"]+)"`))?.[1];
-  const cellFormula = (body, name) => body.match(new RegExp(`<Cell N="${name}"[^>]*F="([^"]+)"`))?.[1];
-
-  for (const { attrs, body } of topShapes) {
-    const id = attrVal(attrs, "ID");
-    const nameU = attrVal(attrs, "NameU") ?? "";
-    // Only inspect cells/connections belonging directly to the top-level shape (before any nested <Shapes>)
-    const ownBody = body.split("<Shapes>")[0] ?? body;
-    const objType = cellVal(ownBody, "ObjType");
-    const conns = [...ownBody.matchAll(/<Row T="Connection" IX="(\d+)">[\s\S]*?<Cell N="X" V="([^"]+)"(?: F="([^"]+)")?\/>[\s\S]*?<Cell N="Y" V="([^"]+)"(?: F="([^"]+)")?\/>/g)]
-      .map((m) => ({ ix: Number(m[1]), x: Number(m[2]), fx: m[3], y: Number(m[4]), fy: m[5] }));
-    const rec = {
-      id,
-      nameU,
-      objType,
-      pinX: Number(cellVal(ownBody, "PinX")),
-      pinY: Number(cellVal(ownBody, "PinY")),
-      w: Number(cellVal(ownBody, "Width")),
-      h: Number(cellVal(ownBody, "Height")),
-      locPinX: Number(cellVal(ownBody, "LocPinX")),
-      locPinY: Number(cellVal(ownBody, "LocPinY")),
-      conns,
-      body: ownBody,
-    };
-    // Verify every Connection row's F formula (Width*fx, Height*fy) agrees with its V value within 2e-6 in.
-    for (const c of conns) {
-      const mFx = c.fx?.match(/^Width\*([\d.]+)$/);
-      const mFy = c.fy?.match(/^Height\*([\d.]+)$/);
-      if (mFx) assert.ok(Math.abs(rec.w * Number(mFx[1]) - c.x) <= 2e-6, `${context} ${nameU} Conn ${c.ix} X formula drift`);
-      if (mFy) assert.ok(Math.abs(rec.h * Number(mFy[1]) - c.y) <= 2e-6, `${context} ${nameU} Conn ${c.ix} Y formula drift`);
-    }
-    byId.set(id, rec);
-    if (objType === "2") connectors.push(rec);
-  }
-
-  const connects = [...page1.matchAll(/<Connect FromSheet="(\d+)" FromCell="([^"]+)" FromPart="(\d+)" ToSheet="(\d+)" ToCell="([^"]+)" ToPart="(\d+)"\/>/g)]
-    .map((m) => ({ fromSheet: m[1], fromCell: m[2], fromPart: Number(m[3]), toSheet: m[4], toCell: m[5], toPart: Number(m[6]) }));
-
-  assert.equal(connectors.length, expectedEdgeCount(spec), `${context}: exact single 1-D connector count`);
-  assert.equal(connects.length, connectors.length * 2, `${context}: 2 Connect records per connector`);
-
-  let labelledCount = 0;
-  for (const c of connectors) {
-    assert.equal(cellVal(c.body, "ShapeRouteStyle"), "1", `${context} ${c.nameU}: ShapeRouteStyle=1`);
-    assert.equal(cellVal(c.body, "ConFixedCode"), "2", `${context} ${c.nameU}: ConFixedCode=2`);
-    if (c.body.includes("<Text>")) labelledCount++;
-
-    const beginConn = connects.find((k) => k.fromSheet === c.id && k.fromPart === 9);
-    const endConn = connects.find((k) => k.fromSheet === c.id && k.fromPart === 12);
-    assert.ok(beginConn && endConn, `${context} ${c.nameU}: missing Begin/End Connect elements`);
-    assert.match(cellFormula(c.body, "BeginX") ?? "", new RegExp(`Sheet\\.${beginConn.toSheet}!Connections\\.X${beginConn.toPart - 99}\\b`));
-    assert.match(cellFormula(c.body, "EndX") ?? "", new RegExp(`Sheet\\.${endConn.toSheet}!Connections\\.X${endConn.toPart - 99}\\b`));
-
-    const fromShape = byId.get(beginConn.toSheet);
-    const toShape = byId.get(endConn.toSheet);
-    assert.ok(fromShape && toShape, `${context} ${c.nameU}: glued shapes exist`);
-    const fc = fromShape.conns.find((r) => r.ix === beginConn.toPart - 100);
-    const tc = toShape.conns.find((r) => r.ix === endConn.toPart - 100);
-    assert.ok(fc && tc, `${context} ${c.nameU}: Connection rows exist for ToPart`);
-
-    const startPort = {
-      x: fromShape.pinX - fromShape.locPinX + fc.x,
-      y: fromShape.pinY - fromShape.locPinY + fc.y,
-    };
-    const endPort = {
-      x: toShape.pinX - toShape.locPinX + tc.x,
-      y: toShape.pinY - toShape.locPinY + tc.y,
-    };
-    const bx = Number(cellVal(c.body, "BeginX"));
-    const by = Number(cellVal(c.body, "BeginY"));
-    const ex = Number(cellVal(c.body, "EndX"));
-    const ey = Number(cellVal(c.body, "EndY"));
-    assert.ok(Math.abs(bx - startPort.x) <= 2e-6 && Math.abs(by - startPort.y) <= 2e-6,
-      `${context} ${c.nameU}: Begin (${bx},${by}) != Connection (${startPort.x},${startPort.y})`);
-    assert.ok(Math.abs(ex - endPort.x) <= 2e-6 && Math.abs(ey - endPort.y) <= 2e-6,
-      `${context} ${c.nameU}: End (${ex},${ey}) != Connection (${endPort.x},${endPort.y})`);
-
-    const geomRows = [...c.body.matchAll(/<Row T="(MoveTo|LineTo)" IX="\d+"><Cell N="X" V="([^"]+)"\/><Cell N="Y" V="([^"]+)"\/><\/Row>/g)]
-      .map((m) => ({ x: bx + Number(m[2]), y: by + Number(m[3]) }));
-    assertAxisAlignedRoute(geomRows, startPort, endPort, 2e-5, `${context} vsdx ${c.nameU}`);
-  }
-  assert.equal(labelledCount, expectedLabelCount(spec), `${context}: all labelled edges have connector <Text>`);
-
-  // Verify architecture groups are real Visio Containers (User.msvStructureType="Container" + Relationships DEPENDSON).
-  if (spec.type === "architecture" && spec.groups?.length) {
-    for (const g of spec.groups) {
-      const gShape = [...byId.values()].find((s) => s.nameU === `Group_${g.id}`);
-      assert.ok(gShape, `${context}: Group_${g.id} shape present`);
-      assert.match(gShape.body, /<Row N="msvStructureType"><Cell N="Value" V="Container" U="STR"\/>/, `${context}: Group_${g.id} has User.msvStructureType=Container`);
-      const members = spec.nodes.filter((n) => n.group === g.id);
-      for (const m of members) {
-        const mShape = [...byId.values()].find((s) => s.nameU === `Node_${m.id}`);
-        assert.ok(mShape, `${context}: member Node_${m.id} present`);
-        assert.match(gShape.body, new RegExp(`DEPENDSON\\(1,(?:Sheet\\.\\d+!SheetRef\\(\\),)*Sheet\\.${mShape.id}!SheetRef\\(\\)[,)]`), `${context}: container lists member ${m.id}`);
-        assert.match(mShape.body, new RegExp(`DEPENDSON\\(4,Sheet\\.${gShape.id}!SheetRef\\(\\)\\)`), `${context}: member ${m.id} points to container ${g.id}`);
-      }
-    }
-  }
-}
-
-/** Validates Lucid Standard Import ZIP + document.json contract and port axis-alignment. */
-function assertValidLucid(bytes, spec, context) {
-  const entries = readZipEntries(bytes);
-  assert.ok(entries.has("document.json"), `${context}: .lucid must contain document.json at root`);
-  const doc = JSON.parse(entries.get("document.json").toString("utf8"));
-  assert.equal(doc.version, 1, `${context}: version === 1`);
-  assert.equal(doc.documentSettings?.units, "px", `${context}: units === px`);
-  assert.equal(doc.pages.length, 1, `${context}: 1 page`);
-  const page = doc.pages[0];
-  assert.ok(page.settings.size.w > 0 && page.settings.size.h > 0, `${context}: positive canvas size`);
-
-  const shapeById = new Map(page.shapes.map((s) => [s.id, s]));
-  const lineById = new Map(page.lines.map((l) => [l.id, l]));
-
-  if (spec.type === "architecture" && spec.groups?.length) {
-    const containers = page.shapes.filter((s) => s.type === "roundedRectangleContainer");
-    assert.equal(containers.length, spec.groups.length, `${context}: group container count`);
-    for (const c of containers) {
-      assert.equal(c.assistedLayout, false, `${context}: assistedLayout must be false`);
-      assert.equal(c.magnetize, true, `${context}: magnetize must be true`);
-    }
-  }
-  if (spec.type === "data-flow") {
-    const sw = page.shapes.find((s) => s.type === "swimLanes");
-    assert.ok(sw, `${context}: data-flow emits swimLanes`);
-    assert.equal(sw.vertical, false, `${context}: horizontal swimLanes`);
-    assert.equal(sw.lanes.length, spec.lanes.length, `${context}: lane count`);
-    const sum = sw.lanes.reduce((a, l) => a + l.width, 0);
-    assert.ok(Math.abs(sum - sw.boundingBox.h) <= 0.1, `${context}: lane widths (${sum}) sum to boundingBox.h (${sw.boundingBox.h})`);
-  }
-  if (spec.type === "schema") {
-    const tables = page.shapes.filter((s) => s.type === "table");
-    assert.equal(tables.length, spec.tables.length, `${context}: native table count`);
-    for (const t of tables) {
-      assert.equal(t.verticalBorder, false, `${context}: verticalBorder false`);
-      const rowSum = (t.userSpecifiedRows ?? []).reduce((a, r) => a + r.size, 0);
-      assert.ok(Math.abs(rowSum - t.boundingBox.h) <= 0.05, `${context} ${t.id}: userSpecifiedRows sum (${rowSum}) != boundingBox.h (${t.boundingBox.h})`);
-    }
-  }
-  if (spec.type === "flowchart") {
-    assert.ok(page.shapes.some((s) => s.type === "decision"), `${context}: flowchart decision shape`);
-    assert.ok(page.shapes.some((s) => s.type === "terminator"), `${context}: flowchart terminator shape`);
-  }
-
-  const edgeLines = page.lines.filter((l) => l.id.startsWith("edge_"));
-  assert.equal(edgeLines.length, expectedEdgeCount(spec), `${context}: exact single connector count`);
-
-  const endpointPt = (ep) => {
-    if (ep.type === "shapeEndpoint") {
-      const s = shapeById.get(ep.shapeId);
-      assert.ok(s, `${context}: endpoint shapeId ${ep.shapeId} exists`);
-      return {
-        x: s.boundingBox.x + ep.position.x * s.boundingBox.w,
-        y: s.boundingBox.y + ep.position.y * s.boundingBox.h,
-      };
-    }
-    if (ep.type === "lineEndpoint") {
-      const targetLine = lineById.get(ep.lineId);
-      assert.ok(targetLine, `${context}: endpoint lineId ${ep.lineId} exists`);
-      const p1 = endpointPt(targetLine.endpoint1);
-      const p2 = endpointPt(targetLine.endpoint2);
-      return { x: p1.x + ep.position * (p2.x - p1.x), y: p1.y + ep.position * (p2.y - p1.y) };
-    }
-    return ep.position;
-  };
-
-  let labelled = 0;
-  for (const line of edgeLines) {
-    assert.ok(line.endpoint1.type === "shapeEndpoint" || line.endpoint1.type === "lineEndpoint", `${context} ${line.id}: endpoint1 glued`);
-    assert.ok(line.endpoint2.type === "shapeEndpoint" || line.endpoint2.type === "lineEndpoint", `${context} ${line.id}: endpoint2 glued`);
-    if (spec.type === "schema") {
-      assert.equal(line.endpoint1.style, "closedCircle", `${context} ${line.id}: FK dot`);
-      // Verify every FK endpoint lands at the vertical center of one of its table's Lucid rows (within 0.5px).
-      for (const ep of [line.endpoint1, line.endpoint2]) {
-        const tbl = shapeById.get(ep.shapeId);
-        const yLocal = ep.position.y * tbl.boundingBox.h;
-        let acc = 0;
-        let minCenterDiff = Infinity;
-        for (const r of tbl.userSpecifiedRows ?? []) {
-          const center = acc + r.size / 2;
-          minCenterDiff = Math.min(minCenterDiff, Math.abs(yLocal - center));
-          acc += r.size;
-        }
-        assert.ok(minCenterDiff <= 0.51, `${context} ${line.id} on ${ep.shapeId}: FK y=${yLocal.toFixed(2)} off nearest Lucid row center by ${minCenterDiff.toFixed(2)}px`);
-      }
-    }
-    if (line.text?.length) labelled++;
-    const start = endpointPt(line.endpoint1);
-    const end = endpointPt(line.endpoint2);
-    const pts = [start, ...(line.elbowControlPoints ?? []), end];
-    assertAxisAlignedRoute(pts, start, end, 0.02, `${context} lucid ${line.id}`);
-  }
-  assert.equal(labelled, expectedLabelCount(spec), `${context}: all labelled edges carry Line.text`);
-}
 
 describe("all five CIMIP fixtures: determinism, schemas, glue and exact port axis-alignment", () => {
   for (const key of CIMIP_KEYS) {
@@ -539,7 +101,6 @@ describe("all five CIMIP fixtures: determinism, schemas, glue and exact port axi
   }
 
   test("architecture RunTask (svc -> ecs) in .vsdx glues Begin/End to exact Connection rows and rejects proof-style 0.5px drift", () => {
-    // RunTask's Begin and End against the Connection rows they are glued to, worked out from page1.xml alone (value and, where written, formula).
     const runTaskGlue = (page1) => {
       const svc = page1.match(/<Shape ID="(\d+)" NameU="Node_svc"[^>]*>([\s\S]*?)<\/Shape>/);
       const ecs = page1.match(/<Shape ID="(\d+)" NameU="Node_ecs"[^>]*>([\s\S]*?)<\/Shape>/);
@@ -573,8 +134,6 @@ describe("all five CIMIP fixtures: determinism, schemas, glue and exact port axi
     assert.equal(rows[1][2], "0.000000", "first bend stays strictly on X === 0");
     assert.equal(rows[1][3], rows[2][3], "final leg stays strictly horizontal into ECS");
 
-    // Negative fixture: the proof .vsdx that jogged in Lucid (DECISIONS 314). Its geometry was already an L-bend; its BeginX sat 0.5 px
-    // (0.0052 in) off the cimip service's Connection row, which is what Lucid re-glued and drew as the jog. It must fail.
     const proof = fs.readFileSync(path.join(here, "fixtures", "runtask-jog-proof.vsdx"));
     const proofEntries = readForeignZipEntries(proof);
     const proofGlue = runTaskGlue(proofEntries.get("visio/pages/page1.xml").toString("utf8"));
@@ -583,151 +142,166 @@ describe("all five CIMIP fixtures: determinism, schemas, glue and exact port axi
   });
 });
 
-describe("live DOM measured Geo entry (exportMeasuredDiagram)", () => {
-  test("exports all five CIMIP figures from live Chromium-measured Geo with exact port alignment across all formats", async () => {
-    const HOST = `
-      import data from "./test/fixtures/cimip-diagrams.json";
-      import { buildModel, figureTree, measureFigure, syncAttributes } from "./dist/diagram-core.js";
-      import { readMeasuredExtras } from "./dist/diagram-interop.js";
-      const C = { architecture: B.ArchitectureDiagram, flowchart: B.FlowchartDiagram, "data-flow": B.DataFlowDiagram, sequence: B.SequenceDiagram, schema: B.SchemaDiagram };
-      function Host() {
-        return <main style={{ width: 1104, margin: "0 auto", display: "grid", gap: 64 }}>
-          {Object.entries(data).map(([key, d]) => { const X = C[d.type]; const { type, ...props } = d; return <X key={key} id={"fig-" + key} {...props} />; })}
-        </main>;
-      }
-      createRoot(document.getElementById("root")).render(<Host />);
-      window.__measureAll = () => {
-        const out = {};
-        for (const [key, spec] of Object.entries(data)) {
-          const fig = document.getElementById("fig-" + key);
-          const model = buildModel(spec, { checks: false });
-          const base = (fig.getAttribute("aria-labelledby") || "dg").replace(/-title$/, "");
-          const opts = { prefix: "basalt-diagram", base, hasSource: Boolean(spec.source), hiddenClass: "basalt-visually-hidden" };
-          const res = measureFigure(fig, model, "basalt-diagram", base, { layout: "drawn" }, (d) => syncAttributes(fig, figureTree(model, d, opts)));
-          out[key] = { geo: res.geo, extras: readMeasuredExtras(fig, "basalt-diagram") };
-        }
-        return out;
-      };
-    `;
-    const font = (file) => fs.readFileSync(path.join(pkg, "dist", "fonts", file)).toString("base64");
-    const fontCss = `@font-face{font-family:"Geist";src:url(data:font/woff2;base64,${font("Geist-Variable.woff2")}) format("woff2");font-weight:100 900}@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${font("GeistMono-Variable.woff2")}) format("woff2");font-weight:100 900} body{margin:0;background:var(--basalt-surface-page)}`;
-
-    const browser = await launch();
-    try {
-      const { page, errors } = await fixturePage(browser, HOST, { theme: "light", viewport: { width: 1280, height: 1200 }, standards: true });
-      await page.addStyleTag({ content: fontCss });
-      await page.evaluate(() => document.fonts.ready);
-      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(r)))));
-      const measured = await page.evaluate(() => window.__measureAll());
-      assert.deepEqual(errors, []);
-      for (const key of CIMIP_KEYS) {
-        const { geo, extras } = measured[key];
-        assert.ok(geo && geo.lines.length > 0, `${key}: live Geo measured`);
-        const drawio = interop.exportMeasuredDiagram(CIMIP[key], geo, "drawio", { extras });
-        const vsdx = interop.exportMeasuredDiagram(CIMIP[key], geo, "vsdx", { extras });
-        const lucid = interop.exportMeasuredDiagram(CIMIP[key], geo, "lucid", { extras });
-        assertValidDrawio(drawio, CIMIP[key], `measured/${key}`);
-        assertValidVsdx(vsdx, CIMIP[key], `measured/${key}`);
-        assertValidLucid(lucid, CIMIP[key], `measured/${key}`);
-      }
-
-      // Comparison: headless vs live at the same drawing width (records exact box & route deltas without asserting 0.5px yet; B2 lands after Batch B).
-      const comparison = {};
-      for (const key of CIMIP_KEYS) {
-        const { geo, extras } = measured[key];
-        const liveDoc = interop.exportMeasuredDiagram(CIMIP[key], geo, "lucid-json", { extras });
-        const headDoc = interop.diagramToLucidJson(CIMIP[key], { width: geo.w });
-        const L = liveDoc.pages[0], H = headDoc.pages[0];
-        assert.deepEqual(L.shapes.map((s) => s.id), H.shapes.map((s) => s.id), `${key}: live vs headless shape ids match`);
-        assert.deepEqual(L.lines.map((l) => l.id), H.lines.map((l) => l.id), `${key}: live vs headless line ids match`);
-
-        let maxBoxDelta = 0, shapesOverHalfPx = 0;
-        const boxDeltas = {};
-        for (const s of L.shapes) {
-          const h = H.shapes.find((x) => x.id === s.id);
-          const dx = Math.abs(s.boundingBox.x - h.boundingBox.x);
-          const dy = Math.abs(s.boundingBox.y - h.boundingBox.y);
-          const dw = Math.abs(s.boundingBox.w - h.boundingBox.w);
-          const dh = Math.abs(s.boundingBox.h - h.boundingBox.h);
-          const m = Math.max(dx, dy, dw, dh);
-          if (m > 0.5) shapesOverHalfPx++;
-          if (m > maxBoxDelta) maxBoxDelta = m;
-          boxDeltas[s.id] = { dx: +dx.toFixed(2), dy: +dy.toFixed(2), dw: +dw.toFixed(2), dh: +dh.toFixed(2) };
-        }
-        let maxRouteDelta = 0, routesOverHalfPx = 0;
-        const routeDeltas = {};
-        for (const l of L.lines.filter((x) => x.id.startsWith("edge_"))) {
-          const h = H.lines.find((x) => x.id === l.id);
-          const lp = l.elbowControlPoints ?? [], hp = h.elbowControlPoints ?? [];
-          let m = lp.length === hp.length ? 0 : Infinity;
-          if (lp.length === hp.length) {
-            for (let k = 0; k < lp.length; k++) {
-              m = Math.max(m, Math.abs(lp[k].x - hp[k].x), Math.abs(lp[k].y - hp[k].y));
-            }
-          }
-          if (m > 0.5) routesOverHalfPx++;
-          if (Number.isFinite(m) && m > maxRouteDelta) maxRouteDelta = m;
-          routeDeltas[l.id] = Number.isFinite(m) ? +m.toFixed(2) : "point-count-mismatch";
-        }
-        comparison[key] = {
-          liveW: geo.w, liveH: geo.h,
-          headlessW: H.settings.size.w - 64, headlessH: H.settings.size.h - 64,
-          shapesOverHalfPx, maxBoxDelta: +maxBoxDelta.toFixed(2),
-          routesOverHalfPx, maxRouteDelta: +maxRouteDelta.toFixed(2),
-          boxDeltas, routeDeltas,
-        };
-      }
-      if (process.env.PRINT_INTEROP_COMPARISON) {
-        process.stdout.write(`HEADLESS_VS_LIVE=${JSON.stringify(comparison)}\n`);
-      }
-
-      // Polish 2: measured lane rects keyed as lane-0..lane-5 (readMeasuredExtras' format) must reach sceneFromMeasured.
-      const df = measured.dataFlow;
-      assert.equal(df.extras.lanes?.length, CIMIP.dataFlow.lanes.length);
-      const customLanes = df.extras.lanes.map((l, idx) => ({
-        ...l,
-        rect: idx === 0 ? { l: 0, t: 0, r: df.geo.w, b: 140 } : { l: 0, t: 140 + idx * 90, r: df.geo.w, b: 200 + idx * 90 },
-      }));
-      const docWithCustomLanes = interop.exportMeasuredDiagram(CIMIP.dataFlow, df.geo, "lucid-json", { extras: { ...df.extras, lanes: customLanes } });
-      const swCustom = docWithCustomLanes.pages[0].shapes.find((s) => s.type === "swimLanes");
-      const docDefaultLanes = interop.exportMeasuredDiagram(CIMIP.dataFlow, df.geo, "lucid-json", { extras: df.extras });
-      const swDefault = docDefaultLanes.pages[0].shapes.find((s) => s.type === "swimLanes");
-      assert.notEqual(swCustom.lanes[0].width, swDefault.lanes[0].width, "measured lane-0..N rects must change exported swimlane geometry");
-      assert.equal(swCustom.lanes[0].width, 185, "lane 0 bottom hits midpoint between lane 0 bottom (140) and lane 1 top (230) = 185");
-
-      // Polish 7: dist/diagram-interop.js runs directly in a browser without any `process` global defined.
-      const rawPage = await browser.newPage();
-      const interopSrc = fs.readFileSync(path.join(pkg, "dist", "diagram-interop.js"), "utf8");
-      await rawPage.route("https://interop-browser-check.local/**", async (route) => {
-        if (route.request().url().endsWith("/diagram-interop.js")) {
-          await route.fulfill({ status: 200, contentType: "application/javascript; charset=utf-8", body: interopSrc });
-        } else {
-          await route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: "<!doctype html><html><body></body></html>" });
-        }
-      });
-      await rawPage.goto("https://interop-browser-check.local/index.html");
-      const browserOut = await rawPage.evaluate(async (spec) => {
-        const mod = await import("https://interop-browser-check.local/diagram-interop.js");
-        return {
-          hasProcess: typeof globalThis.process !== "undefined",
-          drawioOk: mod.diagramToDrawio(spec).includes("<mxfile"),
-          vsdxLen: mod.diagramToVsdx(spec).byteLength,
-          lucidLen: mod.diagramToLucid(spec).byteLength,
-        };
-      }, CIMIP.architecture);
-      assert.equal(browserOut.hasProcess, false, "no process global in native browser");
-      assert.equal(browserOut.drawioOk, true, "diagramToDrawio works in native browser ESM");
-      assert.ok(browserOut.vsdxLen > 0 && browserOut.lucidLen > 0, "vsdx and lucid work in native browser ESM");
-      await rawPage.close();
-
-      await page.close();
-    } finally {
-      await browser.close();
+describe("Batch B parts in all three formats (DECISIONS 324, 327)", () => {
+  test("nested groups + two-line edge labels (cimip-diagrams-b architecture)", () => {
+    const spec = CIMIP_B.architecture;
+    for (const theme of ["light", "dark", "adaptive"]) {
+      const xml = interop.diagramToDrawio(spec, { theme });
+      assertValidDrawio(xml, spec, `batch-b-arch/${theme}`);
+      assert.match(xml, /id="group-data"[^>]*parent="group-aws"/, "draw.io nested group parented in outer group");
+      assert.match(xml, /SQL · NOTIFY&lt;br\/&gt;one transaction/, "draw.io two-line edge label");
     }
+    for (const theme of ["light", "dark"]) {
+      assertValidVsdx(interop.diagramToVsdx(spec, { theme }), spec, `batch-b-arch/${theme}`);
+      const lucid = interop.diagramToLucid(spec, { theme });
+      assertValidLucid(lucid, spec, `batch-b-arch/${theme}`);
+      const doc = JSON.parse(readZipEntries(lucid).get("document.json").toString("utf8"));
+      assert.ok(doc.pages[0].lines.some((l) => l.text?.[0]?.text.includes("<br>")), "Lucid two-line edge label");
+    }
+  });
+
+  test("sequence frames (opt, nested loop, alt with else divider) + activation bars glued to messages (cimip-diagrams-b sequence)", () => {
+    const spec = CIMIP_B.sequence;
+    for (const theme of ["light", "dark", "adaptive"]) {
+      const xml = interop.diagramToDrawio(spec, { theme });
+      assertValidDrawio(xml, spec, `batch-b-seq/${theme}`);
+      // Nested loop frame (f1) is parented inside outer opt frame (f0)
+      assert.match(xml, /id="frame-f1"[^>]*parent="frame-f0"/, "nested loop frame parented inside opt frame");
+      assert.match(xml, /id="frame-tab-f0" value="opt"/);
+      assert.match(xml, /id="frame-tab-f1" value="loop"/);
+      assert.match(xml, /id="frame-tab-f2" value="alt"/);
+      assert.match(xml, /id="frame-div-f2-0"/);
+      assert.match(xml, /Rejected or timed out/);
+    }
+    for (const theme of ["light", "dark"]) {
+      assertValidVsdx(interop.diagramToVsdx(spec, { theme }), spec, `batch-b-seq/${theme}`);
+      const lucid = interop.diagramToLucid(spec, { theme });
+      assertValidLucid(lucid, spec, `batch-b-seq/${theme}`);
+      const doc = JSON.parse(readZipEntries(lucid).get("document.json").toString("utf8"));
+      const loopFrame = doc.pages[0].shapes.find((s) => s.id === "frame_f1");
+      assert.ok(loopFrame?.customData?.some((d) => d.key === "basalt_parent_frame" && d.value === "f0"), "Lucid nested frame parent metadata");
+    }
+  });
+
+  test("crow's-foot cardinality + far keys through top and interior corridors (cimip-diagrams-b schema)", () => {
+    const spec = CIMIP_B.schema;
+    // All 11 foreign keys in cimip-diagrams-b schema are drawn (including the 2 far keys: approvals -> incidents and approvals -> users)
+    const scene = interop.measureDiagramHeadless(spec);
+    assert.equal(scene.edges.length, 11, "all 11 foreign keys including both far keys are routed");
+    const farIncident = scene.edges.find((e) => e.from === "approvals" && e.to === "incidents");
+    const farUsers = scene.edges.find((e) => e.from === "approvals" && e.to === "users");
+    assert.ok(farIncident && farIncident.pts.length === 6, "approvals -> incidents routed as 6-point corridor polyline");
+    assert.ok(farUsers && farUsers.pts.length === 6, "approvals -> users routed as 6-point corridor polyline");
+    assert.deepEqual(farIncident.card, { from: "zero-or-many", to: "one" });
+    assert.deepEqual(farUsers.card, { from: "zero-or-many", to: "zero-or-one" });
+
+    for (const theme of ["light", "dark", "adaptive"]) {
+      const xml = interop.diagramToDrawio(spec, { theme });
+      assertValidDrawio(xml, spec, `batch-b-schema/${theme}`);
+      assert.match(xml, /startArrow=ERoneToMany/);
+      assert.match(xml, /startArrow=ERzeroToOne/);
+      assert.match(xml, /startArrow=ERzeroToMany/);
+      assert.match(xml, /endArrow=ERmandOne/);
+      assert.match(xml, /endArrow=ERzeroToOne/);
+    }
+    for (const theme of ["light", "dark"]) {
+      const vsdx = interop.diagramToVsdx(spec, { theme });
+      assertValidVsdx(vsdx, spec, `batch-b-schema/${theme}`);
+      const page1 = readZipEntries(vsdx).get("visio/pages/page1.xml").toString("utf8");
+      assert.match(page1, /<Cell N="BeginArrow" V="28"\/>/);
+      assert.match(page1, /<Cell N="BeginArrow" V="29"\/>/);
+      assert.match(page1, /<Cell N="BeginArrow" V="30"\/>/);
+      assert.match(page1, /<Cell N="EndArrow" V="25"\/>/);
+      assert.match(page1, /<Cell N="EndArrow" V="30"\/>/);
+
+      const lucid = interop.diagramToLucid(spec, { theme });
+      assertValidLucid(lucid, spec, `batch-b-schema/${theme}`);
+      const doc = JSON.parse(readZipEntries(lucid).get("document.json").toString("utf8"));
+      const styles = new Set(doc.pages[0].lines.flatMap((l) => [l.endpoint1.style, l.endpoint2.style]));
+      for (const s of ["exactlyOne", "zeroOrOne", "oneOrMore", "zeroOrMore"]) {
+        assert.ok(styles.has(s), `Lucid schema includes ${s}`);
+      }
+    }
+  });
+
+  test("automatic layout (autoArchitecture, autoFlowchart, autoSchema, nestedArchitecture) placed via placeAutoDiagram", async () => {
+    // Unplaced auto spec without placement fails clearly
+    assert.throws(() => interop.diagramToDrawio(CIMIP_B.autoArchitecture), /placeAutoDiagram/i);
+
+    const autoCases = [
+      ["autoArchitecture", CIMIP_B.autoArchitecture],
+      ["autoFlowchart", CIMIP_B.autoFlowchart],
+      ["autoSchema", CIMIP_B.autoSchema],
+      ["nestedArchitecture", LAYOUT_FIXTURES.nestedArchitecture],
+    ];
+    for (const [name, rawSpec] of autoCases) {
+      const placed = await interop.placeAutoDiagram(rawSpec);
+      assert.ok(Array.isArray(placed.placement) && placed.placement.length >= 1, `${name}: placement generated`);
+      const drawioA = interop.diagramToDrawio(placed);
+      const drawioB = interop.diagramToDrawio(placed);
+      assert.equal(sha256(drawioA), sha256(drawioB), `${name}: drawio deterministic`);
+      assertValidDrawio(drawioA, placed, `auto/${name}`);
+      assertValidVsdx(interop.diagramToVsdx(placed), placed, `auto/${name}`);
+      assertValidLucid(interop.diagramToLucid(placed), placed, `auto/${name}`);
+    }
+  });
+
+  test("par sequence frame with divider works across draw.io, Visio, and Lucid via MeasuredFrame", () => {
+    const seq = CIMIP.sequence;
+    const baseScene = interop.measureDiagramHeadless(seq);
+    const fakeGeo = {
+      w: baseScene.width,
+      h: baseScene.height,
+      nodes: baseScene.nodes.map((n, i) => ({ id: n.id, shape: n.shape, i, rect: { l: n.box.x, t: n.box.y, r: n.box.x + n.box.w, b: n.box.y + n.box.h } })),
+      lines: baseScene.edges.map((e) => ({ i: e.messageNumber, from: e.from, to: e.to, kind: e.kind, pts: e.pts, tip: e.pts[e.pts.length - 1], dir: "right", width: e.kind === "main" ? 2 : 1 })),
+      lifelines: baseScene.lifelines.map((l) => ({ x: l.x, y1: l.y1, y2: l.y2 })),
+      labels: [], crossings: [], through: [], unseated: [], outside: [], ox: 0, oy: 0,
+    };
+    const extras = {
+      frames: [
+        {
+          operator: "par",
+          label: "In parallel",
+          depth: 1,
+          rect: { l: 0, t: 80, r: 500, b: 260 },
+          tabRect: { l: 1, t: 81, r: 47, b: 105 },
+          dividers: [{ y: 170, h: 28, label: "Also" }],
+        },
+      ],
+    };
+    const drawio = interop.exportMeasuredDiagram(seq, fakeGeo, "drawio", { extras });
+    assert.match(drawio, /id="frame-tab-f0" value="par"/);
+    assert.match(drawio, /id="frame-div-f0-0"/);
+    assert.match(drawio, /Also/);
+    const vsdxPage = readZipEntries(interop.exportMeasuredDiagram(seq, fakeGeo, "vsdx", { extras })).get("visio/pages/page1.xml").toString("utf8");
+    assert.match(vsdxPage, /NameU="FrameTab_f0" Name="par"/);
+    assert.match(vsdxPage, /NameU="FrameDiv_f0_0"/);
+    const lucidDoc = interop.exportMeasuredDiagram(seq, fakeGeo, "lucid-json", { extras });
+    assert.ok(lucidDoc.pages[0].shapes.some((s) => s.id === "frame_f0" && s.customData?.some((d) => d.key === "basalt_frame_op" && d.value === "par")));
+    assert.ok(lucidDoc.pages[0].lines.some((l) => l.id === "frame_div_f0_0"));
+  });
+
+  test("measuredBy engine metadata is written across draw.io (XSD-valid), Visio Creator, and Lucid customData", () => {
+    const engine = "Chromium 146.0.7680.16";
+    const xml = interop.diagramToDrawio(CIMIP.architecture, { measuredBy: engine });
+    assertValidDrawio(xml, CIMIP.architecture, "metadata-drawio");
+    assert.match(xml, /<mxfile compressed="false" agent="Basalt Diagram Exporter \(Chromium 146\.0\.7680\.16\)">/);
+
+    const vsdx = interop.diagramToVsdx(CIMIP.architecture, { measuredBy: engine });
+    assertValidVsdx(vsdx, CIMIP.architecture, "metadata-vsdx");
+    assert.match(readZipEntries(vsdx).get("visio/document.xml").toString("utf8"), /<Creator>Basalt Diagram Exporter \(Chromium 146\.0\.7680\.16\)<\/Creator>/);
+
+    const lucid = interop.diagramToLucid(CIMIP.architecture, { measuredBy: engine });
+    assertValidLucid(lucid, CIMIP.architecture, "metadata-lucid");
+    const doc = JSON.parse(readZipEntries(lucid).get("document.json").toString("utf8"));
+    assert.ok(doc.pages[0].shapes.some((s) => s.customData?.some((d) => d.key === "basalt_measured_by" && d.value === engine)));
   });
 });
 
-describe("service marks embedding policy (manifest terms)", () => {
+describe("service marks embedding policy (architecture, data-flow steps, sequence participants)", () => {
+  const skillMarks = JSON.parse(fs.readFileSync(path.join(repo, "tools", "html-skill", "src", "marks.json"), "utf8")).marks;
+  const resolveMark = (id, theme) => (theme === "dark" ? skillMarks[id]?.onDark ?? skillMarks[id]?.onLight : skillMarks[id]?.onLight);
+
   test("isBundledMarkEmbeddable matches packages/react/marks/manifest.json for all 104 marks", () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(pkg, "marks", "manifest.json"), "utf8"));
     const allowedOwners = new Set(["Amazon Web Services, Inc.", "Microsoft Corporation", "Google LLC", "The Linux Foundation"]);
@@ -739,8 +313,6 @@ describe("service marks embedding policy (manifest terms)", () => {
   });
 
   test("default omits marks; marks='embed' includes official allowed marks and leaves out unofficial/restricted ones", () => {
-    const skillMarks = JSON.parse(fs.readFileSync(path.join(repo, "tools", "html-skill", "src", "marks.json"), "utf8")).marks;
-    const resolveMark = (id, theme) => (theme === "dark" ? skillMarks[id]?.onDark ?? skillMarks[id]?.onLight : skillMarks[id]?.onLight);
     const spec = {
       type: "architecture",
       title: "Marks test",
@@ -760,13 +332,11 @@ describe("service marks embedding policy (manifest terms)", () => {
       ],
     };
 
-    // Default: omit
     const drawioOmit = interop.diagramToDrawio(spec, { resolveMark });
     assert.doesNotMatch(drawioOmit, /id="mark-/);
     assert.equal([...readZipEntries(interop.diagramToVsdx(spec, { resolveMark })).keys()].filter((k) => k.startsWith("visio/media/")).length, 0);
     assert.equal([...readZipEntries(interop.diagramToLucid(spec, { resolveMark })).keys()].filter((k) => k.startsWith("images/")).length, 0);
 
-    // Embed: official allowed marks only (NOT unofficial aws-bedrock or restricted github)
     const drawioEmbed = interop.diagramToDrawio(spec, { marks: "embed", resolveMark });
     assertValidDrawio(drawioEmbed, spec, "marks-embed");
     assert.match(drawioEmbed, /id="mark-ecs"/);
@@ -775,7 +345,6 @@ describe("service marks embedding policy (manifest terms)", () => {
     assert.doesNotMatch(drawioEmbed, /id="mark-br"/);
     assert.doesNotMatch(drawioEmbed, /id="mark-gh"/);
 
-    // Adaptive draw.io embeds prefers-color-scheme dual-form SVG for marks with distinct light/dark forms (aws-database)
     const drawioAdaptive = interop.diagramToDrawio(spec, { theme: "adaptive", marks: "embed", resolveMark });
     assertValidDrawio(drawioAdaptive, spec, "marks-embed-adaptive");
     assert.match(drawioAdaptive, /prefers-color-scheme%3Adark/, "adaptive draw.io embeds dual light/dark mark form");
@@ -783,7 +352,6 @@ describe("service marks embedding policy (manifest terms)", () => {
     const vsdxEmbed = readZipEntries(interop.diagramToVsdx(spec, { marks: "embed", resolveMark }));
     assert.equal([...vsdxEmbed.keys()].filter((k) => k.startsWith("visio/media/")).length, 3);
     assert.ok(vsdxEmbed.has("visio/pages/_rels/page1.xml.rels"));
-    // Kubernetes attribution from manifest.json lands in Visio DocumentProperties Description and Lucid customData
     assert.ok(interop.bundledMarkAttribution("kubernetes")?.includes("Apache-2.0"));
     assert.match(vsdxEmbed.get("visio/document.xml").toString("utf8"), /Apache-2\.0/, "Kubernetes attribution in Visio document.xml");
 
@@ -793,21 +361,67 @@ describe("service marks embedding policy (manifest terms)", () => {
     const k8sMarkShape = lucidDoc.pages[0].shapes.find((s) => s.id === "mark_k8s");
     assert.ok(k8sMarkShape?.customData?.some((d) => d.key === "attribution" && d.value.includes("Apache-2.0")), "Kubernetes attribution in Lucid customData");
   });
+
+  test("marks on data-flow steps and sequence participants embed cleanly across all 3 formats", () => {
+    const dfSpec = {
+      type: "data-flow",
+      title: "Steps with marks",
+      summary: "Data-flow steps carrying allowed and restricted marks.",
+      lanes: [{ id: "aws", label: "AWS" }, { id: "k8s", label: "Cluster" }],
+      nodes: [
+        { id: "s1", lane: "aws", name: "ECS task", col: 1, mark: "aws-ecs-service" },
+        { id: "s2", lane: "k8s", name: "Kubernetes pod", col: 2, mark: "kubernetes" },
+        { id: "s3", lane: "k8s", name: "GitHub hook", col: 3, mark: "github" },
+      ],
+      edges: [{ from: "s1", to: "s2", kind: "main" }, { from: "s2", to: "s3" }],
+    };
+    const dfDrawio = interop.diagramToDrawio(dfSpec, { marks: "embed", resolveMark });
+    assertValidDrawio(dfDrawio, dfSpec, "df-marks");
+    assert.match(dfDrawio, /id="mark-s1"/);
+    assert.match(dfDrawio, /id="mark-s2"/);
+    assert.doesNotMatch(dfDrawio, /id="mark-s3"/);
+    assert.equal([...readZipEntries(interop.diagramToVsdx(dfSpec, { marks: "embed", resolveMark })).keys()].filter((k) => k.startsWith("visio/media/")).length, 2);
+    assert.equal([...readZipEntries(interop.diagramToLucid(dfSpec, { marks: "embed", resolveMark })).keys()].filter((k) => k.startsWith("images/")).length, 2);
+
+    const seqSpec = {
+      type: "sequence",
+      title: "Participants with marks",
+      summary: "Sequence participants carrying allowed and restricted marks.",
+      participants: [
+        { id: "svc", kind: "ECS", name: "ECS service", focal: true, mark: "aws-ecs-service" },
+        { id: "db", kind: "Database", name: "Database", mark: "aws-database" },
+        { id: "gh", kind: "Git", name: "GitHub", mark: "github" },
+      ],
+      steps: [
+        { from: "svc", to: "db", kind: "main", label: "SELECT 1" },
+        { from: "db", to: "gh", label: "webhook" },
+      ],
+    };
+    const seqDrawio = interop.diagramToDrawio(seqSpec, { marks: "embed", resolveMark });
+    assertValidDrawio(seqDrawio, seqSpec, "seq-marks");
+    assert.match(seqDrawio, /id="mark-svc"/);
+    assert.match(seqDrawio, /id="mark-db"/);
+    assert.doesNotMatch(seqDrawio, /id="mark-gh"/);
+    assert.match(seqDrawio, /padding-left:24px;padding-right:24px;/, "centered participant reserves 24px on both sides");
+    assert.equal([...readZipEntries(interop.diagramToVsdx(seqSpec, { marks: "embed", resolveMark })).keys()].filter((k) => k.startsWith("visio/media/")).length, 2);
+    assert.equal([...readZipEntries(interop.diagramToLucid(seqSpec, { marks: "embed", resolveMark })).keys()].filter((k) => k.startsWith("images/")).length, 2);
+  });
 });
 
-describe("basalt-diagram-export CLI", () => {
-  test("exports JSON map, single JSON, and HTML script[data-diagram] (ignoring comments/textarea decoys) deterministically", () => {
+describe("basalt-diagram-export CLI (Node-only --headless mode)", () => {
+  test("exports JSON map, single JSON, Batch B auto-layout, and HTML script[data-diagram] deterministically", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-interop-cli-"));
     try {
-      // 1. Multi-diagram JSON under two different TZ and LC_ALL environments (Polish 8: cross-TZ/locale determinism)
+      // 1. Multi-diagram JSON under two different TZ and LC_ALL environments
       const outA = path.join(dir, "a");
       const outB = path.join(dir, "b");
-      const r1 = spawnSync(process.execPath, [CLI, path.join(here, "fixtures", "cimip-diagrams.json"), "--to", "drawio,vsdx,lucid,lucid-json", "--out", outA], {
+      const r1 = spawnSync(process.execPath, [CLI, path.join(here, "fixtures", "cimip-diagrams.json"), "--headless", "--to", "drawio,vsdx,lucid,lucid-json", "--out", outA], {
         encoding: "utf8",
         env: { ...process.env, TZ: "UTC", LC_ALL: "C" },
       });
       assert.equal(r1.status, 0, r1.stderr);
-      const r2 = spawnSync(process.execPath, [CLI, path.join(here, "fixtures", "cimip-diagrams.json"), "--to", "drawio,vsdx,lucid,lucid-json", "--out", outB], {
+      assert.match(r1.stderr, /approximate/i, "--headless notes approximate geometry on stderr");
+      const r2 = spawnSync(process.execPath, [CLI, path.join(here, "fixtures", "cimip-diagrams.json"), "--headless", "--to", "drawio,vsdx,lucid,lucid-json", "--out", outB], {
         encoding: "utf8",
         env: { ...process.env, TZ: "Asia/Kolkata", LC_ALL: "de_DE.UTF-8" },
       });
@@ -821,16 +435,43 @@ describe("basalt-diagram-export CLI", () => {
           assert.equal(sha256(fa), sha256(fb), `CLI repeat deterministic across TZ/LC_ALL: ${stem}${ext}`);
         }
       }
+      assert.match(fs.readFileSync(path.join(outA, "architecture.drawio"), "utf8"), /Basalt headless \(approximate\)/);
 
-      // 1b. B1: invoking the CLI through a symlink (as npm installs node_modules/.bin/basalt-diagram-export) executes and writes files
+      // 1b. Symlink execution (as npm installs node_modules/.bin/basalt-diagram-export)
       const symLink = path.join(dir, "basalt-diagram-export-link");
       fs.symlinkSync(CLI, symLink);
       const symOut = path.join(dir, "from-symlink");
       const singleJson = path.join(dir, "one.json");
       fs.writeFileSync(singleJson, JSON.stringify(CIMIP.flowchart));
-      const rSym = spawnSync(process.execPath, [symLink, singleJson, "--to", "vsdx", "--out", symOut], { encoding: "utf8" });
+      const rSym = spawnSync(process.execPath, [symLink, singleJson, "--headless", "--to", "vsdx", "--out", symOut], { encoding: "utf8" });
       assert.equal(rSym.status, 0, rSym.stderr);
       assert.ok(fs.existsSync(path.join(symOut, "one.vsdx")), "symlinked CLI wrote output file");
+
+      // 1c. Batch B fixtures (crow's foot, frames, nested groups, and layout="auto") via CLI --headless
+      const batchBIn = path.join(dir, "batch-b.json");
+      fs.writeFileSync(batchBIn, JSON.stringify({
+        architecture: CIMIP_B.architecture,
+        sequence: CIMIP_B.sequence,
+        schema: CIMIP_B.schema,
+        autoArchitecture: CIMIP_B.autoArchitecture,
+        autoFlowchart: CIMIP_B.autoFlowchart,
+        autoSchema: CIMIP_B.autoSchema,
+      }));
+      const batchBOut = path.join(dir, "batch-b-out");
+      const rB = spawnSync(process.execPath, [CLI, batchBIn, "--headless", "--to", "drawio,vsdx,lucid", "--out", batchBOut], { encoding: "utf8" });
+      assert.equal(rB.status, 0, rB.stderr);
+      for (const [key, stem] of [
+        ["architecture", "architecture"],
+        ["sequence", "sequence"],
+        ["schema", "schema"],
+        ["autoArchitecture", "auto-architecture"],
+        ["autoFlowchart", "auto-flowchart"],
+        ["autoSchema", "auto-schema"],
+      ]) {
+        assertValidDrawio(fs.readFileSync(path.join(batchBOut, `${stem}.drawio`), "utf8"), CIMIP_B[key], `cli-batch-b/${key}`);
+        assertValidVsdx(fs.readFileSync(path.join(batchBOut, `${stem}.vsdx`)), CIMIP_B[key], `cli-batch-b/${key}`);
+        assertValidLucid(fs.readFileSync(path.join(batchBOut, `${stem}.lucid`)), CIMIP_B[key], `cli-batch-b/${key}`);
+      }
 
       // 2. HTML input with a real diagram + decoys inside comment and textarea
       const decoy = JSON.stringify({ type: "architecture", title: "Decoy", summary: "No", nodes: [{ id: "x", name: "X", col: 1, row: 1 }], edges: [] });
@@ -841,24 +482,23 @@ describe("basalt-diagram-export CLI", () => {
         <figure class="diagram" id="fig-arch"><script type="application/json" data-diagram>${JSON.stringify(CIMIP.architecture)}</script></figure>
       </body></html>`);
       const htmlOut = path.join(dir, "from-html");
-      const r3 = spawnSync(process.execPath, [CLI, htmlPath, "--to", "drawio,vsdx", "--theme", "adaptive", "--out", htmlOut], { encoding: "utf8" });
+      const r3 = spawnSync(process.execPath, [CLI, htmlPath, "--headless", "--to", "drawio,vsdx", "--theme", "adaptive", "--out", htmlOut], { encoding: "utf8" });
       assert.equal(r3.status, 0, r3.stderr);
-      const files = fs.readdirSync(htmlOut).sort();
-      assert.deepEqual(files, ["arch.drawio", "arch.vsdx"]);
+      assert.deepEqual(fs.readdirSync(htmlOut).sort(), ["arch.drawio", "arch.vsdx"]);
       assertValidDrawio(fs.readFileSync(path.join(htmlOut, "arch.drawio"), "utf8"), CIMIP.architecture, "cli-html-adaptive");
       assertValidVsdx(fs.readFileSync(path.join(htmlOut, "arch.vsdx")), CIMIP.architecture, "cli-html-vsdx");
 
-      // 3. Single file --out path (valid + Polish 10 mismatched extension check)
+      // 3. Single file --out path + mismatched extension check
       const exactOut = path.join(dir, "exact.drawio");
-      const r4 = spawnSync(process.execPath, [CLI, singleJson, "--to", "drawio", "--out", exactOut], { encoding: "utf8" });
+      const r4 = spawnSync(process.execPath, [CLI, singleJson, "--headless", "--to", "drawio", "--out", exactOut], { encoding: "utf8" });
       assert.equal(r4.status, 0, r4.stderr);
       assert.ok(fs.existsSync(exactOut));
 
-      const mismatch = spawnSync(process.execPath, [CLI, singleJson, "--to", "drawio", "--out", path.join(dir, "wrong.vsdx")], { encoding: "utf8" });
+      const mismatch = spawnSync(process.execPath, [CLI, singleJson, "--headless", "--to", "drawio", "--out", path.join(dir, "wrong.vsdx")], { encoding: "utf8" });
       assert.notEqual(mismatch.status, 0, "mismatched --out extension must fail");
       assert.match(mismatch.stderr, /extension does not match/i);
 
-      // 4. Polish 9: custom mark SVG file resolved relative to input file + warning when missing
+      // 4. Custom mark SVG file resolved relative to input file + warning when missing
       fs.writeFileSync(path.join(dir, "logo.svg"), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#000"/></svg>`);
       const customMarkSpec = {
         type: "architecture",
@@ -873,32 +513,19 @@ describe("basalt-diagram-export CLI", () => {
       const customIn = path.join(dir, "custom.json");
       fs.writeFileSync(customIn, JSON.stringify(customMarkSpec));
       const customOut = path.join(dir, "custom-out");
-      const rCustom = spawnSync(process.execPath, [CLI, customIn, "--to", "drawio,vsdx", "--marks", "embed", "--out", customOut], { encoding: "utf8" });
+      const rCustom = spawnSync(process.execPath, [CLI, customIn, "--headless", "--to", "drawio,vsdx", "--marks", "embed", "--out", customOut], { encoding: "utf8" });
       assert.equal(rCustom.status, 0, rCustom.stderr);
       assert.match(rCustom.stderr, /warning: custom mark file "no-such\.svg" not found/i, "warns on missing custom mark file");
       const customDrawio = fs.readFileSync(path.join(customOut, "custom.drawio"), "utf8");
       assert.match(customDrawio, /id="mark-ok"/, "resolved custom SVG file embedded");
       assert.doesNotMatch(customDrawio, /id="mark-miss"/, "missing custom SVG skipped");
 
-      // 5. Error handling on unknown format
-      const bad = spawnSync(process.execPath, [CLI, singleJson, "--to", "bogus"], { encoding: "utf8" });
+      // 5. Flag validation errors
+      const bad = spawnSync(process.execPath, [CLI, singleJson, "--headless", "--to", "bogus"], { encoding: "utf8" });
       assert.notEqual(bad.status, 0);
-    } finally {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  test("packaged --browser harness measures through dist/ alone (no repo HTML skill dependency)", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-interop-browser-"));
-    try {
-      const outDir = path.join(dir, "out");
-      const res = spawnSync(process.execPath, [CLI, path.join(here, "fixtures", "cimip-diagrams.json"), "--browser", "--to", "drawio,vsdx,lucid", "--out", outDir], { encoding: "utf8", timeout: 90000 });
-      assert.equal(res.status, 0, res.stderr);
-      for (const [key, stem] of [["architecture", "architecture"], ["flowchart", "flowchart"], ["dataFlow", "data-flow"], ["sequence", "sequence"], ["schema", "schema"]]) {
-        assertValidDrawio(fs.readFileSync(path.join(outDir, `${stem}.drawio`), "utf8"), CIMIP[key], `cli-browser/${key}`);
-        assertValidVsdx(fs.readFileSync(path.join(outDir, `${stem}.vsdx`)), CIMIP[key], `cli-browser/${key}`);
-        assertValidLucid(fs.readFileSync(path.join(outDir, `${stem}.lucid`)), CIMIP[key], `cli-browser/${key}`);
-      }
+      const conflict = spawnSync(process.execPath, [CLI, singleJson, "--browser", "--headless"], { encoding: "utf8" });
+      assert.notEqual(conflict.status, 0);
+      assert.match(conflict.stderr, /cannot be used together/i);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -906,14 +533,16 @@ describe("basalt-diagram-export CLI", () => {
 });
 
 describe("subpath isolation", () => {
-  test("@srasyndicate/basalt/diagram-interop stays outside the root index and carries no client directive or React imports", async () => {
+  test("@srasyndicate/basalt/diagram-interop stays outside the root index, loads elkjs lazily, and carries no client directive or React imports", async () => {
     const root = await import(pathToFileURL(path.join(pkg, "dist", "index.js")).href);
-    for (const name of ["diagramToDrawio", "diagramToVsdx", "diagramToLucid", "diagramToLucidJson", "exportMeasuredDiagram"]) {
+    for (const name of ["diagramToDrawio", "diagramToVsdx", "diagramToLucid", "diagramToLucidJson", "exportMeasuredDiagram", "placeAutoDiagram"]) {
       assert.equal(name in root, false, `${name} must not be on the root index`);
       assert.equal(typeof interop[name], "function", `${name} is exported from diagram-interop`);
     }
     const source = fs.readFileSync(path.join(pkg, "dist", "diagram-interop.js"), "utf8");
     assert.doesNotMatch(source, /^"use client";/, "diagram-interop.js must not carry \"use client\"");
     assert.doesNotMatch(source, /\bfrom\s*"(react|react-dom|@base-ui|@phosphor-icons|cmdk|shiki)/, "diagram-interop.js imports no UI libraries");
+    assert.doesNotMatch(source, /elkjs/, "diagram-interop.js never bundles elkjs inline");
+    assert.match(source, /import\(["']\.\/diagram-layout\.js["']\)/, "placeAutoDiagram dynamically imports ./diagram-layout.js");
   });
 });
