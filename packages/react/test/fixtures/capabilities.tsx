@@ -117,11 +117,13 @@ export const navigation = (
   </>
 );
 
-// The display states: a toggle is secondary or ghost; a link or Button that opens a new tab needs no prop for its arrow.
+// The display states: a toggle is secondary or ghost, and a text toggle carries its glyph (DECISIONS 326); a link or Button that opens a new tab needs no prop for its arrow.
 export const displayStates = (
   <>
+    <Button icon={HomeGlyph} pressed>Mute</Button>
+    <Button variant="ghost" icon={HomeGlyph} pressed={false}>Pin</Button>
+    {/* @ts-expect-error a text toggle carries its glyph, so its seat is never empty */}
     <Button pressed>Mute</Button>
-    <Button variant="ghost" pressed={false}>Pin</Button>
     <IconButton icon={HomeGlyph} label="Home" variant="secondary" pressed />
     {/* @ts-expect-error a latched primary would read as the primary action */}
     <Button variant="primary" pressed>Deploy</Button>

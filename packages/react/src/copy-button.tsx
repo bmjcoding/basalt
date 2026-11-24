@@ -9,8 +9,8 @@ import { Reserve } from "./reserve";
 import { join } from "./utils";
 
 export interface CopyButtonProps extends Omit<React.ComponentProps<"button">, "children" | "onClick" | "type" | "color"> {
-  /** What is copied. */
-  text: string;
+  /** What is copied, or a function that gives it when the button is pressed (an address that follows the page's route). */
+  text: string | (() => string);
   /** The words at rest, in the app's language: "Copy address". Default "Copy". */
   children?: React.ReactNode;
   /** The words after the copy: default "Copied". */
@@ -37,7 +37,7 @@ export function CopyButton({ text, children = "Copy", copiedLabel = "Copied", st
   React.useEffect(() => () => clearTimeout(timer.current), []);
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(typeof text === "function" ? text() : text);
     } catch {
       // clipboard refused (an insecure context or no permission): leave the button as it was
       return;

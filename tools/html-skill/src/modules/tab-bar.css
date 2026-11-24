@@ -133,4 +133,8 @@
     .tab-bar[data-keys] .tab-bar-item:is(:hover, :active) .tab-bar-glyph { forced-color-adjust: auto; background-color: transparent; color: inherit; }
     .tab-bar-dot { forced-color-adjust: none; background-color: CanvasText; }
   }
+
+  /* ---- The version as the last row of More's sheet (DECISIONS 320): under a divider, space-2 below the list, 44 tall, at 13/18, on the nav glyphs' edge. ---- */
+  .tab-bar-version { box-sizing: border-box; display: flex; align-items: center; min-height: var(--basalt-size-tap-min); margin-top: var(--basalt-space-2); padding-inline: calc(var(--basalt-space-1-5) + var(--basalt-space-3)); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .tab-bar-version .version-link { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); letter-spacing: var(--basalt-text-sm-tracking); }
 }

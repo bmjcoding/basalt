@@ -28,7 +28,7 @@ const home = new Map();
 const PLAIN = [
   "AMBIENT_MAX", "CONFIRM_MS", "COPIED_MS", "ENTRANCE_LATE_MS", "LOOPS_TOGGLE_DESCRIPTION", "LOOPS_TOGGLE_NAME", "REFLOW_BOUND", "STATUS_MESSAGE_MS", "TRAVEL_IN_FLIGHT",
   "TRAVEL_LONG_LEG", "TRAVEL_MIN_LEG", "TRAVEL_MS_PER_PX", "TRAVEL_RUN_LIMIT", "TRAVEL_SHORT_LEG", "WAIT_MIN_SHOWN_MS", "WAIT_SHOW_AFTER_MS", "ambient", "ambientTiming", "createTravellers", "entranceKey",
-  "entranceSeen", "entranceStep", "entranceVerdict", "forgetEntrance", "formatAge", "formatClock", "formatCountdown", "formatDay", "formatElapsed", "formatStamp", "formatStatTime",
+  "entranceSeen", "entranceStep", "entranceVerdict", "forgetEntrance", "formatAge", "formatClock", "formatCountdown", "formatDay", "formatElapsed", "formatStamp", "formatStatTime", "formatRunTime", "STAGE_WORDS",
   "holdFirstPaint", "isApplePlatform", "isModKey", "KEEP", "fillIn", "forgetCount", "lockupDrawing", "loopsBootstrap", "markEntranceSeen", "markPageChange", "markPageStart", "preloadCodeLanguages", "rememberCount", "rememberedCount", "shareOf", "sortRows", "standIn", "themeBootstrap", "trailingMean", "travelLeg", "travelRun", "travelTokens", "typingStatus",
 ];
 const LEFT_IN_A_CLIENT_MODULE = {

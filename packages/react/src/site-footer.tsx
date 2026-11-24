@@ -7,6 +7,7 @@ import type { SiteHeaderLink } from "./site-nav";
 import { ThemeChoiceControl } from "./theme-choice";
 import type { ThemeChoiceWords } from "./theme-choice";
 import { join } from "./utils";
+import { VersionPlaceContext } from "./version-place";
 
 // The site footer (DECISIONS 146 A): the end of every site page, on the page at level 0 with no fill, rim or shadow. The brand, an optional sentence and social links; the
 // links, either one unlabelled line of up to six beside the brand or labelled groups; then the base: the legal line and the theme choice, both required. One 1px divider the
@@ -33,6 +34,8 @@ export interface SiteFooterProps extends Omit<React.ComponentProps<"footer">, "c
   groups?: SiteFooterGroup[];
   /** The legal line: required. At most `size-prose-width`, in tertiary ink. */
   legal: React.ReactNode;
+  /** The version, as a `VersionLink` labelled with the product ("Basalt 0.2.0 · Nov 23, 2026"), on the legal line's row after it, at its 13/18. */
+  version?: React.ReactNode;
   /** The links' landmark name. Default "Footer". */
   navLabel?: string;
   /** The theme choice's words, for translation. The theme choice is always in the footer, since the site header has none. */
@@ -60,7 +63,7 @@ function Group({ group, id }: { group: SiteFooterGroup; id: string }) {
  * The site footer. Put it last on the page, after `main`, inside `SitePage` so a short page keeps it at the window's foot. The site's own: its words, which groups and
  * links, the note, the brand, the legal text and what the footer sits on (a mass). Basalt's: the order, the pill links at `sm`, the disclosures, the divider and the theme choice.
  */
-export function SiteFooter({ brand, note, social, links, groups, legal, navLabel = "Footer", themeWords, className, ...props }: SiteFooterProps) {
+export function SiteFooter({ brand, note, social, links, groups, legal, version, navLabel = "Footer", themeWords, className, ...props }: SiteFooterProps) {
   const base = React.useId();
   // Disclosures are drawn once script has run: without it every group is open and two a row.
   const [wired, setWired] = React.useState(false);
@@ -92,7 +95,12 @@ export function SiteFooter({ brand, note, social, links, groups, legal, navLabel
           )}
         </div>
         <div className="basalt-site-footer-base">
-          <p className="basalt-site-footer-legal">{legal}</p>
+          {version ? (
+            <div className="basalt-site-footer-legal-row">
+              <p className="basalt-site-footer-legal">{legal}</p>
+              <VersionPlaceContext.Provider value="footer">{version}</VersionPlaceContext.Provider>
+            </div>
+          ) : <p className="basalt-site-footer-legal">{legal}</p>}
           <ThemeChoiceControl words={themeWords} />
         </div>
       </div>

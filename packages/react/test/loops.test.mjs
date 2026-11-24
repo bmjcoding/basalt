@@ -205,6 +205,28 @@ describe("release jumps to now", () => {
   });
 });
 
+// DECISIONS 316 (4.1): a queued stage's mark breathes, and is the fourth kind of thing that loops. It joins the hold and rejoins the clock.
+describe("the queued breath", () => {
+  const queued = render(`<B.ToastProvider><App /></B.ToastProvider>`, app.replace('<p id="state">', '<span id="queued"><B.StageMark state="queued" /></span><p id="state">'));
+  test("it stops under the hold, at full, and rejoins the shared clock on release, in phase with a mark mounted later", async () => {
+    const { page, context } = await open(queued);
+    await settle(page);
+    const breath = () => page.evaluate(() => { const b = document.querySelector("#queued .basalt-run-mark-breath"); const [a] = b.getAnimations(); return { running: a ? a.playState : null, start: a ? Number(a.startTime) : null, opacity: getComputedStyle(b).opacity }; });
+    assert.equal((await breath()).running, "running");
+    assert.equal((await breath()).start, 0, "on the shared clock from mount");
+    await page.locator("#toggle").click();
+    await frames(page);
+    assert.deepEqual(await breath(), { running: null, start: null, opacity: "1" }, "held: still, at full");
+    await page.waitForTimeout(250);
+    await page.locator("#toggle").click();
+    await frames(page);
+    const released = await breath();
+    assert.equal(released.running, "running");
+    assert.equal(released.start, 0, "released: back at the timeline's origin");
+    await context.close();
+  });
+});
+
 describe("useLoops", () => {
   test("it stores the hold, restores it after a reload, and clears it on release", async () => {
     const { page, context } = await open(shell);
