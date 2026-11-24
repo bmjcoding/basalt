@@ -174,7 +174,7 @@ const summaryOf = (fig: HTMLElement) => fig.querySelector("figcaption")?.textCon
 /** The file's name: the title's slug. */
 export const exportName = (fig: HTMLElement, ext: string) => `${(titleOf(fig).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "diagram")}.${ext}`;
 
-async function svgText(fig: HTMLElement, options: DiagramExportOptions, embed: boolean): Promise<{ svg: string; w: number; h: number }> {
+async function svgText(fig: HTMLElement, options: DiagramExportOptions, embed: boolean, who: string): Promise<{ svg: string; w: number; h: number }> {
   const theme = options.theme ?? "page";
   const had = fig.getAttribute("data-theme");
   // A file is at rest: no trace, no pending or running entrance, no mover, no quiet run (Neon's B5 of the code review). The figure is shown so for the read
@@ -199,6 +199,11 @@ async function svgText(fig: HTMLElement, options: DiagramExportOptions, embed: b
     const m = /^matrix\(([^,]+),[^,]+,[^,]+,([^,]+),/.exec(t);
     if (m && (Math.abs(Number(m[1]) - 1) > 1e-6 || Math.abs(Number(m[2]) - 1) > 1e-6)) { scaled.push([el, el.style.transform]); el.style.transform = "none"; }
   }
+  // The viewer's drawing with its list open (the foot decision, 2.2): its sizer is hidden, so it is shown for the read and hidden again before anything
+  // waits, with no paint between.
+  const sizer = fig.closest<HTMLElement>(".basalt-diagram-sizer, .diagram-sizer");
+  const unhid = sizer?.hidden ? sizer : null;
+  if (unhid) unhid.hidden = false;
   if (theme !== "page") fig.setAttribute("data-theme", theme);
   fig.classList.add("basalt-exporting");
   let read: { body: string[]; w: number; h: number; ground: string };
@@ -206,6 +211,8 @@ async function svgText(fig: HTMLElement, options: DiagramExportOptions, embed: b
     void fig.offsetWidth;
     const pad = Number.parseFloat(getComputedStyle(fig).getPropertyValue("--basalt-space-4")) || 16;
     const parts = partsOf(fig);
+    // A figure with no box (it or a parent is display: none, an app's closed tab) cannot be measured: no file, never a broken one.
+    if (!fig.getClientRects().length || !parts.length) throw new Error(`Basalt ${who}: the figure is not displayed (it or a parent is display: none), so it cannot be measured and no file is made`);
     const rects = parts.map((p) => p.getBoundingClientRect());
     const left = Math.min(...rects.map((r) => r.left)), top = Math.min(...rects.map((r) => r.top));
     const right = Math.max(...rects.map((r) => r.right)), bottom = Math.max(...rects.map((r) => r.bottom));
@@ -218,6 +225,7 @@ async function svgText(fig: HTMLElement, options: DiagramExportOptions, embed: b
     read = { body, w, h, ground };
   } finally {
     fig.classList.remove("basalt-exporting");
+    if (unhid) unhid.hidden = true;
     if (theme !== "page") { if (had === null) fig.removeAttribute("data-theme"); else fig.setAttribute("data-theme", had); }
     for (const [el, t] of scaled) el.style.transform = t;
     if (viewer !== null) fig.setAttribute("data-viewer", viewer);
@@ -243,9 +251,9 @@ async function svgText(fig: HTMLElement, options: DiagramExportOptions, embed: b
 
 declare const process: { env: { NODE_ENV?: string } };
 
-/** The figure as an SVG file: native SVG, its words as text, the faces embedded by default. */
+/** The figure as an SVG file: native SVG, its words as text, the faces embedded by default. A figure that is not displayed rejects, and no file is made. */
 export async function diagramToSvg(figure: HTMLElement, options: DiagramExportOptions = {}): Promise<Blob> {
-  const { svg } = await svgText(figure, options, (options.fonts ?? "embed") === "embed");
+  const { svg } = await svgText(figure, options, (options.fonts ?? "embed") === "embed", "diagramToSvg");
   return new Blob([svg], { type: "image/svg+xml" });
 }
 
@@ -281,9 +289,10 @@ async function drawable(svg: string): Promise<{ source: CanvasImageSource; done:
  *
  * A canvas draws SVG only through an image: under a `Content-Security-Policy`, `img-src` must allow `blob:` or `data:` (where the browser decodes an SVG
  * Blob with `createImageBitmap`, neither is needed). Where the page allows neither, the promise rejects with an error that says so, and no file is made.
+ * A figure that is not displayed rejects too, and no file is made.
  */
 export async function diagramToPng(figure: HTMLElement, options: DiagramExportOptions = {}): Promise<Blob> {
-  const { svg, w, h } = await svgText(figure, options, true);
+  const { svg, w, h } = await svgText(figure, options, true, "diagramToPng");
   const scale = options.scale ?? 2;
   const { source, done } = await drawable(svg);
   try {
