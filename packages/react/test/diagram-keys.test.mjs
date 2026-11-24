@@ -101,3 +101,96 @@ describe("stacked and the hint", () => {
     await page.close();
   });
 });
+
+// The trace on touch (1.5; Neon's B12 of the code review, still missing at the re-check): a tap on the ground, a scroll, a linked card, the foot, a
+// touchscreen laptop's first tap, and the stacked schema and sequence. Written while browser tests are paused (DECISIONS 330): not run in the round that
+// wrote it.
+const BX = JSON.parse(fs.readFileSync(path.join(pkg, "test", "fixtures", "cimip-diagrams-b.json"), "utf8"));
+async function touchPage({ width = 1440, mobile = true, items } = {}) {
+  const { page, errors } = await fixturePage(browser, HOST, { theme: "dark", standards: true, viewport: { width, height: 1000 }, hasTouch: true, isMobile: mobile });
+  await page.addStyleTag({ content: "body{margin:0;padding:16px} #root{max-width:1104px;margin:0 auto}" });
+  await page.evaluate(() => document.fonts.ready);
+  if (items) await page.evaluate((items) => window.__set(items), items);
+  await frames(page, 6);
+  return { page, errors };
+}
+const lit = (page, key) => page.locator(`#fig-${key} .${P}-edge[data-lit]`).count();
+const clearState = (page, key) => page.locator(`#fig-${key} .${P}-clear`).evaluateAll((b) => b.map((x) => x.getAttribute("aria-disabled")));
+
+describe("the trace on touch", () => {
+  test("a tap on the ground clears a trace; with none up it changes nothing", async () => {
+    const { page, errors } = await touchPage();
+    const ground = async () => { const box = await page.locator(`#fig-architecture .${P}-drawing`).boundingBox(); await page.touchscreen.tap(box.x + 4, box.y + box.height - 4); await page.waitForTimeout(150); };
+    await ground();
+    assert.equal(await lit(page, "architecture"), 0);
+    assert.deepEqual(await clearState(page, "architecture"), ["true"], "Clear highlight stays disabled");
+    await page.tap(`#fig-architecture .${P}-node[data-node="svc"]`);
+    await page.waitForTimeout(150);
+    assert.ok((await lit(page, "architecture")) > 0, "the card is traced");
+    await ground();
+    assert.equal(await lit(page, "architecture"), 0, "the ground clears it");
+    assert.deepEqual(await clearState(page, "architecture"), ["true"]);
+    assert.deepEqual(errors, []);
+    await page.close();
+  });
+
+  test("a scroll that starts on a card traces nothing", async () => {
+    const { page } = await touchPage({ width: 390 });
+    const card = await page.locator(`#fig-flowchart .${P}-node`).first().boundingBox();
+    const cdp = await page.context().newCDPSession(page);
+    const at = (dy) => [{ x: card.x + card.width / 2, y: card.y + card.height / 2 + dy, id: 1 }];
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: at(0) });
+    for (let k = 1; k <= 10; k++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: at(-12 * k) });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await page.waitForTimeout(200);
+    for (const key of Object.keys(NAMES)) assert.equal(await lit(page, key), 0, `${key}: no trace`);
+    await page.close();
+  });
+
+  test("a linked card follows its link and is never traced", async () => {
+    const { page } = await touchPage({ items: [{ key: "arch", type: "architecture", props: (({ type, ...p }) => p)(BX.architecture) }, { key: "sequence", type: "sequence", props: (({ type, ...p }) => p)(BX.sequence) }] });
+    await page.tap(`#fig-arch a.${P}-node[data-node="svc"]`);
+    await page.waitForTimeout(200);
+    assert.equal(await page.evaluate(() => location.hash), "#fig-sequence", "the link is followed");
+    assert.equal(await lit(page, "arch"), 0, "and nothing is traced");
+    assert.deepEqual(await clearState(page, "arch"), ["true"]);
+    await page.close();
+  });
+
+  test("the foot does not move when Clear highlight is enabled, and Clear highlight is last in it", async () => {
+    const { page } = await touchPage();
+    const foot = () => page.locator(`#fig-architecture .${P}-foot > *`).evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return [e.className, Math.round(r.left * 2) / 2, Math.round(r.top * 2) / 2, Math.round(r.width * 2) / 2, Math.round(r.height * 2) / 2]; }));
+    const before = await foot();
+    assert.match(before.at(-1)[0], /-clear\b/, "last in the foot");
+    await page.tap(`#fig-architecture .${P}-node[data-node="svc"]`);
+    await page.waitForTimeout(200);
+    assert.deepEqual(await clearState(page, "architecture"), [null]);
+    assert.deepEqual(await foot(), before, "every control in its place and size");
+    await page.close();
+  });
+
+  test("a touchscreen laptop: the first tap traces and mounts Clear highlight, last in the foot, after an animated figure's controls", async () => {
+    const motion = { key: "flow", type: "data-flow", props: { ...(({ type, ...p }) => p)(BX.dataFlow), motion: "animated" } };
+    const { page } = await touchPage({ mobile: false, items: [motion] });
+    const onTouch = await page.evaluate(() => matchMedia("(hover: none), (pointer: coarse)").matches);
+    // A laptop's media says hover and a fine pointer: no Clear highlight until a finger is used. (Where the emulated media says touch, it is there from the start.)
+    if (!onTouch) assert.equal(await page.locator(`#fig-flow .${P}-clear`).count(), 0, "not mounted before a tap");
+    const card = page.locator(`#fig-flow .${P}-node:not([href])`).first();
+    await card.tap();
+    await page.waitForTimeout(200);
+    assert.ok((await lit(page, "flow")) > 0, "the first tap traces");
+    const order = await page.locator(`#fig-flow .${P}-foot > *`).evaluateAll((els) => els.map((e) => e.className));
+    assert.match(order.at(-1), /-clear\b/, `last in the foot ${JSON.stringify(order)}`);
+    await page.close();
+  });
+
+  test("at 390 the stacked schema and sequence, which draw no lines, show no tap hint and no Clear highlight", async () => {
+    const { page } = await touchPage({ width: 390 });
+    for (const key of ["schema", "sequence"]) {
+      assert.equal(await page.locator(`#fig-${key}`).getAttribute("data-layout"), "stacked", key);
+      assert.equal(await page.locator(`#fig-${key} .${P}-clear`).count(), 0, `${key}: no Clear highlight`);
+      assert.equal(await page.locator(`#fig-${key} .${P}-hint`).evaluateAll((els) => els.filter((e) => e.checkVisibility() && e.textContent.trim()).length), 0, `${key}: no hint`);
+    }
+    await page.close();
+  });
+});

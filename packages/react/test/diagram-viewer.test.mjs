@@ -177,6 +177,8 @@ describe("the layout width and Fit", () => {
     const { page } = await viewerPage({ width: 1440, height: 900 });
     // Seven cards in a row and five lines out of the first: every line passes through a card, so no drawn layout is used, and its stack would need a fifth
     // end lane, so it draws no lines (Neon's B12: the earlier fixture was drawn, and the test passed either way).
+    // At the re-check this failed (Opus R2, P-R3), and the fault was the engine's: measureFigure returned the bare state without applying it, so the figure
+    // kept its last try's attributes and React, seeing a state equal to the one before, wrote nothing.
     await page.evaluate(() => window.__set([{ key: "bad", type: "architecture", props: { title: "Refused", summary: "A figure with no drawn layout.", legend: { plain: "Call" },
       nodes: Array.from({ length: 7 }, (_, k) => ({ id: `n${k}`, name: `N${k}`, col: k + 1, row: 1 })),
       edges: [2, 3, 4, 5, 6].map((k) => ({ from: "n0", to: `n${k}`, kind: "plain" })) } }]));
@@ -434,19 +436,43 @@ describe("the ink", () => {
 });
 
 describe("speech, focus and the trace", () => {
-  test("the status line says the level once, duration-slower after the last change; a pinch of twenty moves is spoken once", async () => {
-    const { page } = await viewerPage({ width: 1440, height: 900 });
-    await open(page, "architecture");
-    await page.evaluate((P) => { const s = document.querySelector(`dialog.${P}-viewer [role="status"]`); window.__said = []; new MutationObserver(() => window.__said.push(s.textContent)).observe(s, { childList: true, characterData: true, subtree: true }); }, P);
-    assert.equal(await page.locator(`dialog.${P}-viewer [role="status"]`).textContent(), "", "opening says nothing");
-    await page.locator(`dialog.${P}-viewer .${P}-stage`).focus();
-    for (let i = 0; i < 3; i++) await page.keyboard.press("=");
-    await page.waitForTimeout(150);
-    assert.deepEqual(await page.evaluate(() => window.__said), [], "nothing while it changes");
-    await page.waitForTimeout(400);
-    const said = await page.evaluate(() => window.__said);
+  test("the status line says the level once, duration-slower after the last change: three key presses, and a real pinch of twenty moves", async () => {
+    const watch = (page) => page.evaluate((P) => { const s = document.querySelector(`dialog.${P}-viewer [role="status"]`); window.__said = []; new MutationObserver(() => window.__said.push(s.textContent)).observe(s, { childList: true, characterData: true, subtree: true }); }, P);
+    const keys = await viewerPage({ width: 1440, height: 900 });
+    await open(keys.page, "architecture");
+    await watch(keys.page);
+    assert.equal(await keys.page.locator(`dialog.${P}-viewer [role="status"]`).textContent(), "", "opening says nothing");
+    await keys.page.locator(`dialog.${P}-viewer .${P}-stage`).focus();
+    for (let i = 0; i < 3; i++) await keys.page.keyboard.press("=");
+    await keys.page.waitForTimeout(150);
+    assert.deepEqual(await keys.page.evaluate(() => window.__said), [], "nothing while it changes");
+    await keys.page.waitForTimeout(400);
+    const said = await keys.page.evaluate(() => window.__said);
     assert.equal(said.length, 1);
-    assert.equal(said[0], `Zoom ${await levelOf(page)}%`);
+    assert.equal(said[0], `Zoom ${await levelOf(keys.page)}%`);
+    await keys.page.close();
+    // A pinch (Opus B12): two fingers on the stage, twenty moves 16ms apart, spreading from 40 to 80px; the level changes on every move and is said once.
+    const { page } = await viewerPage({ width: 390, height: 844, touch: true, scale: 1 });
+    await open(page, "architecture", { tap: true });
+    await watch(page);
+    const box = await page.locator(`dialog.${P}-viewer .${P}-stage`).boundingBox();
+    const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+    const pts = (d) => [{ x: cx - d, y: cy, id: 1 }, { x: cx + d, y: cy, id: 2 }];
+    const cdp = await page.context().newCDPSession(page);
+    const levels = [];
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: pts(20) });
+    for (let k = 1; k <= 20; k++) {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: pts(20 + k) });
+      await page.waitForTimeout(16);
+      levels.push((await state(page)).zoom);
+    }
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    assert.ok(new Set(levels).size > 10, `the level moved with the fingers ${JSON.stringify(levels)}`);
+    assert.deepEqual(await page.evaluate(() => window.__said), [], "nothing while the fingers move");
+    await page.waitForTimeout(600);
+    const spoken = await page.evaluate(() => window.__said);
+    assert.equal(spoken.length, 1, JSON.stringify(spoken));
+    assert.equal(spoken[0], `Zoom ${await levelOf(page)}%`);
     await page.close();
   });
 

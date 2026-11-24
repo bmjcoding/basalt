@@ -129,6 +129,17 @@ describe("the viewer (Fable B1 to B4, Neon B1 to B3)", () => {
     }, P);
     assert.ok(got.art && !got.scrolls && got.tx === 0, JSON.stringify(got));
     assert.ok(got.width > 480, "wider than the stack's 480");
+    // The art's width at 100% does not change with the zoom (both reviews' B3/B2: the glyph was measured under the layer's scale): zoom in twice, Fit,
+    // zoom out; at each the art is whole, and the layer's own width, which no transform scales, is the same.
+    const at100 = await page.evaluate((P) => { const pre = document.querySelector(`dialog.${P}-viewer .${P}-text`); return { w: pre.offsetWidth, scroll: pre.scrollWidth, client: pre.clientWidth }; }, P);
+    assert.equal(at100.scroll, at100.client, "the art scrolls nowhere");
+    for (const key of ["=", "=", "0", "-"]) {
+      await page.keyboard.press(key);
+      await page.waitForTimeout(450);
+      await frames(page, 4);
+      const now = await page.evaluate((P) => { const pre = document.querySelector(`dialog.${P}-viewer .${P}-text`); return { art: pre.hasAttribute("data-art"), w: pre.offsetWidth, scroll: pre.scrollWidth, client: pre.clientWidth }; }, P);
+      assert.deepEqual(now, { art: true, w: at100.w, scroll: now.client, client: now.client }, `after ${key}`);
+    }
     await page.close();
   });
 
@@ -201,23 +212,44 @@ describe("stacked (Fable P2, P3, answer 1; the sweep's 66-1 to 66-3)", () => {
     for (const r of got.rules) assert.ok(Math.abs(r.l - r.box[0]) <= 1 && Math.abs(r.w - r.box[1]) <= 1, JSON.stringify(r));
     assert.ok(got.after.length > 0);
     for (const c of got.after) assert.match(c, /rgba\(0, 0, 0, 0\)|transparent/, "the row after a frame draws no divider");
-    // Answer 1: the inner group "Data & logs" is entered by a turn: its label's plate and the turn do not meet.
+    // Answer 1, and the decider's ruling 4 on the re-check: the inner group "Data & logs" is entered by a labelled turn into its first card. The group has
+    // space-12 above that card plus space-4 for each line of the label (two lines: 80); the label lies inside the group's box, at least space-1 under the
+    // group label's line, its lower edge no more than space-4 above its turn; nothing grows above the group for it; and no turn point is under the
+    // group's label.
     const g = await page.evaluate((P) => {
       const group = [...document.querySelectorAll(`#fig-arch .${P}-group`)].find((x) => x.hasAttribute("data-turn"));
       if (!group) return null;
+      const box = group.getBoundingClientRect();
       const label = group.querySelector(`:scope > .${P}-glabel`).getBoundingClientRect();
       const first = group.querySelector(`.${P}-node`);
       const o = document.querySelector(`#fig-arch .${P}-drawing`).getBoundingClientRect();
       const turns = [...document.querySelectorAll(`#fig-arch .${P}-edge`)].filter((e) => e.dataset.to === first.dataset.node).map((e) => {
         const n = e.querySelector(`.${P}-line`).getAttribute("d").match(/-?[\d.]+/g).map(Number);
         const pts = []; for (let k = 0; k + 1 < n.length; k += 2) pts.push({ x: n[k] + o.left, y: n[k + 1] + o.top });
-        return pts;
+        const tag = document.querySelector(`#fig-arch .${P}-label[data-edge="${e.dataset.edge}"]`)?.getBoundingClientRect();
+        // The turn: the last run across, the one into the card.
+        const end = pts.at(-1);
+        const across = [...pts].reverse().find((p, k, all) => k + 1 < all.length && Math.abs(all[k + 1].y - p.y) < 0.5) ?? end;
+        return { pts, turn: across.y, tag: tag && { t: tag.top, b: tag.bottom, l: tag.left, r: tag.right } };
       });
-      return { pad: getComputedStyle(group).paddingTop, label: { t: label.top, b: label.bottom, l: label.left, r: label.right }, turns };
+      return { pad: getComputedStyle(group).paddingTop, grown: group.style.getPropertyValue("--_ggrow"), box: { t: box.top, b: box.bottom, l: box.left, r: box.right }, label: { t: label.top, b: label.bottom, l: label.left, r: label.right }, turns };
     }, P);
     assert.ok(g, "a group whose first card is entered by a turn is marked");
-    assert.equal(g.pad, "48px");
-    for (const pts of g.turns) for (const p of pts) assert.ok(!(p.y > g.label.t && p.y < g.label.b && p.x > g.label.l && p.x < g.label.r), `no turn point under the label ${JSON.stringify(p)}`);
+    assert.equal(g.pad, "80px", "space-12 plus space-4 for each of the label's two lines");
+    assert.equal(g.grown, "", "nothing grows above the group for it");
+    const labelled = g.turns.filter((t) => t.tag);
+    assert.ok(labelled.length > 0, "the turn's label is drawn");
+    for (const t of labelled) {
+      assert.ok(t.tag.t >= g.box.t && t.tag.b <= g.box.b && t.tag.l >= g.box.l - 0.5 && t.tag.r <= g.box.r + 0.5, `inside the group ${JSON.stringify({ tag: t.tag, box: g.box })}`);
+      assert.ok(t.tag.t >= g.label.b + 4 - 0.5, `at least space-1 under the group's label ${JSON.stringify({ tag: t.tag, label: g.label })}`);
+      assert.ok(t.tag.b <= t.turn + 0.5 && t.turn - t.tag.b <= 16 + 0.5, `its lower edge at most space-4 above its turn ${JSON.stringify(t)}`);
+    }
+    for (const t of g.turns) for (const p of t.pts) assert.ok(!(p.y > g.label.t && p.y < g.label.b && p.x > g.label.l && p.x < g.label.r), `no turn point under the label ${JSON.stringify(p)}`);
+    // An unlabelled turn keeps space-12: the same figure with the label taken off the turn's line.
+    const plain = structuredClone(B.architecture);
+    for (const e of plain.edges) if (e.to === "aurora") delete e.label;
+    await draw(page, [{ key: "plain", spec: plain }]);
+    assert.equal(await page.locator(`#fig-plain .${P}-group[data-turn]`).evaluate((x) => getComputedStyle(x).paddingTop), "48px");
     await page.close();
   });
 
@@ -251,6 +283,27 @@ describe("stacked (Fable P2, P3, answer 1; the sweep's 66-1 to 66-3)", () => {
 });
 
 describe("the text sequence (Fable B6, P4, P7; Neon B6)", () => {
+  for (const theme of ["dark", "light"]) test(`${theme}: ruling 3, at 390 a transcript route that wraps breaks before its arrow, and its second line starts with the arrow under the sender`, async () => {
+    const { page } = await reviewPage({ theme, width: 390, height: 900 });
+    await draw(page, [{ key: "text", spec: B.textSequence }]);
+    await page.waitForFunction((P) => document.querySelector(`#fig-text .${P}-tx-line`), P);
+    const routes = await page.evaluate((P) => [...document.querySelectorAll(`#fig-text .${P}-tx-line[data-n]`)].filter((l) => l.querySelector(`.${P}-tx-to`)).map((l) => {
+      const name = l.querySelector(`.${P}-tx-name`).getBoundingClientRect();
+      const to = l.querySelector(`.${P}-tx-to`);
+      const arrow = to.firstElementChild.getBoundingClientRect();
+      return { n: l.dataset.n, runs: to.getClientRects().length, wrapped: arrow.top > name.top + 1, arrowLeft: arrow.left, nameLeft: name.left, arrowTop: arrow.top, nameTop: name.top, lines: Math.round(l.getBoundingClientRect().height / parseFloat(getComputedStyle(l).lineHeight)) };
+    }), P);
+    assert.ok(routes.length > 3);
+    assert.ok(routes.some((r) => r.wrapped), `at 390 some route wraps (Fable measured 1, 8 and 10) ${JSON.stringify(routes)}`);
+    for (const r of routes) {
+      assert.equal(r.runs, 1, `message ${r.n}: the arrow and the receiver never part`);
+      if (r.wrapped) assert.ok(Math.abs(r.arrowLeft - r.nameLeft) <= 0.5, `message ${r.n}: the arrow under the sender ${JSON.stringify(r)}`);
+      else assert.ok(Math.abs(r.arrowTop - r.nameTop) <= 0.5, `message ${r.n}: one line`);
+      assert.ok(r.lines <= 2, `message ${r.n}: two lines at most`);
+    }
+    await page.close();
+  });
+
   test("the transcript: a message's label and note on lines of their own, each hanging under the sender inside its frame's indent; the key's focal swatch is the art's double box", async () => {
     const { page } = await reviewPage({ width: 390, height: 900 });
     await draw(page, [{ key: "text", spec: B.textSequence }]);
@@ -386,19 +439,18 @@ describe("automatic layout and the schema (Neon B8, B9, P1 to P3)", () => {
 });
 
 describe("the sequence's fit and order (Neon B7, P8)", () => {
-  test("a self-call's words that would lie on a frame's side stack the figure; the lifelines are under the frames, the bars and lines over them", async () => {
+  test("words that would lie on a frame's side stack the figure, and only for that; the lifelines are under the frames, the bars and lines over them", async () => {
     const { page } = await reviewPage();
-    const spec = { type: "sequence", title: "t", summary: "s", participants: [{ id: "a", name: "A" }, { id: "b", name: "B" }, { id: "c", name: "C" }],
-      steps: [{ frame: "opt", label: "only", steps: [{ from: "a", to: "b", label: "go" }, { from: "b", to: "b", label: "a self-call whose words are long" }] }, { from: "b", to: "c", label: "on" }] };
-    await draw(page, [{ key: "fit", spec }, { key: "seq", spec: B.sequence }]);
-    const fit = await page.evaluate((P) => {
-      const said = document.querySelector(`#fig-fit .${P}-msg[data-self] .${P}-said`);
-      const box = document.querySelector(`#fig-fit .${P}-fbox`);
-      if (!said || !box) return { layout: document.querySelector("#fig-fit").dataset.layout };
-      const s = said.getBoundingClientRect(), b = box.getBoundingClientRect();
-      return { layout: document.querySelector("#fig-fit").dataset.layout, crosses: s.left < b.right && s.right > b.right };
-    }, P);
-    assert.ok(fit.layout === "stacked" || !fit.crosses, JSON.stringify(fit));
+    // Opus's fixture on the re-check (R2): a note on the first message long enough to run across the start side of the frame below it. Its two controls
+    // fail the test if anything but B7a's rule stacks it: the same note with no frame draws, and a short note with the frame draws.
+    const spec = (note, frame = true) => ({ type: "sequence", title: "t", summary: "s", participants: [{ id: "a", name: "Alpha" }, { id: "b", name: "Bravo" }, { id: "c", name: "Charlie" }],
+      steps: [{ from: "a", to: "b", label: "first", note }, frame ? { frame: "opt", label: "if", steps: [{ from: "b", to: "c", label: "inside" }] } : { from: "b", to: "c", label: "inside" }] });
+    const LONG = "a note long enough to run across the frame's start side and over it by a wide margin";
+    await draw(page, [{ key: "cross", spec: spec(LONG) }, { key: "open", spec: spec(LONG, false) }, { key: "short", spec: spec("n") }, { key: "seq", spec: B.sequence }]);
+    const layout = (key) => page.locator(`#fig-${key}`).getAttribute("data-layout");
+    assert.equal(await layout("open"), "drawn", "the long note with no frame draws: the room rule does not stack it");
+    assert.equal(await layout("short"), "drawn", "a short note with the frame draws");
+    assert.equal(await layout("cross"), "stacked", "the long note over the frame's side stacks the figure");
     const z = await page.evaluate((P) => {
       const fig = document.querySelector("#fig-seq");
       const zi = (sel) => getComputedStyle(fig.querySelector(sel)).zIndex;

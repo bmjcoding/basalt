@@ -236,3 +236,50 @@ describe("batch B's fix round in the skill (Neon B8, B10)", () => {
     assert.ok(!JSON.stringify(out.diagrams ?? []).includes("none of its words say so"), JSON.stringify(out.diagrams));
   });
 });
+
+// Batch B (Opus B12 on the re-check): the same comparison for the extended CIMIP figures (frames, activation bars, cardinality, far keys, groups two
+// deep, the automatic layouts and the text sequence), React against the skill, in both themes at 1440 and 390. Written while browser tests are paused
+// (DECISIONS 330): not run in the round that wrote it.
+const DATA_B = JSON.parse(fs.readFileSync(path.join(pkg, "test", "fixtures", "cimip-diagrams-b.json"), "utf8"));
+const KEYS_B = Object.keys(DATA_B).filter((k) => DATA_B[k]?.type);
+const bodyB = (width = 1104) => `<title>Diagrams B</title><main style="max-width:${width}px;margin:0 auto;padding:16px;display:grid;gap:64px">${KEYS_B.map((k) => `<figure class="diagram" id="fig-${k}"><script type="application/json" data-diagram>${JSON.stringify(DATA_B[k])}</script></figure>`).join("")}</main>`;
+const REACT_B = `
+import data from "./test/fixtures/cimip-diagrams-b.json";
+const C = { architecture: B.ArchitectureDiagram, flowchart: B.FlowchartDiagram, "data-flow": B.DataFlowDiagram, sequence: B.SequenceDiagram, schema: B.SchemaDiagram };
+function Host() { return <main style={{ maxWidth: 1104, margin: "0 auto", padding: 16, display: "grid", gap: 64 }}>{Object.entries(data).filter(([, d]) => d && d.type).map(([key, d]) => { const X = C[d.type]; const { type, ...props } = d; return <X key={key} id={"fig-" + key} {...props} />; })}</main>; }
+createRoot(document.getElementById("root")).render(<Host />);`;
+/** Waits until every figure has settled: at 1440 an automatic layout placed and drawn (no marker says it is still placing, so its drawn layout is the
+ *  sign), and a text sequence's art or transcript written. */
+const settled = (p, prefix, width) => p.waitForFunction(({ prefix, width }) => [...document.querySelectorAll("figure[id^='fig-']")].every((f) => f.getAttribute("data-layout") && (width < 1440 || !/^fig-auto/.test(f.id) || f.getAttribute("data-layout") === "drawn") && (!f.querySelector(`.${prefix}-text`) || f.querySelector(`.${prefix}-text`).children.length)), { prefix, width }, { timeout: 20000 });
+const readB = async (p, key, prefix) => {
+  const fig = await read(p, key, prefix).catch(() => null);
+  const text = await p.evaluate(({ key, prefix }) => { const pre = document.querySelector(`#fig-${key} .${prefix}-text`); return pre ? { art: pre.hasAttribute("data-art"), html: pre.innerHTML.replaceAll(`${prefix}-`, "P-") } : null; }, { key, prefix });
+  return { fig, text };
+};
+
+describe("parity with React, batch B", () => {
+  for (const theme of ["dark", "light"]) for (const width of [1440, 390]) {
+    test(`${theme} at ${width}: batch B's figures have the same layout, ink, boxes, styles and text art`, async () => {
+      const { page: rp, errors: re } = await fixturePage(reactBrowser, REACT_B, { theme, viewport: { width, height: 1000 }, standards: true });
+      await rp.addStyleTag({ content: `${FONTS} *, ::before, ::after { box-sizing: border-box; } body { margin: 0; background: var(--basalt-surface-0); color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); } #root{display:block}` });
+      await rp.evaluate(() => document.fonts.ready);
+      const skill = await openHtml(browser, compose(bodyB()).html, { scheme: theme, width });
+      await settled(rp, "basalt-diagram", width);
+      await settled(skill.page, "diagram", width);
+      for (const key of KEYS_B) {
+        const a = await readB(rp, key, "basalt-diagram");
+        const b = await readB(skill.page, key, "diagram");
+        assert.deepEqual(b.text, a.text, `${key}: the text art`);
+        if (!a.fig) continue;
+        assert.equal(b.fig.layout, a.fig.layout, `${key}: layout`);
+        assert.deepEqual(b.fig.boxes, a.fig.boxes, `${key}: node boxes`);
+        assert.equal(b.fig.ink, a.fig.ink, `${key}: the ink`);
+        assert.deepEqual(b.fig.styles, a.fig.styles, `${key}: computed styles`);
+      }
+      assert.deepEqual(re, []);
+      assert.deepEqual(skill.errors, []);
+      await rp.close();
+      await skill.context.close();
+    });
+  }
+});
