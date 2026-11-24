@@ -1,6 +1,17 @@
-// Public and scene types for @srasyndicate/basalt/diagram-interop (DECISIONS 311, 314).
+// Public and scene types for @srasyndicate/basalt/diagram-interop (DECISIONS 311, 314, 324, 327).
 // Pure structural declarations: no third-party or Node types appear anywhere in this surface.
-import type { DiagramLineKind, DiagramSide, DiagramSpec, DiagramType, Geo, MColumn, Pt, Rect } from "../diagram-core";
+import type {
+  DiagramCardinality,
+  DiagramLineKind,
+  DiagramPlacement,
+  DiagramSide,
+  DiagramSpec,
+  DiagramType,
+  Geo,
+  MColumn,
+  Pt,
+  Rect,
+} from "../diagram-core";
 
 export type InteropFormat = "drawio" | "vsdx" | "lucid" | "lucid-json";
 export type InteropTheme = "light" | "dark" | "adaptive";
@@ -22,11 +33,16 @@ export interface InteropOptions {
   pad?: number;
   /** Deterministic diagram identifier written to the exported page/diagram element. */
   diagramId?: string;
+  /** Pre-computed placement(s) for `layout: "auto"` specs; defaults to `spec.placement` when present. */
+  placement?: DiagramPlacement | DiagramPlacement[];
+  /** Measurement engine recorded in exported file metadata (e.g. `"Chromium 146.0.7680.16"` or `"Basalt headless (approximate)"`). */
+  measuredBy?: string;
 }
 
 export interface MeasuredGroup {
   id: string;
   label: string;
+  depth?: number;
   rect: Rect;
 }
 
@@ -43,11 +59,28 @@ export interface MeasuredBand {
   rect: Rect;
 }
 
+export interface MeasuredFrameDivider {
+  y: number;
+  h: number;
+  label: string;
+}
+
+export interface MeasuredFrame {
+  operator: "opt" | "loop" | "alt" | "par";
+  label: string;
+  depth: number;
+  parentIndex?: number;
+  rect: Rect;
+  tabRect?: Rect;
+  dividers: MeasuredFrameDivider[];
+}
+
 /** Optional DOM measurements that accompany `Geo` when exporting a live rendered figure. */
 export interface MeasuredExtras {
   groups?: MeasuredGroup[];
   lanes?: MeasuredLane[];
   bands?: MeasuredBand[];
+  frames?: MeasuredFrame[];
   /** Vertical midpoints of each table's column rows in drawing coordinates, keyed by table name. */
   tableRows?: Record<string, number[]>;
 }
@@ -122,8 +155,11 @@ export interface SceneNode {
 export interface SceneGroup {
   id: string;
   label: string;
+  parent?: string;
+  depth: number;
   box: SceneBox;
   members: string[];
+  childGroups?: string[];
 }
 
 export interface SceneLane {
@@ -148,6 +184,32 @@ export interface SceneBand {
   w: number;
 }
 
+export interface SceneFrameDivider {
+  y: number;
+  h: number;
+  label: string;
+}
+
+export interface SceneFrame {
+  id: string;
+  operator: "opt" | "loop" | "alt" | "par";
+  label: string;
+  depth: number;
+  parentId?: string;
+  box: SceneBox;
+  tabBox: SceneBox;
+  dividers: SceneFrameDivider[];
+}
+
+export interface SceneBar {
+  id: string;
+  participantId: string;
+  fromMsg: number;
+  toMsg: number;
+  depth: number;
+  box: SceneBox;
+}
+
 export interface SceneLabel {
   text: string;
   note?: string;
@@ -163,10 +225,15 @@ export interface SceneEdge {
   to: string;
   /** When true, `from` and `to` name lifeline participant ids rather than node boxes. */
   sequence?: boolean;
+  /** When set on a sequence edge, that end glues to the activation bar box instead of the bare lifeline. */
+  fromBarId?: string;
+  toBarId?: string;
   /** For schema foreign keys: source and target column row indices. */
   fromRow?: number;
   toRow?: number;
   fk: boolean;
+  /** Schema crow's-foot cardinality at each end (replaces dot and arrow when present). */
+  card?: { from: DiagramCardinality; to: DiagramCardinality };
   kind: DiagramLineKind;
   openTip: boolean;
   fromPort: ScenePort;
@@ -187,11 +254,14 @@ export interface InteropScene {
   width: number;
   height: number;
   pad: number;
+  measuredBy?: string;
   nodes: SceneNode[];
   groups: SceneGroup[];
   lanes: SceneLane[];
   lifelines: SceneLifeline[];
   bands: SceneBand[];
+  frames: SceneFrame[];
+  bars: SceneBar[];
   edges: SceneEdge[];
 }
 
@@ -277,7 +347,15 @@ export interface LucidShape {
   zIndex?: number;
 }
 
-export type LucidEndpointStyle = "none" | "arrow" | "openArrow" | "closedCircle";
+export type LucidEndpointStyle =
+  | "none"
+  | "arrow"
+  | "openArrow"
+  | "closedCircle"
+  | "exactlyOne"
+  | "zeroOrOne"
+  | "oneOrMore"
+  | "zeroOrMore";
 
 export type LucidEndpoint =
   | { type: "shapeEndpoint"; style: LucidEndpointStyle; shapeId: string; position: { x: number; y: number } }
@@ -320,4 +398,4 @@ export interface LucidDocument {
   pages: LucidPage[];
 }
 
-export type { DiagramSpec, Geo };
+export type { DiagramCardinality, DiagramPlacement, DiagramSpec, Geo };

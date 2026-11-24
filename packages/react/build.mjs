@@ -117,6 +117,7 @@ await esbuild.build({
   entryPoints: [path.join(here, "src/diagram-interop.ts")],
   outdir: dist,
   external,
+  plugins: [{ name: "lazy-diagram-layout", setup(build) { build.onResolve({ filter: /^\.\/diagram-layout$/ }, (args) => (args.kind === "dynamic-import" ? { path: "./diagram-layout.js", external: true } : undefined)); } }],
   define: {
     "process.env.NODE_ENV": '"production"',
     __BASALT_EMBEDDABLE_MARKS__: JSON.stringify(JSON.stringify(embeddableMarks)),

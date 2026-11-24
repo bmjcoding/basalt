@@ -1,13 +1,14 @@
-// @srasyndicate/basalt/diagram-interop (DECISIONS 311, 314)
+// @srasyndicate/basalt/diagram-interop (DECISIONS 311, 314, 324, 327)
 // Deterministic, zero-dependency exporters from Basalt's diagram model (or a live figure's measured Geo)
 // to draw.io (.drawio), Microsoft Visio (.vsdx), and Lucid Standard Import (.lucid and JSON).
 // Lives on a separate subpath outside the package index so still diagrams pay zero bytes for it.
-import type { DiagramSpec, Geo } from "./diagram-core";
+import type { DiagramPlacement, DiagramSpec, Geo } from "./diagram-core";
 import { sceneToDrawio } from "./interop/drawio";
 import { sceneToLucid, sceneToLucidJson } from "./interop/lucid";
 import { bundledMarkAttribution, isBundledMarkEmbeddable, layoutHeadless, readMeasuredExtras, sceneFromMeasured } from "./interop/scene";
 import { sceneToVsdx } from "./interop/vsdx";
 import type {
+  DiagramCardinality,
   InteropFormat,
   InteropMarkResolver,
   InteropMarksMode,
@@ -32,12 +33,17 @@ import type {
   LucidTableCell,
   MeasuredBand,
   MeasuredExtras,
+  MeasuredFrame,
+  MeasuredFrameDivider,
   MeasuredGroup,
   MeasuredInteropOptions,
   MeasuredLane,
   SceneBand,
+  SceneBar,
   SceneBox,
   SceneEdge,
+  SceneFrame,
+  SceneFrameDivider,
   SceneGroup,
   SceneLabel,
   SceneLane,
@@ -47,6 +53,31 @@ import type {
   ScenePort,
   SceneTableRow,
 } from "./interop/types";
+
+/**
+ * Places a `layout: "auto"` diagram through `@srasyndicate/basalt/diagram-layout` (elkjs, loaded on demand)
+ * and returns a shallow copy of `spec` with `placement` populated. Non-auto or already-placed specs are returned as-is.
+ */
+export async function placeAutoDiagram(spec: DiagramSpec): Promise<DiagramSpec> {
+  if (spec.layout !== "auto" || spec.placement) return spec;
+  if (spec.type !== "architecture" && spec.type !== "flowchart" && spec.type !== "schema") return spec;
+  const { placeDiagram } = await import("./diagram-layout");
+  const order: Array<"right" | "down"> = spec.direction
+    ? [spec.direction]
+    : spec.type === "flowchart"
+      ? ["down", "right"]
+      : ["right", "down"];
+  const input = {
+    type: spec.type,
+    nodes: spec.nodes as Array<{ id: string; group?: string }> | undefined,
+    tables: spec.tables,
+    edges: spec.edges,
+    groups: spec.groups,
+  };
+  const placements: DiagramPlacement[] = [];
+  for (const dir of order) placements.push(await placeDiagram(input, dir));
+  return { ...spec, placement: placements };
+}
 
 /** Exports a Basalt diagram spec directly to uncompressed `.drawio` XML (valid against mxfile-1.0.xsd). */
 export function diagramToDrawio(spec: DiagramSpec, options: InteropOptions = {}): string {
@@ -90,6 +121,8 @@ export function exportMeasuredDiagram(spec: DiagramSpec, geo: Geo, format: Inter
 export { bundledMarkAttribution, isBundledMarkEmbeddable, layoutHeadless as measureDiagramHeadless, readMeasuredExtras };
 
 export type {
+  DiagramCardinality,
+  DiagramPlacement,
   DiagramSpec,
   Geo,
   InteropFormat,
@@ -116,12 +149,17 @@ export type {
   LucidTableCell,
   MeasuredBand,
   MeasuredExtras,
+  MeasuredFrame,
+  MeasuredFrameDivider,
   MeasuredGroup,
   MeasuredInteropOptions,
   MeasuredLane,
   SceneBand,
+  SceneBar,
   SceneBox,
   SceneEdge,
+  SceneFrame,
+  SceneFrameDivider,
   SceneGroup,
   SceneLabel,
   SceneLane,
