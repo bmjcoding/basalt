@@ -1539,7 +1539,9 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   if (oneColumnTurnBacks(m)) {
     // Where marks are drawn the first lane is space-6 out, so the padding is space-6 plus space-1 (1.1).
     const first = m.marks ? "var(--basalt-space-6) + var(--basalt-space-1)" : "var(--basalt-space-5)";
-    style.push(`--_gpad:0px ${turnBackLanes(m).lanes > 1 ? `calc(${first} + var(--basalt-space-3))` : m.marks ? `calc(${first})` : first} 0px 0px`);
+    const room = turnBackLanes(m).lanes > 1 ? `calc(${first} + var(--basalt-space-3))` : m.marks ? `calc(${first})` : first;
+    // On the end side: the left, right to left (1.7).
+    style.push(m.rtl ? `--_gpad:0px 0px 0px ${room}` : `--_gpad:0px ${room} 0px 0px`);
   }
   if (m.type === "schema" && dyn.track) style.push(`--_track:${dyn.track}px`);
   return h("figure", {
@@ -2121,8 +2123,14 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     sides = m.edges.map((e) => {
       const a = m.byId.get(e.from)!, b = m.byId.get(e.to)!;
       // One column: a turn-back on the end side (the start side in the last column, where the end is the drawing's edge). A schema of one column has no
-      // gutter on either side, so its turn-backs take the end side and the drawing keeps room for them there (figureTree).
-      if (a.col === b.col) { const side: DiagramSide = a.col === m.cols && m.cols > 1 ? "left" : "right"; return [side, side]; }
+      // gutter on either side, so its turn-backs take the end side and the drawing keeps room for them there (figureTree). Right to left the model's
+      // columns are mirrored, so the end side is the left and the last column is column 1 (1.7).
+      if (a.col === b.col) {
+        const last = m.rtl ? a.col === 1 : a.col === m.cols;
+        const atEnd = !(last && m.cols > 1);
+        const side: DiagramSide = atEnd === !m.rtl ? "right" : "left";
+        return [side, side];
+      }
       return b.col > a.col ? ["right", "left"] : ["left", "right"];
     });
   } else {
@@ -2395,7 +2403,9 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
   }
   // Lanes in a marked gutter (1.1): none nearer a table than the zone plus radius-xs (18), centred and evenly spaced at the merged pitch or the pitch
   // that puts the outer lanes 18 from the tables, whichever is less: one at 30, two at 20 and 40, three at 18, 30 and 42 in the 60 gap.
-  const laneAt = (span: [number, number], j: number, count: number) => {
+  // Right to left a column gutter's lanes are counted from its right, so the lanes chosen mirror the left-to-right ones (1.7: the gutter is logical).
+  const laneAt = (span: [number, number], at: number, count: number, vertical = false) => {
+    const j = m.rtl && vertical ? count - 1 - at : at;
     const width = span[1] - span[0];
     if (!m.marks) return span[0] + (width / (count + 1)) * (j + 1);
     const room = tk.foot + tk.radiusXs;
@@ -2425,7 +2435,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
         // least kept (the first-fit one wins a tie).
         const need = needOf(cluster), beside = besideIn(cluster), n = cluster.length;
         const inGutter = new Set(groupsOf.flat().map(edgeOf));
-        const set = (slots: number[]) => slots.forEach((l, i) => groupsOf[i]!.forEach((k) => lanes.set(k, laneAt(g.span, l, need))));
+        const set = (slots: number[]) => slots.forEach((l, i) => groupsOf[i]!.forEach((k) => lanes.set(k, laneAt(g.span, l, need, g.vertical))));
         let best = firstFit(cluster), bestScore = Infinity, bestLines: GLine[] | null = null;
         const tries: number[][] = [best];
         if (need ** n <= 729) for (let code = 0; code < need ** n; code++) {
@@ -2446,11 +2456,11 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
       const inGutter = new Set(groupsOf.flat().map(edgeOf));
       let best: number[][] = groupsOf, bestScore = Infinity, bestLines: GLine[] | null = null;
       for (const perm of permutations(groupsOf)) {
-        perm.forEach((members, j) => members.forEach((k) => lanes.set(k, laneAt(g.span, j, count))));
+        perm.forEach((members, j) => members.forEach((k) => lanes.set(k, laneAt(g.span, j, count, g.vertical))));
         const tried = score(inGutter);
         if (tried.score < bestScore) { bestScore = tried.score; best = perm; bestLines = tried.lines; }
       }
-      best.forEach((members, j) => members.forEach((k) => lanes.set(k, laneAt(g.span, j, count))));
+      best.forEach((members, j) => members.forEach((k) => lanes.set(k, laneAt(g.span, j, count, g.vertical))));
       current = bestLines;
     }
   }
