@@ -42,7 +42,9 @@
   .release-head-text > .release-heading:not([data-headline]) ~ .release-meta { grid-row: 3; }
   .release-head-text > :not(.release-word) ~ * { margin-top: var(--basalt-space-1); }
   /* A ghost button at the column's edge puts its words on the edge: its plate hangs space-2-5 past it (sweep 68-1). */
-  .release-head > .release-copy { grid-column: 2; grid-row: 2; align-self: center; margin-block: calc(-1 * var(--basalt-size-tap-min)); margin-inline-end: calc(-1 * var(--basalt-space-2-5)); }
+  .release-head > .release-copy { grid-column: 2; grid-row: 2; align-self: center; margin-block: calc(-1 * var(--basalt-size-tap-min)); }
+  /* Release notes have no padding of their own: "Copy link" hangs into the page's gutter where the page says it (DECISIONS 336, the open items' ruling). */
+  :is(.page, .page > .section) > .release-notes { --basalt-edge-room: var(--basalt-gutter); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; }
   .release-heading { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-2xl-size) / var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-2xl-tracking); text-wrap: balance; overflow-wrap: break-word; }
   /* The number standing alone is mono; in a line with its date (a headline's meta line) it is Geist, as at the foot. */
   .release-version { font-family: var(--basalt-font-family-mono); letter-spacing: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }

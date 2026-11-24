@@ -60,7 +60,7 @@ const APP = `<div class="app-shell" data-tabbar>
     <li><button class="tab-bar-item" type="button" data-dialog-open="#more" aria-label="More"><span class="tab-bar-glyph"><span data-glyph="more-nav" data-size="24"></span></span><span class="tab-bar-label">More</span></button></li>
   </ul></nav>
 </div>
-<dialog class="panel float modal sheet" id="more" data-side="bottom"><div class="tab-bar-sheet-head"><h2 class="dialog-title">More</h2><button class="btn" data-variant="ghost" data-icon-only aria-label="Close more" data-dialog-close><span data-glyph="close"></span></button></div>
+<dialog class="panel float modal sheet" id="more" data-side="bottom"><div class="tab-bar-sheet-head"><h2 class="dialog-title">More</h2><button class="btn" data-variant="ghost" data-icon-only data-edge="end" aria-label="Close more" data-dialog-close><span data-glyph="close"></span></button></div>
   <nav class="nav" aria-label="More"><ul class="nav-list"><li><a class="nav-item" href="#settings" id="more-settings"><span class="nav-pill"><span data-glyph="settings" data-size="24"></span><span class="nav-label">Settings</span></span></a></li></ul></nav></dialog>
 <script>document.getElementById('toast-btn').addEventListener('click', function () { Basalt.toast({ title: 'Saved', status: 'success' }); });</script>`;
 

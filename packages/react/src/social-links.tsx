@@ -53,6 +53,8 @@ export interface SocialLinksProps extends React.ComponentProps<"ul"> {
  */
 export function SocialLinks({ size = 16, iconOnly = false, className, children, ...props }: SocialLinksProps) {
   const value = React.useMemo(() => ({ size, iconOnly }), [size, iconOnly]);
+  // An icon-only row's links all carry edge="start", and the stylesheet gives room to the first rendered item alone (DECISIONS 336, S9), so links in a
+  // fragment or a component that returns several are told apart by where they land, not by how they were written (the code review's finding 2).
   return (
     <ul {...props} data-icon-only={iconOnly ? "" : undefined} className={join("basalt-social-links", className)}>
       <RowContext.Provider value={value}>{children}</RowContext.Provider>
@@ -81,7 +83,7 @@ export function SocialLink({ service, children, target, rel, newTabLabel, classN
   if (row.iconOnly && mark) {
     return (
       <li className="basalt-social-item">
-        <IconButton variant="ghost" size="md" icon={mark} label={children} newTabLabel={newTabLabel} nativeButton={false} render={<a {...props} target={target} rel={rel} />} />
+        <IconButton variant="ghost" size="md" edge="start" icon={mark} label={children} newTabLabel={newTabLabel} nativeButton={false} render={<a {...props} target={target} rel={rel} />} />
       </li>
     );
   }

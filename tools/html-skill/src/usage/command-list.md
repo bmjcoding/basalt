@@ -17,5 +17,5 @@ Items are the palette's (`label`, `icon`, `keys`, `keywords`, `danger`, `href`, 
 - `data-label` names the region and the Back button; `data-noun` is what the foot counts ("9 commands", "3 of 9", spoken once after 400ms).
 - Focus stays in the field (a combobox): ↑ ↓ wrap, ↵ runs the row (in a split it runs the pane's first button), Esc clears the search and then does nothing, Tab leaves. Nothing is focused on load. The lit row shows only while the field has focus or the pointer is over the list.
 - A search ranks title matches above description and keyword matches, each in the order given.
-- It keeps its height while you filter, up to 360px, then scrolls; no match is one sentence and a Clear button.
+- The panel is as tall as its matches, up to 360px, then scrolls; on the open page its unfiltered height stays as page under it. In a panel, dialog or popover (or with `data-reserve="off"`) it holds no room. No match is one sentence and a Clear button.
 - ⌘K focuses the field on a page with no palette; with a palette on the page, ⌘K is the palette's. One owner.

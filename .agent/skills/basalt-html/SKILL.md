@@ -9,14 +9,14 @@ Standalone HTML that looks and behaves like Basalt: one file, no network, dark a
 
 ## Use it
 
-1. Pick modules from the index below and print their usage in one call, always with core: `node .agent/skills/basalt-html/compose.mjs --usage core table status callout`. Core is the classes every page uses. Each usage also names the modules it needs and the markup that adds it. `--usage` alone prints the index.
-2. Write the **body** to a file such as `report.body.html`: the HTML inside `<body>`, with the classes the usage names. It may carry `<title>` (else the first `<h1>`), your own `<style>`, and head tags: `<meta name="description">`, `og:`/`twitter:` meta, `<link rel="icon" href="data:…">` or `canonical` (no other meta or link); the script adds `Basalt.init()` unless your `<script>` calls it.
-3. Run `node .agent/skills/basalt-html/compose.mjs report.body.html` (writes `report.html`; `--out <page.html>` names it). It adds the doctype, meta and theme bootstrap, Geist inlined, the core, only the modules your markup uses, and the icons you name in quotes. It prints what it added, and one warning line for each module added. `--no-fonts` skips Geist (only for a file a tool reads, never a file a person opens), `--lang fr` sets the language, `--all` adds every module.
+1. Pick modules from the index below and print their usage in one call, always with core: `node .agent/skills/basalt-html/compose.mjs --usage core table status callout`. Each usage names the modules it needs and the markup that adds it. `--usage` alone prints the index.
+2. Write the **body** to a file: the HTML inside `<body>`, with the classes the usage names. It may carry `<title>` (else the first `<h1>`), your own `<style>`, and head tags: `<meta name="description">`, `og:`/`twitter:` meta, `<link rel="icon" href="data:…">` or `canonical` (no other meta or link); the script adds `Basalt.init()` unless your `<script>` calls it.
+3. Run `node .agent/skills/basalt-html/compose.mjs report.body.html` (writes `report.html`; `--out <page.html>` names it). It adds the doctype, meta and theme bootstrap, Geist inlined, the core, only the modules your markup uses, and the icons you name in quotes. It prints what it added, and one warning line for each module added. `--no-fonts` skips Geist (for a file only a tool reads), `--lang fr` sets the language, `--all` adds every module.
 4. Open the page in both themes at 1440 and 390 wide before you hand it over. It follows the system theme; the toggle or `Basalt.toggleTheme()` switches it.
 
 **Data you did not write** (a file, an API, a user) goes in as `textContent`; a link from it passes `Basalt.safeHref` (relative, http, https, mailto, tel); an option comes from a fixed list. Never into markup, a `<script>`, `style` or an `on…` attribute.
 
-`examples/static.body.html`, `sales.body.html` (reports) and `interactive.body.html` (inputs, tabs, a palette) are bodies to copy. Never open or paste `parts/`: it is minified output.
+`examples/static.body.html`, `sales.body.html` (reports) and `interactive.body.html` are bodies to copy. Never open or paste `parts/`: it is minified output.
 
 ## Modules
 
@@ -104,6 +104,7 @@ Your CSS goes in a body `<style>` (moved after Basalt's), with `--basalt-*` toke
 - **Type:** Geist and Geist Mono, weights 400, 500 and 600 only. Mono for identifiers, code, numbers in logs.
 - **Levels, rim, nesting.** A panel (`.panel`, `.card`, `.callout`, `.code`, `.table-wrap`) is one level above what holds it, capped at 3, with a 1px rim and no shadow. Level is position, not importance: a hero is level 1. Group with space and dividers first; a panel is for a distinct object; at most one panel deep. Only things that leave the flow (menu, popover, dialog) take `.float` and a shadow.
 - **Keys.** No single-character shortcuts on the page (WCAG 2.1.4): a shortcut needs ⌘, ⌃ or ⌥.
+- **Edges.** A ghost `.btn` that starts or ends a head takes `data-edge="start"` or `"end"`, never a hand margin.
 - **Selected** is a shape or weight, never a wash alone: a segment or tab label at 600 (400 at rest) on its pill or underline, a row's filled background, a checked box. No vertical bar; an outline never marks a state.
 - **Both themes, always.** WCAG 2.2 AA: 4.5:1 text, 3:1 boundaries, focus and icons (the tokens pass; add no colours).
 - **Motion** from the tokens only; entries ease out, nothing overshoots; under reduced motion, opacity only. A press is a colour step; only `.btn` scales (`--usage core`).

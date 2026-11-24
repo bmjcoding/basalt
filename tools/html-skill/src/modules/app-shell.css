@@ -63,7 +63,8 @@
     box-sizing: border-box;
     min-width: 0;
     max-width: var(--basalt-size-page-width);
-    padding: var(--basalt-space-6) var(--bh-pad-right) var(--basalt-space-16) var(--bh-pad-left);
+    padding-block: var(--basalt-space-6) var(--basalt-space-16);
+    padding-inline: var(--bh-pad-start) var(--bh-pad-end);
   }
 
   /* The header over the content column: sticky to the document, the page title (18/26 at 600), then the actions. */
@@ -74,7 +75,7 @@
     gap: var(--basalt-space-2);
     height: calc(var(--basalt-size-header) - var(--basalt-size-hairline));
     padding-top: var(--basalt-size-hairline);
-    padding-inline: var(--bh-pad-left) var(--bh-pad-right);
+    padding-inline: var(--bh-pad-start) var(--bh-pad-end);
   }
   .app-title {
     min-width: 0;

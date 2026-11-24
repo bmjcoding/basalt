@@ -24,7 +24,7 @@ export interface ChartSeries {
   /** The series' name: it is in the legend, in the direct label and in every spoken sentence. */
   name: string;
   values: Array<number | null>;
-  /** Why a day was not observed, per day: "not worn, travel". It is said in the lane, the summary, the readout and the table. */
+  /** Why a day was not observed, per day: "not worn, travel". It is said in the lane (where it fits), the date line, the summary, the day's description and the table; the legend says "Not observed" alone. */
   reasons?: Array<string | null | undefined>;
 }
 
@@ -773,19 +773,32 @@ function planText(plan: ChartPlan, p: number | readonly [number, number] | null 
   return typeof p === "number" ? format(p) : `${format(p[0])}–${format(p[1])}`;
 }
 
+/**
+ * The forms a legend value reserves, so no key moves on any day (DECISIONS 336, Q2): each of its numbers (digits as zeros: the numerals are tabular), and
+ * "Not observed" for a series that can be missing. A gap's reason is never one of them: the legend does not carry it.
+ */
+export function legendForms(values: ReadonlyArray<number | null | undefined>, n: number, text: (value: number, index: number) => string): string[] {
+  const forms: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const v = values[i];
+    if (v != null) forms.push(shapeOf(text(v, i)));
+  }
+  return unique(values.some((v) => v == null) ? forms.concat(NOT_OBSERVED) : forms);
+}
+
 function Readout({ series, plan, bar, n, shown, active, partial, partialLabel, partialSuffix, format, formatPlan, formats, stamps, idBase }: ReadoutProps) {
   const dateOf = (i: number) => formats.withDay.format(at(stamps, i));
+  // On a day a series was not observed the date line says why ("Wed, Oct 21 · scale not used"), as the headline's context line does: the legend never
+  // carries a gap's reason, and the lane cuts it where it does not fit (the pixel review's finding 1). The first missing series with a reason says it.
+  const reasonOf = (i: number) => series.find((s) => s.values[i] == null && s.reasons?.[i])?.reasons?.[i] ?? undefined;
+  const dateText = (i: number, latest: boolean) => `${latest ? "Latest · " : ""}${dateOf(i)}${reasonOf(i) ? ` · ${reasonOf(i)}` : ""}`;
+  const textOf = (v: number, i: number) => `${format(v)}${i === partial ? ` ${partialSuffix}` : ""}`;
+  // A day that was not observed says so and no more: its reason is in the lane, the summary, the table's note and the day's description (DECISIONS 336, Q2).
   const valueOf = (s: ChartSeries, i: number) => {
     const v = s.values[i];
-    // A day that was not observed says why, in the lane's own words ("Not observed · not worn, travel").
-    return v == null ? (s.reasons?.[i] ? `${NOT_OBSERVED} · ${s.reasons[i]}` : NOT_OBSERVED) : `${format(v)}${i === partial ? ` ${partialSuffix}` : ""}`;
+    return v == null ? NOT_OBSERVED : textOf(v, i);
   };
-  // Each value reserves the widest of its forms (digits as zeros: the numerals are tabular), so a new day moves nothing.
-  const reserveFor = (s: ChartSeries) => {
-    const forms: string[] = [];
-    for (let i = 0; i < n; i++) forms.push(shapeOf(valueOf(s, i)));
-    return unique(forms.concat(s.values.some((v) => v == null) ? [NOT_OBSERVED] : []));
-  };
+  const reserveFor = (s: ChartSeries) => legendForms(s.values, n, textOf);
   const planForms = (): string[] => {
     if (!plan) return [];
     const forms: string[] = [];
@@ -804,8 +817,8 @@ function Readout({ series, plan, bar, n, shown, active, partial, partialLabel, p
   return (
     <div className="basalt-chart-key">
       <p className="basalt-chart-date">
-        {unique(Array.from({ length: n }, (_, k) => shapeOf(`Latest · ${dateOf(k)}`))).map((form) => <span key={form} className="basalt-chart-reserve" aria-hidden="true">{form}</span>)}
-        <span>{active === null ? "Latest · " : ""}{dateOf(i)}</span>
+        {unique(Array.from({ length: n }, (_, k) => [shapeOf(dateText(k, true)), shapeOf(dateText(k, false))]).flat()).map((form) => <span key={form} className="basalt-chart-reserve" aria-hidden="true">{form}</span>)}
+        <span>{dateText(i, active === null)}</span>
       </p>
       <ul className="basalt-chart-legend" aria-label="Key">
         {series.map((s, k) => (

@@ -5,6 +5,7 @@ import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
 import { Button, IconButton } from "./button";
+import type { ButtonEdge } from "./button";
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "./feedback";
 import { ControlIcon, loadFlight } from "./control-icon";
 import { ChevronDownGlyph } from "./glyphs/chevron-down";
@@ -75,6 +76,11 @@ interface ListParts {
 }
 
 export interface NotificationCenterProps extends ListParts {
+  /**
+   * The bell is a ghost icon button: when it is the last control of a bar (`AppHeader`'s last action, `SiteHeader`'s last tool), give it
+   * `edge="end"` so its glyph goes on the bar's line (DECISIONS 336).
+   */
+  edge?: ButtonEdge;
   /** "View all" was pressed (the app's own page). With `viewAllHref` it is a link as well. */
   onViewAll?: () => void;
   viewAllHref?: string;
@@ -127,7 +133,7 @@ function drawn(entries: readonly NotificationEntry[]): NotificationEntry[] {
  * On a phone the bell gives way to a page: put `NotificationList` on the app's own page and link to it from the tab bar (`TabBarItem`
  * with `NotificationsGlyph` and its `dot`), the same page "View all" opens.
  */
-export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, onClearAll, onViewAll, viewAllHref, label = "Notifications", open, defaultOpen, onOpenChange, side = "bottom", align = "end", className }: NotificationCenterProps) {
+export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, onClearAll, onViewAll, viewAllHref, label = "Notifications", open, defaultOpen, onOpenChange, side = "bottom", align = "end", edge, className }: NotificationCenterProps) {
   const entries = drawn(given);
   const unread = unreadCount(entries);
   const popup = React.useRef<PopupActions | null>(null);
@@ -138,13 +144,13 @@ export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, on
       <PopoverTrigger
         className="basalt-notifications-trigger"
         data-unread={unread > 0 ? "" : undefined}
-        render={<IconButton icon={NotificationsGlyph} label={unread > 0 ? `${label}, ${unread} unread` : label} className={className} />}
+        render={<IconButton icon={NotificationsGlyph} label={unread > 0 ? `${label}, ${unread} unread` : label} edge={edge} className={className} />}
       />
       <PopoverContent side={side} align={align} className="basalt-notifications">
         <div className="basalt-notifications-head">
           <PopoverTitle className="basalt-notifications-title">{label}</PopoverTitle>
           <span className="basalt-notifications-count">{unread} unread</span>
-          <MarkAllRead unread={unread} onMarkAllRead={onMarkAllRead} />
+          <MarkAllRead unread={unread} onMarkAllRead={onMarkAllRead} edge="end" />
         </div>
         {entries.length === 0 ? (
           <p className="basalt-notifications-empty">Nothing yet.</p>
@@ -156,13 +162,13 @@ export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, on
           </div>
         )}
         <div className="basalt-notifications-foot">
-          <ClearAll count={entries.length} onClearAll={onClearAll} />
+          <ClearAll count={entries.length} onClearAll={onClearAll} edge="start" />
           {viewAllHref ? (
-            <a className="basalt-button" data-variant="ghost" data-size="sm" href={viewAllHref} onClick={() => { onViewAll?.(); leave(); }}>
+            <a className="basalt-button" data-variant="ghost" data-size="sm" data-edge="end" href={viewAllHref} onClick={() => { onViewAll?.(); leave(); }}>
               <span className="basalt-button-label">View all</span>
             </a>
           ) : (
-            <Button variant="ghost" size="sm" onClick={() => { onViewAll?.(); leave(); }}>View all</Button>
+            <Button variant="ghost" size="sm" edge="end" onClick={() => { onViewAll?.(); leave(); }}>View all</Button>
           )}
         </div>
       </PopoverContent>
@@ -216,20 +222,20 @@ export function NotificationList({ entries: given, onSelect, onMarkAllRead, onCl
   );
 }
 
-function MarkAllRead({ unread, onMarkAllRead }: { unread: number; onMarkAllRead?: () => void }) {
+function MarkAllRead({ unread, onMarkAllRead, edge }: { unread: number; onMarkAllRead?: () => void; edge?: ButtonEdge }) {
   // Stays mounted and keeps focus when nothing is left to mark, as Clear does: disabled in place.
   return (
-    <Button variant="ghost" size="sm" className="basalt-notifications-mark" disabled={unread === 0} focusableWhenDisabled onClick={() => onMarkAllRead?.()}>
+    <Button variant="ghost" size="sm" edge={edge} className="basalt-notifications-mark" disabled={unread === 0} focusableWhenDisabled onClick={() => onMarkAllRead?.()}>
       Mark all as read
     </Button>
   );
 }
 
-function ClearAll({ count, onClearAll }: { count: number; onClearAll?: () => void }) {
+function ClearAll({ count, onClearAll, edge }: { count: number; onClearAll?: () => void; edge?: ButtonEdge }) {
   if (!onClearAll) return null;
   // At the foot's start, apart from View all; stays mounted and keeps focus when nothing is left, as Mark all as read does.
   return (
-    <Button variant="ghost" size="sm" className="basalt-notifications-clear" disabled={count === 0} focusableWhenDisabled onClick={() => onClearAll()}>
+    <Button variant="ghost" size="sm" edge={edge} className="basalt-notifications-clear" disabled={count === 0} focusableWhenDisabled onClick={() => onClearAll()}>
       Clear all
     </Button>
   );

@@ -647,7 +647,9 @@ describe("Terminal", () => {
     await stubClipboard(page);
     await page.getByRole("button", { name: "Copy commands" }).click();
     assert.deepEqual(await page.evaluate(() => window.copied), [COMMANDS]);
-    assert.equal(await page.getByRole("button", { name: "Copied" }).count(), 1, "the name changes to Copied");
+    // DECISIONS 336, Q5: the words hold and the glyph says it; the status line says "Copied".
+    assert.equal(await page.getByRole("button", { name: "Copy commands" }).first().getAttribute("data-done"), "", "the glyph is the check");
+    assert.equal(await page.locator(".basalt-terminal [role=status]").first().innerText(), "Copied");
     await page.close();
   });
 

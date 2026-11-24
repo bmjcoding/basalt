@@ -86,7 +86,7 @@
     width: 100%;
     max-width: var(--basalt-size-page-width);
     margin-inline: auto;
-    padding-inline: max(var(--basalt-gutter), env(safe-area-inset-left, var(--basalt-space-0))) max(var(--basalt-gutter), env(safe-area-inset-right, var(--basalt-space-0)));
+    padding-inline: max(var(--basalt-gutter), var(--bh-inset-start)) max(var(--basalt-gutter), var(--bh-inset-end));
   }
   /* The rhythm: sections are one section gap apart, the first starts half a gap below the bar and the page ends a gap above its footer. */
   .page-sections { display: block; padding-block-end: var(--basalt-section-gap); }

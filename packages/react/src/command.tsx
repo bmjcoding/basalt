@@ -230,15 +230,22 @@ export interface CommandListProps {
    * on a page. A page whose surface is this list sets it, and has no `CommandMenu`; a page with a modal gives ⌘K to the modal.
    */
   bindShortcut?: boolean;
+  /**
+   * On the open page (the list's panel at level 1) the list's unfiltered height is kept as page under the panel, so what follows never moves while
+   * the panel hugs its matches (DECISIONS 336, Q6). Inside a card or any other surface it holds no room. `false` says the same for an app's own
+   * painted box. Default true.
+   */
+  reserve?: boolean;
   className?: string;
 }
 
 /**
  * The command panel set in the page: a level-1 panel in the flow with no scrim or shadow, a search field that keeps focus while
- * the arrows move through the rows, and a foot that counts what is shown. Filtering never changes its height. Until cmdk
+ * the arrows move through the rows, and a foot that counts what is shown. The panel is as tall as its rows; on the open page (with `reserve`) the taller of its unfiltered and its
+ * "Nothing matches" heights is kept as page under it, so filtering never moves what follows. Until cmdk
  * arrives (the first mount, as `CommandMenu`'s first opening), the rows are drawn as they will be and what is typed is kept.
  */
-export function CommandList({ groups, label, placeholder = "Search commands", noun = "command", onSelect, detail, bindShortcut = false, className }: CommandListProps) {
+export function CommandList({ groups, label, placeholder = "Search commands", noun = "command", onSelect, detail, bindShortcut = false, reserve = true, className }: CommandListProps) {
   const level = usePanelLevel();
   const bandLevel = Math.min(level + 1, 3);
   const { state, retry } = usePanel(true);
@@ -272,13 +279,13 @@ export function CommandList({ groups, label, placeholder = "Search commands", no
   if (state.status === "ready") {
     const ListPanel = state.ListPanel;
     return (
-      <div ref={host} className="basalt-command-host" data-pane={detail ? "" : undefined}>
+      <div ref={host} className="basalt-command-host" data-pane={detail ? "" : undefined} data-reserve={reserve && level === 1 ? "" : undefined}>
         <ListPanel groups={groups} label={label} placeholder={placeholder} noun={noun} level={level} bandLevel={bandLevel} onSelect={onSelect} detail={paneOf} className={className} initialSearch={early} focusHandoff={handoff} />
       </div>
     );
   }
   return (
-    <div ref={host} className="basalt-command-host" data-pane={detail ? "" : undefined}>
+    <div ref={host} className="basalt-command-host" data-pane={detail ? "" : undefined} data-reserve={reserve && level === 1 ? "" : undefined}>
       <div className={join("basalt-command-split", className)}>
         <div className="basalt-command basalt-command-page" data-level={level} role="region" aria-label={label} aria-busy={state.status === "loading" || undefined}>
           <div className="basalt-command-search" data-level={bandLevel}>

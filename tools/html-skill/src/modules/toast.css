@@ -60,7 +60,7 @@
   .toast[data-swiping] { transition-property: opacity, height; }
   .toast::after { content: ""; position: absolute; top: 100%; left: 0; width: 100%; height: calc(var(--_gap) + var(--basalt-size-hairline)); }
 
-  .toast-content { display: flex; align-items: flex-start; gap: var(--basalt-space-3); padding: var(--basalt-space-3) var(--basalt-space-3) var(--basalt-space-3) var(--basalt-space-4); overflow: hidden; transition: opacity var(--basalt-duration-base) var(--basalt-ease-out); }
+  .toast-content { display: flex; align-items: flex-start; gap: var(--basalt-space-3); padding-block: var(--basalt-space-3); padding-inline: var(--basalt-space-4) var(--basalt-space-3); overflow: hidden; transition: opacity var(--basalt-duration-base) var(--basalt-ease-out); }
   .toast-content[data-behind] { opacity: 0; }
   .toast-content[data-expanded] { opacity: 1; }
   /* The mark seat: 16px, centred on the title's first line. It is there for a marked toast and for one that ran (so the result does not move the
@@ -80,6 +80,14 @@
   .toast-count { margin-inline-start: var(--basalt-space-1-5); font-weight: var(--basalt-font-weight-regular); font-variant-numeric: tabular-nums; color: var(--basalt-text-secondary); }
   .toast-close { color: var(--basalt-text-secondary); }
   .toast .btn[data-size="xs"] { --_h: var(--basalt-size-control-xs); --_px: var(--basalt-space-2); font-size: var(--basalt-text-sm-size); }
+  /* On touch Dismiss and the action keep their pointer size (24 and the action's own height, radius 6) and take their 44 as hit area inside the
+     toast's padding, so a toast is one height on every pointer (DECISIONS 336, S7). The hit area is 46 (a hairline more on each side), so the
+     press's .98 never takes it under 44; a short action's missing width is on its start side, over the words and away from Dismiss. */
+  @media (pointer: coarse), (width < %bp-md%) {
+    .toast .btn:is(.toast-close, .toast-action) { min-width: 0; min-height: 0; border-radius: var(--basalt-radius-sm); }
+    .toast .toast-close::before { content: ""; position: absolute; inset: calc((var(--basalt-size-control-xs) - var(--basalt-size-tap-min)) / 2 - var(--basalt-size-hairline)); }
+    .toast .toast-action::before { content: ""; position: absolute; inset-block: calc((100% - var(--basalt-size-tap-min)) / 2 - var(--basalt-size-hairline)); inset-inline: min(var(--basalt-space-0), calc(100% - var(--basalt-size-tap-min) - 2 * var(--basalt-size-hairline))) 0; }
+  }
 
   /* The drain line is drawn on top of the bottom rim's straight part: it starts where the corner curve ends. It pauses exactly when every toast's
      own clock does: the stack hovered or focused (it is then expanded), the window out of focus, or the tab hidden (data-away). */

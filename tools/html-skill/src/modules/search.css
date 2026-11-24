@@ -1,13 +1,16 @@
 @layer basalt {
 
   /* ---- The search dialog (React's SearchDialog; DECISIONS 155, D13a): <dialog class="panel float modal dialog search"> ----
-     The dialog's shell (dialog.css), centred, 560 wide, with no padding: a search form (a field and a close button), a count line, and a
-     results area of a fixed height that scrolls inside, so the field and the count never move however many results there are. Its height is
-     that of a full result: three logo rows (60), five picture rows (72) and a "See all" row (48), with 4 above and 10 below. A result is a link and
+     The dialog's shell (dialog.css), 560 wide, with no padding: a search form (a field and a close button), a count line, and a results area as
+     tall as its rows up to a full result, scrolling inside past it; the top is held, so the field and the count never move. A full result is: three logo rows (60), five picture rows (72) and a "See all" row (48), with 4 above and 10 below. A result is a link and
      a tab stop, as tall as its picture plus 6px above and below (never under 48), with the control ring at +2 and a hover wash that runs to the
      panel's edges (full bleed, not a plate; no ink lifts: a result's name and its detail keep their ink on the hover wash. Measured on the wash over the dialog's level (a modal is always level 1): tertiary ink 6.00:1 in dark and 4.88:1 in light, secondary 9.12:1 and 7.74:1, so tertiary passes 4.5:1 there and the step to secondary the first build had was removed (by the AA rule: it is not needed).). The field's mark is a real 2px outline at -2 round the form's band. */
 
   .search { --_control-44: var(--basalt-size-control-2xl); }
+  /* Its top is held where a full result has it (search.js writes --_top as it opens) and the results area is as tall as its rows up to a full result,
+     so the field and the count never move and the box ends under what it shows (DECISIONS 336). */
+  /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
+  dialog.search[data-held] { inset-block: var(--_top) auto; margin-block: 0; max-height: calc(var(--_room, 100dvh) - var(--_top) - var(--basalt-space-4)); }
   /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
   dialog.search[open] { display: flex; flex-direction: column; width: min(var(--basalt-size-command-width), calc(100vw - 2 * var(--basalt-space-4))); padding: 0; overflow: hidden; }
   .search-form {
@@ -17,7 +20,9 @@
     align-items: center;
     gap: var(--basalt-space-1);
     margin: 0;
-    padding: var(--basalt-space-2) var(--basalt-space-2) var(--basalt-space-2) var(--basalt-space-4);
+    padding-block: var(--basalt-space-2);
+    padding-inline: var(--basalt-space-4);
+    --basalt-edge-room: var(--basalt-space-4); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial;
     border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
     border-start-start-radius: var(--basalt-radius-lg);
     border-start-end-radius: var(--basalt-radius-lg);
@@ -63,7 +68,7 @@
     box-sizing: border-box;
     flex: 0 1 auto;
     min-height: 0;
-    height: calc(var(--basalt-space-1) + var(--basalt-space-2-5) + var(--_logos, 3) * var(--_logo-row) + var(--_packs, 5) * var(--_pack-row) + var(--_alls, 1) * var(--_floor));
+    max-height: calc(var(--basalt-space-1) + var(--basalt-space-2-5) + var(--_logos, 3) * var(--_logo-row) + var(--_packs, 5) * var(--_pack-row) + var(--_alls, 1) * var(--_floor));
     margin: 0;
     padding: var(--basalt-space-1) var(--basalt-space-2) var(--basalt-space-2-5);
     list-style: none;
@@ -71,6 +76,7 @@
     overscroll-behavior: contain;
     scroll-padding-block: var(--basalt-space-1-5);
   }
+  .search-results:not(:has(> li)) { padding-block: 0; }
   .search-results > li { margin: 0; padding: 0; list-style: none; }
   .search-result {
     position: relative;

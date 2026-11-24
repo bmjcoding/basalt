@@ -47,6 +47,8 @@
 
   /* The check and the radio's dot sit in a 16px seat, shown only while the row is checked; the seat is always there, so a choice moves nothing. */
   .menu-check { display: inline-flex; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); flex: none; color: var(--basalt-text-primary); }
+  /* The menu's column (DECISIONS 336): when any row has a check or a glyph, every row keeps their 16px column, so labels align. */
+  .menu:has(.menu-item > :is(svg, .menu-check, [data-glyph], [data-icon]):first-child) .menu-item:not(:has(> :is(svg, .menu-check, [data-glyph], [data-icon]):first-child)) { padding-inline-start: calc(var(--basalt-space-3) + var(--basalt-size-icon-sm) + var(--_gap)); }
   .menu-check > * { visibility: hidden; }
   [aria-checked="true"] > .menu-check > * { visibility: visible; }
   .menu-radio-dot { display: block; width: var(--basalt-space-1-5); height: var(--basalt-space-1-5); border-radius: var(--basalt-radius-full); background: currentColor; }

@@ -42,11 +42,13 @@
     var side = _.pick(o.side, ['top', 'bottom', 'left', 'right'], 'bottom');
     var align = _.pick(o.align, ['start', 'center', 'end'], 'end');
     var viewAllHref = href(o.viewAllHref);
+    // The bell is hung at a bar's end when it is the bar's last control (DECISIONS 336): `edge: 'end'`, or data-edge on its host.
+    var edge = _.pick(o.edge || host.getAttribute('data-edge'), ['start', 'end'], '');
     host.innerHTML =
-      '<button type="button" class="btn" data-variant="ghost" data-icon-only popovertarget="' + id + '" aria-haspopup="dialog">' + BELL + '<span class="notifications-dot" aria-hidden="true" hidden></span></button>' +
+      '<button type="button" class="btn" data-variant="ghost" data-icon-only' + (edge ? ' data-edge="' + edge + '"' : '') + ' popovertarget="' + id + '" aria-haspopup="dialog">' + BELL + '<span class="notifications-dot" aria-hidden="true" hidden></span></button>' +
       '<div class="panel float popover notifications" popover id="' + id + '" data-side="' + side + '" data-align="' + align + '" aria-labelledby="' + id + '-title">' +
         '<div class="notifications-head"><h2 class="popover-title notifications-title" id="' + id + '-title">' + _.esc(label) + '</h2><span class="notifications-count"></span>' +
-          '<button type="button" class="btn notifications-mark" data-variant="ghost" data-size="sm">Mark all as read</button></div>' +
+          '<button type="button" class="btn notifications-mark" data-variant="ghost" data-size="sm" data-edge="end">Mark all as read</button></div>' +
         '<p class="notifications-empty" hidden>Nothing yet.</p>' +
         '<div class="notifications-scroll"><span class="plate" aria-hidden="true"></span><ul class="notifications-list"></ul></div>' +
         '<div class="notifications-foot"></div>' +
@@ -60,9 +62,9 @@
     var scroll = pop.querySelector('.notifications-scroll');
     var list = pop.querySelector('.notifications-list');
     var foot = pop.querySelector('.notifications-foot');
-    foot.innerHTML = (o.onClearAll ? '<button type="button" class="btn notifications-clear" data-variant="ghost" data-size="sm">Clear all</button>' : '') + (viewAllHref
-      ? '<a class="btn" data-variant="ghost" data-size="sm" href="' + _.esc(viewAllHref) + '"><span>View all</span></a>'
-      : '<button type="button" class="btn" data-variant="ghost" data-size="sm"><span>View all</span></button>');
+    foot.innerHTML = (o.onClearAll ? '<button type="button" class="btn notifications-clear" data-variant="ghost" data-size="sm" data-edge="start">Clear all</button>' : '') + (viewAllHref
+      ? '<a class="btn" data-variant="ghost" data-size="sm" data-edge="end" href="' + _.esc(viewAllHref) + '"><span>View all</span></a>'
+      : '<button type="button" class="btn" data-variant="ghost" data-size="sm" data-edge="end"><span>View all</span></button>');
     var viewAll = foot.lastElementChild;
     var clear = pop.querySelector('.notifications-clear');
     var unglide;

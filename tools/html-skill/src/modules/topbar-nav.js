@@ -48,7 +48,7 @@
     }
 
     // The Menu button, last in the bar.
-    var trigger = el('button', 'btn topbar-menu-trigger', { type: 'button', 'data-variant': 'ghost', 'data-icon-only': '', 'aria-label': menuLabel, 'aria-expanded': 'false', 'aria-controls': id, 'data-dialog-open': '#' + id });
+    var trigger = el('button', 'btn topbar-menu-trigger', { type: 'button', 'data-variant': 'ghost', 'data-icon-only': '', 'data-edge': 'end', 'aria-label': menuLabel, 'aria-expanded': 'false', 'aria-controls': id, 'data-dialog-open': '#' + id });
     trigger.innerHTML = '<span data-glyph="menu"></span>';
     inner.appendChild(trigger);
 
@@ -63,7 +63,7 @@
     inner.querySelectorAll('[data-tool]').forEach(function (tool) { actions.appendChild(copy(tool)); });
     var toggle = inner.querySelector('[data-theme-toggle]');
     if (toggle) actions.appendChild(copy(toggle));
-    var close = el('button', 'btn', { type: 'button', 'data-variant': 'ghost', 'data-icon-only': '', 'aria-label': closeLabel, 'data-dialog-close': '', autofocus: '' });
+    var close = el('button', 'btn', { type: 'button', 'data-variant': 'ghost', 'data-icon-only': '', 'data-edge': 'end', 'aria-label': closeLabel, 'data-dialog-close': '', autofocus: '' });
     close.innerHTML = '<span data-glyph="close"></span>';
     actions.appendChild(close);
     band.appendChild(actions);

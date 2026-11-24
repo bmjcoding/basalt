@@ -247,11 +247,26 @@
     mark();
   }
 
+  /* The selection column's <col> is at least --basalt-select-column wide (32 on a pointer, 44 on touch), so the checkbox's whole hit area is in it (DECISIONS 336). */
+  function seatSelect(table) {
+    var head = table.tHead && table.tHead.rows[0];
+    var cells = head ? Array.prototype.slice.call(head.cells) : [];
+    var at = cells.findIndex(function (c) { return c.classList.contains('select-col'); });
+    var col = at < 0 ? null : table.querySelectorAll(':scope > colgroup > col')[at];
+    if (!col || col.style.width.indexOf('--basalt-select-column') >= 0) return;
+    // The width the author gave, however it was given (inline, the width attribute, or a class), kept for a fine pointer (the code review's finding 7).
+    var attr = col.getAttribute('width');
+    var given = col.style.width || (attr && /^\d+(\.\d+)?$/.test(attr) ? attr + 'px' : attr) || getComputedStyle(col).width;
+    if (!given || given === 'auto' || !/^\d+(\.\d+)?(px)?$/.test(given)) given = '0px';
+    col.style.width = 'max(' + given + ', var(--basalt-select-column))';
+  }
+
   _.step(65, 'stillTable', function () {
     document.querySelectorAll('table[data-fixed]').forEach(function (table) {
       if (table.__bhStill) return;
       table.__bhStill = true;
       own(table);
+      seatSelect(table);
       wireSort(table);
       wirePinned(table);
       wirePeek(table);

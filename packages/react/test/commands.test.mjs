@@ -220,7 +220,8 @@ describe("the command list in the page", () => {
     await modal.page.close();
   });
 
-  test("the list holds its unfiltered height up to the popup cap, and filtering moves nothing below it (0px)", async () => {
+  // DECISIONS 336, Q6: the panel hugs its rows; on the open page the room under it is page, so what follows never moves.
+  test("the panel hugs its rows up to the popup cap, and filtering moves nothing below it (0px)", async () => {
     const { page } = await open(listFixture());
     await ready(page);
     const probe = async () => ({ below: (await box(page.locator("#below"))).y, panel: (await box(page.locator(".basalt-command-page"))).h, body: (await box(page.locator(".basalt-command-body"))).h });
@@ -231,7 +232,9 @@ describe("the command list in the page", () => {
     for (const query of ["dup", "zzz", "a", ""]) {
       await page.fill(".basalt-command-input", query);
       await settle(page);
-      assert.deepEqual(await probe(), rest, `nothing moved for "${query}" (0px)`);
+      const now = await probe();
+      assert.equal(now.below, rest.below, `nothing below moved for "${query}" (0px)`);
+      assert.ok(now.panel <= rest.panel + 0.5, `the panel is no taller than unfiltered for "${query}"`);
     }
     await page.close();
     // a short list holds its own natural height, however far it is filtered

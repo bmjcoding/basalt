@@ -106,6 +106,11 @@ function modalityOf(event: Event | undefined): FormState["opened"] {
 
 /** Whether the dialog above is modal (the default): its content makes what is outside inert only then. */
 export const DialogModal = /* @__PURE__ */ React.createContext(true);
+/**
+ * A dialog whose top is held where it opens though it is not a form (the search dialog, DECISIONS 336): its box ends under what it shows. The part
+ * marked `data-grows` is measured at its max-height, so the held top is the one the box has when that part is full. Basalt's own, not exported.
+ */
+export const DialogHoldsTop = /* @__PURE__ */ React.createContext(false);
 
 export interface DialogTriggerProps extends PartProps<"button"> {
   nativeButton?: boolean;
@@ -156,7 +161,8 @@ export function DialogContent({ className, style, children, ref, size = "default
     if (ref) ref.current = element;
   }, [ref]);
   const popupRef = useModalOutside<HTMLDivElement>(keepRef, React.useContext(DialogModal));
-  const top = useHeldTop(node, form);
+  const holds = React.useContext(DialogHoldsTop);
+  const top = useHeldTop(node, form, holds);
   // A form's state lives only while it is open: opened by whatever means, it starts with what its fields hold and no remembered input; when its box goes, both go (however it was closed).
   React.useLayoutEffect(() => {
     if (!form || !state || !node) return undefined;
@@ -192,19 +198,23 @@ const FIRST_FIELD = 'input:not([type="hidden"]):not([disabled]):not([type="check
  * once as it opens and again only when the window is resized, so whatever grows inside (an error under a field) grows downward and the title does not move. `null` while it is
  * being measured, in its natural centre, and for a dialog that is not a form or that is a full-screen modal (under 720).
  */
-function useHeldTop(node: HTMLElement | null, form: boolean): number | null {
+function useHeldTop(node: HTMLElement | null, form: boolean, holds = false): number | null {
   const [top, setTop] = React.useState<number | null>(null);
   const [epoch, setEpoch] = React.useState(0);
   React.useLayoutEffect(() => {
     if (!node) { setTop(null); return; }
-    if (!form) return;
+    if (!form && !holds) return;
     // The full-screen form (under size-breakpoint-md, 720px) has no top to hold.
-    if (window.matchMedia("(width < 720px)").matches) { setTop(null); return; }
+    if (form && window.matchMedia("(width < 720px)").matches) { setTop(null); return; }
     // The margin from the window's edge is what its own max-height leaves: the window less twice `space-4`.
     const max = Number.parseFloat(getComputedStyle(node).maxHeight);
     const gap = Number.isFinite(max) ? Math.max(0, (window.innerHeight - max) / 2) : 0;
-    setTop(Math.max(gap, Math.round((window.innerHeight - node.offsetHeight) / 2)));
-  }, [node, form, epoch]);
+    // A part that grows (the search's results) counts at its full height, so the top is where the full box has it, whatever it holds now.
+    const grows = holds ? node.querySelector<HTMLElement>("[data-grows]") : null;
+    const room = grows ? Number.parseFloat(getComputedStyle(grows).maxHeight) - grows.offsetHeight : 0;
+    const height = Math.min(node.offsetHeight + (Number.isFinite(room) ? Math.max(0, room) : 0), Number.isFinite(max) ? max : Infinity);
+    setTop(Math.max(gap, Math.round((window.innerHeight - height) / 2)));
+  }, [node, form, holds, epoch]);
   // The held place lands where it is and never glides. It is measured while the box is centred by `translate(-50%, -50%)` (that style is resolved
   // to measure it), and the held box is placed by its top with `translateX(-50%)`: a transition between the two slid the dialog down from half its
   // height above as it opened, under reduced motion too. So the change to the held place is resolved with transitions off, and only the entry's
@@ -217,11 +227,11 @@ function useHeldTop(node: HTMLElement | null, form: boolean): number | null {
     node.style.transition = transition;
   }, [node, top]);
   React.useEffect(() => {
-    if (!node || !form) return undefined;
+    if (!node || (!form && !holds)) return undefined;
     const resize = () => { setTop(null); setEpoch((n) => n + 1); };
     window.addEventListener("resize", resize);
     return () => window.removeEventListener("resize", resize);
-  }, [node, form]);
+  }, [node, form, holds]);
   return top;
 }
 

@@ -35,7 +35,7 @@ export function Drawer({ label, open = true, rows = 13, columns, onBack, backLab
       className={join("basalt-drawer", className)}
       style={{ "--_rows": rows, ...(columns ? { "--_columns": columns } : null), ...style } as React.CSSProperties}
     >
-      {onBack ? <Button variant="ghost" size="sm" icon={ChevronLeftGlyph} className="basalt-drawer-back" onClick={onBack}>{backLabel}</Button> : null}
+      {onBack ? <Button variant="ghost" size="sm" edge="start" icon={ChevronLeftGlyph} className="basalt-drawer-back" onClick={onBack}>{backLabel}</Button> : null}
       {children}
     </section>
   );

@@ -100,6 +100,7 @@ const skillPages = {
   ...(!wanted.length || wanted.includes("32") ? (await import("./round32-skill.mjs")).skillPages() : {}),
   ...(!wanted.length || wanted.includes("39") ? (await import("./round39-skill.mjs")).skillPages39() : {}),
   ...(!wanted.length || wanted.includes("47") ? (await import("./round47-skill.mjs")).skillPages47() : {}),
+  ...(!wanted.length || wanted.includes("69") ? (await import("./round69-skill.mjs")).skillPages69() : {}),
 };
 
 const bundle = await esbuild.build({
@@ -318,7 +319,7 @@ for (const id of rounds) {
           // ends in one of them (an open menu "menu-forced-colours-lit") takes the same emulation, with or without "-lit".
           const mode = state.replace(/-lit$/, "");
           const media = mode.endsWith("forced-colours") ? { forcedColors: "active", colorScheme: theme } : mode.endsWith("forced-mixed") ? { forcedColors: "active", colorScheme: theme === "dark" ? "light" : "dark" } : mode.endsWith("reduced-motion") ? { reducedMotion: "reduce" } : mode.endsWith("more-contrast") ? { contrast: "more" } : {};
-          const page = await browser.newPage({ viewport: { width, height: step.heights?.[`${state}@${width}`] ?? step.height ?? (overlay ? 640 : 400) }, deviceScaleFactor: scale, hasTouch: state.startsWith("chart-touch") || state === "touch" || Boolean(step.touch && width < 720), isMobile: (id === "48" && state === "touch") || Boolean(step.touch && width < 720), ...media });
+          const page = await browser.newPage({ viewport: { width, height: step.heights?.[`${state}@${width}`] ?? step.height ?? (overlay ? 640 : 400) }, deviceScaleFactor: scale, hasTouch: state.startsWith("chart-touch") || state === "touch" || (id === "69" && state.startsWith("touch")) || Boolean(step.touch && width < 720), isMobile: (id === "48" && state === "touch") || (id === "69" && state.startsWith("touch")) || Boolean(step.touch && width < 720), ...media });
           page.on("pageerror", (e) => errors.push(`${step.id}/${state}/${theme}: ${e.message}`));
           // Round 25's framed art: one address that never answers (the loading state, held) and one that is refused (the failed state).
           if (id === "25") {

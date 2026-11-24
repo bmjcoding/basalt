@@ -101,11 +101,27 @@
     /** Not in use (the field has no focus, the pointer is off the list, and there is no split) the list shows no plate and no lit row. */
     function syncIdle() { results.toggleAttribute('data-idle', !(detail && mode === 'split') && !focused && !hovered); }
 
-    /** The list holds its unfiltered height, up to the popup cap, and scrolls inside: filtering never changes it, so what is below it never moves. */
+    /** Measured while the list is unfiltered: its height (the list's, beside a preview) and the panel's, kept as page under the panel on the open page
+        so what follows never moves while the panel hugs its matches (DECISIONS 336). */
     function hold() {
       if (query) return;
       var cs = getComputedStyle(results);
-      body.style.setProperty('--held', sizer.getBoundingClientRect().height + parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + 'px');
+      var pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+      var list = sizer.getBoundingClientRect().height + pad;
+      body.style.setProperty('--held', list + 'px');
+      if (detail) return;
+      // The page keeps the taller of the panel's two heights, the unfiltered list's and "Nothing matches"', so a short list filtered to nothing never
+      // moves what follows (the code review's finding 6): the sentence is measured unseen, out of the flow.
+      var wasHidden = none.hidden;
+      var said = none.firstChild.textContent;
+      if (!said) none.firstChild.textContent = 'Nothing matches.';
+      none.hidden = false;
+      none.setAttribute('data-measure', '');
+      var empty = pad + none.getBoundingClientRect().height;
+      none.removeAttribute('data-measure');
+      none.hidden = wasHidden;
+      none.firstChild.textContent = said;
+      host.style.setProperty('--held-page', page.getBoundingClientRect().height - list + Math.max(list, empty) + 'px');
     }
 
     /** The pane is a region named by its first heading, which also takes focus when it is pushed. */
