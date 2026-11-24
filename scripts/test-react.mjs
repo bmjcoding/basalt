@@ -1,5 +1,6 @@
 // `npm test -w packages/react`: the typecheck and the build-and-browser tests are two steps, and both run and both report. They were one `&&` chain, so a type error
 // hid every browser test behind it (and the root `npm test` shows this package as one suite). The cwd is packages/react, where npm starts a workspace's script.
+import { isMain } from "./is-main.mjs";
 import { runSteps } from "./run-steps.mjs";
 
 export const STEPS = [
@@ -8,4 +9,4 @@ export const STEPS = [
   { label: "react build and tests", command: "node build.mjs && node --test --test-timeout=120000 test/*.test.mjs" },
 ];
 
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) await runSteps(STEPS, { title: "react tests" });
+if (isMain(import.meta.url)) await runSteps(STEPS, { title: "react tests" });

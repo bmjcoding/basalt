@@ -10,6 +10,7 @@ import { CheckGlyph } from "./glyphs/check";
 import { MinusGlyph } from "./glyphs/minus";
 import type { ControlSize } from "./button";
 import type { ChangeDetails, ChoiceValue, OpenChangeDetails, PartProps, PopupActions } from "./types";
+import { useInRequiredField } from "./field-group";
 import { useFieldsetDisabled } from "./fieldset-context";
 import { useMirrorRef } from "./mirror";
 import { Icon } from "./icon";
@@ -226,7 +227,7 @@ export interface SelectProps {
 }
 
 /**
- * One choice from a list too long for radios. Inside a `Field` it takes the field's label.
+ * One choice from a list too long for radios. Inside a `Field` it takes the field's label, and, in a required field, `required`.
  * The list opens below the trigger, like a menu.
  */
 export function Select({ options, placeholder = "Select…", controlSize = "md", className, "aria-label": ariaLabel, valuePrefix, numeric, toolbar, inputRef, ...props }: SelectProps) {
@@ -235,6 +236,7 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
   const layer = useFloatingLayer();
   const level = usePopupLevel();
   const items = options.map((o) => ({ value: o.value, label: o.label }));
+  const inRequiredField = useInRequiredField();
   // A toolbar select holds the width of its widest label: each option (and the placeholder) stands unseen in the value's one cell, so choosing moves nothing after it.
   const value = <BaseSelect.Value id={valuePrefix ? ids.value : undefined} className="basalt-select-value" placeholder={placeholder} />;
   const seat = toolbar ? (
@@ -244,7 +246,7 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
     </span>
   ) : null;
   return (
-    <BaseSelect.Root {...props} inputRef={mirror} items={items}>
+    <BaseSelect.Root {...props} required={props.required ?? (inRequiredField || undefined)} inputRef={mirror} items={items}>
       <BaseSelect.Trigger aria-label={valuePrefix ? undefined : ariaLabel} aria-labelledby={valuePrefix ? `${ids.prefix} ${ids.value}` : undefined} data-size={controlSize} className={join("basalt-select-trigger", className)}>
         {valuePrefix ? (
           <span className="basalt-select-lead">
@@ -255,7 +257,7 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
           seat
         ) : (
           // A numeric select holds the width of its widest option: the value's cell carries it as eights in an attribute that a pseudo-element paints, so choosing moves nothing and the DOM holds the words once.
-          <BaseSelect.Value data-widest={numeric ? "8".repeat(Math.max(...options.map((o) => String(o.label).length))) : undefined} className="basalt-select-value" placeholder={placeholder} />
+          <BaseSelect.Value data-widest={numeric && options.length ? "8".repeat(Math.max(...options.map((o) => String(o.label).length))) : undefined} className="basalt-select-value" placeholder={placeholder} />
         )}
         <BaseSelect.Icon className="basalt-select-icon">
           <Icon icon={CaretUpDownIcon} size={16} />

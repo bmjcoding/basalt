@@ -173,7 +173,7 @@ function ChartPart({ state }: { state: string }) {
   const w = React.useMemo(() => weightData(28), []);
   return (
     <div data-wt-chart="" style={{ maxWidth: 720 }}>
-      <TimeChart title="Weight" kind="line" headline={state === "headline"} trend={state === "headline"} days={w.days} series={[{ id: "w", name: "Weight", values: w.values, reasons: w.reasons }]} unit="lb" format={lb} summary="Weight trended down over twenty-eight days, with a gap while the scale was away." now={Date.UTC(2026, 10, 10, 12)} />
+      <TimeChart title="Weight" kind="line" headline={state === "headline"} days={w.days} series={[{ id: "w", name: "Weight", values: w.values, reasons: w.reasons }]} unit="lb" format={lb} summary="Weight trended down over twenty-eight days, with a gap while the scale was away." now={Date.UTC(2026, 10, 10, 12)} />
     </div>
   );
 }
@@ -253,7 +253,7 @@ function SelectColumnPart() {
 }
 
 function StatusBarPart({ state }: { state: string }) {
-  const go = state === "go";
+  const go = state === "go" || state === "touch";
   return (
     <div style={{ marginInline: "calc(-1 * var(--basalt-space-6))" }}>
       <StatusBar
@@ -376,7 +376,11 @@ function SkillFrame({ page }: { page: string }) {
     addEventListener("message", on);
     return () => removeEventListener("message", on);
   }, [page]);
-  return <iframe title={`The HTML skill: ${page}`} srcDoc={source} style={{ width: "100%", height, border: 0, display: "block" }} />;
+  return (
+    // sink: a page compose.mjs built at review-build time from this round's synthetic body (round69-skill.mjs); the frame runs the page's own script, which posts only its height when its still is ready
+    // oxlint-disable-next-line react/iframe-missing-sandbox -- a page compose.mjs built at review-build time from a synthetic body; the frame runs the page's own script
+    <iframe title={`The HTML skill: ${page}`} srcDoc={source} style={{ width: "100%", height, border: 0, display: "block" }} />
+  );
 }
 
 // ---- the steps ----
@@ -416,7 +420,7 @@ const OWNERS: Spec[] = [
   { id: "eye-08-count", name: "Owner's eye 8: a one-figure count is a 24px circle", intro: "Was 154, A12: the pill holds two figures.", decisions: ["The button holds a two-figure seat round the pill, so 0 to 99 never moves it."], states: ["default"], widths: [1440], part: CountPart },
   { id: "eye-09-toast", name: "Owner's eye 9: on touch a toast's Dismiss is drawn at 24, with a 44px hit area", intro: "Was the touch rule: a control drawn at 44. A toast is one height on every pointer.", decisions: ["Hit areas are 46 (45.08 pressed); a short action's missing width is on its start side."], states: ["undo@390", "go@390"], part: ToastPart },
   { id: "eye-13-select", name: "Owner's eye 13: on touch a still table's selection column is 44 wide", intro: "Was foundations' selection pattern: a first column size-control-md wide. The checkbox's whole target is in its own column.", decisions: ["The app gives the column var(--basalt-select-column); this table does."], states: ["default"], part: SelectColumnPart },
-  { id: "eye-14-go", name: "Owner's eye 14: on touch a hung control with a short word is as wide as its word", intro: "Was the touch rule: a control is drawn at 44. \"Go\" is drawn 33 wide on the bar's line, with a 46px hit area.", decisions: ["At 800 on touch the status bar's gutter is 24."], states: ["go@800"], widths: [800], part: StatusBarPart },
+  { id: "eye-14-go", name: "Owner's eye 14: on touch a hung control with a short word is as wide as its word", intro: "Was the touch rule: a control is drawn at 44. \"Go\" is drawn 33 wide on the bar's line, with a 46px hit area.", decisions: ["At 800 on touch (a coarse pointer, emulated) the status bar's gutter is 24."], states: ["touch@800"], widths: [800], part: StatusBarPart },
   { id: "eye-11-headline", name: "Not a reversal, for the owner: the chart headline on a day with no reading", intro: "The unit holds still and the dash sits by it, space-2 from the unit; the other way put the dash on the line and moved the unit.", decisions: ["DECISIONS 153's \"the unit never moves\" stands."], states: ["chart-gap"], part: ({ state }) => <ChartPart state={state === "chart-gap" ? "headline" : state} /> },
 ];
 

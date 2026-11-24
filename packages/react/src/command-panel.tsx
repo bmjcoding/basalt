@@ -270,12 +270,11 @@ export function CommandListPanel({ groups, label, placeholder, noun, level, band
 
   // A push moves focus to the detail's heading; Back returns it to the field (a keyed push, or a pointer) or to the list's
   // region (a tap, so a phone's keyboard doesn't spring up). Back keeps the query, the scroll and the active row.
-  const entered = React.useRef(false);
+  // Focus moves only when the view really changes from the one last shown: not on mount, and not when Strict Mode runs the effect a second time.
+  const shownView = React.useRef(view);
   React.useLayoutEffect(() => {
-    if (!entered.current) {
-      entered.current = true;
-      return;
-    }
+    if (shownView.current === view) return;
+    shownView.current = view;
     if (view === "detail") {
       if (pane.current) nameThePane(pane.current, current?.label ?? label, () => ids.heading)?.focus({ preventScroll: true });
     } else {

@@ -32,6 +32,7 @@
   .terminal-swap > :not([data-on]) { visibility: hidden; }
   /* A button's words that change are centred in their cell (DECISIONS 336, S1); the state's face the buttons. */
   .terminal-control .terminal-swap > * { justify-self: center; }
+  .terminal-copy > svg[data-off] { display: none; }
   /* Wide: the words. Narrow (the terminal's own width, under 480px): the icon alone, with the same name. */
   .terminal-actions .terminal-copy-compact { display: none; }
   /* size-breakpoint-container: a container query cannot read a token, so the build writes its value here */

@@ -17,7 +17,7 @@ interface ListboxContext {
   /** An option's id: the list's, then the option's value, so `aria-activedescendant` can name the chosen one in the same render. */
   idOf: (value: string) => string;
 }
-const ListboxState = React.createContext<ListboxContext | null>(null);
+const ListboxState = /* @__PURE__ */ React.createContext<ListboxContext | null>(null);
 
 export interface ListboxProps extends Omit<React.ComponentProps<"div">, "onChange" | "defaultValue"> {
   /** Names the list. Required: it is the listbox's accessible name. */

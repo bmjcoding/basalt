@@ -79,7 +79,7 @@
     }
     var copyDisabled = commands ? '' : ' disabled';
     // The words hold and the glyph says what happened (DECISIONS 336, Q5): the check after a write, the close after a refused one.
-    actions += '<button type="button" class="btn terminal-copy" data-variant="ghost" data-size="sm" data-edge="end"' + copyDisabled + '>' + COPY + '<span>Copy commands</span></button>' +
+    actions += '<button type="button" class="btn terminal-copy" data-variant="ghost" data-size="sm" data-edge="end"' + copyDisabled + '>' + COPY + '%glyph-svg:check%%glyph-svg:close%<span>Copy commands</span></button>' +
       '<button type="button" class="btn terminal-copy-compact" data-variant="ghost" data-size="sm" data-icon-only data-edge="end" aria-label="Copy commands"' + copyDisabled + '>' + COPY + '</button>' +
       '<span class="visually-hidden" role="status"></span>';
     head.classList.add('code-head');
@@ -101,6 +101,9 @@
     var stateEl = root.querySelector('.terminal-state .terminal-swap');
     var controlEl = root.querySelector('.terminal-control .terminal-swap');
     var copyEl = root.querySelector('.terminal-copy');
+    // The words form's three glyphs (copy, check, close) are drawn once; one shows at a time, so no markup is written after the head.
+    var glyphTo = function (at) { Array.prototype.forEach.call(copyEl.querySelectorAll('svg'), function (g, i) { g.toggleAttribute('data-off', i !== at); }); };
+    glyphTo(0);
     var live = root.querySelector('.terminal-actions [role="status"]');
     var compact = root.querySelector('.terminal-copy-compact');
     var STATES = ['idle', 'running', 'paused', 'done', 'failed'];
@@ -141,11 +144,11 @@
     function copy() {
       if (!commands || !B.copyText) return;
       B.copyText(commands).then(function (ok) {
-        copyEl.firstElementChild.outerHTML = ok ? '%glyph-svg:check%' : '%glyph-svg:close%';
+        glyphTo(ok ? 1 : 2);
         if (ok) { compact.innerHTML = '%glyph-svg:check%'; compact.setAttribute('aria-label', 'Copied'); }
         live.textContent = ok ? 'Copied' : 'Copy failed';
         clearTimeout(reset);
-        reset = setTimeout(function () { copyEl.firstElementChild.outerHTML = COPY; compact.innerHTML = COPY; compact.setAttribute('aria-label', 'Copy commands'); live.textContent = ''; }, %duration-confirm%);
+        reset = setTimeout(function () { glyphTo(0); compact.innerHTML = COPY; compact.setAttribute('aria-label', 'Copy commands'); live.textContent = ''; }, %duration-confirm%);
       });
     }
     root.querySelector('.terminal-copy').addEventListener('click', copy);

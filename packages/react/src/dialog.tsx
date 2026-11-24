@@ -105,7 +105,7 @@ function modalityOf(event: Event | undefined): FormState["opened"] {
 }
 
 /** Whether the dialog above is modal (the default): its content makes what is outside inert only then. */
-export const DialogModal = React.createContext(true);
+export const DialogModal = /* @__PURE__ */ React.createContext(true);
 /**
  * A dialog whose top is held where it opens though it is not a form (the search dialog, DECISIONS 336): its box ends under what it shows. The part
  * marked `data-grows` is measured at its max-height, so the held top is the one the box has when that part is full. Basalt's own, not exported.

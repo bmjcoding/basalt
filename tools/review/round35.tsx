@@ -236,6 +236,7 @@ function Frame({ height, label, children, onReady }: { height: number; label: st
   }, [body, onReady]);
   return (
     <div style={{ border: "1px solid var(--basalt-border-input)", borderRadius: 12, overflow: "hidden" }}>
+      {/* oxlint-disable-next-line react/iframe-missing-sandbox -- a frame the round writes itself with doc.write of its own markup, to measure it */}
       <iframe ref={ref} title={label} style={{ display: "block", width: "100%", height, border: 0 }} />
       {body ? createPortal(children, body) : null}
     </div>
@@ -367,6 +368,8 @@ function SkillGlyphDemo() {
         {SKILL_SWAPS.map((swap) => (
           <React.Fragment key={`${swap.module}-${swap.where}`}>
             <Text size="sm" mono>{swap.module}</Text><Text size="sm">{swap.where}</Text>
+            {/* sink: skillSvg's drawing of a core glyph from the generated glyph source, no data; the walkthrough compares the skill's glyph with React's */}
+            {/* oxlint-disable-next-line react/no-danger -- the skill's drawing of a core glyph, no data (the sink: comment above) */}
             {([16, 20] as const).map((s) => <React.Fragment key={s}><Icon icon={swap.before} size={s} /><span aria-hidden="true" style={{ display: "inline-flex" }} dangerouslySetInnerHTML={{ __html: skillSvg(swap.core, s) }} /></React.Fragment>)}
           </React.Fragment>
         ))}

@@ -702,6 +702,10 @@ extension Basalt {
     public static let diagramStep: Double = 56
     /// A diagram's arrowhead, its length and its width, for every kind of line (DECISIONS 281).
     public static let diagramHead: Double = 8
+    /// The width of an activation bar on a sequence diagram's lifeline (DECISIONS 306, 1.0).
+    public static let diagramActivation: Double = 8
+    /// The room a cardinality mark takes at a foreign key line's end; no elbow starts inside it (DECISIONS 306, 1.0).
+    public static let diagramFoot: Double = 14
     /// A sequence diagram's lifeline dash, on and off (4 on 4 off), unlike a message's 6 on 4 off (DECISIONS 281).
     public static let diagramGuideDash: Double = 4
     /// A diagram pulse's bead, along the line (DECISIONS 292); never more than two fifths of the line's visible length.

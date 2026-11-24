@@ -53,7 +53,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   exception).
 - **WCAG 2.2 AA everywhere:** 4.5:1 for text, 3:1 for boundaries, focus and icons, on every surface the pair can appear on, in both
   themes. One exception, by name: a `RunTimeline`'s tail recedes below 4.5:1 from its second row (`opacity-recede-2` to `-5`), because
-  the control above it opens the whole record at full contrast (WCAG G174); it never recedes under more contrast or in forced colours. Contrast tests prove it; add a
+  the control above it opens the whole record at full contrast (WCAG G174); its window's top edge fades only the tail row it cuts, from the second step; it never recedes under more contrast or in forced colours. Contrast tests prove it; add a
   pair to them when you add a token.
 - **Borders build structure; shadows are only for things that float.** No gradient
   borders, glow or bounce, and no press scale beyond Button and IconButton's .98. Hover
@@ -124,7 +124,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   tabs that scrolls, a sortable header cell (a header band that is itself a button), a phone tab bar cell, a ghost control hung at an edge with less than 4 of room left, and a cut cell of a still table (a focus stop, which shows its own ring after Esc has closed its plate). These structural
   vertical lines are allowed, each named and never a selection, sort, active or status mark: the 1px divider at a pinned table
   column's edge while the table is scrolled, the app sidebar's 1px edge, a meter's labelled target tick, the vertical
-  `Separator` between groups of controls, the edges between a `NumberField`'s value and its steppers, a diagram's connector and a sequence diagram's lifeline, and a stage list's or run timeline's connector (1px between two marks, never
+  `Separator` between groups of controls, the edges between a `NumberField`'s value and its steppers, a diagram's connector, a sequence diagram's lifeline with its activation bar, a frame's sides, and a stage list's or run timeline's connector (1px between two marks, never
   filled and never a state). The active row in a menu, select, combobox or command menu is a rounded plate
   (radius 8, one solid fill per level) plus a lift from secondary ink to primary, with no
   weight change: it is the row the keyboard is on, and it changes with every arrow key (WCAG 1.4.1). A selected table row is the wash band, and its checked box
@@ -192,7 +192,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   and holds no version. The entry or release a link opens is the stream's arrival (the plate and "Linked"). Build details is on
   the running release alone, from the running build. No area filter.
 - **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
-  targets stay at least 44px whatever the density, on touch and in any window under 720 whatever the pointer (16px text entry stays touch-only), except a chart's day, reached by drag and by the keys (the phase lane's marks keep 44px). A toast's Dismiss and action keep their pointer size and take
+  targets stay at least 44px whatever the density, on touch and in any window under 720 whatever the pointer (16px text entry stays touch-only), except a chart's day, reached by drag and by the keys (the phase lane's marks keep 44px); a diagram's card that answers a tap is 44px tall. A toast's Dismiss and action keep their pointer size and take
   the 44px as hit area inside the toast's padding. A still table's selection column is 44 wide. Text entry is 16px on touch. A one-line notification entry is at least 44 tall on
   touch, and a `Link` on a line of its own has a 44px hit box with no change to layout, its words raised over a stacked neighbour's box; a link in a sentence keeps its line.
 - **The phone and what is pinned:** while an on-screen keyboard is up (`data-screen-keyboard`) the tab bar and the phone's status bar are covered, and the
@@ -228,7 +228,15 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   (the faces arriving, a resize) never restarts, hides or cuts short an entrance. An architecture card may carry its service's own mark,
   16px in the top end corner: the owner's file, never recoloured, a form for each ground, decoration beside the name, recorded in
   `packages/react/marks/manifest.json`; a service without one is its name alone. In print a mark prints, and so does the fill of a
-  focal node that carries one (`print-color-adjust: exact`).
+  focal node that carries one (`print-color-adjust: exact`). A schema may state how many (crow's foot in the line's ink, on every key or none) and
+  draws far keys along a corridor. A sequence may show a participant working (a bar) and frame a run of messages
+  (`opt`, `loop`, `alt`: structure, never a panel, every word plated), and may be written as text art, which never hides a line and has no caret.
+  Groups nest two deep; four end lanes at most. A card may be a link (the card is the stop; the arrow is the cue). A label breaks only where its
+  author breaks it. Arrow keys are spatial, on tracks. On touch a tap traces and "Clear highlight" clears. In print a figure is untraced and light.
+  Right to left mirrors the figure, not the words. Automatic layout asks elkjs for a column and a row and nothing else; Basalt routes, and a figure
+  is never scaled. elkjs loads on demand or not at all: place at build time. "Expand" opens the viewer: the drawn layout in a dialog (full screen under
+  720), laid out at 100% and zoomed by the reader with one transform, from Fit or 100% to 400%, in steps that land at once; it pans by scrolling; it
+  is never a picture, a `viewBox` or CSS `zoom`; it is still, and it does not print.
 - **Type:** Geist and Geist Mono at 400, 500 and 600 only, and a `Geist Fallback` face (local Arial, one face per weight) that reduces the shift when Geist
   arrives; it does not promise the same wrap at every width.
 - **Display type:** two roles a page writes, hero (96/96; 72/76 from 720 to 1023; 44/48 under 720) and display (72/76; 56/60; 36/40), made of the fixed
@@ -253,6 +261,17 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   does nothing. Build registries, sets and caches lazily, inside functions.
 - **Heavy dependencies load on demand.** A component that needs a large library
   imports it dynamically, the way `CodeBlock` loads Shiki and each grammar.
+- **Data is drawn as text, and a destination is checked** (the safe-sinks rule: decided by the owner, Fable, Astra and Muse, 23 Nov 2026). A value this repo's
+  source did not write (a prop, an option, an entry, a file's contents, a URL) reaches the page as text (React children, `textContent`, or the escape inside a
+  reviewed HTML builder: `_.esc` in the skill, `escapeHtml` in the package, double-quoted attributes only), as an attribute picked from a fixed list
+  (`_.pick`), or as a destination that passed `safeHref` (relative, `http`, `https`, `mailto`, `tel`; it returns the string or `null`) before it is
+  rendered, navigated to or handed to an event or callback. Markup, attribute names, CSS and script are never built from it. The HTML sinks (`innerHTML`,
+  `outerHTML`, `insertAdjacentHTML`, `dangerouslySetInnerHTML`, `srcdoc`, `document.write`) and an unchecked navigation are exceptions: in
+  `tools/html-skill/src` each file's count is in `sinks.allowed.json` with what it takes and why it is safe (a file that takes data is in the hostile-input
+  probe); anywhere else the comment just above says `sink: <where the value comes from>; <why it is safe>; <the test that proves it>` (`tools/review` may
+  leave out the test). No `eval`, `new Function` or string timer outside tests. `postMessage` names its origin, never `"*"`, and a receiver checks
+  `origin`. A link that opens a new tab carries `rel="noopener"`. A build script that reads a path from input checks the real path stays in its folder.
+  Work sized by input has a bound. A composed page's body is the author's own code and is not linted; compose lists a `javascript:` link in it.
 - **No third-party types in the public API.** Declare our own types for exported
   signatures, so an app's type-check never compiles a dependency's declarations.
 - **New runtime dependencies need the owner's approval.** Add the package to
@@ -290,9 +309,9 @@ skill folder.
 
 | Command | What it checks | When |
 |---|---|---|
-| `npm run lint` | Token-only CSS (Stylelint) and the dependency allowlist. Takes seconds. | Before every commit. The pre-commit hook runs it for you. |
+| `npm run lint` | Token-only CSS (Stylelint), type-aware JS/TS/JSX correctness (Oxlint, the sink rules among it), the dependency allowlist, the sink check (`scripts/check-sinks.mjs`, read from the syntax tree), and the public-surface vocabulary. Takes seconds. | Before every commit. The pre-commit hook runs it for you. |
 | `npm test` | The tokens' tests (contrast and the generated outputs), the React package's typecheck, build and browser tests (behaviour, accessibility with axe in both themes, bundle size and the size table, the browser floor), then the HTML skill's, the brand's and the sites' tests | Before every push |
-| `npm run check` | Everything CI runs on Linux: lint, tests, reference previews, packed-package consumer | Before opening a PR |
+| `npm run check` | Everything CI runs on Linux but the generated-Swift drift check (it compares with the commit, so `ci:local` runs it): lint, tests, reference previews, packed-package consumer | Before opening a PR |
 | `npm run ci:local` | Both CI jobs, from `ci.yml`'s own steps: the Linux job above plus the generated-Swift drift check, then `swift build` and `swift test` | Before every merge while CI can't run (GitHub Actions minutes run out), on the PR's exact head and again after resolving conflicts. Post the result on the PR. |
 | `npm run ci:local -- --fresh` | The same steps, from a new `git worktree` of the head with `npm ci`, removed afterwards | When a stale `node_modules` or an ignored folder in your checkout could be deciding the result. It checks the commit, not uncommitted changes. |
 

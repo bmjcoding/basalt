@@ -67,7 +67,10 @@
     root.appendChild(pop);
     var attrs = { role: 'combobox', autocomplete: 'off', spellcheck: 'false', 'aria-autocomplete': 'list', 'aria-haspopup': 'listbox', 'aria-expanded': 'false' };
     for (var a in attrs) input.setAttribute(a, attrs[a]);
-    if (input.disabled) trigger.disabled = true;
+    // The field's disabled state is the submitted value's too: a disabled field sends nothing, now and when it is disabled or enabled later.
+    function syncDisabled() { trigger.disabled = input.disabled; if (hidden) hidden.disabled = input.disabled; }
+    syncDisabled();
+    new MutationObserver(syncDisabled).observe(input, { attributes: true, attributeFilter: ['disabled'] });
 
     var selected = null;
     var lit = null;

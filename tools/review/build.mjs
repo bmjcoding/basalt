@@ -12,6 +12,8 @@
 
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+
+import { withGlyphMasks } from "../../packages/react/glyph-mask.mjs";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -32,6 +34,9 @@ const out = path.resolve(outAt >= 0 ? args[outAt + 1] : path.join(repo, ".review
 // --still: shoot with every transition and animation at zero length and every loop held, so two builds of the same code give the same pixels
 // (tools/review/pixel-proof.mjs compares them). It changes only the tooling's own clock: a shot of a mid-motion state is the end of that motion.
 const still = args.includes("--still");
+// --only a,b: shoot those steps alone (by id), into --out, keeping each step's number, so a re-shot picture has its round's name.
+const onlyAt = args.indexOf("--only");
+const only = onlyAt >= 0 ? new Set(args[onlyAt + 1].split(",")) : null;
 // What a still takes out of a shot: the CSS transitions and animations (zero length); the JS glides, which read the duration tokens off the root (a number that rolls, a
 // line that travels to its new value: 1ms, not zero, because a glide divides by it); a text caret, which blinks; and then, just before the shot, whatever finite animation
 // is still running is finished, so a transition that began after the page loaded (a focus ring, a plate) is at its end and not near it.
@@ -85,7 +90,7 @@ const untilQuiet = async (page, label) => {
   if (!done) { gateWarnings.push(label); console.warn(`${label}: the page still had timers pending after 10s; shot anyway`); }
   if (audit && before !== (await text())) console.log(`GATE CHANGED ${label}`);
 };
-const wanted = args.filter((a, i) => !a.startsWith("--") && (outAt < 0 || i !== outAt + 1));
+const wanted = args.filter((a, i) => !a.startsWith("--") && (outAt < 0 || i !== outAt + 1) && (onlyAt < 0 || i !== onlyAt + 1));
 fs.mkdirSync(out, { recursive: true });
 
 // ---- the page, once per round
@@ -135,7 +140,8 @@ const css = [
   // comes after `basalt` on purpose: it is where a round shows an option the owner has not decided ("Option, not
   // shipped"), scoped to a wrapper that says so.
   "@layer review, basalt, review-options;",
-  fs.readFileSync(path.join(reactPkg, "src/styles/components.css"), "utf8"),
+  // The source stylesheet, with its core-glyph masks written in, as the package's build writes them.
+  withGlyphMasks(fs.readFileSync(path.join(reactPkg, "src/styles/components.css"), "utf8")),
   // The accent classes are generated with the tokens; Badge's accent tone reads them.
   fs.readFileSync(path.join(repo, "packages/tokens/dist/css/accents.css"), "utf8"),
   `@layer review {\n${fs.readFileSync(path.join(here, "walkthrough.css"), "utf8")}\n}`,
@@ -299,6 +305,7 @@ for (const id of rounds) {
   // Every step and state at the desktop width and at a phone's 390px, in both themes.
   let n = 1;
   for (const step of meta) {
+    if (only && !only.has(step.id)) { n++; continue; }
     for (const stateFull of ["default", ...step.states]) {
       // "name@1024" is a state shot at that one width. A step may also set `widths`, `scales` (1 for 1x, 2 for 2x) and `height`.
       const state = stateFull.split("@")[0];
@@ -312,7 +319,7 @@ for (const id of rounds) {
           // ends in one of them (an open menu "menu-forced-colours-lit") takes the same emulation, with or without "-lit".
           const mode = state.replace(/-lit$/, "");
           const media = mode.endsWith("forced-colours") ? { forcedColors: "active", colorScheme: theme } : mode.endsWith("forced-mixed") ? { forcedColors: "active", colorScheme: theme === "dark" ? "light" : "dark" } : mode.endsWith("reduced-motion") ? { reducedMotion: "reduce" } : mode.endsWith("more-contrast") ? { contrast: "more" } : {};
-          const page = await browser.newPage({ viewport: { width, height: step.height ?? (overlay ? 640 : 400) }, deviceScaleFactor: scale, hasTouch: state.startsWith("chart-touch") || state === "touch" || Boolean(step.touch && width < 720), isMobile: (id === "48" && state === "touch") || Boolean(step.touch && width < 720), ...media });
+          const page = await browser.newPage({ viewport: { width, height: step.heights?.[`${state}@${width}`] ?? step.height ?? (overlay ? 640 : 400) }, deviceScaleFactor: scale, hasTouch: state.startsWith("chart-touch") || state === "touch" || Boolean(step.touch && width < 720), isMobile: ((id === "48" || id === "69") && state === "touch") || Boolean(step.touch && width < 720), ...media });
           page.on("pageerror", (e) => errors.push(`${step.id}/${state}/${theme}: ${e.message}`));
           // Round 25's framed art: one address that never answers (the loading state, held) and one that is refused (the failed state).
           if (id === "25") {

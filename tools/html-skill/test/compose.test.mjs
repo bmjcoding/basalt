@@ -108,6 +108,14 @@ describe("what a body gets", () => {
     assert.ok(!compose("<h1>x</h1>", { fonts: false }).html.includes("basalt-loops"));
   });
 
+  test("a page that draws a loop without the toggle (a ring, braille, a loading sparkline) keeps a stored hold too, and carries the indicator's own held rule", () => {
+    for (const [body, rule] of [['<span class="spinner" role="status" aria-label="Loading"></span>', /:root\[data-loops="?held"?\] \.spinner\{animation:none/], ['<braille-spinner></braille-spinner>', /:root\[data-loops="?held"?\] \.braille-dot\[data-dot\]\{animation:none/]]) {
+      const html = compose(body, { fonts: false }).html;
+      assert.match(html.split("</head>")[0], /localStorage\.getItem\("basalt-loops"\)/, body);
+      assert.match(html, rule, body);
+    }
+  });
+
   test("the art tokens come only to a page that names one: art, aspect, stage headroom and chart tokens bring the art module, and a page that names none gets none", () => {
     for (const name of ["--basalt-art-tone-2", "--basalt-art-quiet-limit", "--basalt-aspect-photo", "--basalt-size-stage-headroom", "--basalt-chart-observed", "--basalt-size-chart-plot"]) {
       assert.deepEqual(used(`<style>.hero { background: var(${name}); }</style><div class="hero"></div>`), ["art"], name);
@@ -417,8 +425,9 @@ describe("the command line", () => {
 
   test("uses no network and no module outside node:, so it runs from the skill folder anywhere", () => {
     const source = read(skillDir, "compose.mjs");
-    // node:vm runs the diagram module's own script to write a figure's words into the page (DECISIONS 281, 1.19): still Node's own, no network.
-    assert.deepEqual([...source.matchAll(/^import .* from "([^"]+)"/gm)].map((m) => m[1]).sort(), ["node:fs", "node:path", "node:url", "node:vm"]);
+    // node:vm runs the diagram module's own script to write a figure's words into the page (DECISIONS 281, 1.19); node:worker_threads runs the placer
+    // for an automatic diagram (DECISIONS 306, 1.8), whose elkjs resolves from the repository only when a page asks for one: still Node's own, no network.
+    assert.deepEqual([...source.matchAll(/^import .* from "([^"]+)"/gm)].map((m) => m[1]).sort(), ["node:fs", "node:path", "node:url", "node:vm", "node:worker_threads"]);
     assert.doesNotMatch(source, /\bfetch\(|https?\.request|node:(net|http|https|dns|child_process)/);
   });
 });

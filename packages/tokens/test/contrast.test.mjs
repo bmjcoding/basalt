@@ -1042,6 +1042,58 @@ for (const theme of THEMES) {
   });
 }
 
+// ---- Print (DECISIONS 306, 1.7): the light set, last, on every selector that sets a theme ----
+
+test("print: the token CSS ends with a print block that sets every light colour token to its light value, with color-scheme light, on every theme selector", () => {
+  const at = tokensCss.lastIndexOf("@media print {");
+  assert.ok(at > tokensCss.indexOf("prefers-contrast: more") && at > tokensCss.indexOf("prefers-reduced-motion"), "the print block is last");
+  const block = tokensCss.slice(at);
+  assert.equal(block.trim().split("\n").at(-1), "}", "nothing follows the print block");
+  for (const selector of [":root", '[data-theme="light"]', '[data-theme="dark"]', ".light", ".dark", ':root:not([data-theme="light"]):not(.light)']) assert.ok(block.includes(selector), `print is not declared on ${selector}`);
+  assert.match(block, /color-scheme: light;/);
+  assert.match(block, /--_dkm: initial;/);
+  // Every colour declared by the light theme's block is declared again in print, with the same value.
+  const lightBlock = tokensCss.match(/:root, \[data-theme="light"\], \.light \{([\s\S]*?)\n\}/)[1];
+  const decls = (text) => Object.fromEntries([...text.matchAll(/(--basalt-[\w-]+): ([^;]+);/g)].map((m) => [m[1], m[2]]));
+  const light = decls(lightBlock), print = decls(block);
+  assert.ok(Object.keys(light).length > 50);
+  for (const [name, value] of Object.entries(light)) assert.equal(print[name], value, `${name} in print`);
+});
+
+// DECISIONS 306, 1.0 (Neon's B12 on the batch's code review): every colour in a new seat of batch B joins these tests on levels 0 to 3, in both themes and
+// under more contrast. Cardinality marks are the line's own ink; an activation bar's edge is the structure role on its fill (the figure's level) and on the
+// ground beside it; a frame's and a nested group's edges are the structure role; a quiet run's line is edge-dim; the text art's inks are on surface-sunken;
+// a linked card's words hold on the press step (state-hover) over each level.
+for (const theme of THEMES) {
+  const onLevels = LEVELS.map((n) => [n, color(theme, n)]);
+  test(`${theme}: batch B's seats: marks, a bar's edge, frames and nested groups, a quiet run, at 3:1 on levels 0 to 3 and under more contrast`, () => {
+    for (const name of ["diagram-edge-main", "diagram-edge", "diagram-edge-dim", "diagram-structure"]) {
+      atLeast(theme, name, 3, onLevels);
+      for (const [bgName, bg] of onLevels) assert.ok(ratio(over(more(theme, name), bg), bg) >= 3, `${theme}: ${name} on ${bgName} under more contrast`);
+    }
+    // A bar's fill is the figure's level (surface-1 on the page); its edge holds against that fill and against the page beside it.
+    const fill = color(theme, "surface-1");
+    assert.ok(ratio(over(color(theme, "diagram-structure"), fill), fill) >= 3, `${theme}: a bar's edge on its fill`);
+    assert.ok(ratio(over(color(theme, "diagram-structure"), color(theme, "surface-0")), color(theme, "surface-0")) >= 3, `${theme}: a bar's edge on the ground`);
+  });
+  test(`${theme}: the text art's inks on surface-sunken (tertiary, secondary, primary) hold 4.5:1, and under more contrast`, () => {
+    const sunken = [["surface-sunken", color(theme, "surface-sunken")]];
+    for (const name of ["text-tertiary", "text-secondary", "text-primary"]) {
+      atLeast(theme, name, 4.5, sunken);
+      assert.ok(ratio(over(more(theme, name), sunken[0][1]), sunken[0][1]) >= 4.5, `${theme}: ${name} on surface-sunken under more contrast`);
+    }
+  });
+  test(`${theme}: a linked card's words hold 4.5:1 on its press step (state-hover) over levels 0 to 3`, () => {
+    for (const [bgName, bg] of onLevels) {
+      const step = over(color(theme, "state-hover"), bg);
+      for (const name of ["text-primary", "text-secondary", "text-tertiary"]) {
+        const r = ratio(over(more(theme, name), step), step);
+        assert.ok(r >= 4.5 || (name === "text-tertiary" && ratio(over(color(theme, "text-secondary"), step), step) >= 4.5), `${theme}: ${name} on the press step over ${bgName} is ${fmt(r)}:1`);
+      }
+    }
+  });
+}
+
 // ---- Versions and release notes (DECISIONS 320, 2.8 and 2.10) ----
 //
 // The release page's new pairs. The arrival's plate is plate-0 on the page and plate-1 inside a callout (an action entry); on it the source line and a count

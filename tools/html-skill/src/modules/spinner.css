@@ -8,6 +8,9 @@
 
   .btn .spinner, .palette .spinner { color: inherit; }
 
+  /* The hold (data-loops="held", set before first paint from a stored choice): the ring stands still at its drawing, at full opacity, whatever the OS says. */
+  :root[data-loops="held"] .spinner { animation: none; border-top-color: currentColor; }
+
   @media (prefers-reduced-motion: reduce) {
     .spinner { animation: bh-fade var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite; border-top-color: color-mix(in oklch, currentColor 25%, transparent); }
   }

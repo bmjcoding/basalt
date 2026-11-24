@@ -93,7 +93,8 @@ type Press<E> = (event: E) => unknown;
 /**
  * The press handler of an element given as `render` (`<Button render={<button onClick={save} />}>`) is taken into the button's own press, so the
  * wait guards it too: Base UI would otherwise call it before the button's guard. Both are called, the element's first (the order Base UI kept), and
- * the press waits for whichever returns a promise (for both, when both do).
+ * the press waits for whichever returns a promise (for both, when both do: until both have settled, so one failing never frees a press while the other
+ * is still being answered; the first failure is then raised).
  */
 export function takeClick<R, E>(render: R, onClick: Press<E> | undefined): [R, Press<E> | undefined] {
   const own = React.isValidElement(render) ? (render.props as { onClick?: Press<E> }).onClick : undefined;
@@ -102,7 +103,11 @@ export function takeClick<R, E>(render: R, onClick: Press<E> | undefined): [R, P
     const first = own(event);
     const second = onClick?.(event);
     if (!isThenable(first)) return second;
-    return isThenable(second) ? Promise.all([first, second]) : first;
+    if (!isThenable(second)) return first;
+    return Promise.allSettled([first, second]).then(([a, b]) => {
+      if (a.status === "rejected") throw a.reason;
+      if (b.status === "rejected") throw b.reason;
+    });
   }];
 }
 

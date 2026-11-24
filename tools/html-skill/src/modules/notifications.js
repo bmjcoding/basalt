@@ -16,6 +16,8 @@
    *     label?: 'Notifications', onSelect?(entry), onMarkAllRead?(), onClearAll?() (shows Clear all at the foot's start), onViewAll?(), viewAllHref?, side?: 'bottom', align?: 'end' })
    */
   function isGroup(e) { return !!(e.entries && e.entries.length); }
+  // A link from the entries is written only when it passes core's check (relative, http, https, mailto or tel); any other row is a button.
+  var href = _.safeHref;
   // Errors never group: a danger entry in a group is drawn at the top level, right after it, and a group left with none is not drawn.
   function drawn(list) {
     var out = [];
@@ -36,9 +38,13 @@
     var entries = drawn(o.entries || []);
     // Which groups are open, by entry id, so a new list from setEntries keeps them.
     var opened = {};
+    // A placement the popover module knows, else the default: an option never reaches the markup as written.
+    var side = _.pick(o.side, ['top', 'bottom', 'left', 'right'], 'bottom');
+    var align = _.pick(o.align, ['start', 'center', 'end'], 'end');
+    var viewAllHref = href(o.viewAllHref);
     host.innerHTML =
       '<button type="button" class="btn" data-variant="ghost" data-icon-only popovertarget="' + id + '" aria-haspopup="dialog">' + BELL + '<span class="notifications-dot" aria-hidden="true" hidden></span></button>' +
-      '<div class="panel float popover notifications" popover id="' + id + '" data-side="' + (o.side || 'bottom') + '" data-align="' + (o.align || 'end') + '" aria-labelledby="' + id + '-title">' +
+      '<div class="panel float popover notifications" popover id="' + id + '" data-side="' + side + '" data-align="' + align + '" aria-labelledby="' + id + '-title">' +
         '<div class="notifications-head"><h2 class="popover-title notifications-title" id="' + id + '-title">' + _.esc(label) + '</h2><span class="notifications-count"></span>' +
           '<button type="button" class="btn notifications-mark" data-variant="ghost" data-size="sm" data-edge="end">Mark all as read</button></div>' +
         '<p class="notifications-empty" hidden>Nothing yet.</p>' +
@@ -54,8 +60,8 @@
     var scroll = pop.querySelector('.notifications-scroll');
     var list = pop.querySelector('.notifications-list');
     var foot = pop.querySelector('.notifications-foot');
-    foot.innerHTML = (o.onClearAll ? '<button type="button" class="btn notifications-clear" data-variant="ghost" data-size="sm" data-edge="start">Clear all</button>' : '') + (o.viewAllHref
-      ? '<a class="btn" data-variant="ghost" data-size="sm" data-edge="end" href="' + _.esc(o.viewAllHref) + '"><span>View all</span></a>'
+    foot.innerHTML = (o.onClearAll ? '<button type="button" class="btn notifications-clear" data-variant="ghost" data-size="sm" data-edge="start">Clear all</button>' : '') + (viewAllHref
+      ? '<a class="btn" data-variant="ghost" data-size="sm" data-edge="end" href="' + _.esc(viewAllHref) + '"><span>View all</span></a>'
       : '<button type="button" class="btn" data-variant="ghost" data-size="sm" data-edge="end"><span>View all</span></button>');
     var viewAll = foot.lastElementChild;
     var clear = pop.querySelector('.notifications-clear');
@@ -67,12 +73,13 @@
     function isUnread(e) { return isGroup(e) ? e.entries.some(function (c) { return !!c.unread; }) : !!e.unread; }
     function row(e, index, group) {
       var st = e.status || 'neutral';
-      var tag = group || !e.href ? 'button' : 'a';
+      var link = group ? null : href(e.href);
+      var tag = link ? 'a' : 'button';
       var unread = isUnread(e);
       // The count is the app's only as a whole number above 0, so nothing else reaches the markup.
       var n = group ? (Number.isInteger(e.count) && e.count > 0 ? e.count : e.entries.length) : 0;
       var title = '<span class="notification-title">' + (unread ? '<span class="visually-hidden">Unread: </span>' : '') + _.esc(e.title) + (group ? '<span class="visually-hidden">, ' + n + ' times</span>' : '') + '</span>';
-      return '<' + tag + (tag === 'a' ? ' href="' + _.esc(e.href) + '"' : ' type="button"') + ' class="notification" data-index="' + index + '" data-id="' + _.esc(e.id) + '"' + (unread ? ' data-unread' : '') + ' data-status="' + _.esc(st) + '"' +
+      return '<' + tag + (tag === 'a' ? ' href="' + _.esc(link) + '"' : ' type="button"') + ' class="notification" data-index="' + index + '" data-id="' + _.esc(e.id) + '"' + (unread ? ' data-unread' : '') + ' data-status="' + _.esc(st) + '"' +
         (e.current ? ' data-current aria-current="' + (tag === 'a' ? 'page' : 'true') + '"' : '') + (group ? ' data-group aria-expanded="' + !!opened[e.id] + '" aria-controls="' + group + '"' : '') + '>' +
         '<span class="notification-dot" aria-hidden="true"></span><span class="notification-mark" aria-hidden="true">' + (MARK[st] ? _.icon(MARK[st]) : '') + '</span>' +
         '<span class="notification-text">' + (group ? '<span class="notification-head">' + title + '<span class="notification-count" aria-hidden="true">×' + n + '</span>' + CARET + '</span>' : title) +

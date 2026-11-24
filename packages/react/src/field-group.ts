@@ -14,3 +14,8 @@ export interface FieldGroup {
 }
 
 export const FieldGroupContext = /* @__PURE__ */ React.createContext<FieldGroup | null>(null);
+
+/** True inside a required `Field`: a control there carries `required` unless it sets its own, since the visible "Required" is hidden from assistive technology. */
+export function useInRequiredField() {
+  return React.useContext(FieldGroupContext)?.required ?? false;
+}

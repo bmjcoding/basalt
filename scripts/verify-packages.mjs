@@ -91,6 +91,17 @@ assert.ok(tokens.dark['text-primary'].hex); assert.equal(accents.cobalt.dark.hex
 const phosphor = await import('@srasyndicate/basalt/phosphor'); assert.deepEqual(phosphor.BASALT_PHOSPHOR_WEIGHTS, ['bold', 'fill']); assert.throws(() => phosphor.phosphorWeightsEsbuild({}), /weights/); assert.equal(phosphor.phosphorWeightsRollup({ weights: ['bold'] }).transform('x', '/a/b.js'), null);
 console.log('Packed consumer: runtime, server rendering, exact token types, exports, fonts and RSC boundary pass.');`);
   process.stdout.write(run(process.execPath, ["smoke.mjs"], consumer));
+  // elkjs is a build input of the package, not a dependency (the decider's ruling 2 on the batch B re-check): the package ships its one copy,
+  // dist/diagram-elk.js, so a consumer with no elkjs installed places an automatic figure.
+  fs.rmSync(path.join(consumer, "node_modules", "elkjs"), { recursive: true, force: true });
+  fs.writeFileSync(path.join(consumer, "place.mjs"), `import assert from 'node:assert/strict'; import fs from 'node:fs';
+assert.ok(!fs.existsSync(new URL('./node_modules/elkjs', import.meta.url)), 'no elkjs in the consumer');
+const { placeDiagram } = await import('@srasyndicate/basalt/diagram-layout');
+const placed = await placeDiagram({ type: 'architecture', nodes: [{ id: 'a' }, { id: 'b' }, { id: 'c' }], edges: [{ from: 'a', to: 'b', kind: 'main' }, { from: 'b', to: 'c' }] }, 'right');
+assert.deepEqual(Object.keys(placed.cells).sort(), ['a', 'b', 'c']);
+assert.ok(placed.cells.a.col < placed.cells.c.col);
+console.log('Packed consumer: an automatic figure is placed with no elkjs installed.');`);
+  process.stdout.write(run(process.execPath, ["place.mjs"], consumer));
   // A React Server Component, built by Next.js (A5-18): what the package holds that is neither a component nor a hook must be callable on the server. Each
   // page is static, so a call that throws ("Attempted to call formatStamp() from the server but formatStamp is on the client") fails the build, and a constant
   // that arrives as a client reference (CONFIRM_MS / 1000 is NaN, with no error) shows in the page's HTML. The components still come through as components.
@@ -130,7 +141,9 @@ export default async function Page() {
 } catch (error) {
   if (error.stdout) process.stderr.write(error.stdout);
   if (error.stderr) process.stderr.write(error.stderr);
-  throw new Error("Packed consumer verification failed; see the compiler or installer output above.");
+  // An assertion on the built pages has no output of its own: its message is the failure.
+  if (!error.stdout && !error.stderr) process.stderr.write(`${error.message}\n`);
+  throw new Error("Packed consumer verification failed; see the compiler or installer output above.", { cause: error });
 } finally {
   fs.rmSync(consumer, { recursive: true, force: true });
 }

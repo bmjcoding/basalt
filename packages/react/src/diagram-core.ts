@@ -22,7 +22,7 @@ export type DiagramSide = "top" | "right" | "bottom" | "left";
 export type DiagramLineKind = "main" | "plain" | "dashed";
 
 /** The words for the marks. The key is built from what is drawn; `main`, `dashed` and the focal node must have words when drawn. */
-export interface DiagramLegend { main?: string; plain?: string; dashed?: string; focal?: string; group?: string }
+export interface DiagramLegend { main?: string; plain?: string; dashed?: string; focal?: string; group?: string; activation?: string }
 
 export interface DiagramNode {
   id: string;
@@ -38,6 +38,10 @@ export interface DiagramNode {
   row: number;
   /** Indented in the stacked drawing; a node is on the spine unless it is a branch. */
   branch?: boolean;
+  /** The card is a link (DECISIONS 306, 1.4): the card itself is an `<a>`, the figure's roving stop, and Enter follows it. */
+  href?: string;
+  /** `"_blank"` opens a new tab (with `rel="noopener noreferrer"`); the cue is then the external arrow. */
+  target?: "_blank";
 }
 
 export interface DiagramEdge {
@@ -52,11 +56,12 @@ export interface DiagramEdge {
   toSide?: DiagramSide;
 }
 
-export interface DiagramGroup { id: string; label: string }
+/** A group of an architecture. `parent` names the group it is in (DECISIONS 306, 1.3): two levels at most, a node naming its innermost group. */
+export interface DiagramGroup { id: string; label: string; parent?: string }
 /**
  * A service's own mark for an architecture card (DECISIONS 292, 2.7): its owner's file for light grounds and, if it has one, for dark grounds, each
- * a URL the app has the right to show (a file path or a data URI). `onDark` defaults to `onLight`. Basalt draws it 16px in the card's top end corner
- * and does nothing to the file. The bundled marks are `@srasyndicate/basalt/marks/<id>`.
+ * a URL the app has the right to show: a relative path, an `https` URL or a `data:image/` URI, from files the app ships, never from user input (anything else
+ * is not drawn, with a development warning). `onDark` defaults to `onLight`. Basalt draws it 16px in the card's top end corner and does nothing to the file. The bundled marks are `@srasyndicate/basalt/marks/<id>`.
  */
 export interface DiagramMark {
   onLight: string;
@@ -78,11 +83,22 @@ export interface DiagramPacket {
 export type DiagramMotion = "still" | "animated";
 export type FlowchartNode = DiagramNode & { shape?: "step" | "decision" | "terminal" };
 export interface DataFlowLane { id: string; label: string }
-export type DataFlowNode = Omit<DiagramNode, "row" | "kind" | "branch"> & { lane: string };
-export interface SequenceParticipant { id: string; name: string; kind?: string; short?: string; focal?: boolean }
-export type SequenceStep = { from: string; to: string; label: string; note?: string; kind?: DiagramLineKind } | { band: string };
-export interface SchemaColumn { name: string; type?: string; key?: "PK" | "FK"; references?: string }
-export interface SchemaTable { name: string; col: number; row: number | [number, number]; focal?: boolean; more?: number; columns: SchemaColumn[] }
+export type DataFlowNode = Omit<DiagramNode, "row" | "kind" | "branch"> & { lane: string; mark?: DiagramMark };
+/** A participant may carry its service's mark (DECISIONS 306, 1.6), never a person. */
+export interface SequenceParticipant { id: string; name: string; kind?: string; short?: string; focal?: boolean; mark?: DiagramMark }
+/** A message. `activate` starts its receiver working; `deactivate` stops its sender after it (DECISIONS 306, 1.2). */
+export type SequenceMessage = { from: string; to: string; label: string; note?: string; kind?: DiagramLineKind; activate?: boolean; deactivate?: boolean };
+/** A step: a message, a band, or a frame round a run of steps (`opt`, `loop`, or `alt` with two or more branches). Frames nest two deep. */
+export type SequenceStep = SequenceMessage | { band: string }
+  | { frame: "opt" | "loop"; label: string; steps: SequenceStep[] }
+  | { frame: "alt"; branches: Array<{ label: string; steps: SequenceStep[] }> };
+/** The words the key and the list say for each frame operator, and for an alt's later branches. */
+export interface DiagramFrameLabels { opt?: string; loop?: string; alt?: string; else?: string }
+/** How many rows each end of a foreign key allows (DECISIONS 306, 1.1): `from` is the column's own table, `to` the referenced one, which is one row at most. */
+export type DiagramCardinality = "one" | "zero-or-one" | "one-or-many" | "zero-or-many";
+export interface DiagramCardinalityPair { from: DiagramCardinality; to?: "one" | "zero-or-one" }
+export interface SchemaColumn { name: string; type?: string; key?: "PK" | "FK"; references?: string; cardinality?: DiagramCardinalityPair }
+export interface SchemaTable { name: string; col: number; row: number | [number, number]; focal?: boolean; more?: number; columns: SchemaColumn[]; href?: string; target?: "_blank" }
 export interface DiagramShapeLabels { terminal?: string; step?: string; decision?: string }
 
 /** Everything a figure is drawn from: the React props, or the HTML skill's JSON, key for key. */
@@ -105,6 +121,28 @@ export interface DiagramSpec {
   pulse?: string[];
   packet?: DiagramPacket;
   run?: boolean;
+  /** A sequence's frame words (DECISIONS 306, 1.2): "Only if", "Repeats", "One of these", "Otherwise". */
+  frameLabels?: DiagramFrameLabels;
+  /** `"first-visit"` (DECISIONS 306, 1.5): an animated figure's entrance plays until it has played once on this page, then is at rest. Needs an `id`. */
+  entrance?: "always" | "first-visit";
+  /** A sequence drawn as text art (DECISIONS 306, 1.2). */
+  variant?: "drawn" | "text";
+  /** Automatic layout (1.8): `"auto"` takes each card's column and row from `placement` (elkjs's, from `placeDiagram`), and a card's own are not read. */
+  layout?: "authored" | "auto";
+  direction?: "right" | "down";
+  placement?: DiagramPlacement | DiagramPlacement[];
+}
+
+/** A card of an automatic figure (1.8): its `col` and `row` may be left out (and are not read). */
+export type DiagramUnplaced<T> = Omit<T, "col" | "row"> & { col?: number; row?: number | [number, number] };
+
+/** Where an automatic figure's cards go in one direction (1.8): `placeDiagram`'s answer. */
+export interface DiagramPlacement {
+  direction: "right" | "down";
+  cells: Record<string, { col: number; row: number }>;
+  /** The grid's tracks (DECISIONS 322, rule 1): at least the cards' own, and more where a track holds only a main line's way. */
+  cols?: number;
+  rows?: number;
 }
 
 // ============================================================================================================================================
@@ -113,7 +151,7 @@ export interface DiagramSpec {
 
 type Shape = "box" | "terminal" | "decision" | "table" | "participant";
 
-export interface MColumn { name: string; type?: string; key?: "PK" | "FK"; ref?: { table: string; column: string; row: number } }
+export interface MColumn { name: string; type?: string; key?: "PK" | "FK"; ref?: { table: string; column: string; row: number }; card?: { from: DiagramCardinality; to: "one" | "zero-or-one" } }
 export interface MNode {
   id: string;
   i: number;
@@ -136,6 +174,9 @@ export interface MNode {
   short?: string;
   /** A card's mark: a bundled id (the HTML skill's page holds its rule) or the two URLs. */
   mark?: { id?: string; onLight?: string; onDark?: string; says?: string[] };
+  /** A link card (1.4). */
+  href?: string;
+  blank?: boolean;
 }
 export interface MEdge {
   i: number;
@@ -149,10 +190,18 @@ export interface MEdge {
   fromRow?: number;
   toRow?: number;
   fk?: boolean;
-  /** A live stream (DECISIONS 292, 1.6). */
+  /** A foreign key's stated cardinality (1.1): its ends are crow's-foot marks in place of the dot and the head. */
+  card?: { from: DiagramCardinality; to: "one" | "zero-or-one" };
+  /** A live stream (DECISIONS 292, 1.6); on a dashed line its own dashes march (DECISIONS 306, 1.5). */
   flow?: boolean;
 }
-export type MStep = { band: string } | { n: number; from: string; to: string; label: string; note?: string; kind: DiagramLineKind };
+export type MStep = { band: string } | { n: number; from: string; to: string; label: string; note?: string; kind: DiagramLineKind; activate?: boolean; deactivate?: boolean }
+  /** A frame opens (its operator, label and depth, and the participants' columns it spans), an alt's later branch starts, or a frame closes (1.2). */
+  | { open: "opt" | "loop" | "alt"; label: string; depth: number; a: number; b: number }
+  | { otherwise: string; depth: number }
+  | { close: number };
+/** A participant working: a bar from the message that starts it to the one that ends it, at a depth from 1 to 3 (1.2). */
+export interface MBar { who: string; from: number; to: number; depth: number }
 export interface Model {
   type: DiagramType;
   title: string;
@@ -161,22 +210,40 @@ export interface Model {
   nodes: MNode[];
   byId: Map<string, MNode>;
   edges: MEdge[];
-  groups: Array<DiagramGroup & { members: string[] }>;
+  /** `members` are a group's own nodes; `all` adds its child groups' (its box's extent); `depth` is 1 or 2. Outer groups come first. */
+  groups: Array<DiagramGroup & { members: string[]; all: string[]; depth: number }>;
   lanes: DataFlowLane[];
   steps: MStep[];
+  /** A sequence's activation bars (1.2). */
+  bars: MBar[];
+  /** A sequence's frame words. */
+  frameWords: { opt: string; loop: string; alt: string; else: string };
   cols: number;
   rows: number;
   shapeLabels: Required<DiagramShapeLabels>;
   stepWord: (n: number) => string;
   warnings: string[];
   /** Motion (DECISIONS 292). Read and ignored when still. */
-  motion: { animated: boolean; pulse?: string[]; packet?: { path: string[]; repeat: boolean; send?: number | string }; run: boolean };
+  motion: { animated: boolean; pulse?: string[]; packet?: { path: string[]; repeat: boolean; send?: number | string }; run: boolean; firstVisit?: boolean };
   /** Work that depends on the model alone, done once (see `memo`). */
   memo: Map<string, unknown>;
+  /** Mirrored for a right-to-left figure (1.7). */
+  rtl?: boolean;
+  /** An automatic figure with no placement yet (1.8): it is stacked, every word present, until one arrives. */
+  unplaced?: boolean;
+  /** A sequence drawn as text art (1.2): a code block holding the art where it fits and the transcript where it does not. */
+  text?: boolean;
+  /** A schema that draws cardinality marks (1.1): its column gap is space-12 plus space-3. */
+  marks?: boolean;
+  /** 5.1's first list, in a development build: reported as errors (console.error), the figure drawn as production draws it. */
+  errors: string[];
 }
 
 const SIDES: DiagramSide[] = ["top", "right", "bottom", "left"];
 const LINE_KINDS: DiagramLineKind[] = ["main", "plain", "dashed"];
+const CARDS: DiagramCardinality[] = ["one", "zero-or-one", "one-or-many", "zero-or-many"];
+/** A form's words: the key's ("Exactly one") and the list's ("exactly one"). */
+const CARD_WORDS: Record<DiagramCardinality, string> = { one: "Exactly one", "zero-or-one": "Zero or one", "one-or-many": "One or many", "zero-or-many": "Zero or many" };
 const HEADINGS = [2, 3, 4, 5, 6];
 
 /** Text from the author's data: always a string (or nothing), so a value that is not one can never be read as markup. */
@@ -187,6 +254,11 @@ const record = <T>(from?: Record<string, T>): Record<string, T> => Object.assign
 const own = <T>(r: Record<string, T> | undefined, id: string): T | undefined => (r && Object.prototype.hasOwnProperty.call(r, id) ? r[id] : undefined);
 
 export interface BuildOptions {
+  /** The placement an automatic figure is drawn from (1.8), chosen by the figure from those it has. */
+  placement?: DiagramPlacement;
+  /** The figure's computed direction is right to left (DECISIONS 306, 1.7): the model is mirrored, so column 1 is drawn at the right and a named left or
+   *  right side swaps. The engine then lays out and routes as it does any figure; the words do not mirror. */
+  rtl?: boolean;
   /** Run the checks a development build reports (placement, groups, the key's words). Off, the model is read the same and nothing is checked. */
   checks?: boolean;
 }
@@ -202,9 +274,12 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   const checks = dev && options.checks !== false;
   const warnings: string[] = [];
   const warn = (message: string) => { warnings.push(message); };
+  // 5.1's first list (the decider's ruling 1 on the re-check): reported as an error, once for a figure, and the figure is drawn as production draws it.
+  const errors: string[] = [];
+  const error = (message: string) => { errors.push(message); };
   const legendIn = (spec.legend ?? {}) as Record<string, unknown>;
   const legend: DiagramLegend = {};
-  for (const k of ["main", "plain", "dashed", "focal", "group"] as const) { const w = txt(legendIn[k]); if (w) legend[k] = w; }
+  for (const k of ["main", "plain", "dashed", "focal", "group", "activation"] as const) { const w = txt(legendIn[k]); if (w) legend[k] = w; }
   const stepLabel = spec.stepLabel;
   const stepWord = typeof stepLabel === "function" ? (n: number) => String(stepLabel(n)) : typeof stepLabel === "string" ? ((n: number) => stepLabel.replace("{n}", String(n))) : (n: number) => `Step ${n}`;
   const shapeIn = (spec.shapeLabels ?? {}) as Record<string, unknown>;
@@ -224,6 +299,8 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   };
   const trackOf = (v: unknown, what: string): number => {
     if (typeof v === "number" && Number.isInteger(v) && v >= 1) return v;
+    // An automatic figure's cards take the placement's tracks (1.8).
+    if (spec.layout === "auto" && (v === undefined || v === null)) return 1;
     dev && warn(`${what} is ${JSON.stringify(v)}, not a whole number from 1: it is placed at 1`);
     return 1;
   };
@@ -243,10 +320,26 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       nodes.push({
         id, i: nodes.length, name: String(raw.name ?? ""), kind: shape === "decision" ? undefined : txt(raw.kind), detail: shape === "decision" ? undefined : txt(raw.detail), mono: Boolean(raw.detailMono),
         focal: Boolean(raw.focal), col: trackOf(raw.col, `the column of ${id}`), row, row2: row, branch: Boolean(raw.branch), shape, group: type === "architecture" ? txt(raw.group) : undefined,
-        mark: type === "architecture" ? markOf((raw as { mark?: unknown }).mark) : undefined,
+        mark: type === "architecture" ? markOf((raw as { mark?: unknown }).mark, dev ? warn : undefined) : undefined,
       });
     }
-    if (type === "architecture") for (const g of spec.groups ?? []) { const gid = String(g.id ?? ""); groups.push({ id: gid, label: String(g.label ?? ""), members: nodes.filter((n) => n.group === gid).map((n) => n.id) }); }
+    if (type === "architecture") {
+      const raw = (spec.groups ?? []).map((g) => ({ id: String(g.id ?? ""), label: String(g.label ?? ""), parent: txt(g.parent) }));
+      const byGroup = new Map(raw.map((g) => [g.id, g]));
+      // Depth by the parent chain: an unknown parent or a cycle is an error, and the group is drawn at the top level.
+      const depthOf = (g: (typeof raw)[number]): number => {
+        if (!g.parent) return 1;
+        const p = byGroup.get(g.parent);
+        if (!p) { dev && error(`the group "${g.label}" names the parent "${g.parent}", which is not a group`); g.parent = undefined; return 1; }
+        if (p.parent === g.id || p.id === g.id) { dev && error(`the groups "${g.label}" and "${p.label}" are each other's parent`); g.parent = undefined; return 1; }
+        if (p.parent) { dev && error(`the group "${g.label}" is a third level: groups nest two deep`); g.parent = undefined; return 1; }
+        return 2;
+      };
+      const depths = raw.map(depthOf);
+      raw.forEach((g, k) => groups.push({ ...g, depth: depths[k]!, members: nodes.filter((n) => n.group === g.id).map((n) => n.id), all: [] }));
+      for (const g of groups) g.all = [...g.members, ...groups.filter((c) => c.parent === g.id).flatMap((c) => c.members)];
+      groups.sort((a, b) => a.depth - b.depth);
+    }
   } else if (type === "data-flow") {
     lanes = (spec.lanes ?? []).map((l) => ({ id: String(l.id ?? ""), label: String(l.label ?? "") }));
     const laneIndex = new Map(lanes.map((l, k) => [l.id, k + 1]));
@@ -259,15 +352,59 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       nodes.push({
         id, i: nodes.length, name: String(raw.name ?? ""), kind: stepWord(n), detail: txt(raw.detail), mono: Boolean(raw.detailMono), focal: Boolean(raw.focal),
         col: trackOf(raw.col, `the column of ${id}`), row: lane ?? 1, row2: lane ?? 1, branch: false, shape: "box", lane: lane ?? 1, laneLabel: lanes[(lane ?? 1) - 1]?.label ?? laneId, step: n,
+        mark: markOf((raw as { mark?: unknown }).mark),
       });
     }
   } else if (type === "sequence") {
-    (spec.participants ?? []).forEach((p, k) => { const name = String(p.name ?? ""); nodes.push({ id: String(p.id ?? ""), i: k, name, kind: txt(p.kind), mono: false, focal: Boolean(p.focal), col: k + 1, row: 1, row2: 1, branch: false, shape: "participant", short: txt(p.short) ?? name }); });
+    (spec.participants ?? []).forEach((p, k) => { const name = String(p.name ?? ""); nodes.push({ id: String(p.id ?? ""), i: k, name, kind: txt(p.kind), mono: false, focal: Boolean(p.focal), col: k + 1, row: 1, row2: 1, branch: false, shape: "participant", short: txt(p.short) ?? name, mark: markOf((p as { mark?: unknown }).mark) }); });
     let n = 0;
-    for (const s of spec.steps ?? []) {
-      if ("band" in s) steps.push({ band: String(s.band ?? "") });
-      else { n++; steps.push({ n, from: String(s.from ?? ""), to: String(s.to ?? ""), label: String(s.label ?? ""), note: txt(s.note), kind: kindOf(s.kind, `message ${n}`) }); }
-    }
+    const colOf = new Map(nodes.map((p) => [p.id, p.col]));
+    // Messages number straight through frames. A frame spans the columns of the participants that send or receive inside it, and the column a
+    // self-call's words run into (1.2).
+    const walk = (list: SequenceStep[], depth: number): [number, number] => {
+      let a = Infinity, b = -Infinity;
+      for (const s of list ?? []) {
+        if (!s || typeof s !== "object") continue;
+        if ("band" in s) {
+          if (depth > 0) dev && error(`the band "${String(s.band)}" is inside a frame: a band is the whole figure's`);
+          steps.push({ band: String(s.band ?? "") });
+          continue;
+        }
+        if ("frame" in s) {
+          if (depth >= 2) { dev && error("a frame is a third level: frames nest two deep"); continue; }
+          const op = s.frame === "alt" || s.frame === "loop" || s.frame === "opt" ? s.frame : "opt";
+          const branches = op === "alt" ? ((s as { branches?: Array<{ label: string; steps: SequenceStep[] }> }).branches ?? []) : [{ label: (s as { label: string }).label, steps: (s as { steps: SequenceStep[] }).steps }];
+          if (op === "alt" && branches.length < 2) dev && error("an alt frame has one branch: it needs two or more");
+          const label = String(branches[0]?.label ?? "");
+          if (label.length > 40) dev && error(`the frame label "${label}" is over 40 characters`);
+          const at = steps.length;
+          steps.push({ open: op, label, depth: depth + 1, a: 0, b: 0 });
+          branches.forEach((br, k) => {
+            if (k) { const l = String(br.label ?? ""); if (l.length > 40) dev && error(`the frame label "${l}" is over 40 characters`); steps.push({ otherwise: l, depth: depth + 1 }); }
+            if (!br.steps?.length) dev && error(`a frame or branch ("${String(br.label ?? "")}") is empty`);
+            const [x, y] = walk(br.steps ?? [], depth + 1);
+            a = Math.min(a, x); b = Math.max(b, y);
+            const open = steps[at] as { a: number; b: number };
+            open.a = Math.min(open.a || Infinity, x); open.b = Math.max(open.b, y);
+          });
+          steps.push({ close: depth + 1 });
+          continue;
+        }
+        n++;
+        const label = String(s.label ?? "");
+        // A message's second line is its note (1.4): a break in its label is an error, and it is drawn on one line.
+        if (label.includes("\n")) dev && error(`message ${n}'s label has a break: a message's second line is its note`);
+        const from = String(s.from ?? ""), to = String(s.to ?? "");
+        steps.push({ n, from, to, label: said(label), note: txt(s.note), kind: kindOf(s.kind, `message ${n}`), activate: s.activate === true || undefined, deactivate: s.deactivate === true || undefined });
+        const ca = colOf.get(from) ?? 1, cb = colOf.get(to) ?? 1;
+        // A self-call's words run into the next column (the one before it on the last participant).
+        const run = ca === cb ? (ca === nodes.length ? ca - 1 : ca + 1) : ca;
+        a = Math.min(a, ca, cb, run); b = Math.max(b, ca, cb, run);
+      }
+      return [a, b];
+    };
+    walk(spec.steps ?? [], 0);
+    for (const st of steps) if ("open" in st && !Number.isFinite(st.a)) { st.a = 1; st.b = Math.max(1, nodes.length); }
   } else if (type === "schema") {
     for (const t of spec.tables ?? []) {
       const name = String(t.name ?? "");
@@ -282,6 +419,44 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     }
   }
 
+  // Automatic layout (1.8): each card's column and row are the placement's; a card's own are not read (a development build says so once).
+  let unplaced = false;
+  if (spec.layout === "auto" && (type === "architecture" || type === "flowchart" || type === "schema")) {
+    const raw = (type === "schema" ? spec.tables : spec.nodes) as Array<{ col?: unknown; row?: unknown }> | undefined;
+    if (checks && (raw ?? []).some((n) => n && (n.col !== undefined || n.row !== undefined))) warn('a card under layout="auto" has a col or row, which is not read: there are no hints');
+    const cells = options.placement?.cells;
+    if (!cells) unplaced = true;
+    for (const n of nodes) { const c = cells?.[n.id]; n.col = c?.col ?? 1; n.row = n.row2 = c?.row ?? 1; }
+    // A placement that puts two cards in one cell, or leaves a card out, is not used (8.5; Neon's B8 of the code review): the figure tries its other
+    // direction, then stacks, and a development build names the cards. (A card inside a group's box it is not in is checked below, with the groups.)
+    if (cells) {
+      const seen = new Map<string, string>();
+      for (const n of nodes) {
+        const c = own(cells, n.id);
+        if (!c) { unplaced = true; dev && warn(`the placement has no cell for ${n.id}, so it is not used`); continue; }
+        const key = `${c.col},${c.row}`;
+        if (seen.has(key)) { unplaced = true; dev && warn(`the placement puts ${seen.get(key)} and ${n.id} in one cell, so it is not used`); }
+        seen.set(key, n.id);
+      }
+    }
+    if (cells && !unplaced) for (const g of groups) {
+      const mem = g.all.map((id) => nodes.find((n) => n.id === id)!).filter(Boolean);
+      if (!mem.length) continue;
+      const c1 = Math.min(...mem.map((n) => n.col)), c2 = Math.max(...mem.map((n) => n.col)), r1 = Math.min(...mem.map((n) => n.row)), r2 = Math.max(...mem.map((n) => n.row));
+      const inside = nodes.filter((n) => !g.all.includes(n.id) && n.col >= c1 && n.col <= c2 && n.row >= r1 && n.row <= r2);
+      if (inside.length) { unplaced = true; dev && warn(`the placement puts ${inside.map((n) => n.id).join(", ")} inside the box of the group "${g.label}", so it is not used`); }
+    }
+  } else if (spec.layout === "auto") dev && error(`layout="auto" is for an architecture, a flowchart or a schema, not a ${type}`);
+  // Link cards (1.4): any card but a sequence's participant (its stacked chip has no room for a 44px target).
+  const rawCards = (type === "schema" ? spec.tables : type === "sequence" ? spec.participants : spec.nodes) as Array<{ href?: unknown; target?: unknown }> | undefined;
+  (rawCards ?? []).forEach((raw, k) => {
+    if (!raw || raw.href === undefined || raw.href === null) return;
+    const href = String(raw.href);
+    if (type === "sequence") { dev && error(`${nodes[k]?.id}: a participant cannot be a link (href)`); return; }
+    if (!href.trim()) { dev && error(`${nodes[k]?.id}'s href is empty`); return; }
+    const n = nodes[k];
+    if (n) { n.href = href; n.blank = raw.target === "_blank"; }
+  });
   const byId = new Map<string, MNode>();
   for (const n of nodes) {
     if (dev && !n.id) warn("a node has no id");
@@ -291,8 +466,20 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
 
   // Schema: a foreign key is one record, `references` on the column; its line, its row's words, the sentence and the list all come from it.
   if (type === "schema") {
+    const cardOf = (v: unknown, where: string): MEdge["card"] => {
+      if (v === undefined || v === null) return undefined;
+      const o = v as { from?: unknown; to?: unknown };
+      const from = CARDS.includes(o.from as DiagramCardinality) ? (o.from as DiagramCardinality) : undefined;
+      if (!from) { dev && error(`${where}'s cardinality "from" is ${JSON.stringify(o.from)}, not one, zero-or-one, one-or-many or zero-or-many: it is left out`); return undefined; }
+      if (o.to === undefined || o.to === null) return { from, to: "one" };
+      if (o.to === "one" || o.to === "zero-or-one") return { from, to: o.to };
+      // A foreign key points at one row at most.
+      dev && error(`${where}'s cardinality "to" is ${JSON.stringify(o.to)}: a foreign key references one row at most (one or zero-or-one), so it is drawn as one`);
+      return { from, to: "one" };
+    };
     (spec.tables ?? []).forEach((t) => (t.columns ?? []).forEach((c, k) => {
       const ref = txt(c.references);
+      if (!ref && c.cardinality !== undefined && c.cardinality !== null) dev && error(`${String(t.name)}.${String(c.name)} states a cardinality but references nothing`);
       if (!ref) return;
       const [table, column] = ref.split(".");
       const target = byId.get(table ?? "");
@@ -300,14 +487,21 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       if (!target || row < 0) { dev && warn(`${String(t.name)}.${String(c.name)} references ${ref}, which is not a shown column`); return; }
       const source = byId.get(String(t.name ?? ""))!;
       source.columns![k]!.ref = { table: table!, column: column!, row };
-      edges.push({ i: edges.length, from: source.id, to: table!, kind: "plain", fromRow: k, toRow: row, fk: true });
+      const card = cardOf(c.cardinality, `${String(t.name)}.${String(c.name)}`);
+      if (card) source.columns![k]!.card = card;
+      edges.push({ i: edges.length, from: source.id, to: table!, kind: "plain", fromRow: k, toRow: row, fk: true, card });
     }));
+    // All of a figure's foreign keys state how many, or none (1.1). In production an unstated line draws as today, and the key shows both.
+    const stated = edges.filter((e) => e.card).length;
+    if (stated && stated < edges.length) dev && error(`cardinality is stated on ${stated} of ${edges.length} foreign keys: state it on every one or none (${edges.filter((e) => !e.card).map((e) => `${e.from}.${byId.get(e.from)!.columns![e.fromRow!]!.name}`).join(", ")} ${edges.length - stated === 1 ? "has" : "have"} none)`);
   } else if (type !== "sequence") {
     for (const e of spec.edges ?? []) {
       const from = String(e.from ?? ""), to = String(e.to ?? "");
       if (!byId.has(from) || !byId.has(to)) { dev && warn(`a line names ${!byId.has(from) ? from : to}, which is not a node`); continue; }
       const label = txt(e.label);
-      if (label && label.length > MAX_LABEL) dev && warn(`the label "${label}" is over ${MAX_LABEL} characters: longer words belong in the node or the summary`);
+      const lines = label?.split("\n") ?? [];
+      if (lines.length > 2) dev && error(`the label "${said(label!)}" has more than one break: a label is two lines at most`);
+      if (lines.some((l) => l.length > MAX_LABEL)) dev && error(`a line of the label "${said(label!)}" is over ${MAX_LABEL} characters: longer words belong in the node or the summary`);
       edges.push({ i: edges.length, from, to, kind: kindOf(e.kind, `the line from ${from} to ${to}`), label, fromSide: sideOf(e.fromSide), toSide: sideOf(e.toSide), flow: type !== "flowchart" && (e as DiagramFlowEdge).flow === true ? true : undefined });
     }
   } else if (dev) {
@@ -317,7 +511,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   }
 
   // Placement checks (development only): two nodes in one cell, a non-member inside a group's box, more than one focal node.
-  if (checks && type !== "sequence") {
+  if (checks && type !== "sequence" && !unplaced) {
     const cells = new Map<string, string>();
     for (const n of nodes) for (let r = n.row; r <= n.row2; r++) {
       const key = `${n.col}:${r}`;
@@ -325,12 +519,12 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       cells.set(key, n.id);
     }
   }
-  if (checks) {
+  if (checks && !unplaced) {
     for (const g of groups) {
-      const m = g.members.map((id) => byId.get(id)!);
+      const m = g.all.map((id) => byId.get(id)!);
       if (!m.length) continue;
       const box = { c1: Math.min(...m.map((n) => n.col)), c2: Math.max(...m.map((n) => n.col)), r1: Math.min(...m.map((n) => n.row)), r2: Math.max(...m.map((n) => n.row2)) };
-      for (const n of nodes) if (n.group !== g.id && n.col >= box.c1 && n.col <= box.c2 && n.row >= box.r1 && n.row <= box.r2) warn(`${n.id} is inside the box of the group "${g.label}" but not a member`);
+      for (const n of nodes) if (!g.all.includes(n.id) && n.col >= box.c1 && n.col <= box.c2 && n.row >= box.r1 && n.row <= box.r2) warn(`${n.id} is inside the box of the group "${g.label}" but not a member`);
       const idx = m.map((n) => n.i);
       if (Math.max(...idx) - Math.min(...idx) + 1 !== idx.length) warn(`the members of the group "${g.label}" are not next to each other in the author's order, so the stacked drawing cannot wrap them in one box`);
     }
@@ -354,29 +548,142 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     pulse: movers ? route(spec.pulse) : undefined,
     packet: packetPath ? { path: packetPath, repeat: packetIn!.repeat === true, send: packetIn!.send } : undefined,
     run: type === "sequence" && spec.run === true,
+    firstVisit: spec.entrance === "first-visit" || undefined,
   };
   if (checks) for (const n of nodes) {
     const says = n.mark?.says;
     if (!says?.length) continue;
-    const words = [n.name, n.kind, n.detail].filter(Boolean).join(" ").toLowerCase();
+    // A step's lane label counts as its words (DECISIONS 306, 1.6).
+    const words = [n.name, n.kind, n.detail, n.laneLabel].filter(Boolean).join(" ").toLowerCase();
     if (!says.some((w) => words.includes(w.toLowerCase()))) warn(`${n.id}'s mark stands for ${says.join(" or ")}, and none of its words say so`);
   }
-  const cols = Math.max(1, ...nodes.map((n) => n.col));
-  const rows = type === "data-flow" ? Math.max(1, lanes.length) : Math.max(1, ...nodes.map((n) => n.row2));
-  return { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, cols, rows, shapeLabels, stepWord, warnings, motion, memo: new Map() };
+  // Activation bars (1.2): a stack on each participant. `activate` opens one on the receiver, `deactivate` closes the sender's top one after its message;
+  // a bar left open closes at that participant's last message. Three deep at most.
+  const bars: MBar[] = [];
+  if (type === "sequence") {
+    const open = new Map<string, MBar[]>();
+    const last = new Map<string, number>();
+    for (const st of steps) if ("n" in st) { last.set(st.from, st.n); last.set(st.to, st.n); }
+    for (const st of steps) {
+      if (!("n" in st)) continue;
+      if (st.activate) {
+        const stack = open.get(st.to) ?? [];
+        if (stack.length >= 3) dev && error(`message ${st.n} opens a fourth bar on ${st.to}: three deep at most`);
+        else { const bar = { who: st.to, from: st.n, to: st.n, depth: stack.length + 1 }; stack.push(bar); bars.push(bar); open.set(st.to, stack); }
+      }
+      if (st.deactivate) {
+        const stack = open.get(st.from);
+        const top = stack?.pop();
+        if (!top) dev && error(`message ${st.n} closes a bar on ${st.from}, which has none open`);
+        else top.to = st.n;
+      }
+    }
+    for (const [who, stack] of open) for (const bar of stack) bar.to = Math.max(bar.from, last.get(who) ?? bar.from);
+  }
+  const fl = (spec.frameLabels ?? {}) as Record<string, unknown>;
+  const frameWords = { opt: txt(fl.opt) ?? "Only if", loop: txt(fl.loop) ?? "Repeats", alt: txt(fl.alt) ?? "One of these", else: txt(fl.else) ?? "Otherwise" };
+  // An automatic figure's tracks include those that hold only a main line's way (DECISIONS 322, rule 1).
+  const placed = spec.layout === "auto" && !unplaced ? options.placement : undefined;
+  let cols = Math.max(1, placed?.cols ?? 1, ...nodes.map((n) => n.col));
+  // Right to left (1.7): column 1 at the right. Columns are mirrored, a frame's span with them, and a named left or right side swaps.
+  if (options.rtl) {
+    for (const n of nodes) n.col = cols - n.col + 1;
+    const swap = (side?: DiagramSide) => (side === "left" ? "right" : side === "right" ? "left" : side);
+    for (const e of edges) { e.fromSide = swap(e.fromSide); e.toSide = swap(e.toSide); }
+    for (const st of steps) if ("open" in st) { const [a, b] = [cols - st.b + 1, cols - st.a + 1]; st.a = a; st.b = b; }
+    // A way-only track (DECISIONS 322) is a track right to left too (Neon's P3 of the code review).
+    cols = Math.max(1, placed?.cols ?? 1, ...nodes.map((n) => n.col));
+  }
+  const rows = type === "data-flow" ? Math.max(1, lanes.length) : Math.max(1, placed?.rows ?? 1, ...nodes.map((n) => n.row2));
+  const model: Model = { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, bars, frameWords, cols, rows, shapeLabels, stepWord, warnings, errors, motion, memo: new Map(), rtl: options.rtl || undefined, unplaced: unplaced || undefined, text: (type === "sequence" && spec.variant === "text") || undefined, marks: edges.some((e) => e.card) || undefined };
+  if (spec.layout === "auto" && !unplaced && type !== "schema") chooseSides(model);
+  if (checks) for (const [id, h0] of Object.entries(portFloors(model))) if (h0 >= 48) warn(`${id} grows to ${h0}px to hold the lines on one side: use another side`);
+  // A figure with no cells yet (an automatic one before its placement) has no spatial keys to check.
+  if (checks && nodes.length > 100) warn(`the figure has ${nodes.length} cards: more than 100, which automatic layout places on the main thread`);
+  if (checks && nodes.length > 1 && !unplaced && !spatialTable(model)) warn("some part cannot be reached from another by the arrow keys where the figure is drawn, so its arrows keep the author's order");
+  return model;
+}
+
+/**
+ * An automatic figure's sides (1.8): nobody names one, so each line tries the router's shapes in order (sideways out and up or down in, up or down out
+ * and sideways in, then the two straight-on shapes; in one row or column the straight line, then a turn-back either side) and takes the first that
+ * passes through no card and puts no fourth line on a side. The line with the fewest clean shapes chooses first, then main lines, then the author's
+ * order. A side the author named is kept.
+ */
+function chooseSides(m: Model) {
+  const taken = new Set(m.nodes.map((n) => `${n.col},${n.row}`));
+  const between = (p: number, q: number) => { const out: number[] = []; for (let k = Math.min(p, q) + 1; k < Math.max(p, q); k++) out.push(k); return out; };
+  type Shape = { sides: [DiagramSide, DiagramSide]; cells: Array<[number, number]> };
+  const shapes = (e: MEdge): Shape[] => {
+    const a = m.byId.get(e.from)!, b = m.byId.get(e.to)!;
+    const sx: DiagramSide = b.col > a.col ? "right" : "left", sy: DiagramSide = b.row > a.row ? "bottom" : "top";
+    const ex: DiagramSide = b.col > a.col ? "left" : "right", ey: DiagramSide = b.row > a.row ? "top" : "bottom";
+    const along = (lo: number, hi: number, at: number, horizontal: boolean) => between(lo, hi).map((k) => (horizontal ? [k, at] : [at, k]) as [number, number]);
+    let list: Shape[];
+    // A turn-back runs in the gutter beside its side (DECISIONS 322, rule 4): it is a shape only where a track lies beyond that side, so none is chosen on
+    // the drawing's own edge, where it would leave the drawing.
+    const turn = (side: DiagramSide): Shape[] => ((side === "right" ? a.col < m.cols : side === "left" ? a.col > 1 : side === "bottom" ? a.row < m.rows : a.row > 1) ? [{ sides: [side, side], cells: [] }] : []);
+    if (a.row === b.row) list = [{ sides: [sx, ex], cells: along(a.col, b.col, a.row, true) }, ...turn("bottom"), ...turn("top")];
+    else if (a.col === b.col) list = [{ sides: [sy, ey], cells: along(a.row, b.row, a.col, false) }, ...turn("right"), ...turn("left")];
+    else list = [
+      { sides: [sx, ey], cells: [...along(a.col, b.col, a.row, true), [b.col, a.row], ...along(a.row, b.row, b.col, false)] },
+      { sides: [sy, ex], cells: [...along(a.row, b.row, a.col, false), [a.col, b.row], ...along(a.col, b.col, b.row, true)] },
+      { sides: [sx, ex], cells: along(a.col, b.col, a.row, true) },
+      { sides: [sy, ey], cells: along(a.row, b.row, a.col, false) },
+    ];
+    return list.filter((c) => c.cells.every(([x, y]) => !taken.has(`${x},${y}`)));
+  };
+  const load = new Map<string, number>();
+  const left = new Set<string>();
+  // Sides the author named count before any line chooses (DECISIONS 322, rule 3).
+  for (const e of m.edges) if (e.fromSide || e.toSide) {
+    const [d1, d2] = defaultSides(m.byId.get(e.from)!, m.byId.get(e.to)!);
+    const s1 = e.fromSide ?? d1, s2 = e.toSide ?? d2;
+    left.add(`${e.from}.${s1}`);
+    for (const [id, side] of [[e.from, s1], [e.to, s2]] as const) load.set(`${id}.${side}`, (load.get(`${id}.${side}`) ?? 0) + 1);
+  }
+  const order = m.edges.map((_, k) => k).sort((p, q) => shapes(m.edges[p]!).length - shapes(m.edges[q]!).length || Number(m.edges[q]!.kind === "main") - Number(m.edges[p]!.kind === "main") || p - q);
+  for (const k of order) {
+    const e = m.edges[k]!;
+    if (e.fromSide || e.toSide) continue;
+    // A decision's lines meet at its four points (DECISIONS 322, rule 3): a point a line leaves takes no other line, so two lines never leave one point on
+    // one another and a line never arrives where one leaves. Lines that arrive at one point join, three at most, as on any side.
+    const room = (id: string, side: DiagramSide, leaving: boolean) => {
+      const key = `${id}.${side}`;
+      if ((load.get(key) ?? 0) >= 3) return false;
+      if (m.byId.get(id)!.shape !== "decision") return true;
+      return leaving ? !load.has(key) : !left.has(key);
+    };
+    const ok = shapes(e).find((c) => room(e.from, c.sides[0], true) && room(e.to, c.sides[1], false));
+    if (!ok) continue;
+    left.add(`${e.from}.${ok.sides[0]}`);
+    for (const [id, side] of [[e.from, ok.sides[0]], [e.to, ok.sides[1]]] as const) load.set(`${id}.${side}`, (load.get(`${id}.${side}`) ?? 0) + 1);
+    e.fromSide = ok.sides[0];
+    e.toSide = ok.sides[1];
+  }
 }
 
 /** A card's mark from the author's data: a bundled id (a string), or `{ onLight, onDark }` (with the words a bundled one stands for, `says`). */
-function markOf(v: unknown): MNode["mark"] {
+function markOf(v: unknown, warn?: (message: string) => void): MNode["mark"] {
   if (typeof v === "string") return v ? { id: v } : undefined;
   if (!v || typeof v !== "object") return undefined;
   const o = v as { onLight?: unknown; onDark?: unknown; says?: unknown };
-  const onLight = txt(o.onLight);
+  const onLight = markUrl(txt(o.onLight), warn);
   if (!onLight) return undefined;
-  return { onLight, onDark: txt(o.onDark) ?? onLight, says: Array.isArray(o.says) ? o.says.map(String) : undefined };
+  return { onLight, onDark: markUrl(txt(o.onDark), warn) ?? onLight, says: Array.isArray(o.says) ? o.says.map(String) : undefined };
 }
-/** A URL as a CSS string: what would end it or the declaration is escaped, so a URL can only ever be read as one. */
-const cssUrl = (u: string) => `url("${u.replace(/[\\"\n;]/g, (c) => (c === "\n" ? "\\a " : c === ";" ? "\\3b " : `\\${c}`))}")`;
+/** A mark is an image the app ships: a relative path, https, or a data: image. Anything else (a script scheme, another document) is no mark. */
+function markUrl(u: string | undefined, warn?: (message: string) => void): string | undefined {
+  if (!u) return undefined;
+  if (/^data:image\//i.test(u.trim())) return u;
+  try {
+    if (/^https?:$/.test(new URL(u, "https://basalt.invalid/").protocol) && !/^http:/i.test(u.trim())) return u;
+  } catch { /* not a URL: no mark */ }
+  warn?.(`a card's mark ${JSON.stringify(u.slice(0, 60))} is not a relative path, https or a data: image, so it is not drawn`);
+  return undefined;
+}
+/** A URL as a CSS string: what would end it or the declaration is escaped (a line break, a return, a form feed, a quote, a backslash, a semicolon), so a URL can only ever be read as one. */
+const cssUrl = (u: string) => `url("${u.replace(/[\\"\n\r\f;]/g, (c) => (c === "\n" ? "\\a " : c === "\r" ? "\\d " : c === "\f" ? "\\c " : c === ";" ? "\\3b " : `\\${c}`))}")`;
 
 /** A value worked out once a model (the stack's plan, the sentences, the key and the list), kept on the model so a state change does not redo it. */
 function memo<T>(m: Model, key: string, make: () => T): T {
@@ -385,6 +692,10 @@ function memo<T>(m: Model, key: string, make: () => T): T {
 }
 
 const MAX_LABEL = 28;
+/** How many lines a label is drawn on: one, or two where its author wrote a break (DECISIONS 306, 1.4). The engine never breaks one. */
+const labelLines = (text: string) => (text.includes("\n") ? 2 : 1);
+/** A label as words: its lines joined with a space (the list and the sentences). */
+const said = (text: string) => text.replace(/\n/g, " ");
 
 // ============================================================================================================================================
 // Words: sentences, the key, the list
@@ -410,8 +721,9 @@ function writeSentence(m: Model, n: MNode): string {
   const parts: string[] = [];
   if (m.type === "schema") {
     parts.push(`${n.name}, table.`);
-    const refs = (n.columns ?? []).filter((c) => c.ref).map((c) => `${c.ref!.table} (${c.name})`);
-    const by = m.edges.filter((e) => e.to === n.id).map((e) => `${e.from} (${m.byId.get(e.from)!.columns![e.fromRow!]!.name})`);
+    // A stated cardinality adds its clause (1.1): "users (decided_by: zero or many approvals to zero or one users)".
+    const refs = (n.columns ?? []).filter((c) => c.ref).map((c) => `${c.ref!.table} (${c.name}${c.card ? `: ${cardClause(n.id, c.ref!.table, c.card)}` : ""})`);
+    const by = m.edges.filter((e) => e.to === n.id).map((e) => `${e.from} (${m.byId.get(e.from)!.columns![e.fromRow!]!.name}${e.card ? `: ${cardClause(e.from, e.to, e.card)}` : ""})`);
     if (refs.length) parts.push(`References ${refs.join(", ")}.`);
     if (by.length) parts.push(`Referenced by ${by.join(", ")}.`);
   } else if (m.type === "sequence") {
@@ -419,18 +731,51 @@ function writeSentence(m: Model, n: MNode): string {
     const gets = m.steps.filter((s) => "n" in s && s.to === n.id).length;
     parts.push(sentence(n.kind ? `${n.name}, ${n.kind}` : n.name));
     parts.push(`Sends ${sends} ${sends === 1 ? "message" : "messages"} and receives ${gets}.`);
+    const w = working(m, n);
+    if (w) parts.push(w.trim());
   } else {
     const what = m.type === "data-flow" ? `${m.stepWord(n.step!)} of ${m.nodes.length}, ${n.laneLabel}` : m.type === "flowchart" ? shapeWord(m, n) : n.kind;
     parts.push(sentence(what ? `${n.name}, ${what}` : n.name));
     if (n.detail) parts.push(sentence(n.detail));
-    if (n.group) { const g = m.groups.find((x) => x.id === n.group); if (g) parts.push(`In ${g.label}.`); }
-    const from = m.edges.filter((e) => e.to === n.id).map((e) => `${m.byId.get(e.from)!.name}${e.label ? ` (${e.label})` : ""}`);
-    const to = m.edges.filter((e) => e.from === n.id).map((e) => `${m.byId.get(e.to)!.name}${e.label ? ` (${e.label})` : ""}`);
+    // The chain, innermost first: "In Data & logs, in AWS · your account." (1.3)
+    if (n.group) { const g = m.groups.find((x) => x.id === n.group); const outer = g?.parent ? m.groups.find((x) => x.id === g.parent) : undefined; if (g) parts.push(outer ? `In ${g.label}, in ${outer.label}.` : `In ${g.label}.`); }
+    const from = m.edges.filter((e) => e.to === n.id).map((e) => `${m.byId.get(e.from)!.name}${e.label ? ` (${said(e.label)})` : ""}`);
+    const to = m.edges.filter((e) => e.from === n.id).map((e) => `${m.byId.get(e.to)!.name}${e.label ? ` (${said(e.label)})` : ""}`);
     if (from.length) parts.push(`From: ${from.join(", ")}.`);
     if (to.length) parts.push(`To: ${to.join(", ")}.`);
   }
   if (n.focal && m.legend.focal) parts.push(sentence(m.legend.focal));
   return parts.join(" ");
+}
+
+/** A foreign key's cardinality in words (1.1): "zero or many approvals to zero or one users". Table names are written as given. */
+/** The same clause in the list, its table names as code. */
+const cardClauseCode = (from: string, to: string, card: { from: DiagramCardinality; to: DiagramCardinality }, code: (s: string) => VElement): VChild[] => [`${CARD_WORDS[card.from].toLowerCase()} `, code(from), ` to ${CARD_WORDS[card.to].toLowerCase()} `, code(to)];
+const cardClause = (from: string, to: string, card: { from: DiagramCardinality; to: DiagramCardinality }) => `${CARD_WORDS[card.from].toLowerCase()} ${from} to ${CARD_WORDS[card.to].toLowerCase()} ${to}`;
+
+/** A participant's working stretches in words (1.2): " Working during messages 6 to 12." (and "message 3" for one). */
+function working(m: Model, n: MNode): string {
+  const bars = m.bars.filter((b) => b.who === n.id && b.depth === 1);
+  if (!bars.length) return "";
+  const word = m.legend.activation ?? "Working";
+  return ` ${word} during ${bars.map((b) => (b.from === b.to ? `message ${b.from}` : `messages ${b.from} to ${b.to}`)).join(" and ")}.`;
+}
+
+/**
+ * What a tap does (DECISIONS 306, 1.5): a `click` from a touch or a pen pointer on a card traces it, on the same card or the drawing's ground clears it.
+ * A linked card follows its link and is never traced. Returns the trace to show, or undefined where the tap changes nothing.
+ */
+export function tapTrace(fig: HTMLElement, P: string, event: MouseEvent, current: string | null): string | null | undefined {
+  const type = (event as PointerEvent).pointerType;
+  if (type !== "touch" && type !== "pen") return undefined;
+  const drawing = fig.querySelector(`.${P}-drawing`);
+  const target = event.target as Element | null;
+  if (!drawing || !target || !drawing.contains(target) || !fig.querySelector(`.${P}-edge`)) return undefined;
+  const node = target.closest<HTMLElement>(`.${P}-node`);
+  if (node?.hasAttribute("href")) return undefined;
+  // A tap on the ground clears a trace; with none up it is nothing, so it never makes a figure "on touch" (Neon's P7 of the code review).
+  if (!node) return current === null ? undefined : null;
+  return node.dataset.node === current ? null : node.dataset.node ?? null;
 }
 
 /** The noun the key hint and the keys sentence use for one stop. */
@@ -497,8 +842,12 @@ export interface Dyn {
   bare?: boolean;
   /** The list was opened by a bare stack, not by the reader: it closes again when lines are drawn. A press of the toggle clears it. */
   autoOpen?: boolean;
+  /** The text variant shows its art (1.2): its widest line fits the block. */
+  art?: boolean;
   /** The drawn layout keeps space-3 above its first row and below its last, so a label beside a line in a 40px row has a seat (1.8). */
   pad?: boolean;
+  /** A schema's rows with its corridors (DECISIONS 306, 1.1): a grid-template-rows of spacer tracks round the author's rows, set only where a far key is drawn. */
+  rows?: string;
 }
 
 export interface TreeIds { base: string }
@@ -516,16 +865,40 @@ function nodesAreImages(m: Model, dyn: Dyn): boolean {
   return true;
 }
 
-/** How many sides a group reaches (the start or the end column): each adds space-4 to the least width. */
+/** A group's cells, its own members' and its child groups'. */
+function groupCells(m: Model, g: Model["groups"][number]) {
+  const mem = g.all.map((id) => m.byId.get(id)!);
+  if (!mem.length) return null;
+  return { c1: Math.min(...mem.map((n) => n.col)), c2: Math.max(...mem.map((n) => n.col)), r1: Math.min(...mem.map((n) => n.row)), r2: Math.max(...mem.map((n) => n.row2)) };
+}
+/**
+ * How many group levels reach each edge of the grid (DECISIONS 306, 1.3): the top row, the end column, the bottom row and the start column. A nested
+ * group's box is space-4 inside its parent's at the sides and below and space-8 below its top, so each level that reaches an edge takes that room again.
+ */
+export function groupEdges(m: Model): [number, number, number, number] {
+  return memo(m, "group-edges", () => {
+    const out: [number, number, number, number] = [0, 0, 0, 0];
+    for (const g of m.groups) {
+      const c = groupCells(m, g);
+      if (!c) continue;
+      const at = [c.r1 === 1, c.c2 === m.cols, c.r2 === m.rows, c.c1 === 1];
+      // A group reaches an edge with its own depth when its child does too, or alone at depth 1.
+      at.forEach((on, k) => { if (on) out[k] = Math.max(out[k]!, groupLevels(m, g, k)); });
+    }
+    return out;
+  });
+}
+/** How many boxes a group draws past its cells on one side: 1, and 1 more for a child group that reaches that side of it. */
+function groupLevels(m: Model, g: Model["groups"][number], side: number): number {
+  const c = groupCells(m, g)!;
+  const kids = m.groups.filter((k) => k.parent === g.id);
+  const reaches = kids.some((k) => { const kc = groupCells(m, k); return kc && [kc.r1 === c.r1, kc.c2 === c.c2, kc.r2 === c.r2, kc.c1 === c.c1][side]; });
+  return reaches ? 2 : 1;
+}
+/** How many group levels reach the start and the end columns: each adds space-4 to the least width. */
 export function groupReach(m: Model): number {
-  let reach = 0;
-  for (const g of m.groups) {
-    const cols = g.members.map((id) => m.byId.get(id)!.col);
-    if (!cols.length) continue;
-    if (Math.min(...cols) === 1) reach |= 1;
-    if (Math.max(...cols) === m.cols) reach |= 2;
-  }
-  return (reach & 1) + ((reach >> 1) & 1);
+  const e = groupEdges(m);
+  return e[1] + e[3];
 }
 
 /** The figure's columns as the least-width rules count them: a sequence's participants, a data flow's step columns, everyone else's tracks. */
@@ -534,7 +907,7 @@ export function columnCount(m: Model): number { return m.type === "sequence" ? m
 // ---- The stacked drawing's plan: routes and gaps from the order alone (1.13) ----
 
 export type StackRoute = "down" | "up" | "trunk" | "rail" | "end-down" | "end-up";
-export interface StackPlan { routes: StackRoute[]; gutter: boolean; lanes: number[]; exits: number[]; gaps: Record<string, number>; third: boolean }
+export interface StackPlan { routes: StackRoute[]; gutter: boolean; lanes: number[]; exits: number[]; gaps: Record<string, number>; third: boolean; laneCount: number }
 
 /** The stacked drawing's routes, end lanes and the gap above each card (in px of the space scale), from the author's order. */
 export function stackPlan(m: Model): StackPlan {
@@ -565,7 +938,7 @@ function planStack(m: Model): StackPlan {
   const gutter = ends.length > 0 && (m.type === "data-flow" || !laneOk);
   // Lanes in the gutter, nested (1.7 rule 3): of two overlapping lines the one that travels farther takes the outer lane; equal travel, the
   // earlier is inside. Allocated across each overlapping set: shortest first, each one lane outside every overlapping line already placed,
-  // so no two overlapping lines share a lane. A line that would need a third lane is the development error (`third`).
+  // so no two overlapping lines share a lane. A line that would need a fifth lane is the development error (`third`).
   const travel = (e: MEdge) => { const [a, b] = span(e); return b - a; };
   const lanes = m.edges.map(() => 0);
   let third = false;
@@ -574,9 +947,11 @@ function planStack(m: Model): StackPlan {
     let lane = 0;
     for (const o of placed) if (overlaps(o.e, it.e)) lane = Math.max(lane, lanes[o.k]! + 1);
     lanes[it.k] = lane;
-    if (lane > 1) third = true;
+    // Four lanes at most (DECISIONS 306, 1.3): a fifth is the last resort, no lines and the list open.
+    if (lane > 3) third = true;
     placed.push(it);
   }
+  const laneCount = Math.max(0, ...ends.map(({ k }) => lanes[k]! + 1));
   // Where an end line leaves its card: the middle, or the thirds when two leave one card (the farther one nearer the top going down, nearer the bottom going up).
   const exits = m.edges.map(() => 0.5);
   for (const n of order) {
@@ -608,10 +983,15 @@ function planStack(m: Model): StackPlan {
       }
     });
     if (labelled > 1 || (turnInto && turnFrom)) gap = 64;
+    // Several end lines into one card (1.3) turn space-5 apart: the gap above it grows space-5 for each entry past the first (and below a card for lines
+    // that enter it from below).
+    const downInto = ends.filter(({ e, k }) => routes[k] === "end-down" && m.byId.get(e.to)!.i === b).length;
+    const upInto = ends.filter(({ e, k }) => routes[k] === "end-up" && m.byId.get(e.to)!.i === b - 1).length;
+    gap += 20 * Math.max(0, downInto - 1) + 20 * Math.max(0, upInto - 1);
     gaps[card.id] = gap;
     void above;
   }
-  return { routes, gutter, lanes, exits, gaps, third };
+  return { routes, gutter, lanes, exits, gaps, third, laneCount };
 }
 
 // ---- Swatches: each drawn exactly as its mark ----
@@ -631,6 +1011,31 @@ function lineSwatch(P: string, kind: DiagramLineKind | "fk"): VElement {
       ? h("path", { class: `${P}-tip`, "data-kind": k, "data-open": "", d: `M${end - 8} ${y - 4}L${end} ${y}L${end - 8} ${y + 4}` })
       : h("path", { class: `${P}-tip`, "data-kind": k, d: `M${end} ${y}L${end - 8} ${y - 4}L${end - 8} ${y + 4}Z` }));
 }
+/** A cardinality swatch (1.1): a 24px line carrying the form, its table's edge at the end. */
+function cardSwatch(P: string, form: DiagramCardinality): VElement {
+  const { crow, ring } = cardMarks(form, 24, 8.5, -1);
+  return h("svg", { class: `${P}-swatch`, "data-card": form, ...svgA(24, 16) },
+    h("path", { class: `${P}-line`, "data-kind": "plain", d: "M0 8.5H24" }),
+    h("path", { class: `${P}-crow`, d: crow }),
+    ring ? h("circle", { class: `${P}-ring`, cx: ring.x, cy: ring.y, r: ring.r }) : null);
+}
+
+/**
+ * A form's marks at one end of a line (1.1), Information Engineering's, from the table's edge `edge` along the line at `y`, `out` the way away from
+ * the table (+1 or -1). Each bar is a 1px tick size-diagram-head across, its ink the pixel that ends at its distance; a foot is three spokes from a
+ * point at 7.5 to the edge, space-1 either side of the line; a ring is size-dot across its stroke's middle, centred at 10.5, so its ink runs 7 to 14.
+ */
+export function cardMarks(form: DiagramCardinality, edge: number, y: number, out: number, head = 8, dot = 6): { crow: string; ring?: { x: number; y: number; r: number } } {
+  const r2 = (n: number) => String(Math.round(n * 100) / 100);
+  const at = (d: number) => edge + out * d;
+  const half = head / 2;
+  const bar = (d: number) => `M${r2(at(d - 0.5))} ${r2(y - half)}V${r2(y + half)}`;
+  const many = form === "one-or-many" || form === "zero-or-many";
+  const zero = form === "zero-or-one" || form === "zero-or-many";
+  let crow = many ? `M${r2(edge)} ${r2(y - half)}L${r2(at(7.5))} ${r2(y)}L${r2(edge)} ${r2(y + half)}` : bar(4);
+  if (!zero) crow += bar(many ? 11 : 8);
+  return { crow, ring: zero ? { x: Math.round(at(10.5) * 100) / 100, y, r: dot / 2 } : undefined };
+}
 function boxSwatch(P: string, shape: "box" | "terminal" | "decision" | "focal" | "group"): VElement {
   if (shape === "decision") return h("svg", { class: `${P}-swatch`, "data-shape": shape, ...svgA(16, 16) }, h("path", { class: `${P}-swatch-shape`, d: "M8 2.5L14.5 8L8 13.5L1.5 8Z" }));
   if (shape === "terminal") return h("svg", { class: `${P}-swatch`, "data-shape": shape, ...svgA(16, 16) }, h("rect", { class: `${P}-swatch-shape`, x: 0.5, y: 3.5, width: 15, height: 9, rx: 4.5 }));
@@ -641,6 +1046,8 @@ function boxSwatch(P: string, shape: "box" | "terminal" | "decision" | "focal" |
 function keyTree(P: string, m: Model): VElement | null {
   return memo(m, `key:${P}`, () => buildKey(P, m));
 }
+/** The key alone, for the viewer's foot (DECISIONS 310, 9.2): the same entries the figure draws under its drawing. */
+export const figureKey = keyTree;
 function buildKey(P: string, m: Model): VElement | null {
   const entries: VElement[] = [];
   const entry = (swatch: VElement, words: string, attrs: VAttrs = {}) => entries.push(h("li", { class: `${P}-entry`, ...attrs }, swatch, h("span", null, words)));
@@ -658,16 +1065,28 @@ function buildKey(P: string, m: Model): VElement | null {
     if (used.has("decision")) entry(boxSwatch(P, "decision"), m.shapeLabels.decision);
   }
   const kinds = new Set<DiagramLineKind>(m.type === "sequence" ? m.steps.flatMap((s) => ("n" in s ? [s.kind] : [])) : m.edges.filter((e) => !e.fk).map((e) => e.kind));
+  // The text art's key is its own glyphs (1.2): the key is built from what is drawn.
+  const glyph = (g: string, ink: string) => h("span", { class: `${P}-key-glyph`, "data-ink": ink, "aria-hidden": "true" }, g);
   for (const k of ["main", "plain", "dashed"] as const) {
     const words = m.legend[k];
-    if (kinds.has(k) && words) entry(lineSwatch(P, k), words, { "data-line": "" });
+    if (kinds.has(k) && words) entry(m.text ? glyph(k === "main" ? "━━▶" : k === "dashed" ? "┄┄▷" : "──▶", k === "main" ? "main" : "plain") : lineSwatch(P, k), words, { "data-line": m.text ? undefined : "" });
   }
   if (m.type === "schema" && m.edges.length) {
-    // The foreign-key line where it is drawn; where it is not, the row says it, and so does the key.
-    entry(lineSwatch(P, "fk"), m.legend.plain ?? "A foreign key, to the key it references", { "data-line": "", "data-when": "drawn" });
-    entries.push(h("li", { class: `${P}-entry`, "data-when": "stacked" }, h("span", { class: `${P}-fk-mark`, "aria-hidden": "true" }, "→"), h("span", null, "The table a foreign key references")));
+    // The foreign-key line where it is drawn; where it is not, the row says it, and so does the key. A schema that states how many shows each form
+    // drawn in its place (1.1), built in because the forms are notation; an unstated line (production, a figure that states some) keeps its entry.
+    if (m.edges.some((e) => !e.card)) entry(lineSwatch(P, "fk"), m.legend.plain ?? "A foreign key, to the key it references", { "data-line": "", "data-when": "drawn" });
+    const forms = new Set(m.edges.flatMap((e) => (e.card ? [e.card.from, e.card.to] : [])));
+    for (const f of CARDS) if (forms.has(f)) entry(cardSwatch(P, f), CARD_WORDS[f], { "data-line": "", "data-when": "drawn", "data-card": f });
+    entries.push(h("li", { class: `${P}-entry`, "data-when": "stacked" }, h("span", { class: `${P}-fk-mark`, "aria-hidden": "true" }, m.rtl ? "←" : "→"), h("span", null, "The table a foreign key references")));
   }
-  if (m.nodes.some((n) => n.focal) && m.legend.focal) entry(boxSwatch(P, "focal"), m.legend.focal, { "data-focal": "" });
+  if (m.type === "sequence") {
+    // A bar on a dashed lifeline, where one is drawn (1.2); then each frame operator drawn, its letters set as the tab sets them, and its words.
+    if (m.bars.length) entry(m.text ? glyph("┃", "working") : h("svg", { class: `${P}-swatch`, "data-shape": "bar", ...svgA(16, 16) }, h("path", { class: `${P}-life`, d: "M8 0V16" }), h("rect", { class: `${P}-bar`, x: 4.5, y: 2.5, width: 7, height: 11, rx: 1.5 })), m.legend.activation ?? "Working", m.text ? {} : { "data-when": "drawn" });
+    const ops = new Set(m.steps.flatMap((st) => ("open" in st ? [st.open] : [])));
+    for (const op of ["opt", "loop", "alt"] as const) if (ops.has(op)) entries.push(h("li", { class: `${P}-entry` }, h("span", { class: `${P}-key-letters`, "data-op": "" , "aria-hidden": "true" }, op), h("span", null, m.frameWords[op])));
+  }
+  // The text art draws the focal participant in a double-line box: its key shows that glyph (P4 of the pixel review).
+  if (m.nodes.some((n) => n.focal) && m.legend.focal) entry(m.text ? glyph("╔═╗", "focal") : boxSwatch(P, "focal"), m.legend.focal, { "data-focal": "" });
   if (m.groups.length && m.legend.group) entry(boxSwatch(P, "group"), m.legend.group);
   if (!entries.length) return null;
   return h("div", { class: `${P}-key` }, h("ul", { class: `${P}-legend`, "aria-label": "Key" }, entries));
@@ -685,24 +1104,32 @@ function inlineArrow(P: string, kind: DiagramLineKind): VElement {
 
 // ---- Nodes ----
 
+/** A card's name; a link card's last word is held with its cue (the stylesheet's arrow after it), so the arrow never leaves the name's last word (1.4). */
+function linkName(P: string, n: MNode): VChild {
+  if (!n.href) return n.name;
+  const at = n.name.trimEnd().lastIndexOf(" ");
+  return [at < 0 ? "" : n.name.slice(0, at + 1), h("span", { class: `${P}-name-end` }, at < 0 ? n.name : n.name.slice(at + 1))];
+}
+
 function nodeText(P: string, m: Model, n: MNode): VChild[] {
-  if (n.shape === "decision") return [h("span", { class: `${P}-words` }, h("span", { class: `${P}-name` }, n.name))];
+  if (n.shape === "decision") return [h("span", { class: `${P}-words` }, h("span", { class: `${P}-name` }, linkName(P, n)))];
   const kids: VNode[] = [];
   if (m.type === "data-flow") kids.push(h("span", { class: `${P}-kind` }, n.kind!, h("span", { class: `${P}-lane-word` }, ` · ${n.laneLabel}`)));
   else if (n.kind) kids.push(h("span", { class: `${P}-kind` }, n.kind));
-  kids.push(h("span", { class: `${P}-name` }, n.name));
+  kids.push(h("span", { class: `${P}-name` }, linkName(P, n)));
   // An identifier breaks only at its spaces: each run between them is kept whole (an ordinary hyphen stays, so a copy is exact).
-  if (n.detail) kids.push(h("span", { class: `${P}-detail`, "data-mono": n.mono ? "" : undefined }, n.mono ? words(n.detail).flatMap((w, j) => [j ? " " : "", h("span", { class: `${P}-run` }, w)]) : n.detail));
+  // The runs are held in one span, a single left-to-right run right to left (1.7).
+  if (n.detail) kids.push(h("span", { class: `${P}-detail`, "data-mono": n.mono ? "" : undefined }, n.mono ? h("span", { class: `${P}-runs` }, words(n.detail).flatMap((w, j) => [j ? " " : "", h("span", { class: `${P}-run` }, w)])) : n.detail));
   return kids;
 }
 
-function tableText(P: string, n: MNode): VChild[] {
+function tableText(P: string, n: MNode, m: Model): VChild[] {
   return [
-    h("span", { class: `${P}-th` }, h("span", { class: `${P}-tname` }, n.name)),
+    h("span", { class: `${P}-th` }, h("span", { class: `${P}-tname` }, linkName(P, n))),
     h("span", { class: `${P}-rows` }, (n.columns ?? []).map((c, k) => h("span", { class: `${P}-row`, "data-row": k, "data-key": c.key },
       h("span", { class: `${P}-keyseat` }, c.key ?? ""),
       h("span", { class: `${P}-cname` }, c.name),
-      c.ref ? h("span", { class: `${P}-ctype`, "data-ref": "" }, `→ ${c.ref.table}`) : c.type ? h("span", { class: `${P}-ctype` }, c.type) : null))),
+      c.ref ? h("span", { class: `${P}-ctype`, "data-ref": "" }, `${m.rtl ? "←" : "→"} ${c.ref.table}`) : c.type ? h("span", { class: `${P}-ctype` }, c.type) : null))),
     n.more ? h("span", { class: `${P}-more` }, `+ ${n.more} more`) : null,
   ];
 }
@@ -718,7 +1145,9 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
   const { P } = ctx;
   const images = nodesAreImages(m, dyn) || dyn.keep === n.id;
   const stops = hasStops(m, dyn);
-  const style: string[] = [`--_c:${n.col}`, `--_r:${n.row}`, `--_r2:${n.row2 + 1}`];
+  // Where a schema's corridors are spacer tracks (1.1), the author's row r is track 2r.
+  const spaced = dyn.layout === "drawn" && dyn.rows;
+  const style: string[] = [`--_c:${n.col}`, `--_r:${spaced ? 2 * n.row : n.row}`, `--_r2:${spaced ? 2 * n.row2 + 1 : n.row2 + 1}`];
   if (m.type === "data-flow") style.push(`--_lc:${n.col + 1}`);
   if (m.type === "sequence") style.push(`--_c2:${n.col + 1}`);
   const plan = ctx.plan;
@@ -729,11 +1158,19 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
   }
   const height = own(dyn.heights, n.id);
   if (height) style.push(`--_h:${height}px`);
+  // The least height its ports need (call 3); the stylesheet applies it to the drawn layout alone.
+  const floor = own(portFloors(m), n.id);
+  if (floor) style.push(`--_mh:${floor}px`);
   const wordsWidth = own(dyn.words, n.id);
   if (wordsWidth) style.push(`--_ww:${wordsWidth}px`);
   const tabbable = stops ? (dyn.stop === n.id ? 0 : -1) : dyn.keep === n.id ? -1 : undefined;
-  return h("div", {
+  // A link card is the link itself (1.4): its name is its sentence, read with the link role, and it begins with the card's visible name.
+  return h(n.href ? "a" : "div", {
     class: `${P}-node`,
+    href: n.href,
+    target: n.href && n.blank ? "_blank" : undefined,
+    rel: n.href && n.blank ? "noopener noreferrer" : undefined,
+    "data-link": n.href ? (n.blank ? "external" : "") : undefined,
     "data-node": n.id,
     "data-shape": n.shape,
     "data-focal": n.focal ? "" : undefined,
@@ -741,14 +1178,14 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
     "data-mark": n.mark ? n.mark.id ?? "" : undefined,
     "data-level": ctx.level,
     style: style.join(";"),
-    role: images ? "img" : undefined,
-    "aria-label": images ? nodeSentence(m, n) : undefined,
+    role: images && !n.href ? "img" : undefined,
+    "aria-label": images || n.href ? nodeSentence(m, n) : undefined,
     tabindex: tabbable,
   },
   n.shape === "decision" ? h("svg", { class: `${P}-diamond`, viewBox: "0 0 100 100", preserveAspectRatio: "none", "aria-hidden": "true", focusable: "false" }, h("path", { d: "M50 0L100 50L50 100L0 50Z" })) : null,
   // A mark (DECISIONS 292, 2.6): an empty span, the form a background image, so its colours cannot be restyled and nothing of the file reaches the page.
   n.mark ? h("span", { class: `${P}-mark`, "aria-hidden": "true", style: n.mark.onLight ? `--_ml:${cssUrl(n.mark.onLight)};--_md:${cssUrl(n.mark.onDark ?? n.mark.onLight)}` : undefined }) : null,
-  n.shape === "table" ? tableText(P, n) : nodeText(P, m, n));
+  n.shape === "table" ? tableText(P, n, m) : nodeText(P, m, n));
 }
 
 function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
@@ -759,50 +1196,129 @@ function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
   }
   if (m.type === "architecture") {
     for (const g of m.groups) {
-      const mem = g.members.map((id) => m.byId.get(id)!);
-      if (!mem.length) continue;
-      const c1 = Math.min(...mem.map((n) => n.col)), c2 = Math.max(...mem.map((n) => n.col)), r1 = Math.min(...mem.map((n) => n.row)), r2 = Math.max(...mem.map((n) => n.row2));
-      out.push(h("div", { class: `${P}-gbox`, "data-group": g.id, style: `--_c:${c1};--_c2:${c2 + 1};--_r:${r1};--_r2:${r2 + 1}`, "aria-hidden": "true" }, h("span", { class: `${P}-glabel` }, g.label)));
+      const c = groupCells(m, g);
+      if (!c) continue;
+      // A box grown past its cells by one level on each side, and by two where a child group reaches that side of it (1.3).
+      const lv = [0, 1, 2, 3].map((k) => groupLevels(m, g, k));
+      out.push(h("div", { class: `${P}-gbox`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, style: `--_c:${c.c1};--_c2:${c.c2 + 1};--_r:${c.r1};--_r2:${c.r2 + 1}${lv[0]! > 1 ? ";--_gt:2" : ""}${lv[1]! > 1 ? ";--_ge:2" : ""}${lv[2]! > 1 ? ";--_gb:2" : ""}${lv[3]! > 1 ? ";--_gs:2" : ""}`, "aria-hidden": "true" }, h("span", { class: `${P}-glabel` }, g.label)));
     }
   }
+  // The text variant (1.2): one code block, aria-hidden (the title, the summary and the list carry the figure). Before script it holds the transcript;
+  // script writes the art where its widest line fits (the diagram-text module).
+  if (m.text) return [h("pre", { class: `${P}-text`, "aria-hidden": "true", "data-art": dyn.art ? "" : undefined }, h("code", { class: `${P}-text-ink` }, transcript(P, m)))];
   if (m.type === "sequence") {
-    out.push(h("ul", { class: `${P}-cast` }, m.nodes.map((n) => h("li", { class: `${P}-actor` }, nodeTree(ctx, m, n, dyn)))));
+    // Drawn, each head is in its column (mirrored right to left, 1.7).
+    out.push(h("ul", { class: `${P}-cast` }, m.nodes.map((n) => h("li", { class: `${P}-actor`, style: m.rtl ? `--_ac:${n.col}` : undefined }, nodeTree(ctx, m, n, dyn)))));
     out.push(sequenceSteps(ctx, m));
     return out;
   }
-  // Nodes in the author's order; a group's members are wrapped once, so the stacked drawing can draw its box around them.
+  // Nodes in the author's order; a group's members are wrapped once, so the stacked drawing can draw its box around them. A nested group is a wrapper
+  // inside its parent's (1.3).
+  const outerOf = (n: MNode) => { const g = n.group ? m.groups.find((x) => x.id === n.group) : undefined; return g?.parent ? m.groups.find((x) => x.id === g.parent) : g; };
+  const wrap = (g: Model["groups"][number], run: MNode[], kids: VNode[]) => {
+    // A stacked group takes its first member's grown gap above its box (the member itself sits at the top of the box's padding).
+    const grow = ctx.plan ? own(dyn.grow, run[0]!.id) ?? 0 : 0;
+    // A group whose first card is entered by a turn (a trunk or an end line) has space-12 above it, so the turn runs under its label, not behind it
+    // (DECISIONS 306, 1.3, the decider's answer 1 to the pixel review). The label keeps its place in the first space-8.
+    const first = run[0]!;
+    const turns = ctx.plan && first.group === g.id ? m.edges.filter((e, k) => e.to === first.id && (ctx.plan!.routes[k] === "trunk" || ctx.plan!.routes[k] === "end-down")) : [];
+    // A labelled turn's label is seated beside its turn, inside the group (the decider's ruling 4 on the re-check): the group has space-4 more above for each
+    // line of the longest such label, so nothing grows above the group for it.
+    const lines = Math.max(0, ...turns.map((e) => (e.label ? labelLines(e.label) : 0)));
+    const style = [grow ? `--_ggrow:${grow}` : "", lines ? `--_tl:${lines}` : ""].filter(Boolean).join(";");
+    return h("div", { class: `${P}-group`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, "data-turn": turns.length ? "" : undefined, style: style || undefined }, h("span", { class: `${P}-glabel`, "aria-hidden": "true" }, g.label), kids);
+  };
   let k = 0;
   while (k < m.nodes.length) {
     const n = m.nodes[k]!;
-    const g = n.group ? m.groups.find((x) => x.id === n.group) : undefined;
+    const g = outerOf(n);
     if (!g) { out.push(nodeTree(ctx, m, n, dyn)); k++; continue; }
     const run: MNode[] = [];
-    while (k < m.nodes.length && m.nodes[k]!.group === g.id) run.push(m.nodes[k++]!);
-    // A stacked group takes its first member's grown gap above its box (the member itself sits at the top of the box's padding).
-    const grow = ctx.plan ? own(dyn.grow, run[0]!.id) ?? 0 : 0;
-    out.push(h("div", { class: `${P}-group`, "data-group": g.id, style: grow ? `--_ggrow:${grow}` : undefined }, h("span", { class: `${P}-glabel`, "aria-hidden": "true" }, g.label), run.map((x) => nodeTree(ctx, m, x, dyn))));
+    while (k < m.nodes.length && outerOf(m.nodes[k]!)?.id === g.id) run.push(m.nodes[k++]!);
+    const kids: VNode[] = [];
+    for (let j = 0; j < run.length;) {
+      const inner = run[j]!.group !== g.id ? m.groups.find((x) => x.id === run[j]!.group) : undefined;
+      if (!inner) { kids.push(nodeTree(ctx, m, run[j]!, dyn)); j++; continue; }
+      const sub: MNode[] = [];
+      while (j < run.length && run[j]!.group === inner.id) sub.push(run[j++]!);
+      kids.push(wrap(inner, sub, sub.map((x) => nodeTree(ctx, m, x, dyn))));
+    }
+    out.push(wrap(g, run, kids));
+  }
+  return out;
+}
+
+/**
+ * The text variant's transcript (1.2), where the art does not fit, as Draft B's reference (B6 of the pixel review): the participants on a line; then each
+ * message as its number, sender, arrow and receiver, its label on a line of its own and its note on another, every line of it hanging under the sender
+ * inside its frame's indent; frames as indented brackets. A line breaks between participants and between words, never inside a name (each name is held
+ * whole). Each line is a block: `--_in` is its indent in characters, `--_hang` how far its first line starts before it.
+ */
+export function transcript(P: string, m: Model): VNode[] {
+  const out: VNode[] = [];
+  const held = (s: string) => h("span", { class: `${P}-tx-name` }, s);
+  const arrow = (k: DiagramLineKind) => (k === "main" ? "━▶" : k === "dashed" ? "┄▷" : "─▶");
+  const line = (attrs: VAttrs, indent: number, hang: number, ...kids: VChild[]) => h("span", { class: `${P}-tx-line`, ...attrs, style: hang ? `--_in:${indent + hang};--_hang:${hang}` : `--_in:${indent}` }, ...kids);
+  out.push(line({ "data-ink": "names" }, 0, 0, m.nodes.flatMap((n, k) => [k ? " · " : "", held(n.name)])));
+  const digits = String(Math.max(1, ...m.steps.map((s) => ("n" in s ? s.n : 0)))).length;
+  let indent = 0;
+  for (const s of m.steps) {
+    const pad = 2 * indent;
+    if ("band" in s) { out.push(line({ "data-ink": "band" }, pad, 0, `── ${s.band} ──`)); continue; }
+    if ("open" in s) { out.push(line({ "data-ink": "frame" }, pad, 0, h("span", { "data-ink": "op" }, `[${s.open}]`), ` ${s.label}`)); indent++; continue; }
+    if ("otherwise" in s) { out.push(line({ "data-ink": "frame" }, 2 * Math.max(0, indent - 1), 0, h("span", { "data-ink": "op" }, "[else]"), ` ${s.otherwise}`)); continue; }
+    if ("close" in s) { indent = Math.max(0, indent - 1); out.push(line({ "data-ink": "frame" }, 2 * indent, 0, "[end]")); continue; }
+    const a = m.byId.get(s.from)?.name ?? s.from, b = m.byId.get(s.to)?.name ?? s.to;
+    const hang = digits + 2;
+    // The arrow and the receiver are one unbreakable run: a route that does not fit breaks before its arrow, and the second line starts with the arrow under
+    // the sender (the decider's ruling 3 on the re-check), as the stacked list's route does (66-2).
+    out.push(line({ "data-n": s.n }, pad, hang, h("span", { "data-ink": "num" }, String(s.n).padStart(digits, "0")), "  ", held(a), " ", h("span", { class: `${P}-tx-to` }, h("span", { "data-ink": s.kind === "main" ? "main" : "plain" }, arrow(s.kind)), " ", b)));
+    out.push(line({ "data-n": s.n }, pad + hang, 0, h("span", { "data-ink": "label" }, s.label)));
+    if (s.note) out.push(line({ "data-n": s.n }, pad + hang, 0, h("span", { "data-ink": "note" }, s.note)));
   }
   return out;
 }
 
 function sequenceSteps(ctx: TreeContext, m: Model): VElement {
   const { P } = ctx;
-  const blocks: VNode[] = [];
+  const root: VNode[] = [];
+  // Frames (DECISIONS 306, 1.2) are boxes round their rows: each one a block holding its header, its rows and the frames inside it.
+  const stack: Array<{ el: VElement; a: number; b: number }> = [];
+  const into = () => (stack.length ? stack[stack.length - 1]!.el.c : root);
   let list: VElement | null = null;
   for (const s of m.steps) {
-    if ("band" in s) { list = null; blocks.push(h("p", { class: `${P}-band` }, h("span", null, s.band))); continue; }
-    if (!list) { list = h("ol", { class: `${P}-msgs`, start: s.n }); blocks.push(list); }
+    if ("band" in s) { list = null; into().push(h("p", { class: `${P}-band` }, h("span", null, s.band))); continue; }
+    if ("open" in s) {
+      list = null;
+      const parent = stack[stack.length - 1];
+      // A frame inside a frame is space-2 inside it on every side they share.
+      const inset = parent ? `;--_fis:${s.a === parent.a ? 1 : 0};--_fie:${s.b === parent.b ? 1 : 0}` : "";
+      const el = h("div", { class: `${P}-frame`, "data-op": s.open, "data-depth": s.depth, style: `--_a:${s.a};--_b:${s.b + 1}${inset}` },
+        h("span", { class: `${P}-fbox`, "aria-hidden": "true" }),
+        h("p", { class: `${P}-fhead` }, h("span", { class: `${P}-ftab`, "aria-hidden": "true" }, s.open), h("span", { class: `${P}-flabel` }, h("span", { class: ctx.hidden }, `${m.frameWords[s.open]}: `), s.label)));
+      into().push(el);
+      stack.push({ el, a: s.a, b: s.b });
+      continue;
+    }
+    if ("otherwise" in s) {
+      list = null;
+      into().push(h("p", { class: `${P}-felse` }, h("span", { class: `${P}-fword`, "aria-hidden": "true" }, "else"), h("span", { class: `${P}-flabel` }, h("span", { class: ctx.hidden }, `${m.frameWords.else}: `), s.otherwise)));
+      continue;
+    }
+    if ("close" in s) { list = null; stack.pop(); continue; }
+    if (!list) { list = h("ol", { class: `${P}-msgs`, start: s.n }); into().push(list); }
     const a = m.byId.get(s.from), b = m.byId.get(s.to);
     const ca = a?.col ?? 1, cb = b?.col ?? 1;
     const self = ca === cb;
-    const last = self && ca === m.nodes.length;
+    // A self-call goes to the end side, the start side on the last participant: logical, so mirrored right to left (1.7).
+    const last = self && (m.rtl ? ca !== 1 : ca === m.nodes.length);
     const word = kindWord(m, s.kind);
     list.c.push(h("li", { class: `${P}-msg`, "data-kind": s.kind, "data-from": s.from, "data-to": s.to, "data-self": self ? (last ? "start" : "end") : undefined, style: `--_a:${Math.min(ca, cb)};--_b:${Math.max(ca, cb) + 1}` },
       h("span", { class: `${P}-said` }, h("span", { class: `${P}-num` }, String(s.n)), h("span", { class: `${P}-mlabel` }, s.label)),
-      h("span", { class: `${P}-route` }, a?.short ?? s.from, " ", inlineArrow(P, s.kind), h("span", { class: ctx.hidden }, " to "), " ", b?.short ?? s.to, word ? ` · ${word}` : ""),
+      h("span", { class: `${P}-route` }, a?.short ?? s.from, " ", h("span", { class: `${P}-to` }, inlineArrow(P, s.kind), h("span", { class: ctx.hidden }, " to "), " ", b?.short ?? s.to, word ? ` · ${word}` : "")),
       s.note ? h("span", { class: `${P}-note` }, s.note) : null));
   }
-  return h("div", { class: `${P}-steps` }, blocks);
+  return h("div", { class: `${P}-steps` }, root);
 }
 
 // ---- The list ("View as list") ----
@@ -810,25 +1326,34 @@ function sequenceSteps(ctx: TreeContext, m: Model): VElement {
 function listTree(P: string, m: Model): VNode[] {
   return memo(m, `list:${P}`, () => buildList(P, m));
 }
+/** The list alone, for the viewer's stage (DECISIONS 310, 9.9): the page's own list, in place of the drawing. */
+export const figureList = listTree;
 function buildList(P: string, m: Model): VNode[] {
   const sub = Math.min(6, m.heading + 1);
   const H = (text: string) => h(`h${sub}`, { class: `${P}-list-head` }, text);
   const strong = (s: string) => h("strong", null, s);
+  // A link card's name in the list is the same link (1.4).
+  const named = (n: MNode) => (n.href ? h("a", { href: n.href, target: n.blank ? "_blank" : undefined, rel: n.blank ? "noopener noreferrer" : undefined }, strong(n.name)) : strong(n.name));
   const code = (s: string) => h("code", { class: `${P}-code` }, s);
   const name = (id: string) => m.byId.get(id)?.name ?? id;
   const kw = (k: DiagramLineKind) => { const w = kindWord(m, k); return w ? ` (${w})` : ""; };
   const focal = (n: MNode) => (n.focal && m.legend.focal ? ` ${sentence(m.legend.focal)}` : "");
   if (m.type === "architecture") {
-    const part = (n: MNode) => h("li", null, strong(n.name), n.kind ? `, ${n.kind}` : "", n.detail ? [". ", n.mono ? code(n.detail) : n.detail, /[.!?]$/.test(n.detail) ? "" : "."] : /[.!?]$/.test(n.kind ?? n.name) ? "" : ".", focal(n));
+    const part = (n: MNode) => h("li", null, named(n), n.kind ? `, ${n.kind}` : "", n.detail ? [". ", n.mono ? code(n.detail) : n.detail, /[.!?]$/.test(n.detail) ? "" : "."] : /[.!?]$/.test(n.kind ?? n.name) ? "" : ".", focal(n));
     const out: VNode[] = [H("Parts")];
     const loose = m.nodes.filter((n) => !n.group);
     if (loose.length) out.push(h("ul", { class: `${P}-list-items` }, loose.map(part)));
-    for (const g of m.groups) {
+    // Direct members, then each child group under its label (1.3).
+    for (const g of m.groups.filter((x) => x.depth === 1)) {
       out.push(h("p", { class: `${P}-list-group` }, g.label));
-      out.push(h("ul", { class: `${P}-list-items` }, g.members.map((id) => part(m.byId.get(id)!))));
+      if (g.members.length) out.push(h("ul", { class: `${P}-list-items` }, g.members.map((id) => part(m.byId.get(id)!))));
+      for (const c of m.groups.filter((x) => x.parent === g.id)) {
+        out.push(h("p", { class: `${P}-list-group`, "data-depth": 2 }, c.label));
+        out.push(h("ul", { class: `${P}-list-items`, "data-depth": 2 }, c.members.map((id) => part(m.byId.get(id)!))));
+      }
     }
     out.push(H("Connections"));
-    out.push(h("ol", { class: `${P}-list-items` }, m.edges.map((e) => h("li", null, strong(name(e.from)), " to ", strong(name(e.to)), e.label ? [": ", code(e.label)] : "", `${kw(e.kind)}.`))));
+    out.push(h("ol", { class: `${P}-list-items` }, m.edges.map((e) => h("li", null, strong(name(e.from)), " to ", strong(name(e.to)), e.label ? [": ", code(said(e.label))] : "", `${kw(e.kind)}.`))));
     return out;
   }
   if (m.type === "flowchart") {
@@ -837,24 +1362,28 @@ function buildList(P: string, m: Model): VNode[] {
       const exits = m.edges.filter((e) => e.from === n.id);
       const what = n.shape === "decision" ? "Decision" : n.shape === "terminal" ? (exits.length ? "Start" : "End") : "Step";
       const stop = !n.detail && /[.!?]$/.test(n.name) ? " " : ". ";
-      return h("li", null, strong(n.name), n.detail ? [", ", n.mono ? code(n.detail) : n.detail] : "", `${stop}${what}.`, focal(n),
-        exits.length ? h("ul", { class: `${P}-list-exits` }, exits.map((e) => h("li", null, e.label ? `If ${e.label}: go to ${num(e.to)}, ` : `Then: go to ${num(e.to)}, `, strong(name(e.to)), kw(e.kind)))) : null);
+      return h("li", null, named(n), n.detail ? [", ", n.mono ? code(n.detail) : n.detail] : "", `${stop}${what}.`, focal(n),
+        exits.length ? h("ul", { class: `${P}-list-exits` }, exits.map((e) => h("li", null, e.label ? `If ${said(e.label)}: go to ${num(e.to)}, ` : `Then: go to ${num(e.to)}, `, strong(name(e.to)), kw(e.kind)))) : null);
     }))];
   }
   if (m.type === "data-flow") {
     return [h("ol", { class: `${P}-list-items` }, m.nodes.map((n) => {
       const exits = m.edges.filter((e) => e.from === n.id);
-      return h("li", null, `${n.laneLabel}: `, strong(n.name), n.detail ? [", ", n.mono ? code(n.detail) : n.detail] : "", ".", focal(n),
-        exits.length ? [" Then ", ...exits.flatMap((e, j) => [j ? "; " : "", `to step ${m.byId.get(e.to)!.step}, `, strong(name(e.to)), e.label ? [": ", code(e.label)] : "", kw(e.kind)]), "."] : "");
+      return h("li", null, `${n.laneLabel}: `, named(n), n.detail ? [", ", n.mono ? code(n.detail) : n.detail] : "", ".", focal(n),
+        exits.length ? [" Then ", ...exits.flatMap((e, j) => [j ? "; " : "", `to step ${m.byId.get(e.to)!.step}, `, strong(name(e.to)), e.label ? [": ", code(said(e.label))] : "", kw(e.kind)]), "."] : "");
     }))];
   }
   if (m.type === "sequence") {
-    const out: VNode[] = [H("Participants"), h("ul", { class: `${P}-list-items` }, m.nodes.map((n) => h("li", null, strong(n.name), n.kind ? `, ${n.kind}` : "", ".", focal(n))))];
+    const out: VNode[] = [H("Participants"), h("ul", { class: `${P}-list-items` }, m.nodes.map((n) => h("li", null, strong(n.name), n.kind ? `, ${n.kind}` : "", ".", focal(n), working(m, n))))];
     out.push(H("Messages"));
     let list: VElement | null = null;
     for (const s of m.steps) {
       // A band names a phase: a sub-heading one level under "Messages" (never past h6), drawn as the list's group line.
       if ("band" in s) { list = null; out.push(h(`h${Math.min(6, sub + 1)}`, { class: `${P}-list-group` }, s.band)); continue; }
+      // A frame is a sub-heading as a band is (1.2): "Only if: First run on an incident only", "Otherwise: Rejected". Messages keep their numbers.
+      if ("open" in s) { list = null; out.push(h(`h${Math.min(6, sub + 1)}`, { class: `${P}-list-group`, "data-depth": s.depth > 1 ? s.depth : undefined }, `${m.frameWords[s.open]}: ${s.label}`)); continue; }
+      if ("otherwise" in s) { list = null; out.push(h(`h${Math.min(6, sub + 1)}`, { class: `${P}-list-group`, "data-depth": s.depth > 1 ? s.depth : undefined }, `${m.frameWords.else}: ${s.otherwise}`)); continue; }
+      if ("close" in s) { list = null; continue; }
       if (!list) { list = h("ol", { class: `${P}-list-items`, start: s.n }); out.push(list); }
       list.c.push(h("li", null, code(s.label), ": ", strong(name(s.from)), " to ", strong(name(s.to)), `${kw(s.kind)}.`, s.note ? ` ${sentence(s.note)}` : ""));
     }
@@ -864,24 +1393,66 @@ function buildList(P: string, m: Model): VNode[] {
   const out: VNode[] = [];
   for (const n of m.nodes) {
     // A table's name is a sub-heading one level under the title's, as "Parts" and "Connections" are.
-    out.push(h(`h${sub}`, { class: `${P}-list-group` }, code(n.name), focal(n)));
+    out.push(h(`h${sub}`, { class: `${P}-list-group` }, n.href ? h("a", { href: n.href, target: n.blank ? "_blank" : undefined, rel: n.blank ? "noopener noreferrer" : undefined }, code(n.name)) : code(n.name), focal(n)));
     out.push(h("ul", { class: `${P}-list-items` }, [
-      ...(n.columns ?? []).map((c) => h("li", null, code(c.name), c.key === "PK" ? ", primary key" : c.key === "FK" ? ", foreign key" : "", c.ref ? [", references ", code(`${c.ref.table}.${c.ref.column}`)] : c.type ? `, ${c.type}` : "")),
+      ...(n.columns ?? []).map((c) => h("li", null, code(c.name), c.key === "PK" ? ", primary key" : c.key === "FK" ? ", foreign key" : "", c.ref ? [", references ", code(`${c.ref.table}.${c.ref.column}`), c.card ? [" (", cardClauseCode(n.id, c.ref.table, c.card, code), ")"] : ""] : c.type ? `, ${c.type}` : "")),
       ...(n.more ? [h("li", null, `and ${n.more} more ${n.more === 1 ? "column" : "columns"}`)] : []),
     ]));
   }
   return out;
 }
 
-/** The keys sentence (hidden), which describes the drawing to a screen reader. */
-function keysSentence(m: Model): string {
+/** The keys sentence (hidden), which describes the drawing to a screen reader. Drawn, the arrows are spatial (DECISIONS 306, 1.5), unless they fall back. */
+function keysSentence(m: Model, drawn = false): string {
   const noun = m.type === "architecture" ? "part" : m.type === "sequence" ? "participant" : m.type === "schema" ? "table" : "step";
-  return `Arrow keys move to the next or the previous ${noun}, in the author's order; Home and End go to the ends; Escape clears the trace.`;
+  const arrows = drawn && spatialTable(m) ? `Arrow keys move to the nearest ${noun} in that direction` : `Arrow keys move to the next or the previous ${noun}, in the author's order`;
+  // Where a card is a link (1.4), Enter follows it.
+  return `${arrows}; Home and End go to the ends; Escape clears the trace.${m.nodes.some((n) => n.href) ? " Enter opens a part that is a link." : ""}`;
 }
 
-/** The key hint's entries: the keys and their words. */
-export function hintEntries(m: Model): Array<{ keys: string[]; words: string }> {
-  return [{ keys: ["←", "→"], words: stopNoun(m) }, { keys: ["Home", "End"], words: "the ends" }, { keys: ["Esc"], words: "clear" }];
+/** The key hint's entries: the keys and their words. Four arrows where a drawn figure has more than one row and more than one column (1.5). */
+export function hintEntries(m: Model, drawn = false): Array<{ keys: string[]; words: string }> {
+  const four = drawn && m.type !== "sequence" && spatialTable(m) && m.cols > 1 && m.rows > 1;
+  const open = m.nodes.some((n) => n.href) ? [{ keys: ["Enter"], words: "open" }] : [];
+  return [{ keys: four ? ["←", "↑", "↓", "→"] : ["←", "→"], words: stopNoun(m) }, { keys: ["Home", "End"], words: "the ends" }, ...open, { keys: ["Esc"], words: "clear" }];
+}
+
+// ---- The spatial arrow keys (DECISIONS 306, 1.5): on a card's column and rows, never on its measured centre ----
+
+type Way = "right" | "left" | "down" | "up";
+/** Lexicographic order of two ranks. */
+const less = (a: number[], b: number[]) => { for (let k = 0; k < a.length; k++) if (a[k] !== b[k]) return a[k]! < b[k]!; return false; };
+/** A card's tracks: its column and its rows (a data flow's row is its lane, a sequence's heads are one row). */
+const tracksOf = (_m: Model, n: MNode) => ({ col: n.col, rows: [n.row, n.row2] as [number, number] });
+/**
+ * Where each arrow goes from each card, or null when some card cannot be reached from another by the arrows: then the arrows are the author's order.
+ * A card is "that way" when it starts past the focused card's last track on the arrow's axis. Among those sharing a track across the arrow, the nearest;
+ * otherwise the lowest of tracks along the arrow plus twice the tracks across; ties go to fewer across, then the nearer first row, then the author's order.
+ */
+export function spatialTable(m: Model): Record<string, Record<Way, string | null>> | null {
+  return memo(m, "spatial", () => {
+    const cards = m.nodes.map((n) => ({ id: n.id, ...tracksOf(m, n) }));
+    const target = (from: (typeof cards)[number], way: Way) => {
+      const horizontal = way === "right" || way === "left", forward = way === "right" || way === "down";
+      const along = (c: (typeof cards)[number]) => (horizontal ? [c.col, c.col] : c.rows), across = (c: (typeof cards)[number]) => (horizontal ? c.rows : [c.col, c.col]);
+      const a = along(from), x = across(from);
+      let best: { id: string; rank: number[] } | null = null;
+      cards.forEach((c, order) => {
+        if (c === from) return;
+        const b = along(c), y = across(c);
+        const d = forward ? b[0]! - a[1]! : a[0]! - b[1]!;
+        if (d < 1) return;
+        const off = Math.max(0, y[0]! - x[1]!, x[0]! - y[1]!);
+        const rank = [off === 0 ? 0 : 1, off === 0 ? d : d + 2 * off, off, Math.abs(y[0]! - x[0]!), order];
+        if (!best || less(rank, best.rank)) best = { id: c.id, rank };
+      });
+      return (best as { id: string } | null)?.id ?? null;
+    };
+    const table: Record<string, Record<Way, string | null>> = record();
+    for (const c of cards) table[c.id] = { right: target(c, "right"), left: target(c, "left"), down: target(c, "down"), up: target(c, "up") };
+    const reach = (start: string) => { const seen = new Set([start]); const todo = [start]; while (todo.length) for (const t of Object.values(table[todo.pop()!]!)) if (t && !seen.has(t)) { seen.add(t); todo.push(t); } return seen.size; };
+    return cards.every((c) => reach(c.id) === cards.length) ? table : null;
+  });
 }
 
 export interface FigureOptions {
@@ -896,9 +1467,48 @@ export interface FigureOptions {
   hasSource?: boolean;
   /** The class of the hidden text. */
   hiddenClass: string;
+  /** The figure is the viewer's (DECISIONS 310): only its drawing shows, and its keys sentence ends with these words (the zoom keys). */
+  viewer?: string;
 }
 
 /** The whole figure. Before script runs `dyn` is empty; the same tree, with the measured `dyn`, is what script settles on. */
+/**
+ * A one-column schema's turn-backs (DECISIONS 306, section 4, call 2): turn-backs that run beside each other take lanes space-3 apart, nested (the
+ * farther-going outermost), lines to one key sharing one; two lanes at most in the padding, and a third line is not drawn. Worked out from the data alone
+ * (a line's place down the column is its table's row and its key's row), so the padding is known before anything is measured.
+ */
+export function turnBackLanes(m: Model): { lane: Map<number, number>; dropped: Set<number>; lanes: number } {
+  return memo(m, "turn-back-lanes", () => {
+    const lane = new Map<number, number>(), dropped = new Set<number>();
+    if (!oneColumnTurnBacks(m)) return { lane, dropped, lanes: 0 };
+    const at = (id: string, row: number) => (m.byId.get(id)?.row ?? 0) * 1000 + row;
+    // One group a key; its run from its highest to its lowest end.
+    const groups = new Map<string, { members: number[]; lo: number; hi: number }>();
+    m.edges.forEach((e, k) => {
+      // Lines to one key share a lane only when they state the same thing there (1.1; Neon's B9 of the code review).
+      const key = `${e.to}.${e.toRow}.${e.card?.to ?? ""}`;
+      const a = at(e.from, e.fromRow ?? 0), b = at(e.to, e.toRow ?? 0);
+      const g = groups.get(key) ?? { members: [], lo: Infinity, hi: -Infinity };
+      g.members.push(k); g.lo = Math.min(g.lo, a, b); g.hi = Math.max(g.hi, a, b);
+      groups.set(key, g);
+    });
+    // Longest first, so the farther-going is outermost; each takes the innermost lane no group beside it holds.
+    const order = [...groups.values()].sort((x, y) => (y.hi - y.lo) - (x.hi - x.lo));
+    const placed: Array<{ lo: number; hi: number; lane: number }> = [];
+    let most = 0;
+    for (const g of order.reverse()) {
+      const used = new Set(placed.filter((p) => p.lo <= g.hi && g.lo <= p.hi).map((p) => p.lane));
+      let l = 0;
+      while (used.has(l)) l++;
+      if (l > 1) { for (const k of g.members) dropped.add(k); continue; }
+      placed.push({ lo: g.lo, hi: g.hi, lane: l });
+      for (const k of g.members) lane.set(k, l);
+      most = Math.max(most, l + 1);
+    }
+    return { lane, dropped, lanes: most };
+  });
+}
+
 /** A schema of one column whose foreign keys are drawn as turn-backs on its end side, where it has no gutter. */
 const oneColumnTurnBacks = (m: Model) => m.type === "schema" && m.cols === 1 && m.edges.length > 0;
 
@@ -915,14 +1525,22 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   if ((m.type === "architecture" && m.groups.length) || (drawn && dyn.pad)) {
     // The drawn layout keeps room for a group's box where it reaches an edge: space-8 above, space-4 at a side and below. A padded layout
     // (Dyn.pad) keeps at least space-3 above and below, for the seats beside a line in the first or the last row.
-    const members = m.type === "architecture" ? m.groups.flatMap((g) => g.members.map((id) => m.byId.get(id)!)) : [];
-    const pad = (on: boolean, step: string, least?: string) => (on ? `var(--basalt-space-${step})` : least ? `var(--basalt-space-${least})` : "0px");
+    // Each group level that reaches an edge takes its room again (1.3): space-8 above, space-4 at a side and below.
+    const e: [number, number, number, number] = m.type === "architecture" ? groupEdges(m) : [0, 0, 0, 0];
+    const pad = (levels: number, step: string, least?: string) => (levels ? (levels > 1 ? `calc(${levels} * var(--basalt-space-${step}))` : `var(--basalt-space-${step})`) : least ? `var(--basalt-space-${least})` : "0px");
     const block = drawn && dyn.pad ? "3" : undefined;
-    style.push(`--_gpad:${pad(members.some((n) => n.row === 1), "8", block)} ${pad(members.some((n) => n.col === m.cols), "4")} ${pad(members.some((n) => n.row2 === m.rows), "4", block)} ${pad(members.some((n) => n.col === 1), "4")}`);
+    style.push(`--_gpad:${pad(e[0], "8", block)} ${pad(e[1], "4")} ${pad(e[2], "4", block)} ${pad(e[3], "4")}`);
   }
   // A schema of one column with a foreign key: its turn-backs run space-4 out on the end side, past the cards, so the drawn layout keeps space-5 there
   // (the turn-back and its stroke on the pixel grid); the fit rule counts it (minimums).
-  if (oneColumnTurnBacks(m)) style.push("--_gpad:0px var(--basalt-space-5) 0px 0px");
+  // Two lanes of turn-backs take space-3 more (call 2).
+  // The end gutter grows by lanes (1.3): lanes × space-3-5 + space-3 (40, 54, 68).
+  if (plan?.gutter && plan.laneCount > 2) style.push(`--_gw:calc(${plan.laneCount} * var(--basalt-space-3-5) + var(--basalt-space-3))`);
+  if (oneColumnTurnBacks(m)) {
+    // Where marks are drawn the first lane is space-6 out, so the padding is space-6 plus space-1 (1.1).
+    const first = m.marks ? "var(--basalt-space-6) + var(--basalt-space-1)" : "var(--basalt-space-5)";
+    style.push(`--_gpad:0px ${turnBackLanes(m).lanes > 1 ? `calc(${first} + var(--basalt-space-3))` : m.marks ? `calc(${first})` : first} 0px 0px`);
+  }
   if (m.type === "schema" && dyn.track) style.push(`--_track:${dyn.track}px`);
   return h("figure", {
     class: o.className ? `${P} ${o.className}` : P,
@@ -931,27 +1549,36 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
     "data-cols": columnCount(m),
     "data-reach": m.type === "architecture" ? groupReach(m) : undefined,
     "data-gutter": plan?.gutter ? "" : undefined,
-    "data-layout": dyn.layout,
+    "data-marks": m.marks ? "" : undefined,
+    // An automatic figure with no placement is stacked before script too: its cards have no cells yet.
+    "data-layout": dyn.layout ?? (m.unplaced ? "stacked" : undefined),
     "data-measured": dyn.layout ? "" : undefined,
     "data-bare": dyn.bare ? "" : undefined,
     "data-motion": m.motion.animated ? "animated" : undefined,
+    "data-first-visit": m.motion.animated && m.motion.firstVisit ? "" : undefined,
+    "data-rtl": m.rtl ? "" : undefined,
+    "data-viewer": o.viewer ? "" : undefined,
     style: style.join(";"),
   },
   h("div", { class: `${P}-head` }, h(Head, { id: ids.title, class: `${P}-title` }, m.title), o.hasSource ? h("p", { class: `${P}-source` }, { slot: "source" }) : null),
   h("div", {
     class: `${P}-drawing`,
+    // A schema's far keys run in corridors (1.1): its rows are spacer tracks round the author's, and the grid's own row gap is none.
+    style: drawn && dyn.rows ? `--_rows:${dyn.rows};--_row-gap:0px` : undefined,
     role: group ? "group" : undefined,
     "aria-roledescription": group ? "diagram" : undefined,
     "aria-labelledby": group ? ids.title : undefined,
     // The keys sentence describes the drawing only where it has stops (a bare stack has none).
     "aria-describedby": group ? (stops ? `${ids.summary} ${ids.keys}` : ids.summary) : undefined,
     "data-stops": stops ? "" : undefined,
-  }, drawingChildren(ctx, m, dyn), h("div", { class: `${P}-ink`, "aria-hidden": "true" }), h("span", { class: `${P}-ruler`, "aria-hidden": "true" })),
+  }, drawingChildren(ctx, m, dyn), m.text ? null : h("div", { class: `${P}-ink`, "aria-hidden": "true" }), h("span", { class: `${P}-ruler`, "aria-hidden": "true" })),
   keyTree(P, m),
   h("p", { class: `${P}-hint`, "data-kbd-hint": "", "aria-hidden": "true" }, { slot: "hint" }),
+  // On touch, where lines are drawn, a line in the hint's seat and type says how to trace (DECISIONS 306, 1.5); the stylesheet shows it only then.
+  hasStops(m, dyn) && m.type !== "sequence" || (drawn && m.type === "sequence") ? h("p", { class: `${P}-tap-hint`, "aria-hidden": "true" }, `Tap ${stopNoun(m)} to highlight its lines. Tap it again to clear.`) : null,
   h("div", { class: `${P}-foot` }, { slot: "toggle" }),
   h("div", { id: ids.list, class: `${P}-list`, hidden: !dyn.open }, listTree(P, m)),
-  h("span", { id: ids.keys, class: o.hiddenClass }, keysSentence(m)),
+  h("span", { id: ids.keys, class: o.hiddenClass }, o.viewer ? `${keysSentence(m, drawn)} ${o.viewer}` : keysSentence(m, drawn)),
   h("figcaption", { id: ids.summary, class: `${P}-summary` }, { slot: "summary" }));
 }
 
@@ -977,6 +1604,8 @@ export interface GLine {
   dir: Dir;
   /** A foreign key's dot, on the row it leaves. */
   dot?: Pt;
+  /** A foreign key's stated cardinality (1.1): marks at both ends in place of the dot and the head. */
+  card?: { from: DiagramCardinality; to: DiagramCardinality };
   width: number;
   /** Each run's place across its axis before it was snapped (a run out of a decision is on the diamond's own centre line), by segment: labels
    *  are seated against these, so a seat never turns on which way a half pixel fell. */
@@ -992,6 +1621,10 @@ export interface Geo {
   nodes: GNode[];
   lines: GLine[];
   lifelines: Array<{ x: number; y1: number; y2: number }>;
+  /** A sequence's activation bars (DECISIONS 306, 1.2): structure, drawn over the lifelines and under the lines. */
+  bars?: Array<{ l: number; r: number; t: number; b: number }>;
+  /** What does not fit and is not a line or a label (a frame's header wider than its frame): the drawn layout is refused. */
+  misfit?: string[];
   labels: GLabel[];
   crossings: GCross[];
   /** Lines that pass through a node (by edge index), labels that found no seat, words that do not fit their span. */
@@ -1004,6 +1637,8 @@ export interface Geo {
   /** The offset of the drawing's origin from the device pixel grid, so lines can be snapped to it. */
   ox: number;
   oy: number;
+  /** A schema's far keys (1.1): the rows their corridors need, and each far line's corridor, chosen once on the grid without them. */
+  corridors?: { rows: string; pick: Record<number, string> };
 }
 
 export interface Tokens {
@@ -1011,6 +1646,8 @@ export interface Tokens {
   node: number; table: number; lane: number; step: number; head: number; guide: number;
   hair: number; line: number; cut: number; dot: number; dash: number; dashGap: number;
   wide: number; cap: number; radius: number; radiusXs: number;
+  /** An activation bar's width and a cardinality mark's room (DECISIONS 306, 1.0). */
+  activation: number; foot: number;
 }
 
 export function readTokens(el: Element): Tokens {
@@ -1023,6 +1660,7 @@ export function readTokens(el: Element): Tokens {
     head: px("size-diagram-head", 8), guide: px("size-diagram-guide-dash", 4), hair: px("size-hairline", 1), line: px("size-chart-line", 2),
     cut: px("size-cut", 2), dot: px("size-dot", 6), dash: px("size-chart-dash", 6), dashGap: px("size-chart-dash-gap", 4),
     wide: px("size-breakpoint-container-lg", 640), cap: px("size-breakpoint-container", 480), radius: px("radius-md", 8), radiusXs: px("radius-xs", 4),
+    activation: px("size-diagram-activation", 8), foot: px("size-diagram-foot", 14),
   };
 }
 
@@ -1121,18 +1759,22 @@ function minimums(m: Model, tk: Tokens, measure: ReturnType<typeof ruler>) {
   for (const n of m.nodes) {
     if (n.shape === "table") {
       for (const c of n.columns ?? []) {
-        const type = c.ref ? `→ ${c.ref.table}` : c.type ?? "";
+        const type = c.ref ? `${m.rtl ? "←" : "→"} ${c.ref.table}` : c.type ?? "";
         const row = s("6") + measure(c.name, "mono") + (type ? s("3") + measure(type, "mono") : 0) + 2 * s("3") + 2 * tk.hair;
         table = Math.max(table, Math.ceil(row));
       }
-      table = Math.max(table, Math.ceil(measure(n.name, "table") + 2 * s("3") + 2 * tk.hair));
+      table = Math.max(table, Math.ceil(measure(n.name, "table") + 2 * s("3") + 2 * tk.hair + (n.href ? 16 + s("1-5") : 0)));
       continue;
     }
     const pad = n.shape === "terminal" ? 2 * s("5") : 2 * s("3");
     // The first line (the kind, or the name on a card with no kind) keeps space-6 clear of a mark, except in forced colours, where none is drawn.
-    const seat = n.mark && !forced() ? s("6") : 0;
+    // A participant's head centres its words, so its first line keeps space-6 clear on both sides (1.6).
+    const seat = n.mark && !forced() ? (n.shape === "participant" ? 2 : 1) * s("6") : 0;
     let widest = 0;
-    for (const w of words(n.name)) widest = Math.max(widest, measure(w, n.shape === "decision" ? "name-500" : "name") + (n.kind ? 0 : seat));
+    // A link card's last word carries its cue, 16 and space-1-5 before it (1.4).
+    const cue = n.href ? 16 + s("1-5") : 0;
+    const nameWords = words(n.name);
+    nameWords.forEach((w, j) => { widest = Math.max(widest, measure(w, n.shape === "decision" ? "name-500" : "name") + (n.kind ? 0 : seat) + (j === nameWords.length - 1 ? cue : 0)); });
     if (m.type !== "data-flow") for (const w of words(n.kind)) widest = Math.max(widest, measure(w, "mono") + seat);
     for (const w of words(n.detail)) widest = Math.max(widest, measure(w, n.mono ? "mono" : "sans"));
     const need = n.shape === "decision" ? widest / 0.62 : widest + pad + 2 * tk.hair;
@@ -1141,7 +1783,8 @@ function minimums(m: Model, tk: Tokens, measure: ReturnType<typeof ruler>) {
   const n = columnCount(m);
   let least: number;
   if (m.type === "data-flow") least = tk.lane + n * (track + s("12"));
-  else if (m.type === "schema") least = n * table + (n - 1) * s("12") + (oneColumnTurnBacks(m) ? s("5") : 0);
+  // Where marks are drawn the gap is space-12 plus space-3, and a one-column schema's first turn-back is space-6 out (1.1).
+  else if (m.type === "schema") least = n * table + (n - 1) * (s("12") + (m.marks ? s("3") : 0)) + (oneColumnTurnBacks(m) ? (m.marks ? s("6") + s("1") : s("5")) + (turnBackLanes(m).lanes > 1 ? s("3") : 0) : 0);
   // A sequence's columns hold its participants: measured once script runs (the stylesheet before script has only the token floor).
   else if (m.type === "sequence") least = n * track + (n - 1) * s("5");
   else least = n * track + (n - 1) * s("16") + groupReach(m) * s("4");
@@ -1219,9 +1862,11 @@ function readGrid(drawing: HTMLElement): Grid {
   const cs = getComputedStyle(drawing);
   const list = (v: string) => v.split(/\s+/).map(parseFloat).filter((x) => Number.isFinite(x));
   const tracks = (sizes: number[], start: number, gap: number) => { const out: Array<[number, number]> = []; let x = start; for (const s of sizes) { out.push([x, x + s]); x += s + gap; } return out; };
+  const rows = tracks(list(cs.gridTemplateRows), parseFloat(cs.paddingTop) || 0, parseFloat(cs.rowGap) || 0);
   return {
     cols: tracks(list(cs.gridTemplateColumns), parseFloat(cs.paddingLeft) || 0, parseFloat(cs.columnGap) || 0),
-    rows: tracks(list(cs.gridTemplateRows), parseFloat(cs.paddingTop) || 0, parseFloat(cs.rowGap) || 0),
+    // A schema's corridors (1.1) are spacer tracks round the author's rows: its rows are every other track.
+    rows: drawing.style.getPropertyValue("--_rows").trim() ? rows.filter((_, j) => j % 2 === 1) : rows,
   };
 }
 
@@ -1275,6 +1920,37 @@ function assignSlots(m: Model, sides: Array<[DiagramSide, DiagramSide]>, warn: (
   return ports;
 }
 
+/**
+ * A card's least height for its ports (DECISIONS 306, section 4, call 3): a port sits on the flat part of its side, never nearer a corner than the corner's
+ * radius, and two ports on a side are at least size-diagram-head apart. A card whose start or end side holds more than its height allows grows to the least
+ * height at which both hold (48 for a straight line and two others, 64 for an extra beside a straight pair), and its row takes it. From the data alone, so
+ * it is the same at every width: a side never stacks a figure. By node id; only cards that need more than nothing are named.
+ */
+export function portFloors(m: Model, radius = 8, head = 8): Record<string, number> {
+  return memo(m, `port-floors:${radius}:${head}`, () => {
+    const out: Record<string, number> = record();
+    if (m.type !== "architecture" && m.type !== "flowchart" && m.type !== "data-flow") return out;
+    const sides = m.edges.map((e) => { const a = m.byId.get(e.from)!, b = m.byId.get(e.to)!; const [d1, d2] = defaultSides(a, b); return [e.fromSide ?? d1, e.toSide ?? d2] as [DiagramSide, DiagramSide]; });
+    const bySide = new Map<string, number[]>();
+    for (const p of assignSlots(m, sides, () => {})) {
+      if (!isH(p.side) || p.node.shape !== "box") continue;
+      const key = `${p.node.id}.${p.side}`;
+      if (!bySide.has(key)) bySide.set(key, []);
+      bySide.get(key)!.push(p.f);
+    }
+    for (const [key, fs] of bySide) {
+      if (fs.length < 2) continue;
+      // Slots that share a point are one (a bus); the fractions are kept unrounded, so 48 is 48 and not 49 (Neon's P1 of the code review).
+      const f = fs.slice().sort((a, b) => a - b).filter((x, j, all) => j === 0 || x - all[j - 1]! > 1e-9);
+      let need = Math.max(radius / f[0]!, radius / (1 - f[f.length - 1]!));
+      for (let j = 1; j < f.length; j++) need = Math.max(need, head / (f[j]! - f[j - 1]!));
+      const id = key.slice(0, key.lastIndexOf("."));
+      out[id] = Math.max(out[id] ?? 0, Math.ceil(need - 1e-6));
+    }
+    return out;
+  });
+}
+
 /** The derived ports of a drawn layout (1.6), for the derivation table: each line's sides and its slot on each (a fraction along the side). */
 export function derivedPorts(m: Model): Array<{ from: string; to: string; fromSide: DiagramSide; toSide: DiagramSide; fromSlot: number; toSlot: number }> {
   const sides = m.edges.map((e) => { const a = m.byId.get(e.from)!, b = m.byId.get(e.to)!; const [d1, d2] = defaultSides(a, b); return [e.fromSide ?? d1, e.toSide ?? d2] as [DiagramSide, DiagramSide]; });
@@ -1287,7 +1963,7 @@ function portPoint(n: GNode, side: DiagramSide, f: number): Pt {
   return isH(side) ? contour(n, side, t + (b - t) * f) : contour(n, side, l + (r - l) * f);
 }
 
-interface DrawnInput { m: Model; tk: Tokens; P: string; drawing: HTMLElement; origin: DOMRect; warn?: (s: string) => void }
+interface DrawnInput { m: Model; tk: Tokens; P: string; drawing: HTMLElement; origin: DOMRect; warn?: (s: string) => void; pick?: Record<number, string> }
 
 function gNodes(m: Model, drawing: HTMLElement, origin: DOMRect, P: string): Map<string, GNode> {
   const out = new Map<string, GNode>();
@@ -1336,7 +2012,8 @@ function seatLabels(m: Model, lines: GLine[], nodes: GNode[], obstacles: Obstacl
   const order = lines.filter((l) => m.edges[l.i]?.label).sort((a, b) => Number(m.edges[b.i]!.kind === "main") - Number(m.edges[a.i]!.kind === "main") || a.i - b.i);
   for (const line of order) {
     const text = m.edges[line.i]!.label!;
-    const w = measure(text, "label"), hgt = 16;
+    // A label may hold one break of its author's (DECISIONS 306, 1.4): its box is its widest line, and 16 a line tall.
+    const w = measure(text, "label"), hgt = 16 * labelLines(text);
     const last = line.pts.length - 2;
     const runs: Array<{ horiz: boolean; c: number; p: number; q: number; len: number; pri: number }> = [];
     segmentsOf(line.pts).forEach(([a, b], k) => {
@@ -1456,15 +2133,30 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     const r = rectOf(el, origin);
     return (r.t + r.b) / 2;
   };
+  // One key, two statements (1.1): lines that state different things at one key arrive space-2 apart, centred on the row, each in its own lane;
+  // lines that state the same thing share a bus.
+  const arrivals = new Map<number, number>();
+  if (m.type === "schema") {
+    const at = new Map<string, number[]>();
+    m.edges.forEach((e, k) => { const key = `${e.to}.${e.toRow}.${sides[k]![1]}`; at.set(key, [...(at.get(key) ?? []), k]); });
+    const rank = (k: number) => { const t = m.edges[k]!.card?.to; return t === "one" ? 0 : t === "zero-or-one" ? 1 : 2; };
+    for (const list of at.values()) {
+      const says = [...new Set(list.map(rank))].sort((x, y) => x - y);
+      if (says.length > 1) for (const k of list) arrivals.set(k, (says.indexOf(rank(k)) - (says.length - 1) / 2) * s("2"));
+    }
+  }
+  // A marked line's ends are on whole pixels of the table's edge, so its marks are measured from it (1.1).
+  const whole = (x: number) => Math.round(x + ox) - ox;
   // Each end's place across the axis it leaves or enters on, before it is snapped (`r1`, `r2`): what its label is seated against.
   const ends = m.edges.map((e, k) => {
     const [s1, s2] = sides[k]!;
     const a = map.get(e.from)!, b = map.get(e.to)!;
     const w = strokeOf(e.kind, tk);
     if (e.fk) {
-      const r1 = rowY(e.from, e.fromRow!), r2 = rowY(e.to, e.toRow!);
+      const r1 = rowY(e.from, e.fromRow!), r2 = rowY(e.to, e.toRow!) + (arrivals.get(k) ?? 0);
       const y1 = sn.y(r1, w), y2 = sn.y(r2, w);
-      return { p1: { x: s1 === "right" ? a.rect.r : a.rect.l, y: y1 }, p2: { x: s2 === "right" ? b.rect.r : b.rect.l, y: y2 }, r1, r2: Math.abs(y1 - y2) < 0.01 ? r1 : r2 };
+      const x1 = s1 === "right" ? a.rect.r : a.rect.l, x2 = s2 === "right" ? b.rect.r : b.rect.l;
+      return { p1: { x: e.card ? whole(x1) : x1, y: y1 }, p2: { x: e.card ? whole(x2) : x2, y: y2 }, r1, r2: Math.abs(y1 - y2) < 0.01 ? r1 : r2 };
     }
     const f1 = ports.find((p) => p.edge === k && p.end === "from")!.f, f2 = ports.find((p) => p.edge === k && p.end === "to")!.f;
     let p1 = portPoint(a, s1, f1), p2 = portPoint(b, s2, f2);
@@ -1480,16 +2172,86 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     p2 = isH(s2) ? contour(b, s2, p2.y) : contour(b, s2, p2.x);
     return { p1, p2, r1, r2 };
   });
-  // Relations two columns apart are not drawn: the row writes its target (1.12). They are left out before any lane is given, so they take none.
   const dropped = new Set<number>();
-  if (m.type === "schema") m.edges.forEach((e, k) => { if (Math.abs(m.byId.get(e.from)!.col - m.byId.get(e.to)!.col) > 1) dropped.add(k); });
+  // A line that is not drawn: its row still writes the target, and a development build names it. One tight line never stacks the figure.
+  const drop = (k: number, why: string) => { if (dropped.has(k)) return; dropped.add(k); if (dev) warn?.(`${m.edges[k]!.from} to ${m.edges[k]!.to} ${why}, so its line is not drawn; its row still writes the target`); };
+  // A one-column schema's third lane of turn-backs is not drawn (call 2).
+  for (const k of turnBackLanes(m).dropped) drop(k, dev ? "would need a third lane of turn-backs" : "");
+
+  // Foreign keys two or more columns away (1.1): out of the row's facing side, a turn in the gutter beside its own table, a run along a corridor (a
+  // row gap no table of the columns between stands in, or the margin above or below), a turn in the gutter beside the referenced table into the key.
+  const far = new Map<number, { corridor: string; first: { key: string; span: [number, number] } | null; y: number }>();
+  const pick: Record<number, string> = record();
+  if (m.type === "schema") m.edges.forEach((e, k) => {
+    const a = m.byId.get(e.from)!, b = m.byId.get(e.to)!;
+    if (Math.abs(a.col - b.col) < 2) return;
+    const lo = Math.min(a.col, b.col), hi = Math.max(a.col, b.col);
+    const between = m.nodes.filter((n) => n.col > lo && n.col < hi);
+    const rows = grid.rows;
+    if (!rows.length) return;
+    // Each corridor's height: an interior gap's middle; a margin's first lane, space-4 out.
+    const cands: Array<{ key: string; y: number; inner: boolean }> = [];
+    for (let g = 1; g < rows.length; g++) if (!between.some((n) => n.row <= g && n.row2 >= g + 1)) cands.push({ key: `g${g}`, y: (rows[g - 1]![1] + rows[g]![0]) / 2, inner: true });
+    cands.push({ key: "top", y: rows[0]![0] - s("4"), inner: false }, { key: "bottom", y: rows[rows.length - 1]![1] + s("4"), inner: false });
+    // The one nearest the middle of the two rows' heights; an interior gap wins a tie with a margin, then the upper. Chosen once, on the grid
+    // without corridors (the second measure, with them, keeps it).
+    const mid = (ends[k]!.r1 + ends[k]!.r2) / 2;
+    const chosen = input.pick?.[k] ?? cands.slice().sort((p, q) => Math.abs(p.y - mid) - Math.abs(q.y - mid) || Number(q.inner) - Number(p.inner) || p.y - q.y)[0]!.key;
+    pick[k] = chosen;
+    const ti = sides[k]![0] === "right" ? a.col : a.col - 1;
+    const t1 = grid.cols[ti - 1], t2 = grid.cols[ti];
+    far.set(k, { corridor: chosen, first: t1 && t2 ? { key: `c${ti}`, span: [t1[1], t2[0]] } : null, y: 0 });
+  });
+  // A corridor's lanes (1.1): two at most, space-3 apart, lines to one key sharing one; a third line is not drawn, the later in the author's order.
+  // An interior gap's lanes are centred in it (space-3-5 clear of the tables in its space-10); a margin's are space-4 and space-4 plus space-3 out.
+  const corridorGroups = new Map<string, number[][]>();
+  for (const [k, f] of far) {
+    const e = m.edges[k]!;
+    const groups = corridorGroups.get(f.corridor) ?? [];
+    const bus = groups.find((g) => { const o = m.edges[g[0]!]!; return o.to === e.to && o.toRow === e.toRow && sides[g[0]!]![1] === sides[k]![1] && Math.abs(ends[g[0]!]!.p2.y - ends[k]!.p2.y) < 0.5; });
+    if (bus) bus.push(k);
+    else if (groups.length >= 2) drop(k, dev ? "would need a third lane in its corridor" : "");
+    else groups.push([k]);
+    corridorGroups.set(f.corridor, groups);
+  }
+  for (const k of [...far.keys()]) if (dropped.has(k)) far.delete(k);
+  // How far a line goes: its columns, then its run across.
+  const reach = (g: number[]) => { const e = m.edges[g[0]!]!; return Math.abs(m.byId.get(e.from)!.col - m.byId.get(e.to)!.col) * 1e4 + Math.abs(ends[g[0]!]!.p1.x - ends[g[0]!]!.p2.x); };
+  const corridorY = (key: string, j: number, count: number) => {
+    const rows = grid.rows;
+    if (key === "top") return rows[0]![0] - s("4") - j * s("3");
+    if (key === "bottom") return rows[rows.length - 1]![1] + s("4") + j * s("3");
+    const g = Number(key.slice(1));
+    return (rows[g - 1]![1] + rows[g]![0]) / 2 + (j - (count - 1) / 2) * s("3");
+  };
+  // A margin's lanes nest by the merged rule: the farther-going outermost. An interior gap's take the order that crosses least (below).
+  const setCorridor = (key: string, order: number[][]) => order.forEach((g, j) => g.forEach((k) => { far.get(k)!.y = corridorY(key, j, order.length); }));
+  const nestCorridors = () => {
+    for (const [key, groups] of corridorGroups) {
+      const live = groups.map((g) => g.filter((k) => far.has(k))).filter((g) => g.length);
+      corridorGroups.set(key, live);
+      setCorridor(key, key === "top" || key === "bottom" ? live.slice().sort((p, q) => reach(p) - reach(q)) : live.slice().sort((p, q) => reach(q) - reach(p)));
+    }
+  };
+  nestCorridors();
 
   // Jogs: which gutter each two-elbow line turns in, and which lines share a lane (lines to one port, a foreign key's bus). A turn-back (out and
   // back in on one side) runs in the gutter beside that side too, so it is given a lane with the jogs it runs beside.
   const jogs = new Map<string, { span: [number, number]; vertical: boolean; members: Map<string, number[]> }>();
   const turnBacks = new Set<number>();
-  m.edges.forEach((e, k) => {
+  // A far line's last gutter (its bus's), by edge.
+  const farLast = new Map<number, [number, number]>();
+  const join = (key: string, span: [number, number], vertical: boolean, port: string, id: number) => {
+    if (!jogs.has(key)) jogs.set(key, { span, vertical, members: new Map() });
+    const g = jogs.get(key)!;
+    if (!g.members.has(port)) g.members.set(port, []);
+    g.members.get(port)!.push(id);
+  };
+  const gather = () => { jogs.clear(); turnBacks.clear(); farLast.clear(); m.edges.forEach((e, k) => {
     if (dropped.has(k)) return;
+    // A far line turns in two gutters: its own (a lane of its own, keyed by -(k + 1)) and the referenced table's, where it joins the key's bus.
+    const f = far.get(k);
+    if (f?.first) join(f.first.key, f.first.span, true, `far:${k}`, -(k + 1));
     const [s1, s2] = sides[k]!;
     const { p1, p2 } = ends[k]!;
     const a = m.byId.get(e.from)!, b = m.byId.get(e.to)!;
@@ -1505,7 +2267,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
         if (r1 && r2) { key = `r${ri}`; span = [r1[1], r2[0]]; vertical = false; }
       }
       if (key) turnBacks.add(k);
-    } else if (isH(s1) && isH(s2) && Math.abs(p1.y - p2.y) > 0.5) {
+    } else if (isH(s1) && isH(s2) && (f || Math.abs(p1.y - p2.y) > 0.5)) {
       const ti = trackOf(b);
       const leftSide = s2 === "left";
       const t1 = grid.cols[(leftSide ? ti - 1 : ti) - 1], t2 = grid.cols[(leftSide ? ti : ti + 1) - 1];
@@ -1518,19 +2280,30 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
       if (r1 && r2) { key = `r${ri}`; span = [r1[1], r2[0]]; vertical = false; }
     }
     if (!key || !span) return;
-    if (!jogs.has(key)) jogs.set(key, { span, vertical, members: new Map() });
-    const port = `${e.to}.${s2}.${Math.round(vertical ? p2.y : p2.x)}`;
-    const g = jogs.get(key)!;
-    if (!g.members.has(port)) g.members.set(port, []);
-    g.members.get(port)!.push(k);
-  });
+    if (f) farLast.set(k, span);
+    join(key, span, vertical, `${e.to}.${s2}.${Math.round(vertical ? p2.y : p2.x)}`, k);
+  }); };
+  gather();
 
   const lanes = new Map<number, number>();
   const route = (k: number): Pt[] => {
     const [s1, s2] = sides[k]!;
     const { p1, p2 } = ends[k]!;
+    const f = far.get(k);
+    if (f) {
+      // Out to its own gutter's lane, along its corridor, into the referenced table's gutter (the bus there) and the key.
+      const last = farLast.get(k);
+      const x1 = lanes.get(-(k + 1)) ?? (f.first ? (f.first.span[0] + f.first.span[1]) / 2 : p1.x);
+      const x2 = lanes.get(k) ?? (last ? (last[0] + last[1]) / 2 : p2.x);
+      return [p1, { x: x1, y: p1.y }, { x: x1, y: f.y }, { x: x2, y: f.y }, { x: x2, y: p2.y }, p2];
+    }
     if (isH(s1) && isH(s2)) {
-      if (s1 === s2) { const x = lanes.get(k) ?? (s1 === "right" ? Math.max(p1.x, p2.x) + s("4") : Math.min(p1.x, p2.x) - s("4")); return [p1, { x, y: p1.y }, { x, y: p2.y }, p2]; }
+      if (s1 === s2) {
+        // A one-column schema's turn-back takes its lane: space-4 out, the second space-3 further (call 2); space-6 out where marks are drawn (1.1).
+        const out = s(m.marks ? "6" : "4") + (m.type === "schema" && m.cols === 1 ? (turnBackLanes(m).lane.get(k) ?? 0) * s("3") : 0);
+        const x = lanes.get(k) ?? (s1 === "right" ? Math.max(p1.x, p2.x) + out : Math.min(p1.x, p2.x) - out);
+        return [p1, { x, y: p1.y }, { x, y: p2.y }, p2];
+      }
       if (Math.abs(p1.y - p2.y) <= 0.5) return [p1, { x: p2.x, y: p1.y }];
       const x = lanes.get(k) ?? (p1.x + p2.x) / 2;
       return [p1, { x, y: p1.y }, { x, y: p2.y }, p2];
@@ -1556,7 +2329,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
       axes[0] = ends[k]!.r1;
       if (axes.length > 1) axes[axes.length - 1] = ends[k]!.r2;
     }
-    return { i: k, from: e.from, to: e.to, kind: e.kind, pts, tip: pts[pts.length - 1]!, dir: finish(pts), dot: e.fk ? pts[0] : undefined, width: w, axes };
+    return { i: k, from: e.from, to: e.to, kind: e.kind, pts, tip: pts[pts.length - 1]!, dir: finish(pts), dot: e.fk && !e.card ? pts[0] : undefined, card: e.card, width: w, axes };
   };
   const build = (): GLine[] => m.edges.flatMap((_, k) => (dropped.has(k) ? [] : [buildOne(k)]));
   // A gutter's lanes are scored by the lines in it alone: their crossings with every line, and the nodes they pass through. The other
@@ -1570,11 +2343,19 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
   };
   // Each gutter: its lanes evenly spaced (at least space-3 apart), in the order that crosses least.
   // Lanes are needed only where jogs run beside each other: jogs whose runs along the gutter do not overlap each take its middle.
+  // A member's run along its gutter: a line's from end to end; a far line's from its row to its corridor (its own gutter) or on to its key.
   const runOf = (members: number[], vertical: boolean): [number, number] => {
-    const ys = members.flatMap((k) => { const { p1, p2 } = ends[k]!; return vertical ? [p1.y, p2.y] : [p1.x, p2.x]; });
+    const ys = members.flatMap((id) => {
+      const k = id < 0 ? -id - 1 : id;
+      const { p1, p2 } = ends[k]!;
+      const f = far.get(k);
+      if (f) return id < 0 ? [p1.y, f.y] : [f.y, p2.y];
+      return vertical ? [p1.y, p2.y] : [p1.x, p2.x];
+    });
     return [Math.min(...ys), Math.max(...ys)];
   };
-  for (const [, g] of jogs) {
+  const edgeOf = (id: number) => (id < 0 ? -id - 1 : id);
+  const clustersOf = (g: { span: [number, number]; vertical: boolean; members: Map<string, number[]> }) => {
     const ports = [...g.members.values()].map((members) => ({ members, run: runOf(members, g.vertical) })).sort((a, b) => a.run[0] - b.run[0]);
     const clusters: Array<typeof ports> = [];
     for (const p of ports) {
@@ -1582,26 +2363,112 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
       // Two jogs share the middle only when a clear space-8 parts them; closer, they would read as one line.
       if (last && last.some((q) => q.run[0] < p.run[1] + s("8") && p.run[0] < q.run[1] + s("8"))) last.push(p); else clusters.push([p]);
     }
-    for (const cluster of clusters) {
-      // A turn-back alone keeps its own place, space-4 out from the side; beside a jog or another turn-back, they share the gutter's lanes.
-      if (cluster.length === 1 && cluster[0]!.members.every((k) => turnBacks.has(k))) continue;
+    // A turn-back alone keeps its own place, space-4 out from the side (space-6 where marks are drawn); beside a jog or another turn-back, they share the gutter's lanes.
+    return clusters.filter((cluster) => !(cluster.length === 1 && cluster[0]!.members.every((k) => turnBacks.has(k))));
+  };
+  // A marked gutter's lanes are counted by what runs beside what (1.1): a line needs a lane apart only from the lines its run is beside (closer than
+  // space-8, the merged rule for sharing the middle), so the lanes a cluster needs are the most runs beside each other at one height. Each run takes the first lane
+  // free of the runs beside it, in the order the runs start: as few lanes as the most beside one another.
+  type Cluster = ReturnType<typeof clustersOf>[number];
+  const besideIn = (cluster: Cluster) => (i: number, j: number) => cluster[i]!.run[0] < cluster[j]!.run[1] + s("8") && cluster[j]!.run[0] < cluster[i]!.run[1] + s("8");
+  const firstFit = (cluster: Cluster) => {
+    const beside = besideIn(cluster);
+    const slot: number[] = [];
+    cluster.forEach((_, i) => { let l = 0; while (slot.some((x, j) => x === l && beside(i, j))) l++; slot.push(l); });
+    return slot;
+  };
+  const needOf = (cluster: Cluster) => Math.max(0, ...firstFit(cluster)) + 1;
+  // A marked gutter (1.1) holds three lanes at most: a line that would need a fourth is not drawn, a far line first and then the later in the
+  // author's order (its lane and its bus go with it).
+  if (m.marks) for (let guard = 0; guard < m.edges.length; guard++) {
+    let over: number[][] | null = null;
+    for (const [, g] of jogs) for (const cluster of clustersOf(g)) if (needOf(cluster) > 3) { over = cluster.map((c) => c.members.map(edgeOf)); break; }
+    if (!over) break;
+    const latest = (group: number[]) => Math.max(...group);
+    const victim = over.filter((group) => group.some((k) => far.has(k))).sort((p, q) => latest(q) - latest(p))[0] ?? over.slice().sort((p, q) => latest(q) - latest(p))[0]!;
+    for (const k of victim) { drop(k, dev ? "would need a fourth lane in a marked gutter" : ""); far.delete(k); }
+    gather();
+  }
+  // Lanes in a marked gutter (1.1): none nearer a table than the zone plus radius-xs (18), centred and evenly spaced at the merged pitch or the pitch
+  // that puts the outer lanes 18 from the tables, whichever is less: one at 30, two at 20 and 40, three at 18, 30 and 42 in the 60 gap.
+  const laneAt = (span: [number, number], j: number, count: number) => {
+    const width = span[1] - span[0];
+    if (!m.marks) return span[0] + (width / (count + 1)) * (j + 1);
+    const room = tk.foot + tk.radiusXs;
+    const step = count > 1 ? Math.min(width / (count + 1), (width - 2 * room) / (count - 1)) : 0;
+    return (span[0] + span[1]) / 2 + (j - (count - 1) / 2) * step;
+  };
+  // An interior corridor's two lanes: the order that crosses least.
+  nestCorridors();
+  for (const [key, groups] of corridorGroups) {
+    if (key === "top" || key === "bottom" || groups.length < 2) continue;
+    const members = new Set(groups.flat());
+    let best = groups, bestScore = Infinity;
+    for (const perm of permutations(groups.slice().sort((p, q) => reach(q) - reach(p)))) {
+      setCorridor(key, perm);
+      current = null;
+      const tried = score(members);
+      if (tried.score < bestScore) { bestScore = tried.score; best = perm; }
+    }
+    setCorridor(key, best);
+    current = null;
+  }
+  for (const [, g] of jogs) {
+    for (const cluster of clustersOf(g)) {
       const groupsOf = cluster.map((c) => c.members);
+      if (m.marks) {
+        // A marked gutter: its lanes by what runs beside what, each assignment that keeps runs beside each other apart tried, the one that crosses
+        // least kept (the first-fit one wins a tie).
+        const need = needOf(cluster), beside = besideIn(cluster), n = cluster.length;
+        const inGutter = new Set(groupsOf.flat().map(edgeOf));
+        const set = (slots: number[]) => slots.forEach((l, i) => groupsOf[i]!.forEach((k) => lanes.set(k, laneAt(g.span, l, need))));
+        let best = firstFit(cluster), bestScore = Infinity, bestLines: GLine[] | null = null;
+        const tries: number[][] = [best];
+        if (need ** n <= 729) for (let code = 0; code < need ** n; code++) {
+          const slots = Array.from({ length: n }, (_, i) => Math.floor(code / need ** i) % need);
+          if (slots.every((x, i) => slots.every((y, j) => j <= i || x !== y || !beside(i, j)))) tries.push(slots);
+        }
+        for (const slots of tries) {
+          set(slots);
+          const tried = score(inGutter);
+          if (tried.score < bestScore) { bestScore = tried.score; best = slots; bestLines = tried.lines; }
+        }
+        set(best);
+        current = bestLines;
+        continue;
+      }
       const count = groupsOf.length;
-      const step = (g.span[1] - g.span[0]) / (count + 1);
-      if (dev && step < s("3")) warn?.(`a gutter holds ${count} lanes side by side, closer than space-3`);
-      const inGutter = new Set(groupsOf.flat());
+      if (dev && !m.marks && (g.span[1] - g.span[0]) / (count + 1) < s("3")) warn?.(`a gutter holds ${count} lanes side by side, closer than space-3`);
+      const inGutter = new Set(groupsOf.flat().map(edgeOf));
       let best: number[][] = groupsOf, bestScore = Infinity, bestLines: GLine[] | null = null;
       for (const perm of permutations(groupsOf)) {
-        perm.forEach((members, j) => members.forEach((k) => lanes.set(k, g.span[0] + step * (j + 1))));
+        perm.forEach((members, j) => members.forEach((k) => lanes.set(k, laneAt(g.span, j, count))));
         const tried = score(inGutter);
         if (tried.score < bestScore) { bestScore = tried.score; best = perm; bestLines = tried.lines; }
       }
-      best.forEach((members, j) => members.forEach((k) => lanes.set(k, g.span[0] + step * (j + 1))));
+      best.forEach((members, j) => members.forEach((k) => lanes.set(k, laneAt(g.span, j, count))));
       current = bestLines;
     }
   }
   geo.lines = build();
-  if (dev) for (const k of dropped) warn?.(`${m.edges[k]!.from} to ${m.edges[k]!.to} is two columns apart, so its line is not drawn; its row still writes the target`);
+  // A marked line whose end run cannot hold its zone (1.1): the marks and an elbow's room past them, or both zones on a straight line.
+  if (m.marks) geo.lines = geo.lines.filter((l) => {
+    if (!l.card) return true;
+    const segs = segmentsOf(l.pts);
+    const len = ([a, b]: readonly [Pt, Pt]) => Math.hypot(b.x - a.x, b.y - a.y);
+    const need = segs.length === 1 ? 2 * tk.foot : tk.foot + tk.radiusXs - 0.5;
+    if (len(segs[0]!) >= need && len(segs[segs.length - 1]!) >= need) return true;
+    drop(l.i, dev ? "has no room for its marks at an end" : "");
+    far.delete(l.i);
+    return false;
+  });
+  // The rows a far line's corridor needs (1.1): a row gap that carries one is space-10 (space-8 otherwise); a margin corridor adds space-8.
+  if (far.size) {
+    const used = new Set([...far.values()].map((f) => f.corridor));
+    const tracks = [used.has("top") ? "var(--basalt-space-8)" : "0px"];
+    for (let r = 1; r <= m.rows; r++) tracks.push("auto", r < m.rows ? (used.has(`g${r}`) ? "var(--basalt-space-10)" : "var(--basalt-space-8)") : used.has("bottom") ? "var(--basalt-space-8)" : "0px");
+    geo.corridors = { rows: tracks.join(" "), pick };
+  }
   geo.crossings = findCrossings(geo.lines);
   geo.through = throughOf(geo.lines, nodes, m);
   geo.outside = outsideOf(geo.lines, W, H, tk);
@@ -1681,6 +2548,30 @@ function sequenceGeometry(input: DrawnInput, geo: Geo, sn: ReturnType<typeof sna
   const xOf = (id: string) => { const r = heads.get(id); return r ? sn.x((r.l + r.r) / 2, tk.hair) : 0; };
   for (const n of m.nodes) { const r = heads.get(n.id); if (r) geo.lifelines.push({ x: xOf(n.id), y1: r.b, y2: bottom }); }
   const spanOf = (n: MNode) => { const r = heads.get(n.id)!; return r; };
+  // Each message's line height, by its number, for the bars.
+  const rowY = new Map<number, number>();
+  drawing.querySelectorAll<HTMLElement>(`.${P}-msg`).forEach((li) => {
+    const r = rectOf(li, origin);
+    rowY.set(Number(li.querySelector(`.${P}-num`)?.textContent ?? 0), (r.t + r.b) / 2);
+  });
+  // Activation bars (1.2): size-diagram-activation wide, centred on the lifeline, from the opening message's line to the closing one's; a nested bar
+  // space-1 toward the end side (the start side on the last participant). A one-row bar (a self-call that opens and closes it) spans its loop.
+  const W = tk.activation, half = W / 2;
+  const barRect = (bar: MBar) => {
+    const who = m.byId.get(bar.who);
+    if (!who) return null;
+    const lx = xOf(bar.who);
+    const lastOne = who.i === m.nodes.length - 1 && m.nodes.length > 1;
+    const dir = (lastOne ? -1 : 1) * (m.rtl ? -1 : 1);
+    const off = (bar.depth - 1) * s("1") * dir;
+    const y1 = rowY.get(bar.from) ?? 0, y2 = rowY.get(bar.to) ?? y1;
+    const one = bar.from === bar.to;
+    return { l: sn.x(lx - half + off, tk.hair), r: sn.x(lx + half + off, tk.hair), t: sn.y(one ? y1 - s("2") - s("1") : y1, tk.hair), b: sn.y(one ? y1 + s("2") + s("1") : y2, tk.hair) };
+  };
+  const placedBars = m.bars.map((bar) => ({ bar, rect: barRect(bar) })).filter((x) => x.rect) as Array<{ bar: MBar; rect: Rect }>;
+  geo.bars = placedBars.map((x) => x.rect);
+  /** The deepest bar a participant has at a message (the one a line ends on), and whether one it opens counts. */
+  const barAt = (who: string, n: number, opening: boolean) => placedBars.filter(({ bar }) => bar.who === who && bar.to >= n && (opening ? bar.from <= n : bar.from < n || (bar.from === n && bar.to === n))).sort((x, y) => y.bar.depth - x.bar.depth)[0]?.rect;
   drawing.querySelectorAll<HTMLElement>(`.${P}-msg`).forEach((li) => {
     const from = li.dataset.from!, to = li.dataset.to!;
     const kind = (li.dataset.kind ?? "plain") as DiagramLineKind;
@@ -1688,25 +2579,52 @@ function sequenceGeometry(input: DrawnInput, geo: Geo, sn: ReturnType<typeof sna
     const r = rectOf(li, origin);
     const y = sn.y((r.t + r.b) / 2, w);
     const num = Number(li.querySelector(`.${P}-num`)?.textContent ?? 0);
-    const x1 = xOf(from), x2 = xOf(to);
+    let x1 = xOf(from), x2 = xOf(to);
     let pts: Pt[];
     if (from === to) {
       const out = li.dataset.self === "start" ? -s("6") : s("6");
+      // A self-call's loop starts from the bar's end edge (its start edge on the last participant).
+      const bar = barAt(from, num, true);
+      const edge = bar ? (out > 0 ? bar.r : bar.l) : x1;
       const yt = sn.y(y - s("2"), w), yb = sn.y(y + s("2"), w);
-      pts = [{ x: x1, y: yt }, { x: sn.x(x1 + out, w), y: yt }, { x: sn.x(x1 + out, w), y: yb }, { x: x1, y: yb }];
-    } else pts = [{ x: x1, y }, { x: x2, y }];
+      pts = [{ x: edge, y: yt }, { x: sn.x(x1 + out, w), y: yt }, { x: sn.x(x1 + out, w), y: yb }, { x: edge, y: yb }];
+    } else {
+      // A line ends on a bar's edge, as a line ends on the shape drawn (1.2): the receiver's bar (one this message opens included), the sender's.
+      const toward = x2 > x1 ? 1 : -1;
+      const sb = barAt(from, num, false), rb = barAt(to, num, true);
+      if (sb) x1 = toward > 0 ? sb.r : sb.l;
+      if (rb) x2 = toward > 0 ? rb.l : rb.r;
+      pts = [{ x: x1, y }, { x: x2, y }];
+    }
     geo.lines.push({ i: num, from, to, kind, pts, tip: pts[pts.length - 1]!, dir: finish(pts), width: w });
     // Every label and note fits between the lifelines it spans, space-2 clear each side (1.11, rule 3).
     const said = li.querySelector(`.${P}-said`), note = li.querySelector(`.${P}-note`);
     const a = m.byId.get(from), b = m.byId.get(to);
     if (!a || !b) return;
     const room = from === to
-      ? (() => { const next = m.nodes[a.i + (li.dataset.self === "start" ? -1 : 1)]; const limit = next ? xOf(next.id) : li.dataset.self === "start" ? 0 : geo.w; return Math.abs(limit - x1) - s("6") - s("2-5") - s("2"); })()
+      // The neighbour on the loop's side, by column (right to left the author's order runs the other way).
+      ? (() => { const next = m.nodes.find((n) => n.col === a.col + (li.dataset.self === "start" ? -1 : 1)); const limit = next ? xOf(next.id) : li.dataset.self === "start" ? 0 : geo.w; return Math.abs(limit - x1) - s("6") - s("2-5") - s("2"); })()
       : Math.abs(x2 - x1) - 2 * s("2");
     const need = Math.max(said ? said.getBoundingClientRect().width : 0, note ? note.getBoundingClientRect().width : 0);
     if (need > room + 0.5) geo.unseated.push(num);
     void spanOf;
   });
+  // A frame's header (its tab, then its label) must fit inside its frame (1.2): a header that does not stacks the figure.
+  drawing.querySelectorAll<HTMLElement>(`.${P}-fhead`).forEach((head) => {
+    const box = head.parentElement?.querySelector(`:scope > .${P}-fbox`);
+    if (!box) return;
+    const need = [...head.children].reduce((sum, c) => sum + c.getBoundingClientRect().width, 0) + s("3");
+    if (need > box.getBoundingClientRect().width + 0.5) (geo.misfit ??= []).push(`the frame "${head.querySelector(`.${P}-flabel`)?.textContent ?? ""}" is wider than its participants`);
+  });
+  // Any text box, grown space-1, that would lie on a frame's side fails the fit rule too (1.2; Neon's B7 of the code review): the figure stacks.
+  {
+    const sides = [...drawing.querySelectorAll<HTMLElement>(`.${P}-fbox`)].flatMap((el) => { const r = rectOf(el, origin); return [{ x: r.l + 0.5, t: r.t, b: r.b }, { x: r.r - 0.5, t: r.t, b: r.b }]; });
+    if (sides.length) drawing.querySelectorAll<HTMLElement>(`.${P}-said, .${P}-note, .${P}-band > span`).forEach((el) => {
+      if (!el.getClientRects().length) return;
+      const r = grow(rectOf(el, origin), s("1"));
+      if (sides.some((f) => r.l < f.x && r.r > f.x && r.t < f.b && r.b > f.t)) (geo.misfit ??= []).push(`"${el.textContent?.trim() ?? ""}" would lie on a frame's side`);
+    });
+  }
   return geo;
 }
 
@@ -1742,6 +2660,10 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
   });
   const order = m.nodes;
   const card = (i: number) => map.get(order[i]!.id)!;
+  // The first card of a group entered by a turn (ruling 4 on the re-check): its turn's label takes the first seat beside the turn that clears the card, a
+  // line at a time up into the room the group keeps for it, never above the group's edge (the group's edge and label are obstacles).
+  const turnInto = (id: string) => { const el = drawing.querySelector<HTMLElement>(`.${P}-node[data-node="${CSS.escape(id)}"]`); const g = el?.parentElement; return Boolean(g?.matches(`.${P}-group[data-turn]`) && g.querySelector(`:scope > .${P}-node`) === el); };
+  const beside = (box: Rect, id: string, lh: number) => (turnInto(id) ? Array.from({ length: Math.round(lh / 16) + 1 }, (_, j) => ({ ...box, t: box.t - j * s("4"), b: box.b - j * s("4") })) : [box]);
   // Each label's seats, in the order they are tried: a stem's are its clear shaft's middle and then its thirds (1.8's order); every other
   // route has its one fixed seat (1.13).
   const labelSeats: Array<{ k: number; cands: Rect[]; on: boolean; card: string }> = [];
@@ -1753,7 +2675,7 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
     let pts: Pt[] = [];
     const label = e.label;
     const lw = label ? measure(label, "label") : 0;
-    const lh = 16;
+    const lh = label ? 16 * labelLines(label) : 16;
     const turn = s("4");
     if (r === "down" || r === "up") {
       const lo = Math.max(a.rect.l, b.rect.l), hi = Math.min(a.rect.r, b.rect.r);
@@ -1790,20 +2712,28 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
         const ex = sn.x(b.rect.l + s("6"), w);
         const ty = sn.y(b.rect.t - turn, w);
         pts = [start, { x, y: ty }, { x: ex, y: ty }, contour(b, "top", ex)];
-        if (label) labelSeats.push({ k, cands: lineSeats({ l: ex + s("2-5"), r: ex + s("2-5") + lw, t: ty - lh / 2, b: ty + lh / 2 }, e.to, -1), on: false, card: e.to });
+        if (label) labelSeats.push({ k, cands: [...beside({ l: ex + s("2-5"), r: ex + s("2-5") + lw, t: ty - lh / 2, b: ty + lh / 2 }, e.to, lh), ...lineSeats({ l: ex + s("2-5"), r: ex + s("2-5") + lw, t: ty - lh / 2, b: ty + lh / 2 }, e.to, -1).slice(1)], on: false, card: e.to });
       }
     } else {
       // An end line: out the end side, along the end lane or the gutter, into the card's top (down) or bottom (up), space-6 in from its end edge.
       const right = Math.min(columnRight.get(e.from) ?? W, columnRight.get(e.to) ?? W);
-      const laneX = sn.x(plan.gutter ? spineEnd + (plan.lanes[k] ? 2 * s("3-5") : s("3-5")) : right - s("2-5"), w);
+      // Lanes space-3-5 apart, one pitch (DECISIONS 306, 1.3).
+      const laneX = sn.x(plan.gutter ? spineEnd + (plan.lanes[k]! + 1) * s("3-5") : right - s("2-5"), w);
       const yExit = sn.y(a.rect.t + (a.rect.b - a.rect.t) * plan.exits[k]!, w);
       const exit = contour(a, "right", yExit);
-      const ex = sn.x(b.rect.r - s("6"), w);
       const down = r === "end-down";
-      const ty = sn.y(down ? b.rect.t - turn : b.rect.b + turn, w);
+      // Several end lines into one card nest (1.3): the line from the outermost lane turns lowest (the merged turn) and enters nearest the end edge
+      // (space-6 in); each from a lane further in turns space-5 higher and enters space-3 further in. Their labels are seated space-2-5 clear of the
+      // innermost entry, each centred on its own turn's height, taken before the half-pixel snap.
+      const mates = m.edges.map((o, j) => ({ o, j })).filter(({ o, j }) => (plan.routes[j] === r) && o.to === e.to).sort((x, y) => plan.lanes[y.j]! - plan.lanes[x.j]! || x.j - y.j);
+      const at = Math.max(0, mates.findIndex(({ j }) => j === k));
+      const exRaw = b.rect.r - s("6") - at * s("3"), innerEx = b.rect.r - s("6") - (mates.length - 1) * s("3");
+      const ex = sn.x(exRaw, w);
+      const tyRaw = down ? b.rect.t - turn - at * s("5") : b.rect.b + turn + at * s("5");
+      const ty = sn.y(tyRaw, w);
       pts = [exit, { x: laneX, y: exit.y }, { x: laneX, y: ty }, { x: ex, y: ty }, contour(b, down ? "top" : "bottom", ex)];
       const into = down ? e.to : order[b.i + 1]?.id ?? e.to;
-      if (label) labelSeats.push({ k, cands: lineSeats({ l: ex - s("2-5") - lw, r: ex - s("2-5"), t: ty - lh / 2, b: ty + lh / 2 }, into, down ? -1 : 1), on: false, card: into });
+      if (label) labelSeats.push({ k, cands: [...(down ? beside({ l: innerEx - s("2-5") - lw, r: innerEx - s("2-5"), t: tyRaw - lh / 2, b: tyRaw + lh / 2 }, into, lh) : [{ l: innerEx - s("2-5") - lw, r: innerEx - s("2-5"), t: tyRaw - lh / 2, b: tyRaw + lh / 2 }]), ...lineSeats({ l: innerEx - s("2-5") - lw, r: innerEx - s("2-5"), t: tyRaw - lh / 2, b: tyRaw + lh / 2 }, into, down ? -1 : 1).slice(1)], on: false, card: into });
     }
     const snapped = snapRoute(pts, w, sn);
     geo.lines.push({ i: k, from: e.from, to: e.to, kind: e.kind, pts: snapped, tip: snapped[snapped.length - 1]!, dir: finish(snapped), width: w });
@@ -1838,13 +2768,16 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
 
 // ---- The ink: one string of SVG and labels, the same in React and in the skill ----
 
-export function pathD(pts: Pt[], radius: number): string {
+/** A route as a path, its corners rounded. `zone` (a marked line's, 1.1): no elbow starts within it of either end. */
+export function pathD(pts: Pt[], radius: number, zone = 0): string {
   const f = (n: number) => String(Math.round(n * 100) / 100);
   let d = `M${f(pts[0]!.x)} ${f(pts[0]!.y)}`;
   for (let k = 1; k < pts.length - 1; k++) {
     const a = pts[k - 1]!, b = pts[k]!, c = pts[k + 1]!;
     const d1 = Math.hypot(b.x - a.x, b.y - a.y), d2 = Math.hypot(c.x - b.x, c.y - b.y);
-    const r = Math.min(radius, d1 / 2, d2 / 2);
+    let r = Math.min(radius, d1 / 2, d2 / 2);
+    if (zone && k === 1) r = Math.min(r, Math.max(0, d1 - zone));
+    if (zone && k === pts.length - 2) r = Math.min(r, Math.max(0, d2 - zone));
     if (r < 0.5) { d += `L${f(b.x)} ${f(b.y)}`; continue; }
     const p0 = { x: b.x + ((a.x - b.x) / d1) * r, y: b.y + ((a.y - b.y) / d1) * r };
     const p3 = { x: b.x + ((c.x - b.x) / d2) * r, y: b.y + ((c.y - b.y) / d2) * r };
@@ -1858,6 +2791,15 @@ const unit: Record<Dir, Pt> = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left:
 
 function lineMarkup(P: string, l: GLine, tk: Tokens, maskId: string | null, radius: number): string {
   const u = unit[l.dir];
+  // A line that states how many (1.1): its shaft runs to both tables' edges, through crow's-foot marks in its own ink, with no dot and no head.
+  if (l.card) {
+    const a = l.pts[0]!, b = l.pts[1]!;
+    const end = (form: DiagramCardinality, at: Pt, out: number, which: string) => {
+      const { crow, ring } = cardMarks(form, at.x, at.y, out, tk.head, tk.dot);
+      return `<path class="${P}-crow" data-end="${which}" d="${crow}"/>${ring ? `<circle class="${P}-ring" data-end="${which}" cx="${ring.x}" cy="${ring.y}" r="${ring.r}"/>` : ""}`;
+    };
+    return `<g class="${P}-edge" data-edge="${l.i}" data-from="${escapeHtml(l.from)}" data-to="${escapeHtml(l.to)}"><path class="${P}-line" data-kind="${escapeHtml(l.kind)}" d="${pathD(l.pts, radius, tk.foot)}"${maskId ? ` mask="url(#${escapeHtml(maskId)})"` : ""}/>${end(l.card.from, a, Math.sign(b.x - a.x) || 1, "from")}${end(l.card.to, l.tip, -u.x || 1, "to")}</g>`;
+  }
   const open = l.kind === "dashed";
   const L = tk.head, W2 = tk.head / 2;
   // The head's tip touches the contour; the line stops under the head (an open head's shaft runs on into it).
@@ -1901,23 +2843,27 @@ function masksMarkup(P: string, geo: Geo, tk: Tokens, base: string): { defs: str
 /** The drawing's ink: the SVG (lines, heads, dots, lifelines, cuts) and the labels, as one string. */
 export function inkHtml(P: string, geo: Geo, tk: Tokens, base: string): string {
   const { defs, ids } = masksMarkup(P, geo, tk, base);
+  // A sequence's lifelines are their own layer, under its frames; the bars, lines and heads are over them (1.2's order: lifelines, frames, bars, lines,
+  // plates and labels; Neon's P8 of the code review).
   const lifelines = geo.lifelines.map((l) => `<path class="${P}-life" d="M${l.x} ${l.y1}V${l.y2}"/>`).join("");
+  const bars = (geo.bars ?? []).map((b) => `<rect class="${P}-bar" x="${b.l}" y="${b.t}" width="${Math.round((b.r - b.l) * 100) / 100}" height="${Math.round((b.b - b.t) * 100) / 100}"/>`).join("");
   const lines = geo.lines.map((l, k) => lineMarkup(P, l, tk, ids.get(k) ?? null, l.from === l.to ? tk.radiusXs : tk.radius)).join("");
-  const svg = `<svg class="${P}-svg" width="${geo.w}" height="${geo.h}" viewBox="0 0 ${geo.w} ${geo.h}" focusable="false">${defs ? `<defs>${defs}</defs>` : ""}${lifelines}<g class="${P}-edges">${lines}</g></svg>`;
-  const labels = geo.labels.map((l) => `<span class="${P}-label" data-edge="${l.i}"${l.on ? ' data-on=""' : ""} style="left:${Math.round(l.box.l * 100) / 100}px;top:${Math.round(l.box.t * 100) / 100}px;width:${Math.round((l.box.r - l.box.l) * 100) / 100}px">${escapeHtml(l.text)}</span>`).join("");
+  const under = lifelines ? `<svg class="${P}-lifes" width="${geo.w}" height="${geo.h}" viewBox="0 0 ${geo.w} ${geo.h}" focusable="false">${lifelines}</svg>` : "";
+  const svg = `${under}<svg class="${P}-svg" width="${geo.w}" height="${geo.h}" viewBox="0 0 ${geo.w} ${geo.h}" focusable="false">${defs ? `<defs>${defs}</defs>` : ""}${bars}<g class="${P}-edges">${lines}</g></svg>`;
+  const labels = geo.labels.map((l) => `<span class="${P}-label" data-edge="${l.i}"${l.on ? ' data-on=""' : ""}${labelLines(l.text) > 1 ? ' data-lines="2"' : ""} style="left:${Math.round(l.box.l * 100) / 100}px;top:${Math.round(l.box.t * 100) / 100}px;width:${Math.round((l.box.r - l.box.l) * 100) / 100}px">${l.text.split("\n").map(escapeHtml).join("<br>")}</span>`).join("");
   return svg + labels;
 }
 
 // ---- Laying a figure out ----
 
-export interface Measured { dyn: Dyn; geo: Geo | null; ink: string; tokens: Tokens | null }
+export interface Measured { dyn: Dyn; geo: Geo | null; ink: string; tokens: Tokens | null; least?: number }
 
 /**
  * Measures the figure and settles its layout (1.11): the drawn layout when the figure is at least 640 wide, every track holds its widest
  * word, every label seats and no line passes through a node; otherwise the stack. `apply` writes a state into the DOM (the same markup the
  * tree gives for it), so each try is measured as it would be drawn.
  */
-export function measureFigure(fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn?: (s: string) => void): Measured {
+export function measureFigure(fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn?: (s: string, level?: "error") => void, sizeTo?: (least: number) => void): Measured {
   // Development only (the warnings): first, so a minifier sees it is a constant and drops what it guards.
   const dev = process.env.NODE_ENV !== "production";
   const drawing = fig.querySelector<HTMLElement>(`.${P}-drawing`);
@@ -1926,13 +2872,18 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   const tk = readTokens(fig);
   const measure = ruler(drawing, P);
   const mins = minimums(m, tk, measure);
+  // The viewer (DECISIONS 310, 9.3) sizes its figure from the least drawn width before it is measured: never under it, so the drawn layout is tried.
+  sizeTo?.(mins.least);
   const W = fig.clientWidth;
   const focusedId = (() => { const a = document.activeElement as HTMLElement | null; return a && drawing.contains(a) && a.dataset.node ? a.dataset.node : undefined; })();
   const stopOf = (d: Dyn): Dyn => {
     if (!hasStops(m, d)) return { ...d, stop: d.stop ?? m.nodes[0]?.id, keep: focusedId && !(d.layout === "drawn") ? focusedId : undefined };
     return { ...d, stop: d.stop && m.byId.has(d.stop) ? d.stop : m.nodes[0]?.id, keep: undefined };
   };
+  // A decision that is taller than it is wide at this width (call 1 of DECISIONS 306, section 4): the drawn layout is refused, as any fit failure is.
+  let tall = false;
   const heightsFor = (d: Dyn): Dyn => {
+    tall = false;
     if (m.type !== "flowchart") return d;
     apply({ ...d, heights: undefined, words: undefined });
     const heights = record<number>();
@@ -1970,6 +2921,8 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
         el.style.removeProperty("--_ww");
       }
       heights[el.dataset.node!] = height;
+      // Taller than wide after every width its words can take (DECISIONS 306, section 4, call 1): a width the flowchart is not drawn at.
+      if (height > nr.width) tall = true;
     });
     return { ...d, heights, words: Object.keys(widened).length ? widened : undefined };
   };
@@ -1977,35 +2930,46 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   // A list a bare stack opened closes when the figure is laid out again (it opens again if the stack is still bare).
   const closed: Dyn = current.autoOpen ? { open: false, autoOpen: undefined } : {};
   const names = (geo: Geo, list: number[]) => list.map((k) => lineName(m, geo.lines.find((l) => l.i === k)!)).join(", ");
-  if (W >= mins.least) {
+  // The text variant is one code block: no drawn layout and no lines; the art module chooses art or transcript by width (1.2).
+  if (m.text) return { dyn: { ...current, layout: "stacked", bare: undefined }, geo: null, ink: "", tokens: tk, least: mins.least };
+  if (W >= mins.least && !m.unplaced) {
     const drawnTry = (pad: boolean) => {
-      let dd = stopOf({ ...current, ...closed, layout: "drawn", grow: undefined, track: undefined, bare: undefined, pad: pad || undefined });
+      let dd = stopOf({ ...current, ...closed, layout: "drawn", grow: undefined, track: undefined, bare: undefined, pad: pad || undefined, rows: undefined });
       dd = heightsFor(dd);
       apply(dd);
-      return { dd, g: drawnGeometry(input(), measure) };
+      let g = drawnGeometry(input(), measure);
+      // A schema's far keys (1.1): their corridors are chosen on the grid without them, then the rows grow to hold them and the figure is measured again.
+      if (g.corridors) {
+        dd = { ...dd, rows: g.corridors.rows };
+        apply(dd);
+        g = drawnGeometry({ ...input(), pick: g.corridors.pick }, measure);
+      }
+      return { dd, g };
     };
     let { dd: d, g: geo } = drawnTry(false);
     // A label refused only because its seats leave the drawing (beside a line in a 40px first or last row) is given space-3 above and below.
     // A route the drawn layout refuses: through a node, off the drawing, or laid on another line.
-    const refused = (g: Geo) => g.through.length > 0 || g.outside.length > 0 || (g.overlaps?.length ?? 0) > 0;
+    const refused = (g: Geo) => g.through.length > 0 || g.outside.length > 0 || (g.overlaps?.length ?? 0) > 0 || (g.misfit?.length ?? 0) > 0 || tall;
     if (!refused(geo) && geo.unseated.length && geo.unseated.every((k) => geo.bounded?.includes(k))) {
       const padded = drawnTry(true);
       if (!refused(padded.g) && !padded.g.unseated.length) ({ dd: d, g: geo } = padded);
     }
     if (!refused(geo) && !geo.unseated.length) {
       if (geo.crossings.length) dev && warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the drawn layout: ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
-      return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk };
+      return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk, least: mins.least };
     }
     // At a width the figure should fit by its tokens and words, a failure is the author's to fix.
+    if (tall) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: a decision would be taller than it is wide`);
+    if (geo.misfit?.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${geo.misfit.join("; ")}`);
     if (geo.through.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.through)} would pass through a node`);
     if (geo.overlaps?.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.overlaps)} would lie on one another`);
     if (geo.outside.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.outside)} would leave the drawing`);
-    if (geo.unseated.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: no clean seat for ${geo.unseated.map((k) => (m.type === "sequence" ? `message ${k}` : `"${m.edges[k]?.label}"`)).join(", ")}`);
+    if (geo.unseated.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: no clean seat for ${geo.unseated.map((k) => (m.type === "sequence" ? `message ${k}` : `"${said(m.edges[k]?.label ?? "")}"`)).join(", ")}`);
   }
-  let d = stopOf({ ...current, ...closed, layout: "stacked", heights: undefined, grow: record(), track: m.type === "schema" ? mins.table : undefined, bare: undefined, pad: undefined });
+  let d = stopOf({ ...current, ...closed, layout: "stacked", heights: undefined, grow: record(), track: m.type === "schema" ? mins.table : undefined, bare: undefined, pad: undefined, rows: undefined });
   d = heightsFor(d);
   apply(d);
-  if (m.type === "sequence" || m.type === "schema") return { dyn: d, geo: null, ink: "", tokens: tk };
+  if (m.type === "sequence" || m.type === "schema") return { dyn: d, geo: null, ink: "", tokens: tk, least: mins.least };
   const plan = stackPlan(m);
   let out = stackedGeometry(input(), measure, plan, d.grow);
   for (let tries = 0; tries < 6 && Object.keys(out.grow).length; tries++) {
@@ -2019,19 +2983,23 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   // The stack is the last layout there is. If it still holds an overlap (a label with no clean seat after every try, a line through a node or
   // off the drawing, or a third end lane), no drawing is returned that is known to overlap: the cards stay, in order, with no lines and no
   // labels, as the stacked schema's do, and the list holds every connection.
+  if (dev && !plan.third && plan.laneCount > 2) warn?.(`the stacked drawing uses ${plan.laneCount} end lanes (four at most)`);
   const failed = geo.unseated.length > 0 || geo.through.length > 0 || geo.outside.length > 0 || plan.third;
   if (failed) {
-    if (geo.unseated.length) dev && warn?.(`the stacked drawing has no clean seat for ${[...new Set(geo.unseated)].map((k) => `"${m.edges[k]?.label}"`).join(", ")}, so its lines are not drawn; the list holds every connection`);
+    if (geo.unseated.length) dev && warn?.(`the stacked drawing has no clean seat for ${[...new Set(geo.unseated)].map((k) => `"${said(m.edges[k]?.label ?? "")}"`).join(", ")}, so its lines are not drawn; the list holds every connection`);
     if (geo.through.length) dev && warn?.(`in the stacked drawing ${names(geo, geo.through)} would pass through a node, so its lines are not drawn`);
     if (geo.outside.length) dev && warn?.(`in the stacked drawing ${names(geo, geo.outside)} would leave the drawing, so its lines are not drawn`);
-    if (dev && plan.third) warn?.("the stacked drawing would need a third end lane, so its lines are not drawn");
+    if (dev && plan.third) warn?.("the stacked drawing would need a fifth end lane, so its lines are not drawn", "error");
     // Dressed as where scripting is off (1.13): no line in the key, no key hint, no stops, and the list open when the figure becomes bare.
     const bare: Geo = { ...geo, lines: [], labels: [], crossings: [] };
     const dyn = stopOf({ ...d, grow: record(), bare: true, open: current.bare ? current.open : true, autoOpen: current.bare ? current.autoOpen : current.open ? undefined : true });
-    return { dyn, geo: bare, ink: "", tokens: tk };
+    // Written as it is returned: the tries above wrote a state that is not bare, and a host that sees the same state as before renders nothing, so the
+    // figure would keep their markup (a stack with no lines, not dressed bare, its list closed: P-R3 of the code re-check).
+    apply(dyn);
+    return { dyn, geo: bare, ink: "", tokens: tk, least: mins.least };
   }
   if (geo.crossings.length) dev && warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the stacked drawing (each is cut): ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
-  return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk };
+  return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk, least: mins.least };
 }
 
 function lineName(m: Model, l: GLine): string {
@@ -2078,6 +3046,7 @@ export function applyTrace(fig: HTMLElement, P: string, geo: Geo | null, tokens:
   if (!svg) return;
   let defsEl = svg.querySelector("defs");
   if (!defsEl && defs) { defsEl = document.createElementNS("http://www.w3.org/2000/svg", "defs"); svg.insertBefore(defsEl, svg.firstChild); }
+  // sink: masksMarkup's mask defs, built from measured numbers and Basalt's own ids; nothing from the spec reaches it; test/repo-review.test.mjs (a diagram's hostile labels)
   if (defsEl) defsEl.innerHTML = defs;
   geo.lines.forEach((l, k) => {
     const path = groupEls.get(String(l.i))?.querySelector(`.${P}-line`);
@@ -2103,7 +3072,14 @@ export function entranceDrawn(fig: HTMLElement, lines: boolean): void {
   const state = fig.getAttribute("data-entrance");
   if (state === "running" || state === "done") return;
   if (!lines) { if (state) fig.removeAttribute("data-entrance"); return; }
-  if (!state) fig.setAttribute("data-entrance", entranceBlocked() ? "done" : "pending");
+  if (!state) fig.setAttribute("data-entrance", entranceBlocked() || seenBefore(fig) ? "done" : "pending");
+}
+/** The first visit's mark (DECISIONS 306, 1.5): where a figure's entrance has played on this page before. */
+export const visitKey = (fig: HTMLElement) => `basalt-diagram-entrance:${location.pathname}#${fig.id}`;
+function seenBefore(fig: HTMLElement): boolean {
+  if (!fig.hasAttribute("data-first-visit") || !fig.id) return false;
+  // Storage that throws: it plays again.
+  try { return localStorage.getItem(visitKey(fig)) !== null; } catch { return false; }
 }
 
 /** Settles a pending or running entrance at once (a node hovered or focused, a key, a control used): every line whole, and the module told. */
@@ -2115,7 +3091,13 @@ export function settleEntrance(fig: HTMLElement): void {
 }
 
 /** The node a key moves to (1.14): → ↓ the next, ← ↑ the one before, in the author's order, stopping at the ends; Home and End the ends. */
-export function keyTarget(m: Model, from: string, key: string): string | null {
+export function keyTarget(m: Model, from: string, key: string, drawn = false, rtl = false): string | null {
+  // Drawn, the arrows are spatial and physical: in a right-to-left figure column 1 is at the right (1.5).
+  const table = drawn ? spatialTable(m) : null;
+  if (table && key.startsWith("Arrow")) {
+    const way = ({ ArrowRight: rtl ? "left" : "right", ArrowLeft: rtl ? "right" : "left", ArrowDown: "down", ArrowUp: "up" } as Record<string, Way>)[key];
+    return way ? table[from]?.[way] ?? null : null;
+  }
   const i = m.byId.get(from)?.i ?? 0;
   const n = m.nodes.length;
   let to: number;
@@ -2136,9 +3118,10 @@ export function keyTarget(m: Model, from: string, key: string): string | null {
  * A tree element is paired with the next DOM element of its tag and class, so an element the tree does not hold (the HTML skill's JSON
  * script, first in the figure) is passed over, never mistaken for the heading.
  */
-const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "tabindex", "data-stops", "hidden"];
-const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-motion"];
-const MANAGED_STYLE = ["--_track", "--_h", "--_ww", "--_gap", "--_ggrow", "--_gpad"];
+const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "tabindex", "data-stops", "hidden", "data-art"];
+// The figure's grid attributes follow the model too: an automatic figure's direction can change its columns after script (Neon's B8 of the code review).
+const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-motion", "data-first-visit", "data-rtl", "data-cols", "data-reach", "data-gutter", "data-marks"];
+const MANAGED_STYLE = ["--_track", "--_h", "--_ww", "--_gap", "--_ggrow", "--_tl", "--_gpad", "--_gw", "--_mh", "--_rows", "--_row-gap"];
 const absent = (value: VAttrs[string]) => value === undefined || value === null || value === false;
 function pairs(el: Element, v: VElement): boolean {
   if (el.tagName.toLowerCase() !== v.t) return false;

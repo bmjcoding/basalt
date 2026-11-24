@@ -11,5 +11,5 @@
 
 ## Checks
 - [ ] `npm run check` passes
-- [ ] Swift changes: the macOS CI job passed (Swift can't be compiled outside macOS)
+- [ ] `npm run ci:local` passed on the PR's head (the merge gate while Actions minutes are out), or the macOS CI job passed; without Swift, `--web-only`, and the Swift package is named as unchecked
 - [ ] Walkthrough and screenshots attached, for a component round

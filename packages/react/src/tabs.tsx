@@ -9,12 +9,12 @@ import { Pill } from "./pill";
 import type { ChangeDetails, ChoiceValue, Orientation, PartProps } from "./types";
 import { join, withClass } from "./utils";
 
-const TabsMotion = React.createContext<{
+const TabsMotion = /* @__PURE__ */ React.createContext<{
   order: React.MutableRefObject<string[]>;
   previous: React.MutableRefObject<string | null>;
 } | null>(null);
 
-const TabsOrientation = React.createContext<Orientation | undefined>(undefined);
+const TabsOrientation = /* @__PURE__ */ React.createContext<Orientation | undefined>(undefined);
 // The chosen tab's value as text, or null when none is known: a panel that is not it is being left, and is not drawn while Base UI finishes its exit.
 const TabsChosen = /* @__PURE__ */ React.createContext<string | null>(null);
 
@@ -149,7 +149,7 @@ export interface TabsPanelProps extends PartProps<"div", "value"> {
   keepMounted?: boolean;
 }
 
-const PanelsStacked = React.createContext(false);
+const PanelsStacked = /* @__PURE__ */ React.createContext(false);
 
 export interface TabsPanelsProps extends React.ComponentProps<"div"> {
   /**

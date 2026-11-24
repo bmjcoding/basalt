@@ -22,7 +22,7 @@ export interface DataFlowDiagramProps extends DiagramFigureProps {
 }
 
 /** A data flow (DECISIONS 281): lanes as bands, steps numbered in order; stacked, a step says its lane. */
-export function DataFlowDiagram({ lanes, nodes, edges, stepLabel, pulse, packet, motion, title, heading, legend, ...props }: DataFlowDiagramProps) {
-  const spec = React.useMemo(() => ({ type: "data-flow" as const, title, heading, legend, lanes, nodes, edges, stepLabel, motion, pulse, packet }), [title, heading, legend, lanes, nodes, edges, stepLabel, motion, pulse, packet]);
-  return <DiagramFigure {...props} title={title} heading={heading} legend={legend} spec={spec} component="DataFlowDiagram" />;
+export function DataFlowDiagram({ lanes, nodes, edges, stepLabel, pulse, packet, motion, entrance, title, heading, legend, ...props }: DataFlowDiagramProps) {
+  const spec = React.useMemo(() => ({ type: "data-flow" as const, title, heading, legend, lanes, nodes, edges, stepLabel, motion, entrance, pulse, packet }), [title, heading, legend, lanes, nodes, edges, stepLabel, motion, entrance, pulse, packet]);
+  return <DiagramFigure {...props} entrance={entrance} title={title} heading={heading} legend={legend} spec={spec} component="DataFlowDiagram" />;
 }

@@ -46,7 +46,7 @@ const handOn = (to: HTMLElement[], focused: React.RefObject<HTMLElement | null>)
   focused.current = box?.closest<HTMLElement>(".basalt-selectable-item") ?? null;
 };
 
-const SelectionContext = React.createContext<Selection | null>(null);
+const SelectionContext = /* @__PURE__ */ React.createContext<Selection | null>(null);
 
 function useSelection(part: string): Selection {
   const selection = React.useContext(SelectionContext);

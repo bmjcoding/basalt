@@ -88,9 +88,8 @@
         var text = button.dataset.copyText != null ? button.dataset.copyText : (target ? target.textContent : '');
         copyText(text).then(function (ok) {
           // A copy with a glyph and words keeps its words and changes its glyph (DECISIONS 336, Q5); the icon alone also changes its name.
-          button.innerHTML = rest[0];
-          var glyph = button.querySelector('svg, [data-glyph]');
-          if (glyph) glyph.outerHTML = ok ? '%glyph-svg:check%' : '%glyph-svg:close%';
+          // One write of the button's own markup, its first glyph (an svg, or a span the glyph module has not drawn yet) swapped for a constant.
+          button.innerHTML = rest[0].replace(/<svg[\s\S]*?<\/svg>|<span data-glyph[^>]*><\/span>/, ok ? '%glyph-svg:check%' : '%glyph-svg:close%');
           if (iconOnly) button.setAttribute('aria-label', ok ? 'Copied' : 'Copy failed');
           announce(iconOnly ? (ok ? 'Copied to clipboard' : 'Could not copy') : (ok ? 'Copied' : 'Copy failed'));
           clearTimeout(button.__bhTimer);

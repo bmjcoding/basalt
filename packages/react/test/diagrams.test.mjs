@@ -281,7 +281,7 @@ describe("the fit rule (1.11) and seats (1.8)", () => {
   });
 
   // Neon's blocking finding 1 on #126: two turn-backs to different keys, beside each other, were drawn on one lane.
-  test("turn-backs to different keys never lie on one another: in a gutter each takes a lane; with no gutter (one column) the schema stays stacked", async () => {
+  test("turn-backs to different keys never lie on one another: in a gutter each takes a lane; with no gutter (one column) each takes a lane of the padding (call 2)", async () => {
     const { page } = await diagramPage();
     const t = (name, col, row, refs = []) => ({ name, col, row, columns: [{ name: "id", key: "PK" }, ...refs.map((r) => ({ name: `${r}_id`, key: "FK", references: `${r}.id` }))] });
     const schema = (key, tables) => ({ key, type: "schema", props: { title: key, summary: "Keys.", legend: { plain: "A foreign key" }, tables } });
@@ -297,7 +297,8 @@ describe("the fit rule (1.11) and seats (1.8)", () => {
     const lanes = (key) => page.evaluate((key) => [...document.querySelectorAll(`#fig-${key} .basalt-diagram-svg .basalt-diagram-line`)].map((p) => { const n = p.getAttribute("d").match(/-?[\d.]+/g).map(Number); return Math.min(...n.filter((_, k) => k % 2 === 0)); }), key);
     for (const width of [1440, 1000]) {
       await resize(page, width);
-      assert.equal(await page.getAttribute("#fig-crossed", "data-layout"), "stacked", `at ${width}: no lane for both, so no drawing`);
+      // A one-column schema's overlapping turn-backs take two lanes (DECISIONS 306, section 4, call 2), so the figure is drawn.
+      assert.equal(await page.getAttribute("#fig-crossed", "data-layout"), "drawn", `at ${width}: a lane each, so drawn`);
       assert.equal(await page.getAttribute("#fig-apart", "data-layout"), "drawn", `at ${width}`);
       assert.equal(await page.getAttribute("#fig-gutter", "data-layout"), "drawn", `at ${width}`);
       for (const key of ["crossed", "apart", "gutter"]) assert.deepEqual((await inspect(page, key)).problems, [], `${key} at ${width}`);
@@ -403,14 +404,17 @@ describe("derivation (1.6, 1.13): the sides, slots and stacked routes of the exa
     // 6 of the 27 edges name a side (the decision's count).
     const named = ["architecture", "flowchart", "dataFlow"].flatMap((k) => DATA[k].edges).filter((e) => e.fromSide || e.toSide).length;
     assert.equal(named, 6);
-    // A third overlapping end line is a development error.
-    const third = core.buildModel({ type: "architecture", title: "t", nodes: ["a", "b", "c", "d", "e"].map((id, k) => node(id, 1, k + 1)), edges: [{ from: "a", to: "d" }, { from: "b", to: "e" }, { from: "a", to: "e" }] });
-    assert.equal(core.stackPlan(third).third, true);
-    // Lanes are allocated across each overlapping set: A to C, B to E and D to H overlap in a chain, so each takes the lane outside the one before, and the
-    // third lane is reported, never laid on the second.
+    // Four end lanes at most (DECISIONS 306, 1.3): three overlapping end lines take three lanes; a fifth is the development error.
+    const three = core.buildModel({ type: "architecture", title: "t", nodes: ["a", "b", "c", "d", "e"].map((id, k) => node(id, 1, k + 1)), edges: [{ from: "a", to: "d" }, { from: "b", to: "e" }, { from: "a", to: "e" }] });
+    assert.equal(core.stackPlan(three).third, false);
+    assert.equal(core.stackPlan(three).laneCount, 3);
+    const five = core.buildModel({ type: "architecture", title: "t", nodes: "abcdefghij".split("").map((id, k) => node(id, 1, k + 1)), edges: [{ from: "a", to: "j" }, { from: "a", to: "i" }, { from: "b", to: "h" }, { from: "b", to: "g" }, { from: "c", to: "f" }] });
+    assert.equal(core.stackPlan(five).third, true);
+    // Lanes are allocated across each overlapping set: A to C, B to E and D to H overlap in a chain, so each takes the lane outside the one before; a
+    // third lane is drawn now (four at most, DECISIONS 306, 1.3), never laid on the second.
     const chain = core.stackPlan(core.buildModel({ type: "architecture", title: "t", nodes: "abcdefgh".split("").map((id, k) => node(id, 1, k + 1)), edges: [{ from: "a", to: "c" }, { from: "b", to: "e" }, { from: "d", to: "h" }] }));
     assert.deepEqual(chain.lanes, [0, 1, 2]);
-    assert.equal(chain.third, true);
+    assert.equal(chain.third, false);
     // Two that do not overlap share the inner lane; two that do take one each.
     assert.deepEqual(core.stackPlan(core.buildModel({ type: "architecture", title: "t", nodes: "abcdef".split("").map((id, k) => node(id, 1, k + 1)), edges: [{ from: "a", to: "c" }, { from: "d", to: "f" }, { from: "b", to: "e" }] })).lanes, [0, 0, 1]);
     // Two straight lines between one pair, one each way, take the quarter points at both ends, so neither lies on the other.
@@ -466,7 +470,9 @@ describe("accessibility (1.14)", () => {
     assert.equal(await page.locator(`#fig-architecture .${P}-svg`).evaluate((svg) => svg.closest("[aria-hidden='true']") !== null), true, "the SVG is hidden");
     await page.focus(`#fig-architecture .${P}-node[data-node="browser"]`);
     const at = () => page.evaluate(() => document.activeElement?.dataset.node);
-    for (const [key, to] of [["ArrowRight", "alb"], ["ArrowDown", "svc"], ["ArrowLeft", "alb"], ["ArrowUp", "browser"], ["ArrowUp", "browser"], ["End", "sys"], ["ArrowRight", "sys"], ["Home", "browser"]]) {
+    // Drawn, the arrows are spatial (DECISIONS 306, 1.5; the decision's table in test/fixtures/diagram-spatial-cells.json): down from the ALB is ECS, up
+    // from Aurora goes nowhere. Home and End are the ends, as before.
+    for (const [key, to] of [["ArrowRight", "alb"], ["ArrowDown", "ecs"], ["ArrowLeft", "browser"], ["ArrowUp", "aurora"], ["ArrowUp", "aurora"], ["End", "sys"], ["ArrowRight", "cw"], ["Home", "browser"]]) {
       await page.keyboard.press(key);
       assert.equal(await at(), to, `${key}`);
     }
@@ -586,11 +592,19 @@ describe("tracing (1.15)", () => {
     await page.close();
   });
 
-  test("on touch (no hover) a tap traces nothing", async () => {
+  // A trace on touch comes back (DECISIONS 306, 1.5): a tap traces a card, the same card clears it, and "Clear highlight" is mounted, aria-disabled until then.
+  test("on touch (no hover) a tap traces, the same tap clears, and Clear highlight follows", async () => {
     const { page } = await diagramPage({ hasTouch: true, isMobile: true, viewport: { width: 1440, height: 1000 } });
+    const clear = page.locator(`#fig-architecture .${P}-clear`);
+    assert.equal(await clear.getAttribute("aria-disabled"), "true");
+    await page.tap(`#fig-architecture .${P}-node[data-node="svc"]`);
+    await page.waitForTimeout(150);
+    assert.ok((await page.locator(`#fig-architecture .${P}-edge[data-lit]`).count()) > 0);
+    assert.equal(await clear.getAttribute("aria-disabled"), null);
     await page.tap(`#fig-architecture .${P}-node[data-node="svc"]`);
     await page.waitForTimeout(150);
     assert.equal(await page.locator(`#fig-architecture .${P}-edge[data-lit]`).count(), 0);
+    assert.equal(await page.locator(`#fig-architecture [aria-live]`).count(), 0);
     await page.close();
   });
 });

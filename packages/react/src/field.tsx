@@ -28,7 +28,7 @@ export type InputProps = PartProps<"input"> & {
 };
 
 // Whether the `Field` an input sits in is required: the input then carries `required`, which is what a screen reader says.
-const FieldRequiredContext = React.createContext(false);
+const FieldRequiredContext = /* @__PURE__ */ React.createContext(false);
 
 /** A text input. Inside a `Field` it takes the field's label, description and error, and, in a required field, `required`. */
 export function Input({ controlSize = "md", className, required, writing = false, writingEmpty, value, readOnly, ref, ...props }: InputProps) {
