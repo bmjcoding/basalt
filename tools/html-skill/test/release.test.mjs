@@ -271,6 +271,24 @@ describe("where a release ends (DECISIONS 331)", () => {
     }
   });
 
+  test("the overlap measurement sees an ordinary button laid over a source line's box (recheck 7)", async () => {
+    const { page, context } = await open(SLATE_BODY, { width: 390, hasTouch: true });
+    const clean = await page.evaluate(`(${ENDS})("")`);
+    assert.deepEqual(clean.taps.find((t) => t.name.startsWith("pr41-1:")).meets, []);
+    // A positive control: an ordinary 44px button laid over the middle of #41's source line is seen by the measurement (recheck 7).
+    await page.evaluate(() => {
+      const source = document.querySelector('[id="pr41-1"] .release-source');
+      source.scrollIntoView({ block: "center" });
+      const q = source.getBoundingClientRect();
+      const probe = Object.assign(document.createElement("button"), { textContent: "Probe" });
+      Object.assign(probe.style, { position: "fixed", zIndex: "10", left: `${q.left + q.width / 2 - 22}px`, top: `${q.top + q.height / 2 - 22}px`, width: "44px", height: "44px" });
+      document.body.append(probe);
+    });
+    const control = await page.evaluate(`(${ENDS})("")`);
+    assert.deepEqual(control.taps.find((t) => t.name.startsWith("pr41-1:")).meets, ["Probe"]);
+    await context.close();
+  });
+
   test("Build details' button is 44 tall on touch, as every fold's is", async () => {
     const { page, context } = await open(HARBOR_BODY, { width: 390, hasTouch: true });
     assert.equal(await page.locator(".release-build .release-fold").evaluate((el) => el.getBoundingClientRect().height), 44);

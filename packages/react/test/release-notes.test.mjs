@@ -432,6 +432,23 @@ describe("where a release ends (DECISIONS 331)", () => {
     });
   }
 
+  test("the overlap measurement sees an ordinary button laid over a source line's box (recheck 7)", async () => {
+    const page = await open(SLATE_SITE_PAGE(), { width: 390, height: 900, hasTouch: true, reducedMotion: "reduce" });
+    const clean = await page.evaluate(`(${ENDS})("basalt-")`);
+    assert.deepEqual(clean.taps.find((t) => t.name.startsWith("pr41-1:")).meets, []);
+    // A positive control: an ordinary 44px button laid over the middle of #41's source line is seen by the measurement (recheck 7).
+    await page.evaluate(() => {
+      const source = document.querySelector('[id="pr41-1"] .basalt-release-source');
+      source.scrollIntoView({ block: "center" });
+      const q = source.getBoundingClientRect();
+      const probe = Object.assign(document.createElement("button"), { textContent: "Probe" });
+      Object.assign(probe.style, { position: "fixed", zIndex: "10", left: `${q.left + q.width / 2 - 22}px`, top: `${q.top + q.height / 2 - 22}px`, width: "44px", height: "44px" });
+      document.body.append(probe);
+    });
+    const control = await page.evaluate(`(${ENDS})("basalt-")`);
+    assert.deepEqual(control.taps.find((t) => t.name.startsWith("pr41-1:")).meets, ["Probe"]);
+  });
+
   test("what follows a release list stands at least space-3 below it, so a last change's box reaches no further than the page's gap", async () => {
     for (const [name, jsx, width, touch] of [["Slate", SLATE_SITE_PAGE(), 390, true], ["Slate", SLATE_SITE_PAGE(), 1440, false], ["Harbor", harborShell(), 390, true]]) {
       const page = await open(jsx, { width, height: 900, hasTouch: touch, reducedMotion: "reduce" });

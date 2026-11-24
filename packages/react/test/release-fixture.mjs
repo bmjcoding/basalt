@@ -119,6 +119,8 @@ export const ENDS = (p) => {
   const boxes = hosts.map(geometry);
   const targets = [...document.querySelectorAll("button, a[href], [role='button'], summary, input, select, textarea")].filter((el) => shown(el) && !el.closest("[inert]"));
   const meets = (a, b) => Math.min(a.r, b.r) - Math.max(a.l, b.l) > 0.5 && Math.min(a.b, b.b) - Math.max(a.t, b.t) > 0.5;
+  /** An element's box in the same l, r, t, b terms as a tap box (a DOMRect's are left, right, top and bottom). */
+  const edges = (el) => { const q = R(el); return { l: q.left, r: q.right, t: q.top, b: q.bottom }; };
   const taps = boxes.map((box) => {
     const { el } = box;
     const entry = el.closest(c("@release-entry"));
@@ -127,7 +129,7 @@ export const ENDS = (p) => {
     const name = `${entry?.id ?? release?.id}: ${el.textContent.trim().slice(0, 20)}`;
     const out = { name, last: Boolean(entry?.matches(":last-child")), meets: [
       ...boxes.filter((o) => o !== box && meets(o, box)).map((o) => o.el.textContent.trim().slice(0, 20)),
-      ...targets.filter((o) => o !== el && !el.contains(o) && !o.contains(el) && !boxes.some((x) => x.el === o) && meets(R(o), box)).map((o) => (o.getAttribute("aria-label") || o.textContent).trim().slice(0, 20)),
+      ...targets.filter((o) => o !== el && !el.contains(o) && !o.contains(el) && !boxes.some((x) => x.el === o) && meets(edges(o), box)).map((o) => (o.getAttribute("aria-label") || o.textContent).trim().slice(0, 20)),
     ] };
     if (callout) out.insideRim = f(R(callout).bottom - parseFloat(getComputedStyle(callout).borderBottomWidth) - box.b);
     const next = release && releases[releases.indexOf(release) + 1];
