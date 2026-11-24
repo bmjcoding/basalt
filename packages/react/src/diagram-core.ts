@@ -1256,7 +1256,9 @@ export function transcript(P: string, m: Model): VNode[] {
     if ("close" in s) { indent = Math.max(0, indent - 1); out.push(line({ "data-ink": "frame" }, 2 * indent, 0, "[end]")); continue; }
     const a = m.byId.get(s.from)?.name ?? s.from, b = m.byId.get(s.to)?.name ?? s.to;
     const hang = digits + 2;
-    out.push(line({ "data-n": s.n }, pad, hang, h("span", { "data-ink": "num" }, String(s.n).padStart(digits, "0")), "  ", held(a), " ", h("span", { "data-ink": s.kind === "main" ? "main" : "plain" }, arrow(s.kind)), " ", held(b)));
+    // The arrow and the receiver are one unbreakable run: a route that does not fit breaks before its arrow, and the second line starts with the arrow under
+    // the sender (the decider's ruling 3 on the re-check), as the stacked list's route does (66-2).
+    out.push(line({ "data-n": s.n }, pad, hang, h("span", { "data-ink": "num" }, String(s.n).padStart(digits, "0")), "  ", held(a), " ", h("span", { class: `${P}-tx-to` }, h("span", { "data-ink": s.kind === "main" ? "main" : "plain" }, arrow(s.kind)), " ", b)));
     out.push(line({ "data-n": s.n }, pad + hang, 0, h("span", { "data-ink": "label" }, s.label)));
     if (s.note) out.push(line({ "data-n": s.n }, pad + hang, 0, h("span", { "data-ink": "note" }, s.note)));
   }
