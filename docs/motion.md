@@ -85,6 +85,12 @@ only where lines are drawn. The entrance plays when the figure comes into view a
 The rules and the tokens are in [Motion in a diagram](foundations.md#motion-in-a-diagram). Status: decided by the council (DECISIONS 287
 to 291 and 292); the implementation hasn't been reviewed.
 
+DECISIONS 306 adds three things. An entrance is not stored between visits unless the figure asks for `entrance: "first-visit"`: then a
+mark is stored when an entrance that played finishes or gives way to the reader, and later visits are at rest; a visit at rest by mode stores
+nothing. Flow is on any edge: a dashed line's own dashes march, one period every 625ms, and sit where the key draws them whenever they are not
+moving. A text sequence builds by ink: a message's label and arrow lift to their resting ink at its turn. No line is hidden and there is no caret.
+There is no blinking caret. The diagram's viewer (DECISIONS 310) is still: no entrance, flow, mover or run plays in it, and a zoom lands at once.
+
 ## The hover glide
 
 Menu, Select, Combobox and CommandMenu draw one plate per popup, and navigation draws one pill per list, which follows the pointer between rows on `duration-base` and `ease-out`, whatever the distance. Each row's own plate is the fallback and stays correct with no script. Base UI's `data-highlighted` (and cmdk's `data-selected`) stays the authority for which row is active; the glide only paints it, and an input-modality check decides whether the plate travels (pointer) or snaps (keyboard).

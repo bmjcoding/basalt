@@ -41,11 +41,14 @@ function inspect(P, selector) {
       const n = m[2].trim().split(/[ ,]+/).map(Number);
       if (m[1] === "Q") { pts.pop(); pts.push({ x: n[0], y: n[1] }); } else pts.push({ x: n[0], y: n[1] });
     }
+    const width = parseFloat(getComputedStyle(g.querySelector(`.${P}-line`)).strokeWidth);
+    // A line that states its cardinality (DECISIONS 306, 1.1) has no head: its shaft runs to the table's edge, and its referenced end's marks stand for the head.
+    const marks = g.querySelector(`.${P}-crow[data-end="to"]`);
+    if (marks) { const tip = pts[pts.length - 1]; return { i: g.dataset.edge, from: g.dataset.from, to: g.dataset.to, pts, stop: tip, tip, width, tipEl: marks }; }
     const tipEl = g.querySelector(`.${P}-tip`);
     const tn = tipEl.getAttribute("d").match(/-?[\d.]+/g).map(Number);
     const open = tipEl.hasAttribute("data-open");
     const tip = open ? { x: tn[2], y: tn[3] } : { x: tn[0], y: tn[1] };
-    const width = parseFloat(getComputedStyle(g.querySelector(`.${P}-line`)).strokeWidth);
     const full = pts.slice(0, -1).concat([tip]);
     return { i: g.dataset.edge, from: g.dataset.from, to: g.dataset.to, pts: full, stop: pts[pts.length - 1], tip, width, tipEl };
   });

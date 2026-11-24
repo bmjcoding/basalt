@@ -52,7 +52,9 @@ function tokensFile(name) {
   if (!fs.existsSync(file)) throw new Error("html-skill: packages/tokens/dist is missing; run `npm run build` first");
   return fs.readFileSync(file, "utf8").trim();
 }
-const tokensCss = () => tokensFile("tokens.css");
+// The token CSS's print block (DECISIONS 306, 1.7) is React's: the skill keeps its own beforeprint switch to the light theme (core.js), so a page does not
+// carry the light set twice. Unifying the two is backlog.
+const tokensCss = () => tokensFile("tokens.css").replace(/\/\* Print \(DECISIONS 306[\s\S]*?\*\/\n@media print \{[\s\S]*?\n\}(\n|$)/, "");
 
 /**
  * The generated tokens declare every alias again in the dark `prefers-color-scheme` block, because a nested
@@ -257,6 +259,26 @@ function diagramMotionCss() {
   return `@layer basalt {\n${react.slice(start, end).replaceAll(".basalt-diagram", ".diagram")}\n}\n`;
 }
 /**
+ * The diagram-zoom module's stylesheet (DECISIONS 310): the "Diagram viewer" section of components.css, with React's names as the skill's (the dialog, the
+ * sheet's parts, the button and the icon), so the viewer in a page is React's viewer.
+ */
+function diagramZoomCss() {
+  const react = fs.readFileSync(path.join(repo, "packages", "react", "src", "styles", "components.css"), "utf8");
+  const start = react.indexOf("  /* ---- Diagram viewer (DECISIONS 310");
+  const end = react.indexOf("  /* ---- ", start + 10);
+  if (start < 0 || end < 0) throw new Error("html-skill: the diagram viewer section of packages/react/src/styles/components.css moved; update diagramZoomCss");
+  const css = react.slice(start, end)
+    .replaceAll("var(--_surface, var(--basalt-surface-overlay))", "var(--panel-bg, var(--basalt-surface-overlay))")
+    .replaceAll(".basalt-diagram", ".diagram")
+    .replaceAll(".basalt-dialog-backdrop", "dialog.modal::backdrop")
+    .replaceAll(".basalt-dialog", ".dialog")
+    .replaceAll(".basalt-sheet-", ".sheet-")
+    .replaceAll(".basalt-button", ".btn")
+    .replaceAll(".basalt-icon", ".icon");
+  if (/basalt-(?!duration|space|size|text|font|border|surface)/.test(css.replace(/--basalt-[\w-]+/g, ""))) throw new Error("html-skill: the diagram viewer section names a React class diagramZoomCss does not rename");
+  return `@layer basalt {\n${css}\n}\n`;
+}
+/**
  * A module whose source imports React's engine (the diagram module): bundled into one script, the import inlined. It is a development build of the engine
  * (NODE_ENV "development"): the skill keeps the checks a production React build drops, since compose.mjs reports them when it writes a page.
  */
@@ -275,6 +297,8 @@ export function build() {
   const manifest = JSON.parse(src("modules.json"));
   const files = {};
   files["compose.mjs"] = src("compose.mjs");
+  // The placer compose.mjs runs for an automatic diagram (DECISIONS 306, 1.8): React's placeDiagram, with elkjs left to resolve from the repository.
+  files["parts/diagram-place.mjs"] = esbuild.buildSync({ entryPoints: [path.join(srcDir, "diagram-place.mjs")], bundle: true, format: "esm", platform: "node", target: "node20", write: false, logLevel: "silent", external: ["elkjs", "elkjs/*"] }).outputFiles[0].text;
   files["parts/manifest.json"] = `${JSON.stringify(manifest, null, 2)}\n`;
   files["parts/core.css"] = minifyCss(`${dedupeSystemDark(filterTokens(tokensCss(), inCore))}\n${src("core.css")}`);
   files["parts/core.js"] = minifyJs(src("core.js"));
@@ -289,10 +313,11 @@ export function build() {
     if (name === "diagram") files["parts/diagram.css"] = minifyCss(`${dedupeSystemDark(filterTokens(tokensCss(), inDiagram))}\n${diagramCss()}`);
     // The motion section, with the motion tokens (the diagram durations and speeds) that only an animated diagram reads.
     if (name === "diagram-motion") files["parts/diagram-motion.css"] = minifyCss(`${filterTokens(tokensCss(), inDiagramMotion)}\n${diagramMotionCss()}`);
+    if (name === "diagram-zoom") files["parts/diagram-zoom.css"] = minifyCss(diagramZoomCss());
     for (const ext of ["css", "js"]) {
       const file = path.join(srcDir, "modules", `${name}.${ext}`);
       if (!fs.existsSync(file)) continue;
-      if (ext === "js" && (name === "diagram" || name === "diagram-motion")) files[`parts/${name}.js`] = minifyJs(bundleModule(file));
+      if (ext === "js" && (name === "diagram" || name === "diagram-motion" || name === "diagram-zoom" || name === "diagram-export" || name === "diagram-text")) files[`parts/${name}.js`] = minifyJs(bundleModule(file));
       else files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(tokens + fs.readFileSync(file, "utf8")) : minifyJs(fs.readFileSync(file, "utf8"));
     }
   }
