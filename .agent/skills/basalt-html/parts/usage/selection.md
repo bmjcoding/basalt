@@ -10,4 +10,4 @@ A table with a checkbox column. The header box is `data-select-all`; every cell 
 ```
 
 - The state is the row's checked box and the count in words ("3 of 12 selected", "None selected"), not the wash (about 1.2:1). There is no bar and no edge mark.
-- The column is a fixed 40px, so selecting moves no header or column. Set `checked` on a row's box to start it selected; the mixed header box and the count paint at once on load.
+- The column is 32 on a pointer, 44 on touch; a `<col>` may make it wider. Selecting moves no header or column. Set `checked` on a row's box to start it selected; the mixed header box and the count paint at once on load.

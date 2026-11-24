@@ -5,7 +5,7 @@ A form or task in the center (React's `DialogContent form`): a dialog with the s
 ```html
 <dialog class="panel float modal dialog" data-form id="d">
   <header class="sheet-head"><div class="sheet-head-text"><h2 class="dialog-title" tabindex="-1">Invite a teammate</h2></div>
-    <button class="btn sheet-close" data-variant="ghost" data-dialog-close aria-label="Close"><span data-glyph="close"></span></button></header>
+    <button class="btn sheet-close" data-variant="ghost" data-icon-only data-edge="end" data-dialog-close aria-label="Close"><span data-glyph="close"></span></button></header>
   <div class="sheet-body"><p class="dialog-description">They get a link to join.</p>…fields…</div>
   <footer class="sheet-foot"><div class="dialog-actions"><button class="btn" data-dialog-close>Cancel</button><button class="btn" data-variant="primary">Send invite</button></div></footer>
 </dialog>

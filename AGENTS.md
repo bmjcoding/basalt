@@ -121,7 +121,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   horizontal tab keeps its `Highlight` underline. **No state is ever marked by an outline** (selected, active, current and
   pressed never draw one), and **there is no vertical bar anywhere.** Focus is a 2px ring at +2 outside the control, drawn
   inside at −2 only where +2 would be cut or would cross a neighbour: a field or band flush with a clipping edge, a row of
-  tabs that scrolls, a sortable header cell (a header band that is itself a button), a phone tab bar cell, and a cut cell of a still table (a focus stop, which shows its own ring after Esc has closed its plate). These structural
+  tabs that scrolls, a sortable header cell (a header band that is itself a button), a phone tab bar cell, a ghost control hung at an edge with less than 4 of room left, and a cut cell of a still table (a focus stop, which shows its own ring after Esc has closed its plate). These structural
   vertical lines are allowed, each named and never a selection, sort, active or status mark: the 1px divider at a pinned table
   column's edge while the table is scrolled, the app sidebar's 1px edge, a meter's labelled target tick, the vertical
   `Separator` between groups of controls, the edges between a `NumberField`'s value and its steppers, a diagram's connector and a sequence diagram's lifeline, and a stage list's or run timeline's connector (1px between two marks, never
@@ -134,6 +134,14 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   under reduced motion and in forced colours each item paints its own.
 - **Reserved room is page, not paint:** a box hugs what it shows; a seat's spare room lies outside it, on the open side; a seat
   inside a control is never empty (a glyph at rest, its selected form or the check when on).
+- **A ghost control at an edge** puts its glyph or its words on the box's content line and hangs its own box into the padding by its
+  inset (its inline padding; half the size it is drawn at, less its glyph, when icon-only: 8 at 32, 14 at the 44 it is on touch). The
+  head's padding is the same on both sides, and the head says how much of it is room (`--basalt-edge-room`: its padding less any
+  safe-area inset); the control never hangs by more, and with no room it does not hang. Use `edge` (`data-edge` in the skill), never a
+  margin written by hand. Its ring is at +2 where the hung box keeps 4 from the edge of its room and inside at −2 where it does not.
+  A drawn control sits on the line with its edge.
+- **The last thing in a box** has no padding of its own toward the box's edge; a 44px tap box there reaches into the box's padding.
+- **A height is room too:** a box is as tall as what it shows, and room held so that what follows does not move is open page under it.
 - **Reservation limits:** native-element width copies are cleaned in props without an observer; opaque components need DOM cleanup and a second live instance, so server HTML can duplicate ids and controls until hydration (permanently without scripts), and an unsafe component can narrow when hydration declines it. The HTML skill still widens resting items once on initialization; build-time reservation and glyphs are a later batch (DECISIONS 150).
 - **A focusable row** (a link or button in a list, not a listbox option) takes the control ring
   at +2, outside the row, and its list keeps at least `space-1-5` from any clipping edge. A
@@ -184,7 +192,8 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   and holds no version. The entry or release a link opens is the stream's arrival (the plate and "Linked"). Build details is on
   the running release alone, from the running build. No area filter.
 - **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
-  targets stay at least 44px whatever the density, on touch and in any window under 720 whatever the pointer (16px text entry stays touch-only), except a chart's day, reached by drag and by the keys (the phase lane's marks keep 44px). Text entry is 16px on touch. A one-line notification entry is at least 44 tall on
+  targets stay at least 44px whatever the density, on touch and in any window under 720 whatever the pointer (16px text entry stays touch-only), except a chart's day, reached by drag and by the keys (the phase lane's marks keep 44px). A toast's Dismiss and action keep their pointer size and take
+  the 44px as hit area inside the toast's padding. A still table's selection column is 44 wide. Text entry is 16px on touch. A one-line notification entry is at least 44 tall on
   touch, and a `Link` on a line of its own has a 44px hit box with no change to layout, its words raised over a stacked neighbour's box; a link in a sentence keeps its line.
 - **The phone and what is pinned:** while an on-screen keyboard is up (`data-screen-keyboard`) the tab bar and the phone's status bar are covered, and the
   foot, sheets, dialogs, the command menu and the toasts are laid out on what is seen. A page that pins more than the bar opts into measured sizes

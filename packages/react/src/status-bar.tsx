@@ -2,8 +2,7 @@ import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
 import { STATUS_MESSAGE_MS } from "./constants";
-import { Button, IconButton, type ButtonEdge } from "./button";
-import { DrawerTrigger } from "./drawer";
+import type { ButtonEdge } from "./button";
 import { StatusLine } from "./filter-result";
 import { Icon } from "./icon";
 import { usePeekPlate } from "./use-peek";
@@ -34,8 +33,8 @@ export interface StatusBarProps extends Omit<React.ComponentProps<"footer">, "ch
   /** The bar's name. Default "Status". */
   label?: string;
   /**
-   * The run: a button or a link with its mark, its id and its counts. A ghost `Button` first here (or first in `sources` when there is no `start`)
-   * is hung at the bar's start, and one last in `end` at its end: its words on the bar's line (DECISIONS 336).
+   * The run: a button or a link with its mark, its id and its counts. A control given `variant="ghost"` first here (or first in `sources` when there
+   * is no `start`) is hung at the bar's start, and one last in `end` at its end: its words on the bar's line (DECISIONS 336).
    */
   start?: React.ReactNode;
   /**
@@ -51,14 +50,15 @@ export interface StatusBarProps extends Omit<React.ComponentProps<"footer">, "ch
   end?: React.ReactNode;
 }
 
-/** A slot's first (or last) control, when it is a ghost Basalt button with no edge of its own, hung at the bar's edge (DECISIONS 336). */
+/**
+ * A slot's first (or last) control, when it is a component given `variant="ghost"` and no edge of its own (a ghost `Button`, `IconButton` or
+ * `DrawerTrigger`), hung at the bar's edge (DECISIONS 336). Read from its props, so the bar imports no button.
+ */
 function hang(slot: React.ReactNode, side: ButtonEdge): React.ReactNode {
   const items = React.Children.toArray(slot);
   const at = side === "start" ? 0 : items.length - 1;
   const item = items[at];
-  if (!React.isValidElement<{ variant?: string; edge?: ButtonEdge }>(item) || item.props.edge !== undefined) return slot;
-  const fallback = item.type === IconButton ? "ghost" : item.type === Button || item.type === DrawerTrigger ? "secondary" : undefined;
-  if ((item.props.variant ?? fallback) !== "ghost") return slot;
+  if (!React.isValidElement<{ variant?: string; edge?: ButtonEdge }>(item) || typeof item.type === "string" || item.props.variant !== "ghost" || item.props.edge !== undefined) return slot;
   items[at] = React.cloneElement(item, { edge: side });
   return items;
 }

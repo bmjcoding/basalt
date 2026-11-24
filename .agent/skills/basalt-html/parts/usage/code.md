@@ -9,4 +9,6 @@
 
 `tabindex="0"` goes on `pre.code-body` (it scrolls), with `<code>` inside; not on the `<code>`.
 
+Its Copy takes `data-edge="end"`.
+
 Tokens, only inside the `<code>`: `.tok-k` keyword, `.tok-s` string, `.tok-n` number or constant, `.tok-f` function, `.tok-c` comment.

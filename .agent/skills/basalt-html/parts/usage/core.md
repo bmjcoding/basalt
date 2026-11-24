@@ -4,6 +4,7 @@
 **Type:** `h1`–`h4`, `.display`, `.text-5xl` (56/60; give it room at 390), `.lead`, `.eyebrow`, `.muted`, `.faint`, `.small`, `.mono`, `.num`, `.prose`, inline `code`. `h2` is 24/30. `.lead` (16/24, under a report's `h1`) and `.prose` are 34rem on the row's start edge; `.page` is the 72rem row. A site page's display type, lead (`.text-lead`, 20/28), row and sections are `type-layout`.
 **Panels:** `.panel`, `.card`, `.panel-pad`, `.panel-head`, `.float` (+ `.modal`). `.float` is only for what leaves the flow; never to promote a panel. `.card.lg` and `.panel-pad.lg` take wider padding from 720px up.
 **Buttons:** `.btn[data-variant=primary|ghost|danger]` (default secondary), `data-size=sm|lg`, `data-icon-only`, `aria-busy`.
+- **At an edge:** a ghost `.btn` that starts or ends a head, bar or row takes `data-edge="start"` or `"end"`: its glyph or words sit on the head's line and its box hangs into the padding, only as far as the head's `--basalt-edge-room` (its padding less any safe area; a head of your own sets it, `style="--basalt-edge-room: var(--basalt-space-4)"`). A `.panel-head`'s last ghost `.btn`, and a `.page > .section > .section-head`'s, hang by themselves. Never a margin by hand.
 
 - **Busy** is `aria-busy="true"` on the button (label in a `<span>`): the label hides and a ring sits over it, so the width holds.
 - **Press:** a press is a colour step, and `.btn` also scales to .98 (100ms, ease-out) while pressed, never when disabled or busy and never under reduced motion; nothing else scales on press.

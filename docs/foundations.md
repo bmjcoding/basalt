@@ -149,7 +149,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   Outlines survive Windows forced-colours mode; box-shadow rings don't. **No state is ever marked by an outline:**
   selected, active, current and pressed never draw one. Focus is a 2px ring at +2 outside the control, drawn inside at −2
   only where +2 would be cut or would cross a neighbour: a field or band flush with a clipping edge (the search dialog's
-  band, a flush listbox, an inline-label row), a row of tabs that scrolls, a sortable header cell, a phone tab bar cell, and a cut cell of a
+  band, a flush listbox, an inline-label row), a row of tabs that scrolls, a sortable header cell, a phone tab bar cell, a ghost control hung at an edge whose box ends less than 4 from the edge of its room, and a cut cell of a
   still table (a focus stop, which shows its own ring after Esc has closed its plate).
   A focusable row (a link or button in a list, not a listbox option) takes the same control ring at +2, outside the
   row, and its list keeps at least `space-1-5` (6px) between a row and any clipping edge so the ring is never cut. A
@@ -207,7 +207,8 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   reserved, is a different state and does take weight); the chosen value is the check. There is no bar, no inset outline and no ↵ chip, except the opening list's cursor row, which keeps one (DECISIONS 155, V6): the owner ruled the vertical bar and the outline AI
   tells (9 Nov 2026), and the plate with the ink step is the cue that does not rest on colour (1.4.1) and says where
   focus is (2.4.7). A chosen value (a Select option, a checked item) is a check in primary ink at the row's start, in a
-  16px slot every row reserves so labels align, with no extra weight; its label stays secondary until lit. Danger keeps its colour on the plate: 5.16:1 on level 1 and
+  16px slot that every row of the
+  popup keeps, a row with no check and no glyph too, when any row has one, so labels align, with no extra weight; its label stays secondary until lit. Danger keeps its colour on the plate: 5.16:1 on level 1 and
   4.80:1 on levels 2 and 3 in dark, 5.43:1 in light. Group labels are tertiary, 12/16, weight 500 (5.33:1 or better).
   In forced colours the lit row is `Highlight` with `HighlightText` for its label, glyph, hint and chip text and border,
   `forced-color-adjust: none` on the row (Chromium otherwise paints a Canvas backplate behind forced text and the
@@ -242,7 +243,9 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   (about 1.2:1): the first column is a checkbox column (a `Checkbox` per row, labelled "Select {name}", and a header
   box that is mixed while some rows are selected), and the count ("3 of 12 selected") is written in a polite live
   region by the app. Basalt ships no helper for the column or the count: the column is the app's own markup on
-  `Table`, `TableCell` and `Checkbox`, given a first column `size-control-md` wide, and the row takes `selected`.
+  `Table`, `TableCell` and `Checkbox`, given a first column
+  `var(--basalt-select-column)` wide (`size-control-md`, 32, on a pointer; `size-tap-min`, 44, on touch and under 720, where the column
+  holds the checkbox's whole hit area and nothing reaches the next column), the box centred in it, and the row takes `selected`.
   Outside a table the same selection is `SelectableList` (see [Lists and facts](#lists-and-facts)), which draws the boxes, the all box and the count.
   Do not mark selection with a vertical line.
 - **The still table** (the owner's rule, decision 71: header positions, column widths and alignment never move, through
@@ -348,15 +351,35 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   underline or plate; any of many, and on, is a check in a reserved seat or a filled choice box; a glyph closes and fills.
   The ink steps to primary with it. The wash alone, and the ink step alone, are never the cue. The silhouette follows the
   furniture the state sits in; the weight, the ink step and the shape do not change.
-- **Reserved room.** A seat is room held so nothing moves when a word or state changes (DECISIONS 326). A drawn box (a border, a
+- **Reserved room.** A seat is room held so nothing moves when a word or state changes (DECISIONS 326, 328, 329). A drawn box (a border, a
   fill or a plate) hugs what it shows, with equal padding on facing sides, and never holds room for a word, a mark or a row that is
-  not showing. The seat is an unseen cell around the box: what it shows sits against the edge that faces its fixed neighbour, and
-  the spare room falls where the row is already open. A seat is never put where its spare room opens a gap between two things a
-  fixed distance apart, and it is centred only where its row is. A control's box never changes size, so a seat inside a control is
-  never empty: at rest it holds its mark's rest form and, on, its on form. A control whose words change is as wide as its widest
-  words, centred; a control with words at its start and an amount at its end anchors each to its own end. Room every row of a
-  list, menu or table shares is a column, not a seat. A box changes face by fading out and in; no width animates. A label's 600
-  width (DECISIONS 150) stands.
+  not showing. Facing sides are measured to what is drawn: a mark's own drawing, not its 16px seat (a filter chip is 8 before its seat
+  and 12 after its words, which puts the plus 10.6 and the words 12 from the edge), and a mark that fills its seat takes the words'
+  padding (an option chip is 12 and 12). The seat is an unseen cell around the box: what it shows sits against the edge that faces its
+  fixed neighbour, and the spare room falls where the row is already open. A seat is never put where its spare room opens a gap
+  between two things a fixed distance apart, and it is centred only where its row is. A control's box never changes size, so a seat
+  inside a control is never empty: at rest it holds its mark's rest form and, on, its on form. A control whose words change is as wide
+  as its widest words, centred; a control with words at its start and an amount at its end anchors each to its own end. Room every
+  row of a list, menu or table shares is a column, not a seat, and every row keeps it. A box changes face by fading out and in; no
+  width animates. A label's 600 width (DECISIONS 150) stands.
+- **A height is room too.** A panel, a dialog or a list in a box is as tall as what it shows. Room held so that what follows does not
+  move is open page under the box, never paint inside it: the in-page command list's panel hugs its rows over its unfiltered height,
+  and the search dialog's top is held while its box ends under its results. A window that its content scrolls in (a live transcript,
+  `SearchPassages`' `rows`, `TabsPanels stacked`, `StageList`'s `reserveDetail`, a pane) is a field, not a seat: it is for the open
+  page or a work area, never inside a card or a panel, where it would leave the box empty.
+- **A ghost control at an edge.** A ghost `Button` or `IconButton` that starts or ends a head, a bar, a band or a row puts what it
+  shows on the box's content line: its glyph, or its words. Its own box hangs past the line into the head's padding by its inset (its
+  inline padding with words; half the size it is drawn at, less its glyph's own size, when icon-only: 6 at 28, 8 at 32, 14 at the 44
+  it is on touch), and the head's padding is the same on both sides. It hangs only into room the head says it has: the head's padding
+  on that side less any safe-area inset there (`--basalt-edge-room`, or `-start` and `-end`), and never by more than that room, so the
+  whole target stays inside the padding and clear of a notch or a corner. A head that says nothing gives no room, and nothing hangs.
+  `edge="start"` or `"end"` does it (`data-edge` in the skill); no component writes a margin for it. The hang is plate and hit area,
+  never layout, and stops inside the box's rim. Its focus ring follows the rule every control has: at +2 where the hung box keeps 4
+  from the edge of its room, inside at −2 only where it does not (a 44px control on a 16px line). On touch a hung control with words is
+  as wide as its words and takes what it lacks of 44 as hit area. A drawn control sits on the line with its edge. A control centred in
+  its row (a period's arrows, pagination) and a tab are not at an edge.
+- **The last thing in a box** carries no padding of its own toward the box's edge: the box's padding is the only room under it. A
+  44px tap box there is hit area and reaches into that padding, never across the rim (DECISIONS 331).
 - **The choice card** (`ChoiceCard`, in a `ChoiceCardGroup`) is a native radio (one of many) or checkbox (any of many)
   wearing a card: the whole card is the label and the input is visually hidden but focusable. Plain `Card` gets no selected
   prop, because paint without semantics ends up on a `div` nothing can operate. A real choice box (`size-choice`, the
@@ -428,10 +451,10 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   **Seven or more values, or any use in a toolbar, are a trigger and a checklist**: a non-modal popup of popup rows, with
   the same checkbox group, a count and Clear in its footer. The switch depends on the count and the `toolbar` prop, never
   the viewport. **Clear** is always mounted, in place, with the same label; at zero it is `aria-disabled`, not `disabled`
-  (activation is suppressed and keyboard focus stays on it), and it never hides and never moves focus. In the chips' head it
-  sits right after the count, `space-2` apart ("Status · 2 of 4 · Clear"), and the count reserves the width of its widest form
-  ("Any" and "N of N" share one grid cell, tabular figures), so Clear never moves as the count changes; the checklist's footer
-  (count at the start, Clear at the end) is as it was. What is spoken
+  (activation is suppressed and keyboard focus stays on it), and it never hides and never moves focus. In the chips' head Clear follows the label and the count follows Clear, `space-2` apart ("Status · Clear · 2 of 4"), so Clear never
+  moves as the count changes and the count's spare room is the row's open end ("Any" and "N of N" share one grid cell, tabular
+  figures). The checklist's footer is the count at its start and Clear at its end, both on the popup's line, `space-4` in, with Clear
+  hung by its padding. What is spoken
   is one polite, atomic result line outside the filter (`FilterResult`: "Showing 3 of 24 runs"), updated after the text
   has held still for 400ms, so three toggles are one announcement. **The checklist's rows scroll inside `size-popup-max-height`
   (360), with the search band and the foot outside them**: nine 40px rows show whole and the tenth is the first to scroll. **From
@@ -474,6 +497,10 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     removed to make room: the newcomer waits in a queue and enters as room appears; a timed toast is closed instead,
     oldest first. Repeats group ("×3", on a `group` key) and errors never do. A drag of more than 40px dismisses it, by
     distance alone. The line and the clock pause together on hover, on focus, in a blurred window and in a hidden tab.
+  - **On touch.** On touch Dismiss and the action keep their pointer size (24 and the action's own height,
+    radius 6) and take their 44px as hit area inside the toast's padding, so a toast is one height on every pointer: Dismiss all round, the
+    action above and below and, where its words are narrower, on its start side, away from Dismiss. A hit area drawn by a pseudo-element is
+    a hairline larger on each side (46), so the press's .98 never takes it under 44.
 - **The notification centre** is the durable record the toasts point to: a bell IconButton (32px, a 6px ink dot while
   anything is unread, and the count in its accessible name and never drawn, so the button never changes width) that opens
   a popover at its opener's level plus one, below the bell with its end edge on the bell's, with a header band (title, count, "Mark all as read") and a footer ("View
@@ -1071,11 +1098,14 @@ below, one level up, no rim or radius of its own.
 - **The plate shows only while the list is in use**: while the field has focus or the pointer is over the list. It fades, as Menu's
   does, when neither is true, and while the field has focus it stays when the pointer leaves, because it marks what ↵ will run. A page
   at rest with one row lit reads as a selection that isn't there, except the opening list, whose cursor row is lit at rest because the cursor is its state. (The modal's plate is always lit: the modal exists only while it is used.)
-- **The list holds its unfiltered height**, up to `size-popup-max-height` (360), and scrolls inside. Filtering never changes it, so
-  what is below it never moves: the still table's rule, applied to a list.
+- **The panel is as tall as its rows**, up to `size-popup-max-height` (360), and scrolls inside past it. On the open page the list's
+  unfiltered height is kept as page under the panel, so what is below it never moves and the box never holds an empty band. Inside a
+  card, a panel, a dialog or any other surface the list holds no room: the surface ends under what it shows, and what follows inside
+  it moves with the list (`reserve={false}`, `data-reserve="off"` in the skill, says the same for an app's own painted box). Beside a
+  preview, the list and the pane share the row's height.
 - **A foot band** shows the count at the start ("9 commands", "3 of 9") and the key legend at the end (`data-kbd-hint`, hidden on touch). The
   count is shown at once and spoken once, through a polite, atomic live region after 400ms of stillness (`FilterResult`'s rule). No match
-  is one centred sentence ("Nothing matches “zzz”.") and a ghost "Clear search", in the held area and outside the listbox, so the button is valid.
+  is one centred sentence ("Nothing matches “zzz”.") and a ghost "Clear search", in the panel's flow, with its own padding, outside the listbox, so the button is valid.
 - **Until cmdk arrives** the rows are drawn as they will be and what is typed is kept, then becomes the first search. cmdk stays behind
   its dynamic import, loaded when the list first mounts.
 - **Where the modal command menu sits** (DECISIONS 167, Q7c): its top is `max(16px, 12vh)` and its height is capped at 480px or what the window leaves under it, as the skill's palette is.
@@ -1154,8 +1184,10 @@ implementation hasn't been reviewed.
   `border-divider` and nothing else (4 to 0; the prototype's brighter line broke the divider rule). Its height is the app's, in 24px rows. Under 720 it is a page that
   replaces the record, with a Back button, its halves stacked on a divider.
 - **Search.** The trigger is a button shaped like a field from 720 (`size-search-trigger` 200 by 44, a 1px `border-field` edge, radius 8, the word `aria-hidden`) and a
-  44px icon button under it. The dialog is centred at `size-command-width` (560) and its results area is a fixed height, a full result's, that scrolls inside, so the
-  field and the count never move (4 to 0). A result is a link sized to its picture with 6px above and below: 72 for a 48 by 60 pack, 60 for a 96 by 48 logo, 48 at
+  44px icon button under it. The dialog is `size-command-width` (560) wide. Its top is held where it opens (the top it has at a full result's height) and its
+  results area is as tall as its rows, up to a full result's height, scrolling inside past it: the field and the count never move, and
+  the box ends under what it shows (DECISIONS 329, superseding the fixed height). Its Close is hung at the band's end, on the line the
+  count and the results end on. A result is a link sized to its picture with 6px above and below: 72 for a 48 by 60 pack, 60 for a 96 by 48 logo, 48 at
   least (the 48 is a floor, not a size). Results are links and tab stops, each with the control ring at +2, 8px from the panel's edge, and a hover wash that runs
   full bleed and lifts no ink (the name and the detail both keep their ink: tertiary passes 4.5:1 on the wash over the dialog's level, 6.00:1 in dark and 4.88:1 in light, secondary 9.12:1 and 7.74:1, so no step is needed); there is no active row (3 to 1; one member wanted options in a listbox with arrow keys). The field's mark is a real 2px outline at −2
   round its band (no majority, the vote's first option stands). The browser's own clear × is hidden: the band has one ×. The count is `FilterResult`'s debounced line.
@@ -1189,7 +1221,7 @@ implementation hasn't been reviewed.
   lifting to secondary on the plate), then the passage in secondary at `text-base`, wrapping (its length is the server's). A **match** is a `mark` in
   primary ink at 600 with no fill: monochrome, so the ink and the weight are the mark, never a highlighter colour; in forced colours it keeps its
   weight in `CanvasText`. `markMatches(text, ranges)` draws a server's ranges (UTF-16 offsets, joined where they overlap or touch, clamped, a boundary
-  inside a code point widened to the whole of it, in any order) and never parses HTML. `current` is the passage shown beside the results: `aria-current` and the source at 600. **A results budget** is the caller's: `rows` (and `lines`, two by default) make the list as tall as that many passages, scrolling inside, so the field and the count never move; unset, the list grows with its page. The query, its paging and any grouping are the app's. The site search's `SearchResults` keeps its counts (three logo rows, five picture rows and "See all") as a shop's presets that any app sets (`logoRows`, `rows`, `all`; the skill's `--_logos`, `--_packs`, `--_alls`), found by the agnosticism audit (cimip-gaps-2, F7). **Loading:** the first
+  inside a code point widened to the whole of it, in any order) and never parses HTML. `current` is the passage shown beside the results: `aria-current` and the source at 600. **A results budget** is the caller's: `rows` (and `lines`, two by default) make the list as tall as that many passages, scrolling inside, so the field and the count never move; it is a window for the open page or a results pane, never for a short list inside a card; unset, the list grows with its page. The query, its paging and any grouping are the app's. The site search's `SearchResults` keeps its counts (three logo rows, five picture rows and "See all") as a shop's presets that any app sets (`logoRows`, `rows`, `all`; the skill's `--_logos`, `--_packs`, `--_alls`), found by the agnosticism audit (cimip-gaps-2, F7). **Loading:** the first
   results are a `LoadingShape` of stand-in passages (bones in the list's own shape); a changed query keeps the last results on screen
   (`refreshing`) and shows `Refreshing` ("Searching") only after a second; no results is the app's sentence in the list's place. React's alone (the
   HTML skill has no search over a server).
@@ -1260,8 +1292,12 @@ voted, four members, 3 of 4 deciding, on the owner's handoff, from his approved 
   rest is `inert` and hidden while closed. It opens as a grid row going `0fr` to `1fr` over `duration-slow` on `ease-out` and closes at 0.75× on `ease-in`;
   under reduced motion it is simply there. The clip keeps `space-2` beside the rows so a ring is whole and lets go at the transition's own end. A
   keyboard open puts focus on the first new row only once the clip has let go (vote 5, no majority); a pointer open leaves it on the button.
-- **The copy button** (`CopyButton`): a `Button` of any variant and size that copies a string, says its words, then "Copied" for 1500ms
-  (as `CodeBlock` and `Terminal`), with both in one `Reserve` cell so its width never changes and a visually hidden `role="status"`. It says
+- **The copy button** (`CopyButton`): a `Button` of any variant and size that copies a string. Of words alone it says its words, then
+  "Copied" for 1500ms, both centred in one `Reserve` cell so its width never changes. A copy control with a glyph (`CodeBlock`,
+  `Terminal`, the skill's `[data-copy]` with a glyph) keeps its words: its glyph is the check for 1500ms after a write that succeeded,
+  and the close after one that was refused. Copy and check are the drawn pair and change as the icon-only copy does (the morph at
+  `slow` on `ease-out`, at once under reduced motion; the skill swaps at once); copy and close are not a pair and crossfade over
+  `duration-fast`. Each has a visually hidden `role="status"`. It says
   Copied only after the write succeeded; a refused or missing clipboard leaves the button as it was.
 - **A cut table cell that holds a link** is unchanged (vote 7: no majority, so DECISIONS 142 stands: no plate).
 - **Values the builder chose where the ballot gave none, and the council left standing** (DECISIONS 157: no member objected): the link card's spacing (`space-10` above the heading, `space-5`
@@ -1576,7 +1612,7 @@ The plan is secondary ink, never a series, and never carries a marker: a marker 
   observed series draws over it, its markers ringed.
 - **The reason in words** goes in the reserved lane above the plot, 12/16 tertiary, from where the gap starts: the full words if they
   fit ("Watch not observed · not worn, travel"), then "Watch not observed", then "Not observed". Only the last gap may step back to
-  fit, and never over an earlier one. The reason is always also in the summary, the readout and the table.
+  fit, and never over an earlier one. The reason is always also in the summary, the table and the day's accessible description; the readout says 'Not observed' alone.
   **The headline chart** has no legend rows, so whenever it has a gap it shows a "Not observed" key above the plot, the hatch swatch and the words, as the series charts' legend does (DECISIONS 167, Q11a, 4 to 0); a gap whose lane words do not fit is then never a hatch with no word.
 - **The table** says "Not observed" in tertiary with no mark (DECISIONS 95), and the reason in its Note column.
 
@@ -1584,8 +1620,9 @@ The plan is secondary ink, never a series, and never carries a marker: a marker 
 
 - It sits above the plot, under the title and the source line: a date line, then each key. A key is a 16px swatch (`size-icon-sm`)
   drawn like its mark, the name, and its value for the picked day.
-- **Nothing moves.** Every value reserves the widest of its forms ("10 h 59 m", "Not observed", "140 min so far") and so does the date
-  line: picking a day changes words, never positions.
+- **Nothing moves.** Every value reserves the widest form it can show ("10 h 59 m", "140 min so far", and "Not observed" for a series
+  that can be missing), and so does the date line: picking a day changes words, never positions. The legend never carries a gap's
+  reason.
 - **It returns to the latest day** when the pointer leaves, but **never while keyboard focus is inside the chart**: then the focused
   day is the one shown, whatever the pointer does.
 - **The picked day** is a full-height `state-selected` plate behind the marks, its axis date lifting from tertiary to primary, and its
@@ -1657,7 +1694,7 @@ changes); the implementation hasn't been reviewed. The votes that had no majorit
   ringed `size-cut`), with no cursor, halo or plate. How the line curves (vote 3) and the kit's two reference lines (vote 6) had no majority, so the line is joined
   straight and the guides are Basalt's gridlines, gutter and baseline rule: for the owner's review page, where three of four members wanted the kit's two labelled guides.
 - **The headline frame** (`TimeChart`'s `headline`, votes 7 to 9): a 14/20, 500, secondary title and "View as table" in one 28px row; the picked day's number as the
-  headline (`text-4xl` under 720px, `text-5xl` from it, in a seat as wide as its widest form, tabular); the unit beside it (the one place a headline carries the unit, a
+  headline (`text-4xl` under 720px, `text-5xl` from it, in a seat as wide as its widest form, tabular, ending the seat, so a shorter number or the dash of a day with no reading is `space-2` from the unit and the unit never moves); the unit beside it (the one place a headline carries the unit, a
   written exception to "the unit is written once, on the top tick": the top tick keeps it too); one context line as tall as its tallest form. There is no live region
   and no hand-built toggle; the table opens in the same figure as the still table; the key hint stays a legend; the `figcaption` is required. The number glides over
   `duration-slow` when a day is picked (vote 9 had no majority; the glide, with the readable text the target, is the vote's option that stands), and its real value is in the
@@ -2332,8 +2369,8 @@ broke a rule, and each change is named.
   fill and surface (the contrast test proves it), and the label's full ink on ghost and danger, where it would not in light (the council's consent row 11,
   by the AA rule and not by vote; in dark the lifted secondary would hold, and the rule is kept, DECISIONS 166). Full ink in forced colours.
 - **The count pill (D11d, A11, A12).** `count` on a `Button`: an outlined pill 24 tall in `border-input`, the number 600, secondary at zero and
-  primary above, never a fill and never a colour. It holds two tabular digits (0 to 99 never moves the button; no majority: reserve two digits stands,
-  and a third digit widens it). It is `aria-hidden`; the button's name carries the count.
+  primary above, never a fill and never a colour. The pill hugs its figures, 24 at least. The button holds a seat for two tabular digits round it and the pill ends that seat (0 to 99
+  never moves the button; a third digit widens it). It is `aria-hidden`; the button's name carries the count.
 - **Two lines (D11b).** `note` on a `Button`: the label (14/20, a `<code>` in it is mono) over a note (13/18, secondary), start-aligned, at least 64
   (`size-control-6xl`); in a container 340 to 480 wide they share one line at 48, 12px apart. A disabled one keeps the label's ink on the note.
 - **Done (D11c, A9, A10).** `IconButton` `done`: the plus becomes the core check in the button's own ink, in one shared seat, with a 100ms crossfade
@@ -2345,14 +2382,14 @@ broke a rule, and each change is named.
   has no pressed state: a choice between two is a `SegmentedControl`. On touch one on a line of its own has a 44px hit box that changes no layout; one
   in a sentence keeps its line. It takes no `Button` box and no .98 press.
 - **The switch row (D9a, A2, A3).** `SwitchRow` in a `SwitchRowGroup`: one checkbox drawn as a row, an optional tile, a name and a kind, and a 16px
-  seat where a plus and a check cross over in 100ms (kept under reduced motion). The edge is `border-field` at rest and checked (`border-input` outside more contrast); hover lifts the ink to
+  seat where a plus and a check cross over in 100ms (kept under reduced motion). A tile is nested 8 from the row's start, top and bottom; with no tile the words start `space-3` in, as the seat ends (`space-2` under 720). The edge is `border-field` at rest and checked (`border-input` outside more contrast); hover lifts the ink to
   primary and the edge to `text-secondary` (not `border-hover`, which is fainter than the boundary and would drop it under 3:1). On is the selected
   wash and primary ink. It is 52 tall from 720 wide with a 36px tile and a 14/20 name, and 48 under 720 with a 32px tile and a 13/18 name: the
   council could not draw the ballot's 48 (a 36px tile, 12px of padding and two edges make 50) and kept the approved prototype's values. The row is not
   a filter: no count, no Clear and no seven-or-more rule; what it does to the page is said once by a `FilterResult` (400ms). In forced colours on
   is `Highlight` with `HighlightText` and no outline.
 - **Option chips (D9b, A4, A5).** `OptionChips`: one of many, eight at most, as chips that wrap with no track: a fieldset with a legend and a small
-  count; a chip 44 tall, radius 8, padding 10 before and 14 after, 16px, 8px apart, with a round 16px seat every chip reserves (a ring at rest, filled
+  count; a chip 44 tall, radius 8, padding 12 on both sides, 16px, 8px apart, with a round 16px seat every chip reserves (a ring at rest, filled
   with a 12px check when chosen). The chosen chip is the selected wash and primary ink and its edge does not change. A value that cannot be chosen
   takes `unavailable` (the words): the disabled look, its words kept, `aria-disabled` and reachable, never chosen by a click, Space or an arrow key
   landing on it.
@@ -2434,7 +2471,7 @@ under the list moves whenever the list's height does, drops rows away from the p
   an app with a sticky header of its own inside the pane sets the property in its own CSS). The return waits for the page or size the press asked for, however long the app takes to
   load it, and forgets the press when a filter changes or the app moves somewhere else.
 - **The count** is "1–25 of 214", `text-sm`, secondary, tabular, in a seat as wide as its widest form for the unfiltered total ("888–888 of 888"), so a shorter count moves nothing.
-  It is blank for no matches.
+  It is blank for no matches. The band keeps its rows then: it is the list's fixed head, and nothing above the rows moves.
 - **The page size** is a `Select` of the app's sizes (10, 25, 50 and 100 unless it gives others) followed by the words "per page", named by the app's noun and those words ("Orders
   per page"): the visible words are inside the name (WCAG 2.5.3), the noun is the app's. The size a list starts at is the app's too (the examples start at 25; it is not a default),
   and so is whether it remembers the reader's choice. A new size keeps the reader's first row in view (page 3 at 25 per page is page 6 at 10).
@@ -2983,9 +3020,10 @@ Found by an app's message stream (cimip-gaps-2, batch B3; the no-council path, D
 the lead; the owner sees the pictures before merge). Every part serves any app where people write to each other: a support inbox, a build's comments, a team chat, a shared document.
 
 - **The composer** (`Composer`). The field is Basalt's `Textarea` with an accessible name (`label`) and no visible label; the placeholder says where the message goes too. Under it a row:
-  the app's own actions at its start (ghost `sm` buttons: attach, a format toggle) and Send, a primary Button, always the row's last, at its end. Under that one status line, `text-xs` in
-  tertiary ink, one line tall even when empty and never more (a long list of names is cut with an ellipsis; the live region holds the whole text), a polite live region: who is typing (`typingStatus`: "Ana is typing", "Ana and Ben are typing", "Ana, Ben, and Cy are typing", "4 people
-  are typing") or anything the app says there. Nothing moves when it fills. The field starts at `rows` lines (default 2, the textarea's own least) and grows with its text a line at a time
+  the app's own actions at its start (ghost `sm` buttons: attach, a format toggle) and Send, a primary Button, always the row's last, at its end. The status is in that row, after the app's actions: `text-xs` in tertiary ink, one line, cut with an ellipsis (the live region holds
+  the whole text), a polite live region that is always mounted: who is typing (`typingStatus`: "Ana is typing", "Ana and Ben are typing", "Ana, Ben, and Cy are typing", "4 people
+  are typing") or anything the app says there. When its words do not fit beside the actions it takes a row of its own under them, and Send stays on the first row. With no status no line
+  is held. The field starts at `rows` lines (default 2, the textarea's own least) and grows with its text a line at a time
   to `maxRows` (default 8), then scrolls; it has no resize handle, since its height is its text's. Where the browser cannot size a field to its content (`field-sizing`), it is measured, within
   the same bounds.
 - **Sending.** Enter sends and Shift+Enter is a new line (the soft keyboard's key says Send), or with `sendKey="Mod+Enter"` Enter is a new line and the platform's modifier with Enter sends,
