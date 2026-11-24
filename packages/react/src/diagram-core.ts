@@ -1641,6 +1641,8 @@ export interface Geo {
   oy: number;
   /** A schema's far keys (1.1): the rows their corridors need, and each far line's corridor, chosen once on the grid without them. */
   corridors?: { rows: string; pick: Record<number, string> };
+  /** Stacked groups whose label found no clear place on the group's top edge and keeps its start seat on its plate (the last resort), by label. */
+  seatless?: string[];
 }
 
 export interface Tokens {
@@ -2644,6 +2646,40 @@ function sequenceGeometry(input: DrawnInput, geo: Geo, sn: ReturnType<typeof sna
 
 // ---- The stacked drawing (1.13) ----
 
+/** A stacked group's label gives way to the lines at its top edge (the diagrams-rtl ruling, 3 to 5): if a line runs through its band, it takes the first
+ *  place along the edge, from its start seat toward the end, whose words are space-2-5 from the stroke of every line through the band, on both sides,
+ *  and end at least space-3 before the group's inner end edge. It is moved by `--_gx` (the stylesheet adds it to the seat's inset). No such place: it
+ *  keeps its start seat on its plate, and its words are returned for the development warning. Right to left it slides toward the left. */
+function slideGroupLabels(glabels: Map<HTMLElement, HTMLElement>, lines: GLine[], origin: DOMRect, rtl: boolean, s: Tokens["space"]): string[] {
+  const seatless: string[] = [];
+  for (const [g, el] of glabels) {
+    if (!el.getClientRects().length) continue;
+    const plate = rectOf(el, origin), gr = rectOf(g, origin);
+    const ls = getComputedStyle(el), gs = getComputedStyle(g);
+    const words = { l: plate.l + (parseFloat(ls.paddingLeft) || 0), r: plate.r - (parseFloat(ls.paddingRight) || 0) };
+    const lw = words.r - words.l;
+    // The group's inner edges (inside its border), and where its inner end edge stops the words.
+    const inL = gr.l + (parseFloat(gs.borderLeftWidth) || 0), inR = gr.r - (parseFloat(gs.borderRightWidth) || 0);
+    // Every stroke that runs through the label's band, as its extent across.
+    const blocked: Array<{ l: number; r: number }> = [];
+    for (const l of lines) for (const [a, b] of segmentsOf(l.pts)) {
+      const sr = segRect(a, b, l.width);
+      if (sr.t < plate.b && sr.b > plate.t) blocked.push({ l: sr.l, r: sr.r });
+    }
+    const gap = s("2-5");
+    const clear = (wl: number) => blocked.every((c) => c.r <= wl - gap + 0.01 || c.l >= wl + lw + gap - 0.01);
+    if (clear(words.l)) continue;
+    // The places to try, by how far each moves the words from the start seat toward the end: just past each stroke.
+    const moves = blocked.map((c) => (rtl ? words.r - (c.l - gap) : c.r + gap - words.l)).filter((d) => d > 0).sort((a, b) => a - b);
+    const at = (d: number) => (rtl ? words.l - d : words.l + d);
+    const fits = (d: number) => (rtl ? at(d) >= inL + s("3") - 0.01 : at(d) + lw <= inR - s("3") + 0.01);
+    const d = moves.find((v) => fits(v) && clear(at(v)));
+    if (d === undefined) { seatless.push(el.textContent ?? ""); continue; }
+    el.style.setProperty("--_gx", `${Math.round(d * 100) / 100}px`);
+  }
+  return seatless;
+}
+
 function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, plan: StackPlan, grown: Record<string, number> = record()): { geo: Geo; grow: Record<string, number> } {
   const { m, tk, P, drawing, origin } = input;
   const s = tk.space;
@@ -2685,7 +2721,13 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
   });
   const order = m.nodes;
   const card = (i: number) => map.get(order[i]!.id)!;
-  // The first card of a group entered by a turn (ruling 4 on the re-check): its turn's label takes the first seat beside the turn that clears the card, a
+  // A stacked group's label (the diagrams-rtl ruling): measured on its start seat, so the stem that enters the group gives way to the seat, never to a
+  // place the label slid to on an earlier measure.
+  const glabels = new Map<HTMLElement, HTMLElement>();
+  drawing.querySelectorAll<HTMLElement>(`.${P}-group > .${P}-glabel`).forEach((el) => { el.style.removeProperty("--_gx"); glabels.set(el.parentElement!, el); });
+  const seatOf = new Map<HTMLElement, Rect>();
+  for (const [g, el] of glabels) if (el.getClientRects().length) seatOf.set(g, rectOf(el, origin));
+  // The first card of a group (ruling 4 on the re-check): its turn's label takes the first seat beside the turn that clears the card, a
   // line at a time up into the room the group keeps for it, never above the group's edge (the group's edge and label are obstacles).
   const turnInto = (id: string) => { const el = drawing.querySelector<HTMLElement>(`.${P}-node[data-node="${CSS.escape(id)}"]`); const g = el?.parentElement; return Boolean(g?.matches(`.${P}-group[data-turn]`) && g.querySelector(`:scope > .${P}-node`) === el); };
   const beside = (box: Rect, id: string, lh: number) => (turnInto(id) ? Array.from({ length: Math.round(lh / 16) + 1 }, (_, j) => ({ ...box, t: box.t - j * s("4"), b: box.b - j * s("4") })) : [box]);
@@ -2709,7 +2751,21 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
       const pair = m.edges.map((o, j) => ({ o, j })).filter(({ o, j }) => (plan.routes[j] === "down" || plan.routes[j] === "up") && ((o.from === e.from && o.to === e.to) || (o.from === e.to && o.to === e.from)));
       const at = pair.findIndex((p) => p.j === k);
       const slot = pair.length < 2 ? 0.5 : pair.length === 2 ? (at === 0 ? 0.25 : 0.75) : (at + 1) / (pair.length + 1);
-      const x = sn.x(lo + (hi - lo) * slot, w);
+      let x = sn.x(lo + (hi - lo) * slot, w);
+      // A stem into a group's first card from a card outside the group gives way to the group's label (the diagrams-rtl ruling, 2): toward the end
+      // until its stroke is space-2-5 past the label's plate, only while it stays space-6 inside the end edge of both cards. Its label goes with it.
+      if (r === "down") {
+        const el = drawing.querySelector<HTMLElement>(`.${P}-node[data-node="${CSS.escape(e.to)}"]`);
+        const g = el?.parentElement;
+        const seat = g && g.matches(`.${P}-group`) && g.querySelector(`:scope > .${P}-node`) === el ? seatOf.get(g) : undefined;
+        if (seat && g && !g.contains(drawing.querySelector(`.${P}-node[data-node="${CSS.escape(e.from)}"]`))) {
+          const clear = s("2-5") + w / 2;
+          if (x > seat.l - clear && x < seat.r + clear) {
+            const past = rtl ? seat.l - clear : seat.r + clear;
+            if (rtl ? past >= lo + s("6") : past <= hi - s("6")) x = sn.x(past, w);
+          }
+        }
+      }
       pts = r === "down" ? [contour(a, "bottom", x), contour(b, "top", x)] : [contour(a, "top", x), contour(b, "bottom", x)];
       if (label) {
         // Centred on the stem's clear shaft, with a plate; a stem split by a group's boundary takes its outside part.
@@ -2775,6 +2831,7 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
   geo.outside = outsideOf(geo.lines, W, H, tk);
   // Seats, checked by 1.8's rule (a head counts, its own line's included): a label whose every seat fails grows the gap above its card by 16,
   // and the figure is measured again; measureFigure draws no lines at all if any label is still without a clean seat after the last try.
+  geo.seatless = slideGroupLabels(glabels, geo.lines, origin, rtl, s);
   const { obstacles } = obstaclesOf(drawing, origin, P, 0);
   obstacles.heads = geo.lines.map((l) => headBox(l, tk));
   const placed: Rect[] = [];
@@ -3024,12 +3081,15 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     if (dev && plan.third) warn?.("the stacked drawing would need a fifth end lane, so its lines are not drawn", "error");
     // Dressed as where scripting is off (1.13): no line in the key, no key hint, no stops, and the list open when the figure becomes bare.
     const bare: Geo = { ...geo, lines: [], labels: [], crossings: [] };
+    // With no lines, every group's label is on its start seat.
+    drawing.querySelectorAll<HTMLElement>(`.${P}-group > .${P}-glabel`).forEach((el) => el.style.removeProperty("--_gx"));
     const dyn = stopOf({ ...d, grow: record(), bare: true, open: current.bare ? current.open : true, autoOpen: current.bare ? current.autoOpen : current.open ? undefined : true });
     // Written as it is returned: the tries above wrote a state that is not bare, and a host that sees the same state as before renders nothing, so the
     // figure would keep their markup (a stack with no lines, not dressed bare, its list closed: P-R3 of the code re-check).
     apply(dyn);
     return { dyn, geo: bare, ink: "", tokens: tk, least: mins.least };
   }
+  if (geo.seatless?.length) dev && warn?.(`a stacked group's label has no clear seat on its top edge: ${geo.seatless.map((t) => `"${t}"`).join(", ")}`);
   if (geo.crossings.length) dev && warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the stacked drawing (each is cut): ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
   return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk, least: mins.least };
 }
