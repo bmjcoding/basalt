@@ -16,16 +16,11 @@
    *     label?: 'Notifications', onSelect?(entry), onMarkAllRead?(), onClearAll?() (shows Clear all at the foot's start), onViewAll?(), viewAllHref?, side?: 'bottom', align?: 'end' })
    */
   function isGroup(e) { return !!(e.entries && e.entries.length); }
-  // The placements the popover module knows; anything else is the default, so an option never reaches the markup as written.
-  var SIDES = { bottom: 1, top: 1, left: 1, right: 1 };
-  var ALIGNS = { start: 1, center: 1, end: 1 };
-  // A link from the entries is followed only when it is relative, http, https or mailto (core's check); any other is dropped with a warning, and the row is a button.
-  var refused = {};
+  // A placement the popover module knows, else the default: an option never reaches the markup as written.
+  function placement(v, re, d) { return re.test(v) ? v : d; }
+  // A link from the entries is written only when it is relative, http, https or mailto (as the palette's); any other row is a button.
   function href(h) {
-    if (h == null || h === '') return null;
-    if (_.safeHref(h)) return h;
-    if (!refused[h]) { refused[h] = 1; console.warn('Basalt: a notification link must be relative, http, https or mailto'); }
-    return null;
+    try { return h && /^(https?|mailto):$/.test(new URL(h, 'https://basalt.invalid/').protocol) ? h : null; } catch (e) { return null; }
   }
   // Errors never group: a danger entry in a group is drawn at the top level, right after it, and a group left with none is not drawn.
   function drawn(list) {
@@ -47,8 +42,8 @@
     var entries = drawn(o.entries || []);
     // Which groups are open, by entry id, so a new list from setEntries keeps them.
     var opened = {};
-    var side = SIDES[o.side] ? o.side : 'bottom';
-    var align = ALIGNS[o.align] ? o.align : 'end';
+    var side = placement(o.side, /^(top|bottom|left|right)$/, 'bottom');
+    var align = placement(o.align, /^(start|center|end)$/, 'end');
     var viewAllHref = href(o.viewAllHref);
     host.innerHTML =
       '<button type="button" class="btn" data-variant="ghost" data-icon-only popovertarget="' + id + '" aria-haspopup="dialog">' + BELL + '<span class="notifications-dot" aria-hidden="true" hidden></span></button>' +

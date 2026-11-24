@@ -15,8 +15,10 @@
   var activePalette = null;
   var paletteSeq = 0;
 
-  // A palette link may be relative, http, https or mailto (core's check).
-  var safeHref = _.safeHref;
+  /** A palette link may be relative, http, https or mailto. javascript:, data: and the rest are refused. Parsed the way a browser parses it. */
+  function safeHref(href) {
+    try { return /^(https?|mailto):$/.test(new URL(String(href), 'https://basalt.invalid/').protocol); } catch (e) { return false; }
+  }
 
   /** Keys that belong to an input method editor (composition, or the legacy keyCode 229). They are never commands. */
   function composing(e) { return !!e.isComposing || e.keyCode === 229; }

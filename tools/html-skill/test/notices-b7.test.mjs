@@ -115,8 +115,8 @@ describe("the group's chevron and current", () => {
 });
 
 describe("what the page passes in", () => {
-  test("a link that is not relative, http, https or mailto is not written: the row is a button, View all too, and the page is told once", async () => {
-    const html = compose(`<title>n</title><span id="bell"></span><script>Basalt.init(); window.warned = []; console.warn = function (m) { window.warned.push(String(m)); };
+  test("a link that is not relative, http, https or mailto is not written: the row is a button, and View all too", async () => {
+    const html = compose(`<title>n</title><span id="bell"></span><script>Basalt.init();
       window.centre = Basalt.notifications('#bell', { viewAllHref: 'javascript:window.ran=1', entries: [{ id: 'a', title: 'Deploy finished', time: '1m', href: 'javascript:window.ran=1' }, { id: 'b', title: 'Report ready', time: '2m', href: '/reports/7' }, { id: 'c', title: 'Data link', time: '3m', href: 'data:text/html,<b>x</b>' }] });
       window.centre.setEntries([{ id: 'a', title: 'Deploy finished', time: '1m', href: 'javascript:window.ran=1' }]); window.centre.open();</script>`, { fonts: false }).html;
     const { page, context } = await openHtml(browser, html);
@@ -126,8 +126,6 @@ describe("what the page passes in", () => {
     assert.equal(await page.locator("a[href^='javascript:'], a[href^='data:']").count(), 0);
     await page.locator('.notification[data-id="a"]').click();
     assert.equal(await page.evaluate(() => window.ran), undefined);
-    const warned = await page.evaluate(() => window.warned.filter((m) => /notification link/.test(m)));
-    assert.equal(warned.length, 2, `once per refused link, not once per drawing: ${warned.join(" | ")}`);
     await context.close();
   });
   test("a relative or https link is kept", async () => {

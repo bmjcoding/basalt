@@ -84,11 +84,10 @@
     return fit(span);
   }
 
-  // The most gridlines a scale has (scaleOf's 3 to 6, with room); a scale that overflowed draws no more than this and never loops without end.
-  var MOST_TICKS = 12;
   function ticksOf(scale) {
     var out = [];
-    for (var k = 0, n = Math.min(Math.round((scale.hi - scale.lo) / scale.step), MOST_TICKS); k <= n; k++) out.push(Math.round((scale.lo + k * scale.step) * 1e9) / 1e9);
+    // At most 12 (scaleOf's 3 to 6, with room): a scale that overflowed draws no more and never loops without end.
+    for (var k = 0, n = Math.min(Math.round((scale.hi - scale.lo) / scale.step), 12); k <= n; k++) out.push(Math.round((scale.lo + k * scale.step) * 1e9) / 1e9);
     return out;
   }
 
