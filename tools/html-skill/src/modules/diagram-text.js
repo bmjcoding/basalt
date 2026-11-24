@@ -12,10 +12,12 @@ import { textArt } from "../../../../packages/react/src/diagram-text.ts";
     if (!code) return;
     if (!figure.__transcript) figure.__transcript = code.innerHTML;
     var made = textArt(model);
+    // A glyph's width at 100%: offsetWidth, which no transform scales (the viewer's layer is zoomed when this runs), on one unbreakable run.
     var probe = document.createElement('span');
+    probe.style.cssText = 'display:inline-block;white-space:pre';
     probe.textContent = new Array(41).join('─');
     pre.appendChild(probe);
-    var cw = probe.getBoundingClientRect().width / 40;
+    var cw = probe.offsetWidth / 40;
     probe.remove();
     var cs = getComputedStyle(pre);
     var room = pre.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);

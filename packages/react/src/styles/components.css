@@ -4863,7 +4863,9 @@
   }
   .basalt-diagram-text[data-art] { white-space: pre; overflow-wrap: normal; }
   .basalt-diagram-drawing:has(> .basalt-diagram-text) { max-width: none; }
-  .basalt-diagram-text-ink { font: inherit; }
+  /* The art's code element is the block's text, never an inline code chip: a page's own code style (the skill's core gives inline code a fill) would band
+     every row (P-R2 of the code re-check). */
+  .basalt-diagram-text .basalt-diagram-text-ink { font: inherit; padding: 0; border: 0; border-radius: 0; background: none; color: inherit; }
   .basalt-diagram-tx-name { white-space: nowrap; color: var(--basalt-text-primary); }
   /* A transcript's line (B6 of the pixel review): a block indented by its frame, its message's lines hanging under the sender. */
   .basalt-diagram-tx-line {

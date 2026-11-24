@@ -265,10 +265,12 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
       let html = transcriptHtml, art = false;
       if (pre && textModule) {
         const made = textModule.textArt(model);
+        // A glyph's width at 100%: offsetWidth, which no transform scales (the viewer's layer is zoomed when this runs), on one unbreakable run.
         const probe = document.createElement("span");
+        probe.style.cssText = "display:inline-block;white-space:pre";
         probe.textContent = "─".repeat(40);
         pre.append(probe);
-        const cw = probe.getBoundingClientRect().width / 40;
+        const cw = probe.offsetWidth / 40;
         probe.remove();
         const cs = getComputedStyle(pre);
         let room = pre.clientWidth - Number.parseFloat(cs.paddingLeft) - Number.parseFloat(cs.paddingRight);
