@@ -1793,9 +1793,11 @@ function minimums(m: Model, tk: Tokens, measure: ReturnType<typeof ruler>) {
 
 // ---- Snapping: a 1px line on half pixels, a 2px line on whole ones, in the page's own pixel grid ----
 
-function snapper(ox: number, oy: number) {
+function snapper(ox: number, oy: number, mirrored = false) {
+  // Mirrored (a stacked figure right to left), a place halfway between two takes the left one, so the snap mirrors the left-to-right snap exactly.
+  const rx = mirrored ? (v: number) => -Math.round(-v) : Math.round;
   return {
-    x: (v: number, w: number) => (w % 2 === 1 ? Math.round(v + ox - 0.5) + 0.5 - ox : Math.round(v + ox) - ox),
+    x: (v: number, w: number) => (w % 2 === 1 ? rx(v + ox - 0.5) + 0.5 - ox : rx(v + ox) - ox),
     y: (v: number, w: number) => (w % 2 === 1 ? Math.round(v + oy - 0.5) + 0.5 - oy : Math.round(v + oy) - oy),
   };
 }
@@ -1992,9 +1994,11 @@ const segRect = (a: Pt, b: Pt, w: number): Rect => ({ l: Math.min(a.x, b.x) - w 
  * nearest such place that `clear` accepts, which is the test the seat itself passed. Where none is, the seat stays as it was found. The seat is chosen
  * before this, against the line's own centre, so whether a label seats never turns on where the pixel grid falls.
  */
-function wholePixels(box: Rect, ox: number, oy: number, clear: (b: Rect) => boolean): Rect {
+function wholePixels(box: Rect, ox: number, oy: number, clear: (b: Rect) => boolean, mirrored = false): Rect {
   const moves = (v: number, o: number) => { const f = v + o - Math.floor(v + o); return f < 0.005 || f > 0.995 ? [0] : f <= 0.5 ? [-f, 1 - f] : [1 - f, -f]; };
-  for (const dy of moves(box.t, oy)) for (const dx of moves(box.l, ox)) {
+  // Mirrored (a stacked figure right to left), the box's right edge goes onto the whole pixel, as the left does left to right.
+  const across = mirrored ? moves(-box.r, -ox).map((d) => -d) : moves(box.l, ox);
+  for (const dy of moves(box.t, oy)) for (const dx of across) {
     if (!dx && !dy) return box;
     const moved = { l: box.l + dx, r: box.r + dx, t: box.t + dy, b: box.b + dy };
     if (clear(moved)) return moved;
@@ -2636,13 +2640,24 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
   const map = gNodes(m, drawing, origin, P);
   const nodes = [...map.values()];
   const ox = origin.left - Math.floor(origin.left), oy = origin.top - Math.floor(origin.top);
-  const sn = snapper(ox, oy);
+  const sn = snapper(ox, oy, Boolean(m.rtl));
   const W = drawing.clientWidth, H = drawing.clientHeight;
   const geo: Geo = { w: W, h: H, nodes, lines: [], lifelines: [], labels: [], crossings: [], through: [], unseated: [], outside: [], ox, oy };
   const growBy = record<number>();
   if (m.type === "sequence" || m.type === "schema") return { geo, grow: growBy };
+  // Right to left the stack mirrors (1.7): the rail and the trunk run down the start side, which is the right, and the end lines and the gutter are
+  // on the left. Every place across is written from the start edge (`st`) or the end edge (`en`) and stepped toward the end (`fw`).
+  const rtl = Boolean(m.rtl), fw = rtl ? -1 : 1;
+  const st = (r: Rect) => (rtl ? r.r : r.l), en = (r: Rect) => (rtl ? r.l : r.r);
+  const endSide: DiagramSide = rtl ? "left" : "right";
+  /** A box `width` wide that starts `gap` toward the end from `x` (`toward` 1), or ends `gap` toward the start of it (`toward` -1). */
+  const across = (x: number, gap: number, width: number, toward: 1 | -1): { l: number; r: number } => {
+    const a = x + toward * fw * gap, b = a + toward * fw * width;
+    return { l: Math.min(a, b), r: Math.max(a, b) };
+  };
   // The end gutter is outside the spine cards, from the drawing's end less its padding (where a group's box ends too), never from a card inside a group.
-  const spineEnd = W - (parseFloat(getComputedStyle(drawing).paddingRight) || 0);
+  const dcs = getComputedStyle(drawing);
+  const spineEnd = rtl ? parseFloat(dcs.paddingLeft) || 0 : W - (parseFloat(dcs.paddingRight) || 0);
   // A fixed seat that does not fit takes a line of its own (1.13): each line of 16 the gap above its card has grown gives the seat one more
   // place, a line further from the card, into the room the growth made (up for a seat above a card, down for one under the card above).
   const lineSeats = (box: Rect, id: string, dir: 1 | -1): Rect[] => {
@@ -2650,13 +2665,13 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
     for (let j = 1; j <= (own(grown, id) ?? 0); j++) out.push({ ...box, t: box.t + dir * s("4") * j, b: box.b + dir * s("4") * j });
     return out;
   };
-  // The right edge a spine card has where each card sits (the group's inside, or the drawing's less the gutter).
-  const columnRight = new Map<string, number>();
+  // The end edge a spine card has where each card sits (the group's inside, or the drawing's less the gutter).
+  const columnEnd = new Map<string, number>();
   drawing.querySelectorAll<HTMLElement>(`.${P}-node`).forEach((el) => {
     const parent = el.parentElement!;
     const pr = rectOf(parent, origin);
     const cs = getComputedStyle(parent);
-    columnRight.set(el.dataset.node!, pr.r - (parseFloat(cs.paddingRight) || 0) - (parseFloat(cs.borderRightWidth) || 0));
+    columnEnd.set(el.dataset.node!, rtl ? pr.l + (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.borderLeftWidth) || 0) : pr.r - (parseFloat(cs.paddingRight) || 0) - (parseFloat(cs.borderRightWidth) || 0));
   });
   const order = m.nodes;
   const card = (i: number) => map.get(order[i]!.id)!;
@@ -2703,37 +2718,44 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
         labelSeats.push({ k, cands, on: true, card: r === "down" ? e.to : e.from });
       }
     } else if (r === "trunk" || r === "rail") {
-      const x = sn.x(Math.max(a.rect.l, r === "rail" ? b.rect.l : a.rect.l) + (r === "trunk" ? s("8") : s("3")), w);
+      // The inner of the two cards' start edges (the later one going toward the end), then space-8 (a trunk) or space-3 (a rail) toward the end.
+      const inner = r === "rail" ? (rtl ? Math.min(a.rect.r, b.rect.r) : Math.max(a.rect.l, b.rect.l)) : st(a.rect);
+      const x = sn.x(inner + fw * (r === "trunk" ? s("8") : s("3")), w);
       const start = contour(a, "bottom", x);
       if (r === "rail") {
         pts = [start, contour(b, "top", x)];
-        if (label) { const cy = b.rect.t - s("6"); labelSeats.push({ k, cands: lineSeats({ l: x + s("2-5"), r: x + s("2-5") + lw, t: cy - lh / 2, b: cy + lh / 2 }, e.to, -1), on: false, card: e.to }); }
+        if (label) { const cy = b.rect.t - s("6"); labelSeats.push({ k, cands: lineSeats({ ...across(x, s("2-5"), lw, 1), t: cy - lh / 2, b: cy + lh / 2 }, e.to, -1), on: false, card: e.to }); }
       } else {
-        const ex = sn.x(b.rect.l + s("6"), w);
+        const ex = sn.x(st(b.rect) + fw * s("6"), w);
         const ty = sn.y(b.rect.t - turn, w);
         pts = [start, { x, y: ty }, { x: ex, y: ty }, contour(b, "top", ex)];
-        if (label) labelSeats.push({ k, cands: [...beside({ l: ex + s("2-5"), r: ex + s("2-5") + lw, t: ty - lh / 2, b: ty + lh / 2 }, e.to, lh), ...lineSeats({ l: ex + s("2-5"), r: ex + s("2-5") + lw, t: ty - lh / 2, b: ty + lh / 2 }, e.to, -1).slice(1)], on: false, card: e.to });
+        const seat = { ...across(ex, s("2-5"), lw, 1), t: ty - lh / 2, b: ty + lh / 2 };
+        if (label) labelSeats.push({ k, cands: [...beside(seat, e.to, lh), ...lineSeats(seat, e.to, -1).slice(1)], on: false, card: e.to });
       }
     } else {
       // An end line: out the end side, along the end lane or the gutter, into the card's top (down) or bottom (up), space-6 in from its end edge.
-      const right = Math.min(columnRight.get(e.from) ?? W, columnRight.get(e.to) ?? W);
+      // The nearer of the two columns' end edges.
+      const ce = (id: string) => columnEnd.get(id) ?? (rtl ? 0 : W);
+      const colEnd = rtl ? Math.max(ce(e.from), ce(e.to)) : Math.min(ce(e.from), ce(e.to));
       // Lanes space-3-5 apart, one pitch (DECISIONS 306, 1.3).
-      const laneX = sn.x(plan.gutter ? spineEnd + (plan.lanes[k]! + 1) * s("3-5") : right - s("2-5"), w);
+      const laneX = sn.x(plan.gutter ? spineEnd + fw * (plan.lanes[k]! + 1) * s("3-5") : colEnd - fw * s("2-5"), w);
       const yExit = sn.y(a.rect.t + (a.rect.b - a.rect.t) * plan.exits[k]!, w);
-      const exit = contour(a, "right", yExit);
+      const exit = contour(a, endSide, yExit);
       const down = r === "end-down";
       // Several end lines into one card nest (1.3): the line from the outermost lane turns lowest (the merged turn) and enters nearest the end edge
       // (space-6 in); each from a lane further in turns space-5 higher and enters space-3 further in. Their labels are seated space-2-5 clear of the
       // innermost entry, each centred on its own turn's height, taken before the half-pixel snap.
       const mates = m.edges.map((o, j) => ({ o, j })).filter(({ o, j }) => (plan.routes[j] === r) && o.to === e.to).sort((x, y) => plan.lanes[y.j]! - plan.lanes[x.j]! || x.j - y.j);
       const at = Math.max(0, mates.findIndex(({ j }) => j === k));
-      const exRaw = b.rect.r - s("6") - at * s("3"), innerEx = b.rect.r - s("6") - (mates.length - 1) * s("3");
+      const exRaw = en(b.rect) - fw * (s("6") + at * s("3")), innerEx = en(b.rect) - fw * (s("6") + (mates.length - 1) * s("3"));
       const ex = sn.x(exRaw, w);
       const tyRaw = down ? b.rect.t - turn - at * s("5") : b.rect.b + turn + at * s("5");
       const ty = sn.y(tyRaw, w);
       pts = [exit, { x: laneX, y: exit.y }, { x: laneX, y: ty }, { x: ex, y: ty }, contour(b, down ? "top" : "bottom", ex)];
       const into = down ? e.to : order[b.i + 1]?.id ?? e.to;
-      if (label) labelSeats.push({ k, cands: [...(down ? beside({ l: innerEx - s("2-5") - lw, r: innerEx - s("2-5"), t: tyRaw - lh / 2, b: tyRaw + lh / 2 }, into, lh) : [{ l: innerEx - s("2-5") - lw, r: innerEx - s("2-5"), t: tyRaw - lh / 2, b: tyRaw + lh / 2 }]), ...lineSeats({ l: innerEx - s("2-5") - lw, r: innerEx - s("2-5"), t: tyRaw - lh / 2, b: tyRaw + lh / 2 }, into, down ? -1 : 1).slice(1)], on: false, card: into });
+      // Its label is on the start side of the innermost entry.
+      const seat = { ...across(innerEx, s("2-5"), lw, -1), t: tyRaw - lh / 2, b: tyRaw + lh / 2 };
+      if (label) labelSeats.push({ k, cands: [...(down ? beside(seat, into, lh) : [seat]), ...lineSeats(seat, into, down ? -1 : 1).slice(1)], on: false, card: into });
     }
     const snapped = snapRoute(pts, w, sn);
     geo.lines.push({ i: k, from: e.from, to: e.to, kind: e.kind, pts: snapped, tip: snapped[snapped.length - 1]!, dir: finish(snapped), width: w });
@@ -2759,7 +2781,7 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
     };
     const box = seat.cands.find((c) => !bad(c));
     if (!box) { growBy[seat.card] = (growBy[seat.card] ?? 0) + 1; geo.unseated.push(seat.k); }
-    const use = box ? wholePixels(box, ox, oy, (b) => !bad(b)) : seat.cands[0]!;
+    const use = box ? wholePixels(box, ox, oy, (b) => !bad(b), rtl) : seat.cands[0]!;
     placed.push(use);
     geo.labels.push({ i: seat.k, text: m.edges[seat.k]!.label!, box: use, on: seat.on });
   }

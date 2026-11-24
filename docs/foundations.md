@@ -2002,9 +2002,9 @@ over its lifeline; a stacked chip draws the mark before the name.
 - Forced colours: cardinality marks follow their line; an activation's edge is `CanvasText`; a frame's edges are `GrayText`; a
   linked name is `LinkText`, underlined.
 - Print: a figure prints untraced, in its resting ink, and in the light theme whatever the screen shows.
-- Right to left: drawn, the figure mirrors and its words do not; stacked, not yet (the rail, the trunk and the end gutter stay on their
-  left-to-right sides: a named gap, on the backlog). Identifiers are isolated left to right as runs; named sides swap; the arrow keys
-  stay physical; the text art stays left to right.
+- Right to left: the figure mirrors and its words do not, drawn and stacked (stacked, the rail and the trunk run down the right, a
+  branch is indented from the right, and the end lines and the end gutter are on the left). Identifiers are isolated left to right as
+  runs; named sides swap; the arrow keys stay physical; the text art stays left to right.
 - Export: a linked card's arrow is not drawn in a file.
 
 ### Diagram tokens

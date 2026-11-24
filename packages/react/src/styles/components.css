@@ -4997,6 +4997,9 @@
   /* Right to left (DECISIONS 306, 1.7): the engine lays out a mirrored model on a left-to-right grid, so the drawing is set left to right and what is in it
      is set right to left again; identifiers are isolated left to right as runs, never as blocks, so they keep the card's start edge. */
   .basalt-diagram[data-rtl] > .basalt-diagram-drawing { direction: ltr; }
+  /* Stacked, the figure mirrors too (1.7): the end gutter is on the left, and a branch is indented from the right, its end lane on the left. */
+  .basalt-diagram[data-rtl] > .basalt-diagram-drawing { padding: var(--_d-pad, 0 0 0 var(--_gutter, 0)); }
+  .basalt-diagram[data-rtl] .basalt-diagram-node[data-branch] { margin-inline: var(--_d-mi, var(--basalt-space-6) var(--basalt-space-12)); }
   .basalt-diagram[data-rtl] > .basalt-diagram-drawing :is(.basalt-diagram-node > :not(.basalt-diagram-mark), .basalt-diagram-lane-name, .basalt-diagram-said, .basalt-diagram-note, .basalt-diagram-band, .basalt-diagram-fhead, .basalt-diagram-felse) { direction: rtl; }
   .basalt-diagram[data-rtl] .basalt-diagram-gbox > .basalt-diagram-glabel { inset-inline: auto var(--basalt-space-3); }
   /* Stacked, a group's label is on its start side too (the sweep's 66-3), its masking margin mirrored. */
