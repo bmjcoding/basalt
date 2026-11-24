@@ -7,6 +7,7 @@ import * as React from "react";
 import { renderToString } from "react-dom/server";
 
 import * as B from "../dist/index.js";
+import { planTextMorph } from "../dist/text-morph.js";
 import { takeClick } from "../dist/wait.js";
 import { fixturePage, launch, settle } from "./support.mjs";
 
@@ -44,6 +45,18 @@ describe("Chart", () => {
       for (const kind of ["line", "bar"]) renderToString(h(B.TimeChart, { kind, title: "Huge", days: ["2026-11-01", "2026-11-02"], series: [{ name: "Load", values }], format: String, spoken: String, now: Date.UTC(2026, 10, 3) }));
     }
     assert.ok(Date.now() - started < 5000);
+  });
+});
+
+describe("TextMorph", () => {
+  test("a morph moves what a reader sees as one character as one: an emoji with its modifier, a letter with its accent", () => {
+    const seg = (text) => Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text), (part) => part.segment);
+    const plan = (from, to) => planTextMorph(from, to, { previous: seg(from).map(() => 8), next: seg(to).map(() => 8) });
+    for (const [from, to] of [["Done 👍🏽", "Done 👍🏽!"], ["Cafe\u0301", "Cafe\u0301s"], ["🇺🇸 flag", "🇺🇸 flags"]]) {
+      const glyphs = plan(from, to).glyphs;
+      for (const glyph of glyphs) assert.equal(seg(glyph.char).length, 1, `${JSON.stringify(glyph)} is one character`);
+      assert.deepEqual(glyphs.filter((glyph) => glyph.kind !== "enter").map((glyph) => glyph.char).join(""), from, "nothing of the old string is split or lost");
+    }
   });
 });
 

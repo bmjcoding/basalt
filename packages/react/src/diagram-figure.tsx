@@ -120,7 +120,9 @@ export function DiagramFigure({ spec, component, title: _title, heading: _headin
   modelRef.current = model;
   const [focusTrace, setFocusTrace] = React.useState<string | null>(null);
   const [hoverTrace, setHoverTrace] = React.useState<string | null>(null);
-  const options = React.useMemo(() => ({ prefix: P, base, level, hasSource: source !== undefined && source !== null, hiddenClass: "basalt-visually-hidden" }), [base, level, source]);
+  // On whether there is a source, not the node itself: a parent's render makes a new node each time, which would measure the figure again on every render.
+  const hasSource = source !== undefined && source !== null;
+  const options = React.useMemo(() => ({ prefix: P, base, level, hasSource, hiddenClass: "basalt-visually-hidden" }), [base, level, hasSource]);
 
   // Development only: a bundler that sets NODE_ENV to production drops this block, strings included.
   React.useEffect(() => {

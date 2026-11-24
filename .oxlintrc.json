@@ -29,7 +29,6 @@
     "react-hooks/exhaustive-deps": "off",
     "typescript/no-floating-promises": "off",
     "typescript/no-base-to-string": "off",
-    "typescript/no-misused-spread": "off",
     "typescript/unbound-method": "off",
     "typescript/restrict-template-expressions": "off",
     "typescript/no-duplicate-type-constituents": "off",
@@ -50,6 +49,7 @@
       "rules": {
         "no-eval": "off",
         "import/namespace": "off",
+        "typescript/no-misused-spread": "off",
         "no-constant-condition": "off",
         "no-self-assign": "off",
         "oxc/double-comparisons": "off",
