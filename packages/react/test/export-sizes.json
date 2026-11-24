@@ -172,8 +172,8 @@
   "NavGroup": 492,
   "NavItem": 110669,
   "NoticeBar": 788,
-  "NotificationCenter": 152658,
-  "NotificationCentre": 152668,
+  "NotificationCenter": 152672,
+  "NotificationCentre": 152682,
   "NotificationList": 33540,
   "NotificationsGlyph": 3066,
   "NumberField": 44118,
@@ -193,7 +193,7 @@
   "PanelRow": 4642,
   "PauseGlyph": 2819,
   "PeriodStepper": 18006,
-  "PhaseChart": 51275,
+  "PhaseChart": 51411,
   "PlanGlyph": 2966,
   "PlayGlyph": 2838,
   "PlusGlyph": 2825,
@@ -280,8 +280,8 @@
   "SkipLink": 1014,
   "Slide": 397,
   "Slider": 38283,
-  "SocialLink": 38641,
-  "SocialLinks": 579,
+  "SocialLink": 38626,
+  "SocialLinks": 434,
   "SourceStamp": 3895,
   "SourceStateWords": 13683,
   "SourcesGlyph": 2938,
@@ -294,7 +294,7 @@
   "StageRail": 1200,
   "Stat": 2226,
   "Stats": 314,
-  "StatusBar": 7066,
+  "StatusBar": 7225,
   "StatusLine": 504,
   "Stepper": 27802,
   "Stream": 283,
@@ -340,7 +340,7 @@
   "Textarea": 27069,
   "ThemeChoiceControl": 4794,
   "ThemeMenu": 206507,
-  "TimeChart": 48027,
+  "TimeChart": 48163,
   "ToastProvider": 92989,
   "Toolbar": 22915,
   "ToolbarButton": 32718,
@@ -427,11 +427,11 @@
   "useWaitMark": 303
  },
  "package": {
-  "bytes": 948025,
-  "gzip": 315929
+  "bytes": 948167,
+  "gzip": 316004
  },
  "styles": {
-  "bytes": 466843,
-  "gzip": 60287
+  "bytes": 468773,
+  "gzip": 60553
  }
 }

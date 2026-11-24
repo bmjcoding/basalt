@@ -376,7 +376,8 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // bytes in Button and IconButton: NotificationCentre 152,550 measured, so its limit is 152,600.
 // DECISIONS 326: a text toggle's seat holds its glyph and hands over to the check (button.tsx), about 185 bytes on every Button: NotificationCentre 152,753 (152,600 to 152,800).
 // NotificationCentre 152,900 (main's) to 153,200 in DECISIONS 336: its head's and foot's controls are hung at their edges, and Button's edge and done seat.
-for (const [name, limit] of [["ToastProvider", 93_500], ["useToast", 4_000], ["NotificationCentre", 153_200]]) {
+// 153,200 to 153,250 in the code review's fix round of 336 (finding 4): the bell takes `edge` when it is last in a bar; 153,211 measured.
+for (const [name, limit] of [["ToastProvider", 93_500], ["useToast", 4_000], ["NotificationCentre", 153_250]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);
@@ -441,10 +442,11 @@ for (const [name, limit] of [["trailingMean", 800], ["ShareBar", 1_500], ["Cover
 
 // The allowance was 400 and rose to 600 in the wording audit's batch (W3: the hidden space in the headline and the legend, W8's `DateAge` separator): TimeChart measures 47,541, 568 over, rounded up to the next 50.
 // It rose to 1,050 with one Mod key across platforms (DECISIONS 244, the owner's word on the size, 246): TimeChart's chips carry the platform rule, 48,001, 1,028 over, rounded up to the next 50.
-test("the short bar plot's `compact` prop, the wording audit's word boundaries and the platform rule add under 1,050 bytes to TimeChart (it was 46,973 before the prop)", async () => {
+test("the short bar plot's `compact` prop, the wording audit's word boundaries, the platform rule and the date line's reason add under 1,200 bytes to TimeChart (it was 46,973 before the prop)", async () => {
   const { bytes } = await bundle("TimeChart");
   // 1,050 to 1,100 in DECISIONS 336: the legend reserves every form a value can show and no reason (legendForms).
-  assert.ok(bytes < 46_973 + 1_100, `TimeChart bundle is ${bytes} bytes; the prop, the boundaries, the platform rule and the legend's forms may add 1,100`);
+  // 1,100 to 1,200 in the pixel review's fix round of 336 (finding 1): on a gap day the date line says the gap's reason, and reserves both forms; 48,163 measured.
+  assert.ok(bytes < 46_973 + 1_200, `TimeChart bundle is ${bytes} bytes; the prop, the boundaries, the platform rule, the legend's forms and the date line's reason may add 1,200`);
 });
 
 test("RangeMeter carries Base UI's Meter and no other part, no Phosphor and no Shiki; TimeChart and PhaseChart load no Shiki or cmdk", async () => {
