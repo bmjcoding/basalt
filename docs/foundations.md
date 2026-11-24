@@ -2412,7 +2412,7 @@ A product's own logo is its own; the social marks are Phosphor's (below). A diag
   download, both ways. Every other change swaps at once. A morph in flight keeps its identity: a
   request for where it is going does nothing, a request for where it came from runs it back, and a
   request for another member of its group turns on; anything else swaps at once. They run at
-  `slow` on `ease-out`, and reduced motion swaps at once. Status: Basalt's controls draw their core glyphs through the morph (engineering restoring DECISIONS 38 and 55); the implementation hasn't been reviewed.
+  `slow` on `ease-out`. Under reduced motion a change swaps at once, except in a pressed toggle's seat, where it crossfades over `duration-fast` on `ease-out` (DECISIONS 361). Status: Basalt's controls draw their core glyphs through the morph (engineering restoring DECISIONS 38 and 55); the implementation hasn't been reviewed.
 - **Sizes.** Glyphs are drawn at 16, 20 and 24, and at 12 only as a mark inside a box: a choice box's check or dash (the core's) and a key chip's ⌘ ⌥ ⌃ (Phosphor Bold's, which the core does not draw), the chip drawn at its real height, `size-kbd`. Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the implementation hasn't been reviewed.
 - **The long tail** is Phosphor Bold at 20 and up, as at 16, so its line is the core's. Fill only
   for selected navigation and object identities whose drawing keeps its silhouette (`fillSafe`).
