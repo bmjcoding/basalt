@@ -6,7 +6,7 @@
     "@phosphor-icons/react": "The web icon set (foundations: Icons).",
     "@srasyndicate/basalt-tokens": "Basalt's own tokens.",
     "shiki": "CodeBlock syntax highlighting; loaded on demand, one grammar at a time.",
-    "elkjs": "Automatic diagram layout (`layout=\"auto\"`), loaded on demand through `diagram-layout` and never from the index. EPL-2.0 OR GPL-3.0-or-later; used under EPL-2.0, unmodified. The owner approved it (DECISIONS 301).",
+    "elkjs": "Automatic diagram layout (`layout=\"auto\"`), loaded on demand through `diagram-layout` and never from the index. EPL-2.0 OR GPL-3.0-or-later; used under EPL-2.0, unmodified. The owner approved it (DECISIONS 301). A build input, not a dependency: its file is copied, unchanged, into dist/diagram-elk.js with its licence (dist/elkjs/LICENSE.md), the one copy the package ships (the decider's ruling 2 on the batch B re-check); it is listed in $copied, pinned.",
     "react": "Peer: the host app's React.",
     "react-dom": "Peer: the host app's React DOM."
   },
@@ -17,5 +17,9 @@
     }
   },
   "packages/tokens": {},
-  "Package.swift": {}
+  "Package.swift": {},
+  "$copied": {
+    "$comment": "Approved packages whose file is copied into a package's dist (they are devDependencies, so the lint would call their entry stale): each pinned to the exact version the copy was made from. scripts/check-deps.mjs fails when the devDependency is gone or drifts.",
+    "packages/react": { "elkjs": "0.12.1" }
+  }
 }
