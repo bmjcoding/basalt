@@ -426,6 +426,12 @@
   "useToast": 3211,
   "useWaitMark": 303
  },
+ "subpaths": {
+  "diagram-interop": {
+   "bytes": 133770,
+   "gzip": 38790
+  }
+ },
  "package": {
   "bytes": 946282,
   "gzip": 315272

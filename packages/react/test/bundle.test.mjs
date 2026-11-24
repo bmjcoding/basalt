@@ -8,7 +8,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
 
-import { MARGIN, TABLE, measureExport, measurePackage, measureStyles, runtimeExports } from "./export-sizes.mjs";
+import { MARGIN, TABLE, measureExport, measurePackage, measureStyles, measureSubpaths, runtimeExports } from "./export-sizes.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pkg = path.join(here, "..");
@@ -549,11 +549,23 @@ test("every runtime export alone stays within 5% of its recorded minified size",
   assert.deepEqual(over.sort(), [], `an export grew past its recorded size: ${ADVICE}`);
 });
 
-test("the whole package up front and styles.css, minified and gzipped, stay within 5% of their recorded sizes", async () => {
+test("the whole package up front, tracked subpaths, and styles.css, minified and gzipped, stay within 5% of their recorded sizes", async () => {
   const table = recorded();
   const whole = await measurePackage();
   const styles = measureStyles();
-  for (const [label, now, was] of [["the whole package, minified", whole.bytes, table.package.bytes], ["the whole package, gzipped", whole.gzip, table.package.gzip], ["styles.css as shipped", styles.bytes, table.styles.bytes], ["styles.css, gzipped", styles.gzip, table.styles.gzip]]) {
+  const subpaths = await measureSubpaths();
+  const pairs = [
+    ["the whole package, minified", whole.bytes, table.package.bytes],
+    ["the whole package, gzipped", whole.gzip, table.package.gzip],
+    ["styles.css as shipped", styles.bytes, table.styles.bytes],
+    ["styles.css, gzipped", styles.gzip, table.styles.gzip],
+  ];
+  for (const [name, was] of Object.entries(table.subpaths ?? {})) {
+    const now = subpaths[name];
+    assert.ok(now, `subpath ${name} missing from measureSubpaths()`);
+    pairs.push([`subpath ${name}, minified`, now.bytes, was.bytes], [`subpath ${name}, gzipped`, now.gzip, was.gzip]);
+  }
+  for (const [label, now, was] of pairs) {
     assert.ok(now <= ceiling(was), `${label}: ${now} bytes against ${was} recorded (limit ${ceiling(was)}); ${ADVICE}`);
   }
   // The style sheets ship minified: no comment is left in them (a /*! legal comment would be the one kept).

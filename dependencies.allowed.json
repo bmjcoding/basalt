@@ -1,5 +1,5 @@
 {
-  "$comment": "Runtime dependencies the owner has approved, per package, with the reason. Adding one needs the owner's approval in the PR that adds it (AGENTS.md). Dev dependencies are not listed: they are not installed with the package. One of them, geist, is copied into dist as the font files, under its own licence (dist/fonts/OFL.txt). Every version is exact (scripts/check-deps.mjs fails on a range, a tag, an alias or a URL) except those listed in $ranges, the host app's own React, which a package cannot pin.",
+  "$comment": "Runtime dependencies the owner has approved, per package, with the reason. Adding one needs the owner's approval in the PR that adds it (AGENTS.md). Dev dependencies are not listed: they are not installed with the package. One of them, geist, is copied into dist as the font files, under its own licence (dist/fonts/OFL.txt). Every version is exact (scripts/check-deps.mjs fails on a range, a tag, an alias or a URL) except those listed in $ranges, the host app's own React and optional peer dependencies, which a package cannot pin.",
   "packages/react": {
     "@base-ui/react": "Accessible unstyled primitives under every component (foundations: Primitives).",
     "cmdk": "Command menu filtering and keyboard selection (MIT, pacocoursey/cmdk). Bailey approved it for the Benji primitives.",
@@ -7,13 +7,13 @@
     "@srasyndicate/basalt-tokens": "Basalt's own tokens.",
     "shiki": "CodeBlock syntax highlighting; loaded on demand, one grammar at a time.",
     "elkjs": "Automatic diagram layout (`layout=\"auto\"`), loaded on demand through `diagram-layout` and never from the index. EPL-2.0 OR GPL-3.0-or-later; used under EPL-2.0, unmodified. The owner approved it (DECISIONS 301). A build input, not a dependency: its file is copied, unchanged, into dist/diagram-elk.js with its licence (dist/elkjs/LICENSE.md), the one copy the package ships (the decider's ruling 2 on the batch B re-check); it is listed in $copied, pinned.",
-    "playwright": "Optional peer: headless Chromium for basalt-diagram-export's default exact geometry measurement (DECISIONS 327). Not installed unless the host installs it; the CLI falls back to approximate headless layout with a warning when absent.",
+    "playwright": "Optional peer: headless Chromium for basalt-diagram-export's default exact geometry measurement (DECISIONS 348). Not installed unless the host installs it; the CLI falls back to approximate headless layout with a warning when absent.",
     "react": "Peer: the host app's React.",
     "react-dom": "Peer: the host app's React DOM."
   },
   "$ranges": {
     "packages/react": {
-      "playwright": ">=1.40.0",
+      "playwright": ">=1.40.0 <2",
       "react": ">=19",
       "react-dom": ">=19"
     }
