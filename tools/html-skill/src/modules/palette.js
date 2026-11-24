@@ -37,6 +37,8 @@
       if (!badKeys['a:' + item.label]) { badKeys['a:' + item.label] = 1; console.warn('Basalt: "' + item.label + '" has keys that are not an array; write keys: [\'⌘\', \'S\']'); }
       return null;
     }
+    // "Mod" is the platform's modifier, as the chips draw it (kbd.js): ⌘ on Apple's systems, Control elsewhere.
+    keys = _.kbd.mod(keys).map(function (k) { return k === 'Ctrl' ? '⌃' : k; });
     var mods = keys.filter(function (k) { return k === '⌘' || k === '⌃' || k === '⌥' || k === '⇧'; });
     var rest = keys.filter(function (k) { return mods.indexOf(k) === -1; });
     if (rest.length !== 1 || !mods.some(function (k) { return k !== '⇧'; })) {

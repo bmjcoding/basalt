@@ -81,3 +81,27 @@ describe("tooltip", () => {
     await context.close();
   });
 });
+
+describe("Mod", () => {
+  test("a palette item's keys may say Mod: the chip and the binding are the platform's one modifier, and the item runs on it", async () => {
+    const html = compose(`<title>t</title><button class="btn" data-open-palette>Commands</button><script>window.saved = 0;
+      Basalt.init({ palette: { groups: [{ label: "File", items: [{ label: "Save", keys: ["Mod", "S"], onSelect: function () { window.saved++; } }] }] } });</script>`, { fonts: false }).html;
+    const { page: p, context } = await openHtml(browser, html);
+    await frames(p);
+    const apple = await p.evaluate(() => /mac|ip(hone|ad|od)/i.test((navigator.userAgentData || navigator).platform || navigator.userAgent));
+    await p.keyboard.press(apple ? "Meta+s" : "Control+s");
+    assert.equal(await p.evaluate(() => window.saved), 1, "it runs on the platform's modifier");
+    await p.keyboard.press(apple ? "Meta+k" : "Control+k");
+    await p.waitForSelector(".palette");
+    assert.equal(await p.locator(".palette [aria-keyshortcuts]").first().getAttribute("aria-keyshortcuts"), apple ? "Meta+S" : "Control+S");
+    await context.close();
+  });
+
+  test("a toast action's keys written with Mod reach aria-keyshortcuts as the platform's key, not the word Mod", async () => {
+    const html = compose(`<title>t</title><script>Basalt.init(); Basalt.toast({ title: "Deleted", home: "centre", action: { label: "Undo", keys: "Mod+Z", onClick: function () {} } });</script>`, { fonts: false }).html;
+    const { page: p, context } = await openHtml(browser, html);
+    const keys = await p.locator(".toast-action").getAttribute("aria-keyshortcuts");
+    assert.match(keys, /^(Meta|Control)\+Z$/);
+    await context.close();
+  });
+});
