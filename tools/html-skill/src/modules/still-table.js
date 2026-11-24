@@ -247,11 +247,21 @@
     mark();
   }
 
+  /* The selection column's <col> is at least --basalt-select-column wide (32 on a pointer, 44 on touch), so the checkbox's whole hit area is in it (DECISIONS 336). */
+  function seatSelect(table) {
+    var head = table.tHead && table.tHead.rows[0];
+    var cells = head ? Array.prototype.slice.call(head.cells) : [];
+    var at = cells.findIndex(function (c) { return c.classList.contains('select-col'); });
+    var col = at < 0 ? null : table.querySelectorAll(':scope > colgroup > col')[at];
+    if (col && col.style.width && col.style.width.indexOf('--basalt-select-column') < 0) col.style.width = 'max(' + col.style.width + ', var(--basalt-select-column))';
+  }
+
   _.step(65, 'stillTable', function () {
     document.querySelectorAll('table[data-fixed]').forEach(function (table) {
       if (table.__bhStill) return;
       table.__bhStill = true;
       own(table);
+      seatSelect(table);
       wireSort(table);
       wirePinned(table);
       wirePeek(table);

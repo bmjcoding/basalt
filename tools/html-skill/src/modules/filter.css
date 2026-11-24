@@ -29,7 +29,9 @@
     gap: var(--basalt-space-1-5);
     height: var(--basalt-size-control-md);
     margin: 0;
-    padding: 0 calc(var(--basalt-space-3) - var(--basalt-size-hairline)) 0 calc(var(--basalt-space-2) - var(--basalt-size-hairline));
+    /* 8 before the mark's seat and 12 after the words: the mark is drawn 2.6 inside its seat, so what is drawn is 10.6 and 12 from the edges (DECISIONS 336, S11). */
+    padding-block: 0;
+    padding-inline: calc(var(--basalt-space-2) - var(--basalt-size-hairline)) calc(var(--basalt-space-3) - var(--basalt-size-hairline));
     border: var(--basalt-size-hairline) solid var(--basalt-border-hairline);
     border-radius: var(--basalt-radius-sm);
     background: transparent;

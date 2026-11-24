@@ -362,26 +362,31 @@
   .basalt-button-amount { justify-items: end; font-variant-numeric: tabular-nums; }
   .basalt-button:is([data-variant="primary"], [data-variant="secondary"], [data-variant="outline"]):not([data-disabled], [data-loading]) > .basalt-button-amount { opacity: var(--basalt-opacity-amount); }
 
-  /* The count (DECISIONS 154, D11d): an outlined pill, 24 tall, in neutral ink, the number secondary at zero and primary above. It holds two tabular
-     digits (a hidden "00" shares its cell), so 0 to 99 never moves the button; a third digit widens it. It is aria-hidden: the name carries the count.
-     Never a fill and never a colour: the edge is the input boundary and the number is the cue. */
+  /* The count (DECISIONS 154, D11d; 336, M-1): an outlined pill, 24 tall, in neutral ink, the number secondary at zero and primary above. The pill hugs its
+     figures, 24 at least. The button holds a seat for two tabular digits round it (an unseen "00" and the pill's padding share its cell) and the pill ends
+     that seat, so 0 to 99 never moves the button; a third digit widens it. It is aria-hidden: the name carries the count. Never a fill and never a
+     colour: the edge is the input boundary and the number is the cue. */
   .basalt-button-count {
+    display: inline-grid;
+    flex: none;
+    font: var(--basalt-font-weight-semibold) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans);
+    font-variant-numeric: tabular-nums;
+  }
+  .basalt-button-count::before { content: "00"; grid-area: 1 / 1; height: 0; padding-inline: var(--basalt-space-1-5); overflow: hidden; visibility: hidden; user-select: none; pointer-events: none; }
+  .basalt-button-count > span {
+    grid-area: 1 / 1;
+    justify-self: end;
     box-sizing: border-box;
     display: inline-grid;
     place-items: center;
-    flex: none;
     height: var(--basalt-size-control-xs);
     min-width: var(--basalt-size-control-xs);
     padding: 0 var(--basalt-space-1-5);
     border-radius: var(--basalt-radius-full);
     box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
     color: var(--basalt-text-primary);
-    font: var(--basalt-font-weight-semibold) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans);
-    font-variant-numeric: tabular-nums;
   }
-  .basalt-button-count[data-zero] { color: var(--basalt-text-secondary); }
-  .basalt-button-count::before { content: "00"; grid-area: 1 / 1; height: 0; overflow: hidden; visibility: hidden; user-select: none; pointer-events: none; }
-  .basalt-button-count > span { grid-area: 1 / 1; }
+  .basalt-button-count[data-zero] > span { color: var(--basalt-text-secondary); }
 
   /* Two lines (DECISIONS 154, D11b): the label over a note, start-aligned, at least 64 tall; in a container 340 to 480 wide the two share one line,
      the label first and the note at the end, baseline-aligned and 12px apart, at 48. The label's own line is 14/20 (a <code> in it is mono). */
@@ -729,6 +734,9 @@
   }
 
   .basalt-menu-check { display: inline-flex; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); flex: none; color: var(--basalt-text-primary); }
+  /* The menu's column (DECISIONS 336, M-2): when any row has a check or a glyph, every row keeps their 16px column, a plain row too, so labels align.
+     A popup with no such row has no column. */
+  .basalt-menu:has(.basalt-menu-item > :is(.basalt-menu-check, .basalt-icon:not(.basalt-menu-item-chevron)):first-child) .basalt-menu-item:not(:has(> :is(.basalt-menu-check, .basalt-icon:not(.basalt-menu-item-chevron)):first-child)) { padding-inline-start: calc(var(--basalt-space-3) + var(--basalt-size-icon-sm) + var(--_gap)); }
   .basalt-menu-radio-dot { display: block; width: var(--basalt-space-1-5); height: var(--basalt-space-1-5); border-radius: var(--basalt-radius-full); background: currentColor; }
   .basalt-menu-submenu-trigger:dir(rtl) > .basalt-icon { transform: rotate(180deg); }
   .basalt-menu-item-label { flex: 1; min-width: 0; }
@@ -2381,6 +2389,11 @@
   /* A checkbox in a cell is centred in its row (DECISIONS 167, Q9e). It is a block of its own (16px wide, the cell's middle alignment centres it exactly) and not a box on
      a text baseline, which left it 1 to 2.5px off the centre by the font's metrics. It still does not move when ticked: a block has no baseline to move. */
   .basalt-table :is(td, th) .basalt-checkbox { display: flex; }
+  /* The selection column (DECISIONS 336, S10): give its <col> `var(--basalt-select-column)`, 32 on a pointer and 44 on touch and under 720, where the
+     column holds the checkbox's whole hit area and nothing reaches the next column. Its cell has no inline padding and the box is centred in it. */
+  :root { --basalt-select-column: var(--basalt-size-control-md); }
+  .basalt-table :is(td, th):first-child:has(> .basalt-checkbox) { padding-inline: 0; }
+  .basalt-table :is(td, th):first-child > .basalt-checkbox { margin-inline: auto; }
 
   /* The flat form (DECISIONS 162, D18b): a table in a Card has the card's one box, so its own frame draws nothing (no border, radius, fill or shadow) and sets no level. The
      header band keeps its fill. Its cells are padded space-2 above and below, so a two-line cell (TableCall) has air. */
@@ -2404,6 +2417,7 @@
        cut at its own edge in a fixed table, so it takes the box from padding that an equal negative margin gives back: the text
        sits where it did, the row does not grow, and the focus ring's offset is pulled in by the same amount, so it hugs the text
        as before. */
+    :root { --basalt-select-column: var(--basalt-size-tap-min); }
     .basalt-table :is(td, th) .basalt-checkbox { position: relative; }
     .basalt-table :is(td, th) .basalt-checkbox::before { content: ""; position: absolute; inset: min(var(--basalt-space-0), calc((100% - var(--basalt-size-tap-min)) / 2)); }
     .basalt-table :is(td, th) a:not(.basalt-button) {
@@ -2736,7 +2750,9 @@
     gap: var(--basalt-space-1-5);
     height: var(--basalt-size-control-md);
     margin: 0;
-    padding: 0 calc(var(--basalt-space-3) - var(--basalt-size-hairline)) 0 calc(var(--basalt-space-2) - var(--basalt-size-hairline));
+    /* 8 before the mark's seat and 12 after the words: the mark is drawn 2.6 inside its seat, so what is drawn is 10.6 and 12 from the edges (DECISIONS 336, S11). */
+    padding-block: 0;
+    padding-inline: calc(var(--basalt-space-2) - var(--basalt-size-hairline)) calc(var(--basalt-space-3) - var(--basalt-size-hairline));
     border: var(--basalt-size-hairline) solid var(--basalt-border-hairline);
     border-radius: var(--basalt-radius-sm);
     background: transparent;
@@ -2804,7 +2820,8 @@
     min-width: 0;
     min-height: var(--_basalt-control-4xl, var(--basalt-size-control-4xl));
     margin: 0;
-    padding: var(--basalt-space-1-5) var(--basalt-space-3) var(--basalt-space-1-5) var(--basalt-space-2);
+    padding-block: var(--basalt-space-1-5);
+    padding-inline: var(--basalt-space-2) var(--basalt-space-3);
     border: var(--basalt-size-hairline) solid var(--basalt-border-field);
     border-radius: var(--basalt-radius-md);
     background: transparent;
@@ -2816,7 +2833,9 @@
     transition-property: background-color, border-color, color;
     transition-duration: var(--basalt-duration-fast);
     transition-timing-function: var(--basalt-ease-out);
-  }
+  }  /* With no tile the words start where the seat ends: space-3 on both sides (space-2 under 720). A tile is nested 8 from the row's start, top and bottom (DECISIONS 336, S11). */
+  .basalt-switch-row:not(:has(> .basalt-switch-row-tile)) { padding-inline: var(--basalt-space-3); }
+
   .basalt-switch-row[data-tile] { grid-template-columns: auto minmax(0, 1fr) auto; }
   .basalt-switch-row-tile { display: block; flex: none; width: var(--basalt-size-control-lg); height: var(--basalt-size-control-lg); }
   .basalt-switch-row-tile > * { display: block; width: 100%; height: 100%; }
@@ -2844,6 +2863,7 @@
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the row is 48 */
   @media (width < 720px) {
     .basalt-switch-row { min-height: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); column-gap: var(--basalt-space-2); padding-inline: var(--basalt-space-1-5) var(--basalt-space-2); }
+    .basalt-switch-row:not(:has(> .basalt-switch-row-tile)) { padding-inline: var(--basalt-space-2); }
     .basalt-switch-row-tile { width: var(--basalt-size-control-md); height: var(--basalt-size-control-md); }
     .basalt-switch-row-name { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
   }
@@ -2866,7 +2886,9 @@
     gap: var(--basalt-space-2);
     min-height: var(--_basalt-control-2xl, var(--basalt-size-control-2xl));
     margin: 0;
-    padding: 0 calc(var(--basalt-space-3-5) - var(--basalt-size-hairline)) 0 calc(var(--basalt-space-2-5) - var(--basalt-size-hairline));
+    /* 12 on both sides with the rim (DECISIONS 336, S11): the chosen ring fills its seat, so it takes the words' padding. */
+    padding-block: 0;
+    padding-inline: calc(var(--basalt-space-3) - var(--basalt-size-hairline));
     border: var(--basalt-size-hairline) solid var(--basalt-border-field);
     border-radius: var(--basalt-radius-md);
     background: transparent;
@@ -3087,7 +3109,8 @@
     width: 100%;
     min-width: var(--basalt-size-select-min);
     height: var(--_h);
-    padding: 0 var(--basalt-space-2) 0 var(--basalt-space-2-5);
+    padding-block: 0;
+    padding-inline: var(--basalt-space-2-5) var(--basalt-space-2);
     margin: 0;
     border: 0;
     border-radius: var(--basalt-radius-sm);
@@ -3198,7 +3221,8 @@
     display: flex;
     align-items: flex-start;
     gap: var(--basalt-space-3);
-    padding: var(--basalt-space-3) var(--basalt-space-3) var(--basalt-space-3) var(--basalt-space-4);
+    padding-block: var(--basalt-space-3);
+    padding-inline: var(--basalt-space-4) var(--basalt-space-3);
     overflow: hidden;
     transition: opacity var(--basalt-duration-base) var(--basalt-ease-out);
   }
@@ -3231,6 +3255,15 @@
   /* A group's count: "×3", beside the title, quieter than it. */
   .basalt-toast-count { margin-inline-start: var(--basalt-space-1-5); font-weight: var(--basalt-font-weight-regular); font-variant-numeric: tabular-nums; color: var(--basalt-text-secondary); }
   .basalt-toast-close { color: var(--basalt-text-secondary); }
+  /* On touch Dismiss and the action keep their pointer size (24 and the action's own height, radius 6) and take their 44 as hit area inside the
+     toast's padding, so a toast is one height on every pointer (DECISIONS 336, R-5). The hit area is 46 (a hairline more on each side), so the
+     press's .98 never takes it under 44; a short action's missing width is on its start side, over the words and away from Dismiss. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
+    .basalt-toast .basalt-button:is(.basalt-toast-close, .basalt-toast-action) { min-width: 0; min-height: 0; --_radius: var(--basalt-radius-sm); }
+    .basalt-toast .basalt-toast-close::before { content: ""; position: absolute; inset: calc((var(--basalt-size-control-xs) - var(--basalt-size-tap-min)) / 2 - var(--basalt-size-hairline)); }
+    .basalt-toast .basalt-toast-action::before { content: ""; position: absolute; inset-block: calc((100% - var(--basalt-size-tap-min)) / 2 - var(--basalt-size-hairline)); inset-inline: min(var(--basalt-space-0), calc(100% - var(--basalt-size-tap-min) - 2 * var(--basalt-size-hairline))) 0; }
+  }
 
   /* ---- Notification centre ---- */
 
@@ -7258,7 +7291,7 @@
   @media (forced-colors: active) {
     /* A skeleton's fill is dropped, so its box is a 1px ButtonBorder edge inside its own size and no fill (DECISIONS 167, Q4). */
     .basalt-skeleton { box-sizing: border-box; border: var(--basalt-size-hairline) solid ButtonBorder; }
-    .basalt-button-count { border: var(--basalt-size-hairline) solid ButtonText; box-shadow: none; color: ButtonText; }
+    .basalt-button-count > span { border: var(--basalt-size-hairline) solid ButtonText; box-shadow: none; color: ButtonText; }
     .basalt-button:is([data-variant="primary"], [data-variant="secondary"], [data-variant="outline"]):not([data-disabled], [data-loading]) > .basalt-button-amount { opacity: 1; }
     .basalt-switch-row,
     .basalt-option-chip { border-color: ButtonText; color: ButtonText; }
@@ -8056,7 +8089,8 @@
     gap: var(--basalt-space-2);
     min-width: 0;
     min-height: var(--basalt-size-control-xl);
-    padding: var(--basalt-space-1-5) var(--basalt-space-2) var(--basalt-space-1-5) var(--basalt-space-3);
+    padding-block: var(--basalt-space-1-5);
+    padding-inline: var(--basalt-space-3) var(--basalt-space-2);
     font-size: var(--basalt-text-sm-size);
     line-height: var(--basalt-text-sm-line-height);
   }

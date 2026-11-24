@@ -20,7 +20,9 @@
     gap: var(--basalt-space-2);
     min-height: var(--basalt-size-control-2xl);
     margin: 0;
-    padding: 0 calc(var(--basalt-space-3-5) - var(--basalt-size-hairline)) 0 calc(var(--basalt-space-2-5) - var(--basalt-size-hairline));
+    /* 12 on both sides with the rim (DECISIONS 336, S11): the chosen ring fills its seat, so it takes the words' padding. */
+    padding-block: 0;
+    padding-inline: calc(var(--basalt-space-3) - var(--basalt-size-hairline));
     border: var(--basalt-size-hairline) solid var(--basalt-border-field);
     border-radius: var(--basalt-radius-md);
     background: transparent;
