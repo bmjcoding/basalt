@@ -6,7 +6,7 @@ import fs from "node:fs";
 import { after, before, describe, test } from "node:test";
 
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
-import { ENDS, HARBOR, SLATE, SOURCES, SWEEP } from "../../../packages/react/test/release-fixture.mjs";
+import { ENDS, HARBOR, SLATE, SOURCE_LINES, SOURCES, SWEEP } from "../../../packages/react/test/release-fixture.mjs";
 import { pageBody, releaseNotesHtml, versionLink } from "../../changelog/skill-body.mjs";
 import { launch } from "./support.mjs";
 
@@ -370,6 +370,19 @@ describe("where a release ends (DECISIONS 331)", () => {
       assert.ok(Math.abs(m.plateWidth - (m.width + 16)) <= 0.5, `the plate is ${m.plateWidth} wide on a ${m.width} header`);
       assert.ok(m.head > 50, "the header holds the number, the date and the counts");
       await context.close();
+    });
+  }
+
+  for (const width of [968, 1024, 820]) {
+    test(`beside the words a source line is one line, and the words give way (recheck-pixels 2, ${width})`, async () => {
+      for (const body of [SLATE_BODY, HARBOR_BODY]) {
+        const { page, context } = await open(body, { width, javaScriptEnabled: false });
+        const rows = await page.evaluate(`(${SOURCE_LINES})("")`);
+        assert.ok(rows.length >= 5);
+        assert.deepEqual(rows.filter((row) => row.lines !== 1).map((row) => `${row.id}: ${row.lines} lines`), []);
+        assert.deepEqual(rows.filter((row) => Math.abs(row.offset) > 2).map((row) => `${row.id}: ${row.offset}`), [], "each source line stands on its words' first line");
+        await context.close();
+      }
     });
   }
 

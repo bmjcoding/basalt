@@ -6,7 +6,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { after, before, describe, test } from "node:test";
 
-import { ENDS, HARBOR, RUNNING_BUILD, SLATE, SOURCES, SWEEP, harborShell } from "./release-fixture.mjs";
+import { ENDS, HARBOR, RUNNING_BUILD, SLATE, SOURCE_LINES, SOURCES, SWEEP, harborShell } from "./release-fixture.mjs";
 import { bundleFixture, fixturePage, launch, pkg, settle } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
@@ -331,6 +331,29 @@ describe("the header, the lazy panel and long sources", () => {
       assert.ok(Math.max(...rows.map((row) => row.labelToValue)) - Math.min(...rows.map((row) => row.labelToValue)) <= 0.5, `${id}: ${rows.map((row) => `${row.term} ${row.labelToValue}`)}`);
       await page.keyboard.press("Escape");
       await page.waitForTimeout(100);
+    }
+  });
+
+  for (const width of [968, 1024, 820]) {
+    test(`beside the words a source line is one line, and the words give way (recheck-pixels 2, ${width})`, async () => {
+      const page = await open(SLATE_PAGE(), { width, height: 900 });
+      await openAll(page);
+      const rows = await page.evaluate(`(${SOURCE_LINES})("basalt-")`);
+      assert.ok(rows.length >= 10);
+      assert.deepEqual(rows.filter((row) => row.lines !== 1).map((row) => `${row.id}: ${row.lines} lines`), []);
+      assert.deepEqual(rows.filter((row) => Math.abs(row.offset) > 2).map((row) => `${row.id}: ${row.offset}`), [], "each source line stands on its words' first line");
+    });
+  }
+
+  test("an id longer than its column's share breaks inside itself, and its first line stands beside the words' first line (recheck-pixels 2)", async () => {
+    const long = structuredClone(SLATE);
+    long.find((r) => r.version === "0.2.0").entries.find((e) => e.id === "pr41-1").tickets.unshift({ tracker: "Linear", label: `SL-${"9".repeat(100)}`, href: "https://linear.app/example/issue/SL-9" });
+    for (const width of [968, 1440]) {
+      const page = await open(`const SLATE_LONG = ${JSON.stringify(long)}; ${SLATE_PAGE().replace(/releases=\{SLATE\}/g, "releases={SLATE_LONG}")}`, { width, height: 900 });
+      const row = (await page.evaluate(`(${SOURCE_LINES})("basalt-")`)).find((r) => r.id === "pr41-1");
+      assert.ok(row.tall > 40, `the long id breaks inside itself (${row.tall})`);
+      assert.ok(Math.abs(row.offset) <= 2, `its first line is beside the words' first line (${row.offset})`);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), width);
     }
   });
 

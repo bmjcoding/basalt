@@ -190,3 +190,14 @@ export const SOURCES = () => {
     return out;
   });
 };
+
+/**
+ * Each drawn source line (recheck-pixels 2), in the page with the class prefix ("basalt-" for React, "" for the HTML skill): how many lines its ids
+ * stand on, its tallest id (an id long enough breaks inside itself), and how far its first id stands from its words' first line.
+ */
+export const SOURCE_LINES = (p) => [...document.querySelectorAll(`.${p}release-source`)].filter((b) => b.checkVisibility()).map((b) => {
+  const entry = b.closest(`.${p}release-entry`);
+  const ids = [...b.querySelectorAll(`.${p}release-id`)].map((id) => id.getBoundingClientRect());
+  const words = entry.querySelector(`.${p}release-entry-text`).getBoundingClientRect().top;
+  return { id: entry.id, lines: new Set(ids.map((q) => Math.round(q.top))).size, tall: Math.max(...ids.map((q) => q.height)), offset: Math.round(Math.min(...ids.map((q) => q.top)) - words) };
+});
