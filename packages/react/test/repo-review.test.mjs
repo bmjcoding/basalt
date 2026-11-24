@@ -153,3 +153,34 @@ describe("DialogContent", () => {
     } finally { await page.close(); }
   });
 });
+
+describe("diagrams and the safe-sinks rule", () => {
+  test("a diagram's words from data are drawn as text, and a mark that is not a relative path, https or a data: image is not drawn", async () => {
+    const { page } = await fixturePage(browser, `window.__hits = []; window.__x = (n) => window.__hits.push(n);
+      const p = (n) => "<img src=x onerror=__x(" + n + ")>"; const a = (n) => '"><img src=x onerror=__x(' + n + ")>";
+      ${render(`<B.ArchitectureDiagram title={"Flow" + p(1)} summary={"S" + p(2)} legend={{ main: "M" + p(3), plain: "P", dashed: "D", focal: "F" + p(4) }}
+        groups={[{ id: "g", label: "G" + p(5) }]}
+        nodes={[{ id: "a", kind: "K" + p(6), name: "A" + p(7), col: 1, row: 1, group: "g" }, { id: "b", name: "B" + a(8), detail: "d" + p(9), focal: true, col: 2, row: 1, mark: { onLight: "javascript:__x(10)" } }]}
+        edges={[{ from: "a", to: "b", kind: "main", label: "L" + p(11) }]} />`)}`, { viewport: { width: 1440, height: 900 } });
+    try {
+      await page.locator("figure").first().waitFor();
+      await settle(page);
+      assert.deepEqual(await page.evaluate(() => [window.__hits, document.querySelectorAll("figure img").length]), [[], 0]);
+      assert.equal(await page.locator(".basalt-diagram-mark").count(), 0, "the javascript: mark is not drawn");
+      assert.match(await page.locator("figure").first().innerText(), /<img src=x onerror=__x\(7\)>/, "the words are there, as text");
+    } finally { await page.close(); }
+  });
+
+  test("LinkTabs under 720 never hands a refused link to onNavigate", async () => {
+    const { page } = await fixturePage(browser, `window.went = [];
+      ${render(`<B.LinkTabs aria-label="Sections" onNavigate={(h) => window.went.push(h)}><B.LinkTab href="/one" current>One</B.LinkTab><B.LinkTab href={"javascript:window.ran=1"}>Two</B.LinkTab><B.LinkTab href="/three">Three</B.LinkTab></B.LinkTabs>`)}`, { viewport: { width: 390, height: 800 } });
+    try {
+      for (const name of ["Two", "Three"]) {
+        await page.locator(".basalt-link-tabs-select .basalt-select-trigger").click();
+        await page.getByRole("option", { name }).click();
+        await settle(page);
+      }
+      assert.deepEqual(await page.evaluate(() => window.went), ["/three"]);
+    } finally { await page.close(); }
+  });
+});

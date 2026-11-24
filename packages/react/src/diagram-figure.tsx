@@ -65,6 +65,7 @@ function toReact(v: VNode, slots: Record<string, React.ReactNode>, ink: { __html
     else props[CAMEL[k] ?? k] = value === true ? (k === "hidden" ? true : "") : value;
   }
   if (typeof v.a.class === "string" && v.a.class.endsWith("-ink")) {
+    // sink: the figure's ink, serialised by diagram-core's h() from the model; every text and attribute is escaped there; test/repo-review.test.mjs (a diagram's hostile labels)
     props.dangerouslySetInnerHTML = ink;
     return React.createElement(v.t, props);
   }

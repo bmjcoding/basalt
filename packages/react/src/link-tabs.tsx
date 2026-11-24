@@ -13,6 +13,7 @@ export interface LinkTabsProps extends Omit<React.ComponentProps<"nav">, "aria-l
   /**
    * Called with a link's `href` when the `Select` under 720px wide chooses it, in place of the default, which is `window.location.assign(href)`. Give it
    * to navigate with an app's router. Focus is never moved: it stays on the `Select`. The row's own links are ordinary links and need no callback.
+   * Basalt calls it only with a destination that passed `safeHref` (relative, `http`, `https`, `mailto` or `tel`); a route that must stay on your origin checks that too.
    */
   onNavigate?: (href: string) => void;
   /**
@@ -70,10 +71,11 @@ export function LinkTabs({ size = "lg", onNavigate, goToLabel = "Go to", classNa
             // also changes Base UI's value (reason "none") and would navigate at once, so it is held: the value stays the current page's.
             if (details.reason !== "item-press") return;
             if (value === null || value === current?.value) return;
-            if (onNavigate) onNavigate(value);
-            // React refuses a script URL in the row's anchor; the same string from the Select is checked here, before the page is sent anywhere.
-            else if (safeHref(value)) window.location.assign(value);
-            else console.error("Basalt: LinkTabs will not navigate to a link that is not relative, http, https or mailto");
+            // React refuses a script URL in the row's anchor; the same string from the Select is checked here, before onNavigate or the page hears of it.
+            const href = safeHref(value);
+            if (href === null) { console.error("Basalt: LinkTabs will not navigate to a link that is not relative, http, https, mailto or tel"); return; }
+            if (onNavigate) onNavigate(href);
+            else window.location.assign(href);
           }}
         />
       </div>

@@ -15,10 +15,8 @@
   var activePalette = null;
   var paletteSeq = 0;
 
-  /** A palette link may be relative, http, https or mailto. javascript:, data: and the rest are refused. Parsed the way a browser parses it. */
-  function safeHref(href) {
-    try { return /^(https?|mailto):$/.test(new URL(String(href), 'https://basalt.invalid/').protocol); } catch (e) { return false; }
-  }
+  // A palette link passes core's check (relative, http, https, mailto or tel).
+  var safeHref = _.safeHref;
 
   /** Keys that belong to an input method editor (composition, or the legacy keyCode 229). They are never commands. */
   function composing(e) { return !!e.isComposing || e.keyCode === 229; }
@@ -76,7 +74,7 @@
     if (o.onSelect) o.onSelect(item);
     if (item.href) {
       if (safeHref(item.href)) location.href = item.href;
-      else console.warn('Basalt: a palette link must be relative, http, https or mailto');
+      else console.warn('Basalt: a palette link must be relative, http, https, mailto or tel');
     }
   }
 

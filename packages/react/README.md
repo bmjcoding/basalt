@@ -40,6 +40,14 @@ Component consumers, and the package entry itself does not: what is neither a co
 helpers) is plain code that a Server Component can call and read. Import the styles and font sheet
 once in your application's root layout.
 
+**Data and links.** Pass labels and code as children: Basalt draws children and string props as text, and no component takes HTML. Two props take
+markup and are for files in your own repository, never for data: `BrandSvg`'s `source` and a diagram mark's file (a relative path, `https` or a
+`data:image/` URI; anything else is not drawn). A destination from data goes through `safeHref(href)`, which returns it when it is relative, `http`,
+`https`, `mailto` or `tel`, and `null` otherwise; leave a refused link out. React refuses `javascript:` in an `href` but not in a navigation you make
+yourself, so check before `router.push` or `location.assign`, in `onNavigate` and `onSelect` too (`LinkTabs` checks before it calls `onNavigate`). The
+check is about the scheme only: a route that must stay on your site also needs its origin checked. Basalt's link components add
+`rel="noopener noreferrer"` to a link that opens a new tab; your own `<a target="_blank">` needs it written.
+
 Set `data-density="compact"` on `<html>` to move controls down one size (24px minimum).
 Portalled menus inherit it too; a nested `data-density="default"` restores regular sizing.
 Touch keeps at least 44px targets in either mode, and text entry stays 16px to avoid iOS

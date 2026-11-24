@@ -82,7 +82,8 @@ async function lazyGraph(names, extra = "") {
 // press (Promise.allSettled, about 90 bytes in every button's graph), the modal guard survives a changed ref and watches for outside controls, a required Field reaches
 // Select, and LinkTabs checks a destination before it navigates. Measured, each limit rounded up to the next 50: Button 17,741 (17,750), CopyButton 18,655 (18,700),
 // DirectoryList 20,118 (20,150), Drawer 18,290 (18,300), NotificationCentre 152,654 (152,700), PeriodStepper 18,033 (18,050), Reveal 19,716 (19,750), TextButton
-// 10,665 (10,700), the toolbar set 58,706 (58,750), LinkTabs 142,054 (142,100), SearchDialog 89,168 (89,200).
+// 10,665 (10,700), the toolbar set 58,706 (58,750), LinkTabs 142,054 (142,100), SearchDialog 89,168 (89,200). The safe-sinks rule (the owner, Fable, Astra and Muse): LinkTabs checks with
+// safeHref before onNavigate, 142,115 (142,150); the modal guard looks only at what is added and skips portals and the toasts, SearchDialog 89,530 (89,550).
 // DECISIONS 221 (the owner: "size limits can be raised yes"): Button 15,600 to 16,150 and Reveal 18,000 to 18,100 (here), the toolbar set 56,050 to 56,350, Terminal 26,600 to 27,000, Pagination
 // 21,600 to 21,750 and NotificationCentre 141,850 to 142,150 with the plugin (below and icons.test.mjs): the controls now draw a core glyph through the morph, and the part every control carries
 // (control-icon.tsx, about 780 bytes in Button) is in each one's static graph; the engine itself is lazy, with its own limit. Measured: Button 16,119, Reveal 18,076, the toolbar set 56,336,
@@ -103,7 +104,7 @@ for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 6_000], ["Skeleto
 // cimip-gaps-2 B5 (DECISIONS 246: trim first, then the raise a feature needs): every modal lays itself out above an on-screen keyboard (the shared
 // watcher, screen-keyboard.ts, trimmed to about 2.4 KB), so SearchDialog rose from about 87,300 to 88,162; merged with main (5ad5345a), whose own
 // changes added about 490 bytes, it measures 88,683, so its limit is 88,700.
-for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 89_200]]) {
+for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 89_550]]) {
   test(`${name} alone, with splitting, loads Base UI's dialog and the close button and no command panel (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes (limit ${limit})`);
@@ -115,7 +116,7 @@ for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 89_200]])
 // OptionChips 37,699 (Base UI's radio group), LinkTabs 140,720 (it carries the Select under 720, DECISIONS 154 A15: Base UI's select and its popup), LinkTab 649 (3,898 once its label takes ChosenLabel, the selected state a Tab's children take: join 2 in integration-nov15b, DECISIONS 138 A, 145, 149; the limit is the measured bytes rounded up to the next 50), TabsPanels 519, useConfirm 399, CONFIRM_MS 185; the limits sit just above.
 // cimip-gaps-2 B6 (DECISIONS 246: trim first, then a raise the feature needs): LinkTabs carries the Select, and `Select toolbar` (the unseen labels that hold its width) adds 212 bytes
 // after a 67-byte trim (no attribute, no class on the labels): measured 141,669, from main's 141,457, so the limit goes from 141,500 to 141,700.
-for (const [name, limit, baseUi] of [["TextButton", 10_700, true], ["SwitchRow", 25_500, true], ["SwitchRowGroup", 11_600, true], ["OptionChips", 38_400, true], ["LinkTabs", 142_100, true], ["LinkTab", 3_900, false], ["TabsPanels", 900, false], ["useConfirm", 800, false], ["CONFIRM_MS", 400, false]]) {
+for (const [name, limit, baseUi] of [["TextButton", 10_700, true], ["SwitchRow", 25_500, true], ["SwitchRowGroup", 11_600, true], ["OptionChips", 38_400, true], ["LinkTabs", 142_150, true], ["LinkTab", 3_900, false], ["TabsPanels", 900, false], ["useConfirm", 800, false], ["CONFIRM_MS", 400, false]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);

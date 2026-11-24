@@ -16,6 +16,13 @@
     "tools/html-skill/src/modules/terminal.js"
   ],
   "rules": {
+    "no-new-func": "error",
+    "no-script-url": "error",
+    "react/jsx-no-script-url": "error",
+    "react/no-danger": "error",
+    "react/jsx-no-target-blank": "error",
+    "react/iframe-missing-sandbox": "error",
+    "unicorn/require-post-message-target-origin": "error",
     "no-control-regex": "off",
     "no-unused-vars": "off",
     "no-unused-expressions": "off",
@@ -48,6 +55,8 @@
       "files": ["**/test/**", "**/*.test.*"],
       "rules": {
         "no-eval": "off",
+        "no-new-func": "off",
+        "no-script-url": "off",
         "import/namespace": "off",
         "typescript/no-misused-spread": "off",
         "no-constant-condition": "off",

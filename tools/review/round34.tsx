@@ -230,6 +230,7 @@ function SkillScriptsOff() {
     watch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     return () => watch.disconnect();
   }, []);
+  // sink: __ROUND34_SKILL_SEGMENT__, a page compose.mjs built at review-build time from a synthetic body; sandboxed with scripts off
   return <iframe ref={ref} title="The HTML skill's chosen segment and tab, scripts off" sandbox="allow-same-origin" srcDoc={__ROUND34_SKILL_SEGMENT__} onLoad={sync} style={{ display: "block", width: 360, height: 130, border: 0 }} />;
 }
 
@@ -391,6 +392,8 @@ function SkillTable() {
   // The skill's own bootstrap chooses a theme as its page loads, so the walkthrough's is written again once it has.
   React.useEffect(() => { const d = ref.current?.contentDocument; if (d?.documentElement) { d.documentElement.setAttribute("data-theme", theme); d.documentElement.style.colorScheme = theme; } }, [theme]);
   const doc = __ROUND34_SKILL_TABLE__;
+  // sink: __ROUND34_SKILL_TABLE__, a page compose.mjs built at review-build time from a synthetic body; same origin so the theme can be written into it
+  // oxlint-disable-next-line react/iframe-missing-sandbox -- same origin and scripts: the theme is written into a page compose.mjs built from a synthetic body
   return <iframe ref={ref} title="The HTML skill's pinned table" srcDoc={doc} onLoad={() => { const d = ref.current?.contentDocument; if (!d) return; d.documentElement.setAttribute("data-theme", theme); d.documentElement.style.colorScheme = theme; const frame = d.getElementById("frame"); if (frame) frame.scrollLeft = 120; }} style={{ display: "block", width: 390, height: 230, border: 0 }} />;
 }
 

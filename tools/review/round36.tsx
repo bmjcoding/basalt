@@ -39,7 +39,9 @@ function Frame({ html, title, height, onReady }: { html: string; title: string; 
     <iframe
       ref={frame}
       title={title}
+      // sink: a page compose.mjs built at review-build time from this round's synthetic bodies; the frame keeps scripts and same origin because onLoad writes the theme into it
       srcDoc={html}
+      // oxlint-disable-next-line react/iframe-missing-sandbox -- scripts and same origin together: onLoad writes the theme into the page compose.mjs built from a synthetic body
       sandbox="allow-scripts allow-same-origin"
       style={{ width: "100%", height, border: "1px solid var(--basalt-border-hairline)", borderRadius: 8, background: "var(--basalt-surface-page)" }}
       onLoad={(e) => {

@@ -505,7 +505,11 @@ function externalReferences(held, markup) {
         if (key === "style") for (const url of cssUrls(value)) found.add(`<${tag.name} style> url(${url})`);
         if (!["src", "href", "xlink:href", "data", "poster", "srcset"].includes(key)) continue;
         const urls = key === "srcset" ? srcsetUrls(value) : [value];
-        for (const url of urls) if (url && !staysInFile(url)) found.add(`<${tag.name} ${key}="${url}">${tag.name === "a" || tag.name === "area" ? " (a link)" : ""}`);
+        for (const url of urls) {
+          if (url && !staysInFile(url)) found.add(`<${tag.name} ${key}="${url}">${tag.name === "a" || tag.name === "area" ? " (a link)" : ""}`);
+          // A script link stays in the file but runs code when followed: listed, so a link written from data is seen (the safe-sinks rule; Basalt.safeHref refuses it).
+          else if (/^\s*javascript:/i.test(url)) found.add(`<${tag.name} ${key}="${url.slice(0, 40)}"> (a script link: runs code when followed)`);
+        }
       }
       at = tag.end - 1;
     }

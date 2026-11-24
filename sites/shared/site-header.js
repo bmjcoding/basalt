@@ -235,6 +235,7 @@
     var bandActions = el('div', 'basalt-bar-actions');
     if (toggle) bandActions.append(stripIds(toggle.cloneNode(true)));
     var close = el('button', 'btn basalt-site-menu-close', { type: 'button', 'data-variant': 'ghost', 'data-icon-only': '', 'aria-label': closeLabel });
+    // sink: GLYPH.close, a drawing this file holds as a constant; nothing from the page; sites/test/site-header.test.mjs
     close.innerHTML = GLYPH.close;
     bandActions.append(close);
     band.append(bandActions);
@@ -318,6 +319,7 @@
       scrim.removeAttribute('data-starting-style');
       trigger.setAttribute('aria-expanded', 'true');
       trigger.setAttribute('aria-controls', id);
+      // sink: GLYPH.close, a drawing this file holds as a constant; nothing from the page; sites/test/site-header.test.mjs
       trigger.innerHTML = GLYPH.close;
       document.documentElement.setAttribute('data-site-menu-open', '');
       // The page under the menu is inert, the live region aside.
@@ -331,6 +333,7 @@
       isOpen = false;
       trigger.setAttribute('aria-expanded', 'false');
       trigger.removeAttribute('aria-controls');
+      // sink: GLYPH.menu, a drawing this file holds as a constant; nothing from the page; sites/test/site-header.test.mjs
       trigger.innerHTML = GLYPH.menu;
       document.documentElement.removeAttribute('data-site-menu-open');
       inerted.forEach(function (n) { n.removeAttribute('inert'); });

@@ -29,14 +29,26 @@ export function inertOutside(popup: Element): () => void {
   return () => { for (const control of made) control.removeAttribute("inert"); };
 }
 
-/** `inertOutside`, kept true while the modal is open: a control that mounts outside it later (a live region's new button) is made inert too. Returns the undo. */
+/**
+ * `inertOutside`, kept true while the modal is open: a control that mounts later in the page outside it (a live region's new button) is made inert too.
+ * Only what is added is looked at, and never what arrives in a portal (a modal or a menu opened above this one owns the keys) or the toast stack. Returns the undo.
+ */
 function guardOutside(popup: Element): () => void {
-  const undos = [inertOutside(popup)];
+  const made: Element[] = [];
+  const undo = inertOutside(popup);
   const added = new MutationObserver((records) => {
-    if (records.some((record) => record.addedNodes.length > 0 && !popup.contains(record.target))) undos.push(inertOutside(popup));
+    for (const record of records) for (const node of record.addedNodes) {
+      if (!(node instanceof Element) || popup.contains(node) || node.contains(popup)) continue;
+      if (node.matches("[data-base-ui-portal]") || node.closest("[data-base-ui-portal], [aria-hidden='true'], [inert], .basalt-toast-viewport")) continue;
+      for (const control of [...(node.matches(CONTROLS) ? [node] : []), ...node.querySelectorAll(CONTROLS)]) {
+        if (control.closest("[data-base-ui-portal], [inert], .basalt-toast-viewport")) continue;
+        control.setAttribute("inert", "");
+        made.push(control);
+      }
+    }
   });
   added.observe(popup.ownerDocument.body, { childList: true, subtree: true });
-  return () => { added.disconnect(); for (const undo of undos) undo(); };
+  return () => { added.disconnect(); undo(); for (const control of made) control.removeAttribute("inert"); };
 }
 
 /**
