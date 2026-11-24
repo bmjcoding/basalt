@@ -278,8 +278,11 @@ for (const theme of THEMES) {
 for (const theme of THEMES) {
   describe(`A3-07 right-to-left tabs (${theme})`, () => {
     const TABS = render(`<B.Tabs defaultValue="b"><B.TabsList aria-label="Sections"><B.Tab value="a">Alpha</B.Tab><B.Tab value="b">Beta tab</B.Tab><B.Tab value="c">Gamma</B.Tab></B.TabsList></B.Tabs>`);
+    // The underline is as wide as the chosen tab's content, never its padding (DECISIONS 358): it is compared with the content's box.
     const under = (page) => page.evaluate(() => {
-      const tab = document.querySelector("[role=tab][aria-selected=true]").getBoundingClientRect();
+      const chosen = document.querySelector("[role=tab][aria-selected=true]");
+      const range = document.createRange(); range.setStartBefore(chosen.firstChild); range.setEndAfter(chosen.lastChild);
+      const tab = range.getBoundingClientRect();
       const bar = document.querySelector(".basalt-tabs-indicator").getBoundingClientRect();
       return { tab: [Math.round(tab.left), Math.round(tab.right)], bar: [Math.round(bar.left), Math.round(bar.right)] };
     });
@@ -287,7 +290,7 @@ for (const theme of THEMES) {
       const { page } = await fixturePage(browser, TABS, { theme, viewport: { width: 700, height: 300 } });
       await settle(page);
       await page.evaluate(() => { document.documentElement.dir = "rtl"; });
-      await page.waitForFunction(() => { const t = document.querySelector("[role=tab][aria-selected=true]").getBoundingClientRect(); const b = document.querySelector(".basalt-tabs-indicator").getBoundingClientRect(); return Math.abs(t.left - b.left) < 1.5 && Math.abs(t.right - b.right) < 1.5; }, null, { timeout: 3000 }).catch(() => {});
+      await page.waitForFunction(() => { const c = document.querySelector("[role=tab][aria-selected=true]"); const r = document.createRange(); r.setStartBefore(c.firstChild); r.setEndAfter(c.lastChild); const t = r.getBoundingClientRect(); const b = document.querySelector(".basalt-tabs-indicator").getBoundingClientRect(); return Math.abs(t.left - b.left) < 1.5 && Math.abs(t.right - b.right) < 1.5; }, null, { timeout: 3000 }).catch(() => {});
       await settle(page);
       const pos = await under(page);
       assert.deepEqual(pos.bar, pos.tab, `underline ${pos.bar} under tab ${pos.tab}`);

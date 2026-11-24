@@ -112,6 +112,44 @@ export function TabsList({ className, children, ref, ...props }: TabsListProps) 
     observer.observe(element.ownerDocument, { attributes: true, attributeFilter: ["dir"], subtree: true });
     return () => observer.disconnect();
   }, [orientation]);
+  // The underline is as wide as the chosen tab's content (its label, icon and count), never its padding (DECISIONS 358). The chosen tab's
+  // physical insets to its content are written on the list (--_line-left, --_line-right), which the indicator reads. They are measured again
+  // when the choice moves, when the chosen tab changes size (fonts arriving) and when the direction flips; until then the padding stands in.
+  React.useLayoutEffect(() => {
+    const element = list.current;
+    if (!element || orientation === "vertical") return undefined;
+    let watched: Element | null = null;
+    const sizes = new ResizeObserver(() => measure());
+    const measure = () => {
+      const tab = element.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+      if (tab !== watched) {
+        if (watched) sizes.unobserve(watched);
+        if (tab) sizes.observe(tab);
+        watched = tab;
+      }
+      if (!tab || !tab.firstChild) {
+        element.style.removeProperty("--_line-left");
+        element.style.removeProperty("--_line-right");
+        return;
+      }
+      const range = element.ownerDocument.createRange();
+      range.setStartBefore(tab.firstChild);
+      range.setEndAfter(tab.lastChild as Node);
+      const content = range.getBoundingClientRect();
+      const box = tab.getBoundingClientRect();
+      element.style.setProperty("--_line-left", `${content.left - box.left}px`);
+      element.style.setProperty("--_line-right", `${box.right - content.right}px`);
+    };
+    measure();
+    const choice = new MutationObserver(measure);
+    choice.observe(element, { attributes: true, attributeFilter: ["aria-selected"], subtree: true });
+    return () => {
+      choice.disconnect();
+      sizes.disconnect();
+      element.style.removeProperty("--_line-left");
+      element.style.removeProperty("--_line-right");
+    };
+  }, [orientation, flips]);
   return (
     <BaseTabs.List {...props} ref={setRef} className={withClass("basalt-tabs-list", className)}>
       {/* A vertical list is a column of pills in a track: one pill slides to the chosen tab, as the segmented control's does.

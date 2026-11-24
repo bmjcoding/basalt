@@ -330,7 +330,7 @@
   "TableRowHead": 194,
   "TableScrollHint": 938,
   "Tabs": 37233,
-  "TabsList": 38792,
+  "TabsList": 39633,
   "TabsPanel": 36621,
   "TabsPanels": 331,
   "Terminal": 42441,
@@ -433,11 +433,11 @@
   }
  },
  "package": {
-  "bytes": 948167,
-  "gzip": 316004
+  "bytes": 949001,
+  "gzip": 316218
  },
  "styles": {
-  "bytes": 468713,
-  "gzip": 60543
+  "bytes": 469797,
+  "gzip": 60660
  }
 }
