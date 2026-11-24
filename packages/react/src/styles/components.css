@@ -7360,10 +7360,6 @@
     .basalt-release > :is(.basalt-release-all, .basalt-release-section[data-folded]):last-child .basalt-accordion-content { padding-bottom: calc((var(--basalt-size-tap-min) - var(--basalt-text-md-line-height)) / 2); }
     .basalt-release > .basalt-release-build:last-child { margin-bottom: calc((var(--basalt-text-base-line-height) - var(--basalt-size-tap-min)) / 2); }
     .basalt-release > .basalt-release-build:last-child .basalt-accordion-content { padding-bottom: calc((var(--basalt-size-tap-min) - var(--basalt-text-base-line-height)) / 2); }
-    /* In the Sources panel each linked value is a row of its own, 44 tall, so no link's box reaches another's. */
-    .basalt-release-sources .basalt-description-details:has(a) { display: flex; align-items: center; min-height: var(--basalt-size-tap-min); margin-top: 0; }
-    .basalt-release-sources .basalt-description-details a { position: relative; }
-    .basalt-release-sources .basalt-description-details a::after { content: ""; position: absolute; top: 50%; left: 50%; /* physical: it is centred, in either direction */ width: max(100%, var(--basalt-size-tap-min)); height: var(--basalt-size-tap-min); transform: translate(-50%, -50%); }
     /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px): a container query cannot read a custom property */
     @container (width < 640px) {
       .basalt-text-button.basalt-release-source { padding-block: calc((var(--basalt-size-control-xs) - var(--basalt-text-base-line-height)) / 2); margin-block: calc((var(--basalt-text-base-line-height) - var(--basalt-size-control-xs)) / 2); line-height: var(--basalt-text-base-line-height); }
@@ -7373,13 +7369,31 @@
     }
   }
 
+  /* The Sources panel on touch, and in any window under 720 (DECISIONS 331, recheck-pixels 4): a linked value keeps its 20px line and its place after
+     the tracker's name, and its 44px box is hit area that takes no room. The rows are space-3 above and below, so a link's box ends on its row's
+     divider; two linked values in one row stand space-6 apart, so their boxes meet and do not overlap. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
+    .basalt-release-sources .basalt-description-item { padding-block: var(--basalt-space-3); }
+    .basalt-release-sources .basalt-description-item:first-child { padding-top: 0; }
+    .basalt-release-sources .basalt-description-item:last-child { padding-bottom: 0; }
+    .basalt-release-sources .basalt-description-details a { position: relative; display: inline; min-width: 0; min-height: 0; margin-block: 0; }
+    .basalt-release-sources .basalt-description-details a::after { content: ""; position: absolute; top: 50%; left: 50%; /* physical: it is centred, in either direction */ width: max(100%, var(--basalt-size-tap-min)); height: var(--basalt-size-tap-min); transform: translate(-50%, -50%); }
+    .basalt-release-sources .basalt-description-details:has(a) + .basalt-description-details:has(a) { margin-top: var(--basalt-space-6); }
+    /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px): a container query cannot read a custom property */
+    @container (width < 480px) {
+      .basalt-release-sources .basalt-description-details:has(a) + .basalt-description-details:has(a) { margin-top: calc(var(--basalt-space-6) - var(--basalt-space-0-5)); }
+    }
+  }
+
   /* The entry, or the release, a link opened: the stream's arrival (the plate and the word "Linked"). An entry takes the plate itself, a release
      on its header. Tertiary words on the plate step to secondary; in forced colours the plate goes and the word stays. */
   .basalt-release-entry[data-arrival] { isolation: isolate; }
   /* A change that has arrived keeps its padding in every place, for as long as its "Linked" line is held: the plate is a drawn box, equal above its
      first line and under its last (DECISIONS 331). */
   .basalt-release .basalt-release-entry:has(> .basalt-release-word) { padding-bottom: var(--_release-entry-pad); }
-  .basalt-release[data-arrival] > .basalt-release-head::before { grid-column: 1 / -1; grid-row: 1 / -1; }
+  /* The header's plate is placed by no grid line, so it is the whole header's padding box (number, date, headline and counts), not the first row:
+     an absolutely placed item with no lines takes the grid's padding edges, and the head's rows are implicit (recheck-pixels 3). */
   :is(.basalt-release-entry[data-arrival], .basalt-release[data-arrival] > .basalt-release-head)::before {
     content: ""; position: absolute; z-index: -1; inset: calc(-1 * var(--basalt-space-1)) calc(-1 * var(--basalt-space-2)); border-radius: var(--basalt-radius-md); pointer-events: none;
     background-color: transparent; transition: background-color calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in);
@@ -7387,7 +7401,6 @@
   :is(.basalt-release-entry[data-arrived], .basalt-release[data-arrived] > .basalt-release-head)::before { background-color: var(--basalt-plate); transition-duration: var(--basalt-duration-instant); }
   :is(.basalt-release-entry[data-arrived], .basalt-release[data-arrived] > .basalt-release-head) .basalt-release-count { color: var(--basalt-text-secondary); }
   @media (forced-colors: active) {
-    .basalt-release[data-arrival] > .basalt-release-head::before { grid-column: 1 / -1; grid-row: 1 / -1; }
   :is(.basalt-release-entry[data-arrival], .basalt-release[data-arrival] > .basalt-release-head)::before { display: none; }
   }
 

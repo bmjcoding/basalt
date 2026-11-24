@@ -6,7 +6,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { after, before, describe, test } from "node:test";
 
-import { ENDS, HARBOR, RUNNING_BUILD, SLATE, SWEEP, harborShell } from "./release-fixture.mjs";
+import { ENDS, HARBOR, RUNNING_BUILD, SLATE, SOURCES, SWEEP, harborShell } from "./release-fixture.mjs";
 import { bundleFixture, fixturePage, launch, pkg, settle } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
@@ -310,6 +310,30 @@ describe("the header, the lazy panel and long sources", () => {
     assert.deepEqual(rows.filter((row) => row.hit < 44).map((row) => `${row.label}: ${row.hit}`), []);
   });
 
+  test("Sources on touch: a linked value keeps its 20px line and its place after the tracker's name; rows are space-3 above and below; boxes end on their row's edge (recheck-pixels 4)", async () => {
+    const page = await open(SLATE_PAGE(), { width: 390, height: 844, hasTouch: true });
+    for (const id of ["pr41-1", "pr46-1"]) {
+      await page.locator(`[id="${id}"] .basalt-release-source`).click();
+      await page.locator(".basalt-release-sources a").first().waitFor();
+      await page.waitForTimeout(100);
+      const rows = await page.evaluate(`(${SOURCES})()`);
+      assert.ok(rows.length >= 3, id);
+      for (const row of rows) {
+        assert.deepEqual(row.heights.filter((h) => Math.abs(h - 20) > 0.5), [], `${id} ${row.term}: every value is one 20px line`);
+        assert.deepEqual(row.nameGaps.filter((g) => g < 2), [], `${id} ${row.term}: the tracker's name keeps its space`);
+        assert.deepEqual(row.boxes.filter((h) => h !== 44), [], `${id} ${row.term}: each link's box is 44`);
+        if (!row.first) assert.equal(row.padTop, "12px", `${id} ${row.term}`);
+        if (!row.last) assert.equal(row.padBottom, "12px", `${id} ${row.term}`);
+        if (!row.last && row.lastBoxToEdge !== undefined) assert.ok(Math.abs(row.lastBoxToEdge) <= 1, `${id} ${row.term}: the box ends ${row.lastBoxToEdge} from the row's edge`);
+        for (const gap of row.linkedPairs) assert.ok(Math.abs(gap) <= 1, `${id} ${row.term}: two linked values' boxes meet (${gap})`);
+      }
+      // A linked value stands under its label as an unlinked one does.
+      assert.ok(Math.max(...rows.map((row) => row.labelToValue)) - Math.min(...rows.map((row) => row.labelToValue)) <= 0.5, `${id}: ${rows.map((row) => `${row.term} ${row.labelToValue}`)}`);
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(100);
+    }
+  });
+
   test("a long source id keeps to the release's width beside the words, and breaks inside itself", async () => {
     const long = `PRJ-${"9".repeat(100)}`;
     const release = { version: "3.0.0", date: "2026-12-01", entries: [{ id: "pr60-1", type: "fixed", bump: "patch", area: "List", text: "Fixed the list losing its place", pr: { number: 60, href: "https://example.test/pull/60" }, tickets: [{ tracker: "Jira", label: long }] }] };
@@ -448,6 +472,22 @@ describe("where a release ends (DECISIONS 331)", () => {
     const control = await page.evaluate(`(${ENDS})("basalt-")`);
     assert.deepEqual(control.taps.find((t) => t.name.startsWith("pr41-1:")).meets, ["Probe"]);
   });
+
+  for (const [width, touch] of [[390, true], [1440, false]]) {
+    test(`an arrived release's plate covers its whole header: the number, the date and the counts (recheck-pixels 3, ${width})`, async () => {
+      const page = await open(SLATE_SITE_PAGE('arrived="v0.2.0"'), { width, height: 900, hasTouch: touch, reducedMotion: "reduce" });
+    const m = await page.evaluate((sel) => {
+        const head = document.querySelector(sel);
+        const q = head.getBoundingClientRect();
+        const ps = getComputedStyle(head, "::before");
+        return { head: q.height, width: q.width, plate: parseFloat(ps.height), plateWidth: parseFloat(ps.width), top: parseFloat(ps.top) };
+      }, '[id="v0.2.0"] > .basalt-release-head');
+      // The plate is the whole header grown by space-1 above and below and space-2 at each side, not its first row.
+      assert.ok(Math.abs(m.plate - (m.head + 8)) <= 0.5, `the plate is ${m.plate} tall on a ${m.head} header`);
+      assert.ok(Math.abs(m.plateWidth - (m.width + 16)) <= 0.5, `the plate is ${m.plateWidth} wide on a ${m.width} header`);
+      assert.ok(m.head > 50, "the header holds the number, the date and the counts");
+    });
+  }
 
   test("what follows a release list stands at least space-3 below it, so a last change's box reaches no further than the page's gap", async () => {
     for (const [name, jsx, width, touch] of [["Slate", SLATE_SITE_PAGE(), 390, true], ["Slate", SLATE_SITE_PAGE(), 1440, false], ["Harbor", harborShell(), 390, true]]) {

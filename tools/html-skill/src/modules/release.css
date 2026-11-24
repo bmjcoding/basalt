@@ -159,10 +159,6 @@
     .release > :is(.release-all, .release-section[data-folded]):last-child > .release-fold-panel:not([hidden]) { padding-bottom: calc((var(--basalt-size-tap-min) - var(--basalt-text-md-line-height)) / 2); }
     .release > .release-build:last-child { margin-bottom: calc((var(--basalt-text-base-line-height) - var(--basalt-size-tap-min)) / 2); }
     .release > .release-build:last-child > .release-fold-panel:not([hidden]) { padding-bottom: calc((var(--basalt-size-tap-min) - var(--basalt-text-base-line-height)) / 2); }
-    /* In the Sources panel each linked value is a row of its own, 44 tall, so no link's box reaches another's. */
-    .release-sources dd:has(a) { display: flex; align-items: center; min-height: var(--basalt-size-tap-min); margin-top: 0; }
-    .release-sources dd a { position: relative; }
-    .release-sources dd a::after { content: ""; position: absolute; top: 50%; left: 50%; /* physical: it is centred, in either direction */ width: max(100%, var(--basalt-size-tap-min)); height: var(--basalt-size-tap-min); transform: translate(-50%, -50%); }
     /* size-breakpoint-container-lg: a container query cannot read a token, so the build writes its value here */
     @container (width < %bp-container-lg%) {
       .release-source { padding-block: calc((var(--basalt-size-control-xs) - var(--basalt-text-base-line-height)) / 2); margin-block: calc((var(--basalt-text-base-line-height) - var(--basalt-size-control-xs)) / 2); line-height: var(--basalt-text-base-line-height); }
@@ -172,13 +168,30 @@
     }
   }
 
+  /* The Sources panel on touch, and in any window under 720 (DECISIONS 331, recheck-pixels 4): a linked value keeps its 20px line and its place after
+     the tracker's name, and its 44px box is hit area that takes no room. The rows are space-3 above and below, so a link's box ends on its row's
+     divider; two linked values in one row stand space-6 apart, so their boxes meet and do not overlap. */
+  @media (pointer: coarse), (width < %bp-md%) {
+    .release-sources .dlist > div { padding-block: var(--basalt-space-3); }
+    .release-sources .dlist > div:first-child { padding-top: 0; }
+    .release-sources .dlist > div:last-child { padding-bottom: 0; }
+    .release-sources dd a { position: relative; display: inline; min-width: 0; min-height: 0; margin-block: 0; }
+    .release-sources dd a::after { content: ""; position: absolute; inset-block: auto; top: 50%; left: 50%; /* physical: it is centred, in either direction */ width: max(100%, var(--basalt-size-tap-min)); height: var(--basalt-size-tap-min); transform: translate(-50%, -50%); }
+    .release-sources dd:has(a) + dd:has(a) { margin-top: var(--basalt-space-6); }
+    /* size-breakpoint-container: a container query cannot read a token, so the build writes its value here */
+    @container (width < %bp-container%) {
+      .release-sources dd:has(a) + dd:has(a) { margin-top: calc(var(--basalt-space-6) - var(--basalt-space-0-5)); }
+    }
+  }
+
   /* The entry, or the release, a link opened: the stream's arrival (the plate and the word "Linked"). An entry takes the plate itself, a release
      on its header. Tertiary words on the plate step to secondary; in forced colours the plate goes and the word stays. */
   .release-entry[data-arrival] { isolation: isolate; }
   /* A change that has arrived keeps its padding in every place, for as long as its "Linked" line is held: the plate is a drawn box, equal above its
      first line and under its last (DECISIONS 331). */
   .release .release-entry[data-arrival] { padding-bottom: var(--_release-entry-pad); }
-  .release[data-arrival] > .release-head::before { grid-column: 1 / -1; grid-row: 1 / -1; }
+  /* The header's plate is placed by no grid line, so it is the whole header's padding box (number, date, headline and counts), not the first row:
+     an absolutely placed item with no lines takes the grid's padding edges, and the head's rows are implicit (recheck-pixels 3). */
   :is(.release-entry[data-arrival], .release[data-arrival] > .release-head)::before {
     content: ""; position: absolute; z-index: -1; inset: calc(-1 * var(--basalt-space-1)) calc(-1 * var(--basalt-space-2)); border-radius: var(--basalt-radius-md); pointer-events: none;
     background-color: transparent; transition: background-color calc(var(--basalt-duration-slow) * 0.75) var(--basalt-ease-in);
@@ -186,7 +199,6 @@
   :is(.release-entry[data-arrived], .release[data-arrived] > .release-head)::before { background-color: var(--basalt-plate); transition-duration: var(--basalt-duration-instant); }
   :is(.release-entry[data-arrived], .release[data-arrived] > .release-head) .release-count { color: var(--basalt-text-secondary); }
   @media (forced-colors: active) {
-    .release[data-arrival] > .release-head::before { grid-column: 1 / -1; grid-row: 1 / -1; }
   :is(.release-entry[data-arrival], .release[data-arrival] > .release-head)::before { display: none; }
   }
 

@@ -163,3 +163,30 @@ export const ENDS = (p) => {
   }
   return { ends, taps, plates, under };
 };
+
+/**
+ * The open Sources panel's rows on touch (DECISIONS 331, recheck-pixels 4), in either renderer (both write a dl of div rows of dt and dd): each value's
+ * height, the room between a tracker's name and its linked id, each row's padding, where a last linked value's 44px box ends against its row's edge,
+ * the distance between two linked values in one row, and the room from each row's label to its first value.
+ */
+export const SOURCES = () => {
+  const panel = [...document.querySelectorAll("[popover]:popover-open, .basalt-release-sources")].find((el) => el.matches(".release-sources, .basalt-release-sources") && el.checkVisibility());
+  const R = (el) => el.getBoundingClientRect();
+  const f = (n) => Math.round(n * 100) / 100;
+  const box = (a) => { const q = R(a); const h = parseFloat(getComputedStyle(a, "::after").height); const c = (q.top + q.bottom) / 2; return { t: c - h / 2, b: c + h / 2, h }; };
+  const rows = [...panel.querySelectorAll("dl > div")];
+  return rows.map((row, i) => {
+    const cs = getComputedStyle(row);
+    const values = [...row.querySelectorAll("dd")];
+    const linked = values.filter((dd) => dd.querySelector("a"));
+    const out = { term: row.querySelector("dt").textContent.trim(), padTop: cs.paddingTop, padBottom: cs.paddingBottom, first: i === 0, last: i === rows.length - 1 };
+    out.heights = values.map((dd) => f(R(dd).height));
+    out.labelToValue = f(R(values[0]).top - R(row.querySelector("dt")).bottom);
+    out.nameGaps = linked.map((dd) => { const text = [...dd.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim()); if (!text) return null; const range = document.createRange(); range.selectNodeContents(text); const words = [...range.getClientRects()].filter((q) => q.width).at(-1); return f(R(dd.querySelector("a")).left - words.right); }).filter((g) => g !== null);
+    out.boxes = linked.map((dd) => box(dd.querySelector("a")).h);
+    const lastValue = values.at(-1);
+    if (lastValue?.querySelector("a")) out.lastBoxToEdge = f(R(row).bottom - box(lastValue.querySelector("a")).b);
+    out.linkedPairs = values.slice(1).map((dd, k) => [values[k], dd]).filter(([a, b]) => a.querySelector("a") && b.querySelector("a")).map(([a, b]) => f(box(b.querySelector("a")).t - box(a.querySelector("a")).b));
+    return out;
+  });
+};

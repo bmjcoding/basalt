@@ -6,7 +6,7 @@ import fs from "node:fs";
 import { after, before, describe, test } from "node:test";
 
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
-import { ENDS, HARBOR, SLATE, SWEEP } from "../../../packages/react/test/release-fixture.mjs";
+import { ENDS, HARBOR, SLATE, SOURCES, SWEEP } from "../../../packages/react/test/release-fixture.mjs";
 import { pageBody, releaseNotesHtml, versionLink } from "../../changelog/skill-body.mjs";
 import { launch } from "./support.mjs";
 
@@ -211,6 +211,31 @@ describe("the Sources panel: Safari's keyboard and touch", () => {
     }
   });
 
+  test("Sources on touch: a linked value keeps its 20px line and its place after the tracker's name; rows are space-3 above and below; boxes end on their row's edge (recheck-pixels 4)", async () => {
+    const { page, context } = await open(SLATE_BODY, { width: 390, hasTouch: true });
+    for (const id of ["pr41-1", "pr46-1"]) {
+      await page.locator(`[id="${id}"] .release-source`).click();
+      await page.locator(".release-sources:popover-open a").first().waitFor();
+      await page.waitForTimeout(100);
+      const rows = await page.evaluate(`(${SOURCES})()`);
+      assert.ok(rows.length >= 3, id);
+      for (const row of rows) {
+        assert.deepEqual(row.heights.filter((h) => Math.abs(h - 20) > 0.5), [], `${id} ${row.term}: every value is one 20px line`);
+        assert.deepEqual(row.nameGaps.filter((g) => g < 2), [], `${id} ${row.term}: the tracker's name keeps its space`);
+        assert.deepEqual(row.boxes.filter((h) => h !== 44), [], `${id} ${row.term}: each link's box is 44`);
+        if (!row.first) assert.equal(row.padTop, "12px", `${id} ${row.term}`);
+        if (!row.last) assert.equal(row.padBottom, "12px", `${id} ${row.term}`);
+        if (!row.last && row.lastBoxToEdge !== undefined) assert.ok(Math.abs(row.lastBoxToEdge) <= 1, `${id} ${row.term}: the box ends ${row.lastBoxToEdge} from the row's edge`);
+        for (const gap of row.linkedPairs) assert.ok(Math.abs(gap) <= 1, `${id} ${row.term}: two linked values' boxes meet (${gap})`);
+      }
+      // A linked value stands under its label as an unlinked one does.
+      assert.ok(Math.max(...rows.map((row) => row.labelToValue)) - Math.min(...rows.map((row) => row.labelToValue)) <= 0.5, `${id}: ${rows.map((row) => `${row.term} ${row.labelToValue}`)}`);
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(100);
+    }
+    await context.close();
+  });
+
   test("on touch at 390 every link in the open panel is 44 tall to a finger", async () => {
     const { page, context } = await open(SLATE_BODY, { width: 390, hasTouch: true });
     await page.locator('[id="pr46-1"] .release-source').click();
@@ -328,6 +353,23 @@ describe("where a release ends (DECISIONS 331)", () => {
         assert.ok(Math.abs(plate.above - plate.under) <= 0.5, `${id}: the plate is ${plate.above} above and ${plate.under} under`);
         await context.close();
       }
+    });
+  }
+
+  for (const [width, touch] of [[390, true], [1440, false]]) {
+    test(`an arrived release's plate covers its whole header: the number, the date and the counts (recheck-pixels 3, ${width})`, async () => {
+      const { page, context } = await open(SLATE_BODY, { width, hasTouch: touch, fragment: "#v0.2.0", reducedMotion: "reduce" });
+    const m = await page.evaluate((sel) => {
+        const head = document.querySelector(sel);
+        const q = head.getBoundingClientRect();
+        const ps = getComputedStyle(head, "::before");
+        return { head: q.height, width: q.width, plate: parseFloat(ps.height), plateWidth: parseFloat(ps.width), top: parseFloat(ps.top) };
+      }, '[id="v0.2.0"] > .release-head');
+      // The plate is the whole header grown by space-1 above and below and space-2 at each side, not its first row.
+      assert.ok(Math.abs(m.plate - (m.head + 8)) <= 0.5, `the plate is ${m.plate} tall on a ${m.head} header`);
+      assert.ok(Math.abs(m.plateWidth - (m.width + 16)) <= 0.5, `the plate is ${m.plateWidth} wide on a ${m.width} header`);
+      assert.ok(m.head > 50, "the header holds the number, the date and the counts");
+      await context.close();
     });
   }
 
