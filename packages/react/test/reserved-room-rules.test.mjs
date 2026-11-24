@@ -8,6 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
+import * as React from "react";
 import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -263,7 +264,10 @@ describe("Markup", () => {
     assert.match(html(h(B.Sheet, { open: true }, h(B.SheetHeader, { closeLabel: "Close" }, "Cart"))), /data-edge="end" class="basalt-button basalt-sheet-close"/);
     assert.match(html(h(B.SiteHeader, { brand: "Orbit", links: [{ href: "/", label: "Home" }] })), /data-edge="end" class="basalt-dialog-trigger basalt-button basalt-site-menu-trigger"/);
     const social = html(h(B.SocialLinks, { iconOnly: true, "aria-label": "Elsewhere" }, h(B.SocialLink, { service: "github", href: "#a" }, "GitHub"), h(B.SocialLink, { service: "github", href: "#b" }, "Mirror")));
-    assert.equal((social.match(/data-edge="start"/g) ?? []).length, 1, "only the first mark is hung");
+    assert.equal((social.match(/data-edge="start"/g) ?? []).length, 2, "every mark carries the edge");
+    const fragment = html(h(B.SocialLinks, { iconOnly: true, "aria-label": "Elsewhere" }, h(React.Fragment, null, h(B.SocialLink, { service: "github", href: "#a" }, "GitHub"), h(B.SocialLink, { service: "x", href: "#b" }, "X"))));
+    assert.equal((fragment.match(/<li class="basalt-social-item">/g) ?? []).length, 2, "a fragment's links are items of the row");
+    assert.ok(ruleFor(REACT, '.basalt-social-links[data-icon-only] > .basalt-social-item:not(:first-child)').some((r) => decl(r.body, "--basalt-edge-room-start") === "initial" && decl(r.body, "--basalt-edge-room") === "initial"), "only the first rendered item has the room");
   });
   test("the popups that cannot render on a server hang their controls in source: the search's Close, the notification popup, the checklist foot, the More sheet", () => {
     const src = (file) => read(`packages/react/src/${file}`);
