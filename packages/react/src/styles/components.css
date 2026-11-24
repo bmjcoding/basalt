@@ -4397,12 +4397,12 @@
     .basalt-run-stages .basalt-run-stage-meta { display: none; }
     .basalt-run-stages .basalt-run-stage-line { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto; }
   }
-  /* The connector: 1px of border-input on the marks' centre line, from space-1 under one mark to space-1 above the next, beside an open detail too. It
+  /* The connector: 1px of border-input, its end edge on the marks' centre line, from space-1 under one mark to space-1 above the next, beside an open detail too. It
      never fills, breaks, moves or changes with a state: the mark and its word carry the state. A real border, so forced colours keep it. */
   .basalt-run-stages > .basalt-run-stage:not(:last-child)::after {
     content: "";
     position: absolute;
-    inset-inline-start: round(down, calc(var(--basalt-size-icon-sm) / 2 - var(--basalt-size-hairline) / 2), var(--basalt-size-hairline));
+    inset-inline-start: calc(var(--basalt-size-icon-sm) / 2 - var(--basalt-size-hairline));
     inset-block-start: calc(var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-1));
     inset-block-end: calc(-1 * (var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 - var(--basalt-size-icon-sm) / 2 - var(--basalt-space-1)));
     border-inline-start: var(--basalt-size-hairline) solid var(--basalt-border-input);
@@ -4460,7 +4460,7 @@
     .basalt-run-rail:is([data-count="5"], [data-count="6"]) > .basalt-run-stage:not(:last-child)::after {
       content: "";
       position: absolute;
-      inset-inline-start: round(down, calc(var(--basalt-size-icon-sm) / 2 - var(--basalt-size-hairline) / 2), var(--basalt-size-hairline));
+      inset-inline-start: calc(var(--basalt-size-icon-sm) / 2 - var(--basalt-size-hairline));
       inset-block-start: calc(var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-1));
       inset-block-end: calc(-1 * (var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 - var(--basalt-size-icon-sm) / 2 - var(--basalt-space-1)));
       border-inline-start: var(--basalt-size-hairline) solid var(--basalt-border-input);
@@ -4569,11 +4569,11 @@
      end-aligned in its seat, and a step with no time ends its result on the same edge and holds no seat. */
   .basalt-run-step-meta { display: block; justify-self: end; text-align: end; color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-sm-line-height); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .basalt-run-step-meta .basalt-run-timer { line-height: inherit; }
-  /* The connector, as the list's: between two full steps, beside a detail too, never a state. */
+  /* The connector, as the list's (its end edge on the marks' centre line): between two full steps, beside a detail too, never a state. */
   .basalt-run-steps > .basalt-run-step:not(:last-child)::after {
     content: "";
     position: absolute;
-    inset-inline-start: round(down, calc(var(--basalt-size-icon-sm) / 2 - var(--basalt-size-hairline) / 2), var(--basalt-size-hairline));
+    inset-inline-start: calc(var(--basalt-size-icon-sm) / 2 - var(--basalt-size-hairline));
     inset-block-start: calc(var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-1));
     inset-block-end: calc(-1 * (var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 - var(--basalt-size-icon-sm) / 2 - var(--basalt-space-1)));
     border-inline-start: var(--basalt-size-hairline) solid var(--basalt-border-input);

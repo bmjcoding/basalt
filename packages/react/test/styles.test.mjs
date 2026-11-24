@@ -28,3 +28,38 @@ test("the values written at run time are the ones each script writes, and none o
   const names = new Set(Object.values(tokens).flatMap((group) => Object.keys(group)).map((name) => `--basalt-${name}`));
   for (const name of Object.values(WRITTEN_AT_RUN_TIME).flat()) assert.ok(!names.has(name), `${name} is a token now: drop it from this list`);
 });
+
+// The run connector's inline start (DECISIONS 350): `calc(size-icon-sm / 2 - size-hairline)`, so its end edge sits on the marks' centre line. It replaced
+// `round(down, size-icon-sm / 2 - size-hairline / 2, size-hairline)`, which Chrome 123 and 124 do not know; the two are the same length only while half
+// the mark is a whole number of hairlines, so this fails if a token change would move the line.
+test("the run connector stands 7px in, the length round() gave, in StageList, StageRail, RunTimeline and the skill's runs module", () => {
+  const tokens = JSON.parse(fs.readFileSync(new URL("../../tokens/dist/json/tokens.json", import.meta.url), "utf8"));
+  const px = (name) => {
+    const token = Object.values(tokens).find((group) => name in group)?.[name];
+    const match = /^(\d+(?:\.\d+)?)px$/.exec(token?.css ?? "");
+    assert.ok(match, `${name} is a length in px (${token?.css})`);
+    return Number(match[1]);
+  };
+  const icon = px("size-icon-sm");
+  const hairline = px("size-hairline");
+  assert.ok(Number.isInteger(icon / 2 / hairline), `size-icon-sm / 2 (${icon / 2}px) is a whole number of hairlines (${hairline}px)`);
+  const rounded = Math.floor((icon / 2 - hairline / 2) / hairline) * hairline;
+  assert.equal(icon / 2 - hairline, rounded, "the calc is the length round(down) gave");
+  assert.equal(icon / 2 - hairline, 7);
+
+  const value = "calc(var(--basalt-size-icon-sm) / 2 - var(--basalt-size-hairline))";
+  const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const components = fs.readFileSync(new URL("../src/styles/components.css", import.meta.url), "utf8");
+  for (const selector of [
+    ".basalt-run-stages > .basalt-run-stage:not(:last-child)::after",
+    '.basalt-run-rail:is([data-count="5"], [data-count="6"]) > .basalt-run-stage:not(:last-child)::after',
+    ".basalt-run-steps > .basalt-run-step:not(:last-child)::after",
+  ]) {
+    const rule = new RegExp(`${escape(selector)}\\s*\\{([^}]*)\\}`).exec(components);
+    assert.ok(rule, `components.css has ${selector}`);
+    assert.match(rule[1], new RegExp(`inset-inline-start:\\s*${escape(value)};`), `${selector} stands at the connector's length`);
+  }
+  const runs = fs.readFileSync(new URL("../../../tools/html-skill/src/modules/runs.css", import.meta.url), "utf8");
+  assert.match(runs, new RegExp(`--_cx:\\s*${escape(value)};`), "the skill's runs module writes the same length");
+  assert.ok(!/(?<![\w-])round\(/.test(runs), "the skill's runs module uses no round()");
+});
