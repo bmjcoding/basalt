@@ -101,8 +101,8 @@ import p_eye_13_select_default_390_dark from "./eye-13-select-default-390-dark.j
 import p_eye_13_select_default_390_light from "./eye-13-select-default-390-light.jpg";
 import p_eye_14_go_default_800_dark from "./eye-14-go-default-800-dark.jpg";
 import p_eye_14_go_default_800_light from "./eye-14-go-default-800-light.jpg";
-import p_eye_14_go_go_800_dark from "./eye-14-go-go-800-dark.jpg";
-import p_eye_14_go_go_800_light from "./eye-14-go-go-800-light.jpg";
+import p_eye_14_go_touch_800_dark from "./eye-14-go-touch-800-dark.jpg";
+import p_eye_14_go_touch_800_light from "./eye-14-go-touch-800-light.jpg";
 export const BEFORE: Record<string, { src: string; width: number }> = {
   "eye-01-search-default-1440-dark": { src: p_eye_01_search_default_1440_dark, width: 591 },
   "eye-01-search-default-1440-light": { src: p_eye_01_search_default_1440_light, width: 596 },
@@ -206,6 +206,6 @@ export const BEFORE: Record<string, { src: string; width: number }> = {
   "eye-13-select-default-390-light": { src: p_eye_13_select_default_390_light, width: 357 },
   "eye-14-go-default-800-dark": { src: p_eye_14_go_default_800_dark, width: 800 },
   "eye-14-go-default-800-light": { src: p_eye_14_go_default_800_light, width: 800 },
-  "eye-14-go-go-800-dark": { src: p_eye_14_go_go_800_dark, width: 800 },
-  "eye-14-go-go-800-light": { src: p_eye_14_go_go_800_light, width: 800 },
+  "eye-14-go-touch-800-dark": { src: p_eye_14_go_touch_800_dark, width: 800 },
+  "eye-14-go-touch-800-light": { src: p_eye_14_go_touch_800_light, width: 800 },
 };

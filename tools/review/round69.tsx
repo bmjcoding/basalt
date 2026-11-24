@@ -118,7 +118,7 @@ function Before({ step, state }: { step: string; state: string }) {
   if (!picture) return <p style={note}>No picture of main for {key} (it is drawn from this round built on main: tools/review/round69-pairs.mjs).</p>;
   return (
     <figure style={{ margin: 0, display: "grid", gap: 6 }}>
-      <figcaption style={note}>Before: main (e396decf), the same state.</figcaption>
+      <figcaption style={note}>Before: main (e396decf; items 11 and 14 re-shot on db0bc418), the same state.</figcaption>
       <img src={picture.src} width={picture.width} alt={`Main: ${step}, ${state}`} style={{ maxWidth: "100%", height: "auto", border: "1px dashed var(--basalt-border-hairline)" }} />
     </figure>
   );
