@@ -6,7 +6,7 @@
   .code { border-radius: var(--basalt-radius-md); background-color: var(--panel-well); font: var(--basalt-font-weight-regular) var(--bh-sm-mono); }
   pre.code, .code-body { margin: 0; padding: var(--basalt-space-3) var(--basalt-space-4); overflow: auto; tab-size: 2; }
   .code code { font: inherit; }
-  .code-head { display: flex; align-items: center; gap: var(--basalt-space-2); min-height: var(--basalt-size-control-lg); padding: var(--basalt-space-1) var(--basalt-space-2) var(--basalt-space-1) var(--basalt-space-4); font: var(--basalt-font-weight-medium) var(--bh-xs); color: var(--basalt-text-secondary); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .code-head { display: flex; align-items: center; gap: var(--basalt-space-2); min-height: var(--basalt-size-control-lg); padding-block: var(--basalt-space-1); padding-inline: var(--basalt-space-4); --basalt-edge-room: var(--basalt-space-4); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; font: var(--basalt-font-weight-medium) var(--bh-xs); color: var(--basalt-text-secondary); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
   .tok-k { color: var(--basalt-syntax-keyword); }
   .tok-s { color: var(--basalt-syntax-string); }
   .tok-n { color: var(--basalt-syntax-constant); }

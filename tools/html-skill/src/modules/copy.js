@@ -87,14 +87,16 @@
         var target = button.dataset.copy ? document.querySelector(button.dataset.copy) : null;
         var text = button.dataset.copyText != null ? button.dataset.copyText : (target ? target.textContent : '');
         copyText(text).then(function (ok) {
-          button.innerHTML = (ok ? '%glyph-svg:check%' : '%glyph-svg:close%') + (iconOnly ? '' : '<span>' + (ok ? 'Copied' : 'Copy failed') + '</span>');
+          // A copy with a glyph and words keeps its words and changes its glyph (DECISIONS 336, Q5); the icon alone also changes its name.
+          // One write of the button's own markup, its first glyph (an svg, or a span the glyph module has not drawn yet) swapped for a constant.
+          button.innerHTML = rest[0].replace(/<svg[\s\S]*?<\/svg>|<span data-glyph[^>]*><\/span>/, ok ? '%glyph-svg:check%' : '%glyph-svg:close%');
           if (iconOnly) button.setAttribute('aria-label', ok ? 'Copied' : 'Copy failed');
-          announce(ok ? 'Copied to clipboard' : 'Could not copy');
+          announce(iconOnly ? (ok ? 'Copied to clipboard' : 'Copy failed') : (ok ? 'Copied' : 'Copy failed'));
           clearTimeout(button.__bhTimer);
           button.__bhTimer = setTimeout(function () {
             button.innerHTML = rest[0];
             if (iconOnly) { if (rest[1] == null) button.removeAttribute('aria-label'); else button.setAttribute('aria-label', rest[1]); }
-          }, 1600);
+          }, %duration-confirm%);
         });
       });
     });

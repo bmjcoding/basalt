@@ -19,7 +19,7 @@ The page's one blurred (smoked) surface; it falls back to opaque on its own.
 - The skip link finds the first `.topbar` or `.app-header` when it takes focus, and again on scroll, and sits 8px under its real bottom edge (a notice above the bar is cleared).
 - A lockup by pixel density: a `.lockup-sprite` svg holds one `<symbol>` for each brand drawing (`brand/`'s `lockup-header-1x` and `-2x`), and `.brand` draws both with `<svg class="lockup lockup-1x" viewBox width height aria-hidden="true"><use href="#x1"/></svg>` and a `lockup-2x`. Only the one fitted to the screen shows (2x from 2dppx). No `<img>`, no `<title>`.
 - A bar that arrives, or leaves and returns: put it in `<div class="site-slot">` and give it `data-phase-after="#hero"` (the first screen, the hero, its mark). It writes `data-phase` (rest, between, pinned) and `data-form` (row, bar) on the bar for your CSS; the slot keeps the row's height. It never returns on scrolling up.
-- `data-tool` on up to two ghost icon buttons that stay at every width (a search trigger): the narrow menu draws them again.
+- `data-tool` on up to two ghost icon buttons that stay at every width (a search trigger): the narrow menu draws them again. The last ghost control of the bar (a tool, a bell) takes `data-edge="end"`: its glyph sits on the line, and it hangs only where it is last.
 
 `.site-footer` ends every site page, on the page, once. Wrap the page in `.site-page` (a column at least `100svh`) so a short page keeps it at the foot.
 

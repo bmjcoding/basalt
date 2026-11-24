@@ -2,6 +2,7 @@ import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
 import { STATUS_MESSAGE_MS } from "./constants";
+import type { ButtonEdge } from "./button";
 import { StatusLine } from "./filter-result";
 import { Icon } from "./icon";
 import { usePeekPlate } from "./use-peek";
@@ -31,7 +32,10 @@ export interface StatusMessage {
 export interface StatusBarProps extends Omit<React.ComponentProps<"footer">, "children"> {
   /** The bar's name. Default "Status". */
   label?: string;
-  /** The run: a button or a link with its mark, its id and its counts. */
+  /**
+   * The run: a button or a link with its mark, its id and its counts. A control given `variant="ghost"` first here (or first in `sources` when there
+   * is no `start`) is hung at the bar's start, and one last in `end` at its end: its words on the bar's line (DECISIONS 336).
+   */
   start?: React.ReactNode;
   /**
    * The sources and the session in one button that opens the `Drawer`: a `DrawerTrigger` (`variant="ghost" size="sm"`), which carries
@@ -44,6 +48,31 @@ export interface StatusBarProps extends Omit<React.ComponentProps<"footer">, "ch
   onMessageClear?: () => void;
   /** The theme control, or the like. */
   end?: React.ReactNode;
+}
+
+type Hangable = { variant?: string; edge?: ButtonEdge; label?: unknown; icon?: unknown; children?: React.ReactNode };
+
+/** A ghost control, read from its props so the bar imports no button: `variant="ghost"`, or an `IconButton`'s defaults (a label and an icon, no variant). */
+function isGhost(props: Hangable): boolean {
+  return props.variant === "ghost" || (props.variant === undefined && props.label !== undefined && props.icon !== undefined);
+}
+
+/**
+ * A slot's first (or last) control, when it is a ghost Basalt control with no edge of its own (a ghost `Button`, `IconButton` or `DrawerTrigger`),
+ * hung at the bar's edge (DECISIONS 336). A fragment is looked into, so its first or last child is the slot's (the code review's finding 4).
+ */
+function hang(slot: React.ReactNode, side: ButtonEdge): React.ReactNode {
+  const items = React.Children.toArray(slot);
+  const at = side === "start" ? 0 : items.length - 1;
+  const item = items[at];
+  if (!React.isValidElement<Hangable>(item)) return slot;
+  if (item.type === React.Fragment) {
+    items[at] = React.cloneElement(item, undefined, hang(item.props.children, side));
+    return items;
+  }
+  if (typeof item.type === "string" || !isGhost(item.props) || item.props.edge !== undefined) return slot;
+  items[at] = React.cloneElement(item, { edge: side });
+  return items;
 }
 
 /**
@@ -109,8 +138,8 @@ export function StatusBar({ label = "Status", start, sources, message, onMessage
   }, [key, error]);
   return (
     <footer {...props} aria-label={label} data-pinned-edge="bottom" className={join("basalt-status-bar", className)}>
-      {start ? <div className="basalt-status-bar-start">{start}</div> : null}
-      {sources ? <div className="basalt-status-bar-sources">{sources}</div> : null}
+      {start ? <div className="basalt-status-bar-start">{hang(start, "start")}</div> : null}
+      {sources ? <div className="basalt-status-bar-sources">{start ? sources : hang(sources, "start")}</div> : null}
       <p
         ref={band}
         data-pinned-extent=""
@@ -126,7 +155,7 @@ export function StatusBar({ label = "Status", start, sources, message, onMessage
         {error ? <span className="basalt-status-bar-seat" aria-hidden={cut ? "true" : undefined}><Icon icon={XCircleIcon} size={16} /></span> : null}
         <span className="basalt-status-bar-text" aria-hidden={cut ? "true" : undefined}>{message?.text}</span>
       </p>
-      {end ? <div className="basalt-status-bar-end">{end}</div> : null}
+      {end ? <div className="basalt-status-bar-end">{hang(end, "end")}</div> : null}
       <StatusLine sendId={message?.id}>{message && !error && !held ? message.text : ""}</StatusLine>
       <span role="alert" aria-live="assertive" aria-atomic="true" className="basalt-visually-hidden">{held ? "" : alert}</span>
     </footer>

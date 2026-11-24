@@ -57,9 +57,11 @@ const ALLOWED = {
   "text-wrap: pretty": "A hint for the last line of a paragraph; a browser without it wraps as it always did.",
   "field-sizing": "The Composer's field grows with its text (cimip-gaps-2, B3). Where CSS.supports(\"field-sizing\", \"content\") is false (Safari before 26.2, Firefox), composer.tsx measures the field's scrollHeight and sets its height within the same rows, so it grows there too (foundations, Writing to someone).",
   "the round(), mod() and rem() functions": "The plain badge's dot margin (components.css, .basalt-badge[data-variant=\"plain\"] > .basalt-badge-dot). Chrome 123 and 124 drop the declaration, so the dot sits in its seat to the half pixel and not on whole pixels. A fix changes a pixel, so it is the council's: found by this check, reported on the pull request that added it.",
+  "@starting-style": "The diagram viewer's opening motion (components.css, dialog.basalt-dialog.basalt-diagram-viewer, a native modal dialog: DECISIONS 310). Firefox before 129 opens it with no animation, and it still opens.",
+  "transition-behavior (allow-discrete)": "The diagram viewer's closing motion, which transitions the dialog's and its backdrop's `display` and `overlay` (Firefox before 129). Without it the viewer closes at once, with no animation, and it still closes.",
 };
 
-/** The skill's own uses above its floor, with why: the three it shares with the package, and the two that are its alone. */
+/** The skill's own uses above its floor, with why: the three whose reason is the package's, and the skill's own reasons for the rest. */
 const SKILL_ALLOWED = {
   "scrollbar-gutter": ALLOWED["scrollbar-gutter"],
   "prefers-reduced-transparency": ALLOWED["prefers-reduced-transparency"],

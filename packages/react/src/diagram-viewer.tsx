@@ -202,7 +202,7 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
             <h2 id={titleId} className="basalt-dialog-title" tabIndex={-1}>{model.title}</h2>
             {source !== undefined && source !== null ? <p className={`basalt-dialog-description ${P}-viewer-source`}>{source}</p> : null}
           </div>
-          <IconButton icon={CloseGlyph} label="Close" className="basalt-sheet-close" onClick={close} />
+          <IconButton icon={CloseGlyph} label="Close" edge="end" className="basalt-sheet-close" onClick={close} />
         </header>
         <p id={descId} className="basalt-visually-hidden">{summary}</p>
         <div ref={setStage} className={`${P}-stage`} tabIndex={0} role="group" aria-label="Zoomed drawing" data-layout={layout.layout}>
@@ -237,7 +237,7 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
             <div className={`${P}-zoom`}>
               {/* At a limit, or with the list open, a control is disabled as Basalt's are (B1 of the pixel review): it stays mounted and focusable, loses its
                   ink, and takes no hover, press or scale. */}
-              <IconButton icon={MinusGlyph} size="sm" label="Zoom out" disabled={off || zoom.atMin} focusableWhenDisabled onClick={() => { if (!off && !zoom.atMin) z()?.zoomOut(); }} />
+              <IconButton icon={MinusGlyph} size="sm" edge="start" label="Zoom out" disabled={off || zoom.atMin} focusableWhenDisabled onClick={() => { if (!off && !zoom.atMin) z()?.zoomOut(); }} />
               <span className={`${P}-level`} aria-hidden="true" data-reserve="400%"><span>{`${zoom.level}%`}</span></span>
               <IconButton icon={PlusGlyph} size="sm" label="Zoom in" disabled={off || zoom.atMax} focusableWhenDisabled onClick={() => { if (!off && !zoom.atMax) z()?.zoomIn(); }} />
               <Button variant="secondary" size="sm" className={`${P}-fit`} disabled={off || zoom.atFit} focusableWhenDisabled onClick={() => { if (!off && !zoom.atFit) z()?.fit(); }}>Fit</Button>

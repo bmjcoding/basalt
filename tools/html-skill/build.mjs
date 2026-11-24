@@ -274,7 +274,9 @@ function diagramZoomCss() {
     .replaceAll(".basalt-dialog", ".dialog")
     .replaceAll(".basalt-sheet-", ".sheet-")
     .replaceAll(".basalt-button", ".btn")
-    .replaceAll(".basalt-icon", ".icon");
+    .replaceAll(".basalt-icon", ".icon")
+    .replaceAll("var(--_inset-start)", "var(--bh-inset-start)")
+    .replaceAll("var(--_inset-end)", "var(--bh-inset-end)");
   if (/basalt-(?!duration|space|size|text|font|border|surface)/.test(css.replace(/--basalt-[\w-]+/g, ""))) throw new Error("html-skill: the diagram viewer section names a React class diagramZoomCss does not rename");
   return `@layer basalt {\n${css}\n}\n`;
 }

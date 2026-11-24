@@ -116,7 +116,7 @@ export function TabBarMore({ icon = MoreNavGlyph, label = "More", current, dot, 
         <SheetContent side="bottom" className="basalt-tabbar-sheet">
           <div className="basalt-tabbar-sheet-head">
             <SheetTitle>{label}</SheetTitle>
-            <SheetClose render={<IconButton icon={CloseGlyph} label={`Close ${label.toLowerCase()}`} />} />
+            <SheetClose render={<IconButton icon={CloseGlyph} label={`Close ${label.toLowerCase()}`} edge="end" />} />
           </div>
           <Nav aria-label={label} onClick={closeOnLink}>{children}</Nav>
           {version ? <div className="basalt-tabbar-version" onClick={closeOnLink}><VersionPlaceContext.Provider value="more">{version}</VersionPlaceContext.Provider></div> : null}

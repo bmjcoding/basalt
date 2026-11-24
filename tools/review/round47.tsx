@@ -227,7 +227,7 @@ function SmallDemo() {
             </Listbox>
           )}
           <TableContainer label={`Runs ${which}`}>
-            <Table columns={[{ width: 44 }, { width: 120 }, {}]} minWidth={300}>
+            <Table columns={[{ width: 60 }, { width: 120 }, {}]} minWidth={300}>
               <TableHeader><TableRow><TableHead>Pick</TableHead><TableHead>Run</TableHead><TableHead>Name</TableHead></TableRow></TableHeader>
               <TableBody>
                 <TableRow><TableCell><Checkbox aria-label={`Select run-1 ${which}`} /></TableCell><TableRowHead>run-1</TableRowHead><TableCell>Alpha</TableCell></TableRow>

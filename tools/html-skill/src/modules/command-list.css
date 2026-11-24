@@ -5,7 +5,10 @@
      palette's. What differs: the field is one stop among many, so it shows the flush-field ring (inset, -2: the .input-row's own); the plate shows only while the
      list is in use; the list holds its unfiltered height; and a foot counts what is shown. */
 
-  .command-list { display: block; min-width: 0; }
+  /* On the open page the list's unfiltered height (written by script as --held-page) is kept as page under the panel, never paint, so what follows
+     never moves while the panel hugs its matches (DECISIONS 336). Inside a panel, a dialog or a popover, or with data-reserve="off", it holds no room. */
+  .command-list { display: block; min-width: 0; min-block-size: var(--held-page, auto); }
+  :is(%panel%, dialog, [popover]) .command-list, .command-list[data-reserve="off"] { min-block-size: 0; }
   .command-list[data-pane] { container-type: inline-size; }
   .command-split { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--basalt-space-4); align-items: stretch; min-width: 0; }
   .command-page, .command-pane { box-sizing: border-box; display: flex; flex-direction: column; min-width: 0; overflow: clip; }
@@ -13,13 +16,18 @@
   .command-page .input-row > input { letter-spacing: normal; }
   .command-slot { display: inline-flex; flex: none; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); color: var(--basalt-text-tertiary); }
 
-  /* The list holds its unfiltered height (written by script as --held), up to the popup cap, and scrolls inside: filtering never moves what is below it. */
-  .command-body { position: relative; flex: none; height: var(--held, auto); max-height: var(--basalt-size-popup-max-height); }
-  .command-results { position: relative; box-sizing: border-box; height: 100%; max-height: var(--basalt-size-popup-max-height); overflow-y: auto; overscroll-behavior: contain; padding: var(--basalt-space-0-5) var(--basalt-space-1); scroll-padding-block: var(--basalt-space-0-5); }
+  /* The panel is as tall as its rows, up to the popup cap, and scrolls inside past it. Beside a preview the list holds its unfiltered height (--held),
+     which it and the pane share. */
+  .command-body { position: relative; flex: none; max-height: var(--basalt-size-popup-max-height); }
+  .command-split[data-mode] .command-body { height: var(--held, auto); }
+  .command-split[data-mode] .command-results { height: 100%; }
+  .command-results { position: relative; box-sizing: border-box; max-height: var(--basalt-size-popup-max-height); overflow-y: auto; overscroll-behavior: contain; padding: var(--basalt-space-0-5) var(--basalt-space-1); scroll-padding-block: var(--basalt-space-0-5); }
   .command-sizer > [role="group"] + [role="group"] { margin-top: var(--basalt-space-1); }
 
-  /* No match: one centred sentence and a ghost button, in the held area and outside the listbox. */
-  .command-none { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--basalt-space-3); padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; font: var(--basalt-font-weight-regular) var(--bh-sm); color: var(--basalt-text-secondary); }
+  /* No match: one centred sentence and a ghost button, in the panel's flow with its own padding, outside the listbox. */
+  .command-split[data-mode] .command-none { position: absolute; inset: 0; }
+  .command-none[data-measure] { position: absolute; inset-inline: 0; top: 0; visibility: hidden; }
+  .command-none { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--basalt-space-3); padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; font: var(--basalt-font-weight-regular) var(--bh-sm); color: var(--basalt-text-secondary); }
   .command-none p { margin: 0; overflow-wrap: anywhere; }
 
   /* The foot: the count (shown at once, spoken once) and the key legend. */

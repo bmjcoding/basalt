@@ -539,14 +539,16 @@ describe("Chart missing data", () => {
     await page.close();
   });
 
-  test("the reason is also in the readout ('Not observed · why'), the day's name and the table, in the words 'Not observed'", async () => {
+  // DECISIONS 336, Q2 and the pixel review's finding 1: the legend says "Not observed" alone, and the date line says why.
+  test("the reason is in the date line ('… · why'), the day's name and the table; the readout's value says 'Not observed' alone", async () => {
     const { page } = await chartPage({ cfg: { chart: "sleep", data: "sleep" } });
     const missingDay = await page.evaluate(() => window.D.sleep.series[1].values.findIndex((v) => v == null));
     const days = await dayBoxes(page);
     await page.mouse.move(days[missingDay].x + days[missingDay].width / 2, days[missingDay].y + 20);
     await frames(page);
     const values = await valueTexts(page);
-    assert.ok(values.includes("Not observed · not worn, travel"), `the readout says why the day was not observed: ${values}`);
+    assert.ok(values.includes("Not observed") && !values.some((v) => v.includes("·")), `the legend says Not observed alone: ${values}`);
+    assert.match(await page.locator(".basalt-chart-date > span:not(.basalt-chart-reserve)").innerText(), / · not worn, travel$/, "the date line says why");
     assert.equal(await page.locator('.basalt-chart-value [data-missing]').first().evaluate((el) => getComputedStyle(el).color), await token(page, "text-tertiary"));
     const sentence = await page.locator(".basalt-chart-day").nth(missingDay).getAttribute("aria-label");
     assert.match(sentence, /Watch not observed, not worn, travel/);
@@ -631,6 +633,29 @@ describe("Chart readout", () => {
     await frames(page);
     assert.match(await dateText(page), /^Latest · /, "leaving the chart returns it to the latest day");
     await page.close();
+  });
+
+  // DECISIONS 336, section 7: the headline's unit keeps its x on every day, a missing day ("—") and a number that gains a digit included, and the gap from
+  // the value's seat to the unit is space-2. The legend's keys are held by the test above (0px on every box across days, a gap day included).
+  test("with the headline, the unit keeps its x on every day (a missing day and a number with more digits included), space-2 after the value's seat", async () => {
+    for (const chart of ["sleep", "train"]) {
+      const { page } = await chartPage({ cfg: { chart, data: chart === "sleep" ? "sleep" : "train", extra: { headline: true } } });
+      const space2 = await tokenPx(page, "space-2");
+      const days = await dayBoxes(page);
+      const read = () => page.evaluate(() => { const seat = document.querySelector(".basalt-chart-seat").getBoundingClientRect(); const unit = document.querySelector(".basalt-chart-unit").getBoundingClientRect(); const shown = document.querySelector(".basalt-chart-seat > :not(.basalt-chart-reserve)").textContent; return { x: unit.x, gap: unit.x - seat.right, shown }; });
+      const rest = await read();
+      assert.ok(Math.abs(rest.gap - space2) <= 0.5, `${chart}: the unit is ${rest.gap} after the seat`);
+      const seen = new Set();
+      for (let i = 0; i < days.length; i++) {
+        await page.mouse.move(days[i].x + days[i].width / 2, days[i].y + 40);
+        await frames(page, 3);
+        const here = await read();
+        seen.add(here.shown.replace(/\d/g, "9"));
+        assert.equal(here.x, rest.x, `${chart}: the unit moved on day ${i} (${here.shown})`);
+      }
+      assert.ok(seen.size >= 2, `${chart}: the days shown take more than one form: ${[...seen]}`);
+      await page.close();
+    }
   });
 
   test("each key is a 16px swatch, the name and its value; the plan's swatch is its stroke and a band's is its two edges", async () => {

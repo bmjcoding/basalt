@@ -14,4 +14,4 @@ var centre = Basalt.notifications('#bell', {
 
 - The page owns the entries and read state; call `setEntries` after a change; `onClearAll` adds Clear all. Newest first; `href` makes a link, else a button. `time` is your words ("2m ago"); `status`: `success`, `warning`, `danger`, `pending` (waiting; the title says it).
 - A group: `entries: [...]` on an entry, its title naming who and what; the row adds "×N" (`count`) and opens to them.
-- Home of a toast's `home: 'centre'`. In a bar's end, 32px; the unread count is in the button's name.
+- Home of a toast's `home: 'centre'`. In a bar's end, 32px; the unread count is in the button's name. Last in a bar: `edge: 'end'`.

@@ -8,9 +8,9 @@ import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
 import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
-import { CheckGlyph } from "./glyphs/check";
 import { ChevronDownGlyph } from "./glyphs/chevron-down";
 import { CopyGlyph } from "./glyphs/copy";
+import { useCopyResult } from "./copy-result";
 import { IconButton } from "./button";
 import { CodeLine, CodePrompt, codeLines, codeWords, continues } from "./code-lines";
 import { loadFlight } from "./control-icon";
@@ -20,7 +20,6 @@ import type { CodeToken } from "./syntax";
 import { inLevel, useFloatingLayer, usePanelLevel, usePopupLevel } from "./layers";
 import type { Align, ChangeDetails, CollisionAvoidance, FocusTarget, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopoverHandle, PopupActions, Side } from "./types";
 import { join, withClass } from "./utils";
-import { CONFIRM_MS } from "./constants";
 import { useInRequiredField } from "./field-group";
 import { useJoinedRef, useWriting } from "./wait";
 import type { WritingEmpty } from "./wait";
@@ -349,28 +348,17 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, wrap
   // With a prompt, every line has a gutter, so the text is cut into lines; without one the block is a single run of text.
   // A block that wraps is cut into lines too, each a row of words that break only at a space.
   const lines = React.useMemo(() => (prompt === undefined && !wrap ? null : codeLines(code, tokens)), [prompt, wrap, code, tokens]);
-  const [copied, setCopied] = React.useState(false);
-  React.useEffect(() => {
-    if (!copied) return;
-    const t = setTimeout(() => setCopied(false), CONFIRM_MS);
-    return () => clearTimeout(t);
-  }, [copied]);
+  // What the last copy did, held for CONFIRM_MS: the check, or the close for a refused write (copy-result.ts; DECISIONS 336, the open items' ruling).
+  const copyResult = useCopyResult();
   // The copy glyph is one that changes (Copy, then Check): the morph's engine is on its way before the first click.
   React.useEffect(() => {
     if (copyable) loadFlight();
   }, [copyable]);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-    } catch {
-      // clipboard refused (insecure context or permissions): leave the button as it was
-    }
-  };
+  const copy = () => copyResult.copy(code);
   const copyButton = copyable ? (
     <span className="basalt-code-copy">
-      <IconButton size="sm" icon={copied ? CheckGlyph : CopyGlyph} label="Copy code" onClick={copy} />
-      <span className="basalt-visually-hidden" role="status">{copied ? "Copied" : ""}</span>
+      <IconButton size="sm" edge={title ? "end" : undefined} icon={CopyGlyph} done={copyResult.done} doneIcon={copyResult.doneIcon} label="Copy code" onClick={copy} />
+      <span className="basalt-visually-hidden" role="status">{copyResult.status}</span>
     </span>
   ) : null;
   return (

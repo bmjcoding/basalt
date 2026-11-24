@@ -75,6 +75,10 @@
 
   /* The row's inline padding: size-gutter, or size-gutter-narrow under the medium breakpoint (foundations, "Layout"). Apps and bars use this one. */
   :root { accent-color: var(--basalt-action-primary); --basalt-gutter: var(--basalt-size-gutter); }
+  /* The side safe areas by direction (DECISIONS 336): start and end are left and right, swapped right to left, so a bar, a sheet or a toast
+     pads the side its inset is on. Read only through start and end. */
+  :root { --bh-inset-left: env(safe-area-inset-left, var(--basalt-space-0)); --bh-inset-right: env(safe-area-inset-right, var(--basalt-space-0)); --bh-inset-start: var(--bh-inset-left); --bh-inset-end: var(--bh-inset-right); }
+  :root:dir(rtl) { --bh-inset-start: var(--bh-inset-right); --bh-inset-end: var(--bh-inset-left); }
   @media (width < %bp-md%) { :root { --basalt-gutter: var(--basalt-size-gutter-narrow); } }
   a, button, summary, [role="tab"], .row, .disclosure, .segment button { -webkit-tap-highlight-color: transparent; }
   [hidden] { display: none !important; }
@@ -128,6 +132,9 @@
   @media (width < %bp-md%) { .hide-narrow { display: none !important; } }
   .section { margin-top: var(--basalt-space-12); }
   .section > .section-head { margin-bottom: var(--basalt-space-4); }
+  /* A head's last ghost .btn is hung at its end by itself (DECISIONS 336, Q10): a .panel-head into its own space-4, a page's own section head into the
+     gutter. A section head in a column, a grid or a card declares no room, and its button stays on the line with its edge. */
+  .page > .section > .section-head { --basalt-edge-room: var(--basalt-gutter); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; }
 
   .footer { margin-top: var(--basalt-space-16); padding-top: var(--basalt-space-4); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); }
   /* Outside .page the footer sits on the page's column by itself: the .page above already ends in its own bottom padding, so no top margin doubles it. */
@@ -186,7 +193,7 @@
   }
   .panel-pad, .card { padding: var(--basalt-space-4); }
   @media (width >= %bp-md%) { .panel-pad.lg, .card.lg { padding: var(--basalt-space-6); } }
-  .panel-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2); padding: var(--basalt-space-3) var(--basalt-space-4); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); font-weight: var(--basalt-font-weight-medium); }
+  .panel-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2); padding: var(--basalt-space-3) var(--basalt-space-4); --basalt-edge-room: var(--basalt-space-4); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); font-weight: var(--basalt-font-weight-medium); }
 
   /* Only a surface that leaves the flow floats: a menu, popover, dialog or palette (with a shadow). A popup is its opener plus one with a
      floor of 1: from the page it is level 1, and inside a panel the nesting rules above make it the next level. A modal (dialog, palette)
@@ -263,8 +270,28 @@
   /* stylelint-disable-next-line unit-disallowed-list -- the ring's 1.5px stroke; no token */
   .btn[aria-busy="true"]::after { content: ""; position: absolute; inset: 0; margin: auto; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); border: 1.5px solid color-mix(in oklch, currentColor 25%, transparent); border-top-color: currentColor; border-radius: var(--basalt-radius-full); animation: bh-spin var(--basalt-duration-loop-ring) linear infinite; }
   .btn svg { flex: none; }
-  /* Radius follows the box as it is drawn (decision 138, E1): a button is at least 44 on touch, so it is radius 8, as every control that size is. */
-  @media (pointer: coarse), (width < %bp-md%) { .btn { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } .btn[data-icon-only] { min-width: var(--basalt-size-tap-min); } }
+  /* A ghost control at an edge (DECISIONS 336), React's `edge`: `data-edge="start"` or `"end"` puts its glyph or words on the head's line and
+     hangs its box into the padding by its inset (its padding with words; half its drawn size less its glyph, icon-only), only into the room
+     its head declares (`--basalt-edge-room`, `-start`, `-end`; none when it declares nothing). The ring is +2 where 4 of room is left, else -2. */
+  .btn { --_drawn: var(--_h); --_glyph: var(--basalt-size-icon-sm); }
+  .btn[data-variant="ghost"]:is([data-edge], :is(.panel-head, .section-head) > :last-child) { --_inset: var(--_px); }
+  .btn[data-variant="ghost"][data-icon-only]:is([data-edge], :is(.panel-head, .section-head) > :last-child) { --_inset: calc((var(--_drawn) - var(--_glyph)) / 2); }
+  .btn[data-variant="ghost"][data-edge="start"] { --_hang: min(var(--_inset), var(--basalt-edge-room-start, var(--basalt-edge-room, var(--basalt-space-0)))); margin-inline-start: calc(-1 * var(--_hang)); }
+  .btn[data-variant="ghost"]:is([data-edge="end"], :is(.panel-head, .section-head) > :last-child) { --_hang: min(var(--_inset), var(--basalt-edge-room-end, var(--basalt-edge-room, var(--basalt-space-0)))); margin-inline-end: calc(-1 * var(--_hang)); }
+  .btn[data-variant="ghost"][data-edge="start"]:focus-visible { outline-offset: clamp(calc(-1 * var(--basalt-size-focus-width)), calc((var(--basalt-edge-room-start, var(--basalt-edge-room, calc(var(--_hang) + var(--basalt-size-tap-min)))) - var(--_hang) - var(--basalt-size-focus-offset) - var(--basalt-size-focus-width)) * 999 + var(--basalt-size-focus-offset)), var(--basalt-size-focus-offset)); }
+  .btn[data-variant="ghost"]:is([data-edge="end"], :is(.panel-head, .section-head) > :last-child):focus-visible { outline-offset: clamp(calc(-1 * var(--basalt-size-focus-width)), calc((var(--basalt-edge-room-end, var(--basalt-edge-room, calc(var(--_hang) + var(--basalt-size-tap-min)))) - var(--_hang) - var(--basalt-size-focus-offset) - var(--basalt-size-focus-width)) * 999 + var(--basalt-size-focus-offset)), var(--basalt-size-focus-offset)); }
+  /* Radius follows the box as it is drawn (decision 138, E1): a button is at least 44 on touch, so it is radius 8, as every control that size is.
+     A hung .btn with words keeps its own width there and takes what it lacks of 44 as hit area (46, so the press's .98 keeps 45.08). */
+  @media (pointer: coarse), (width < %bp-md%) {
+    .btn { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); --_drawn: max(var(--_h), var(--basalt-size-tap-min)); }
+    .btn[data-icon-only] { min-width: var(--basalt-size-tap-min); }
+    .btn[data-variant="ghost"]:is([data-edge], :is(.panel-head, .section-head) > :last-child):not([data-icon-only]) { --_miss: max(var(--basalt-space-0), calc(var(--basalt-size-tap-min) + 2 * var(--basalt-size-hairline) - 100%)); min-width: max(var(--basalt-space-0), min(var(--basalt-size-tap-min), calc(var(--basalt-size-tap-min) + 2 * var(--basalt-size-hairline) - 2 * var(--_reach)))); }
+    .btn[data-variant="ghost"]:is([data-edge="end"], :is(.panel-head, .section-head) > :last-child):not([data-icon-only]) { --_reach: calc(var(--basalt-edge-room-end, var(--basalt-edge-room, var(--basalt-space-0))) - var(--_hang)); }
+    .btn[data-variant="ghost"][data-edge="start"]:not([data-icon-only]) { --_reach: calc(var(--basalt-edge-room-start, var(--basalt-edge-room, var(--basalt-space-0))) - var(--_hang)); }
+    .btn[data-variant="ghost"]:is([data-edge], :is(.panel-head, .section-head) > :last-child):not([data-icon-only])::before { content: ""; position: absolute; inset-block: min(var(--basalt-space-0), calc((100% - var(--basalt-size-tap-min)) / 2 - var(--basalt-size-hairline))); }
+    .btn[data-variant="ghost"]:is([data-edge="end"], :is(.panel-head, .section-head) > :last-child):not([data-icon-only])::before { --_out: min(calc(var(--_miss) / 2), calc(var(--basalt-edge-room-end, var(--basalt-edge-room, var(--basalt-space-0))) - var(--_hang))); inset-inline: calc(var(--_out) - var(--_miss)) calc(-1 * var(--_out)); }
+    .btn[data-variant="ghost"][data-edge="start"]:not([data-icon-only])::before { --_out: min(calc(var(--_miss) / 2), calc(var(--basalt-edge-room-start, var(--basalt-edge-room, var(--basalt-space-0))) - var(--_hang))); inset-inline: calc(-1 * var(--_out)) calc(var(--_out) - var(--_miss)); }
+  }
   /* A link on its own is a touch target (44px); a link inside running text is not, so a paragraph, list item, quote, caption,
      hint, `.prose` or `.small` keeps its inline links as they are. The brand, the skip link and the footer's links always count.
      `.tap` opts any other link in. The negative block margin makes the link's margin box one line tall, so a linked row sits

@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { Button } from "./button";
-import type { ButtonVariant, ControlSize } from "./button";
+import type { ButtonEdge, ButtonVariant, ControlSize } from "./button";
 import { COPIED_MS } from "./constants";
 import { Reserve } from "./reserve";
 import { join } from "./utils";
@@ -19,6 +19,8 @@ export interface CopyButtonProps extends Omit<React.ComponentProps<"button">, "c
   statusLabel?: string;
   variant?: ButtonVariant;
   size?: ControlSize;
+  /** A ghost copy button that starts or ends a head or a row is hung at that edge, as `Button`'s `edge` (DECISIONS 336). */
+  edge?: ButtonEdge;
   /** Called after the write has succeeded. */
   onCopy?: () => void;
 }

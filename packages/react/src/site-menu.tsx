@@ -19,6 +19,8 @@ import { useMediaQuery } from "./use-media";
 
 /** The bar's buttons are a plain `button` with the ghost icon button's look, because their glyph morphs (`IconButton` takes a glyph, not a morph). */
 const barButton = { "data-variant": "ghost", "data-size": "md", "data-icon-only": "" } as const;
+/** Menu and Close are the bar's last displayed control and its band's, hung at the end (DECISIONS 336). */
+const hungAtEnd = { ...barButton, "data-edge": "end" } as const;
 
 export interface SiteMenuProps {
   /** The brand, drawn again in the sheet's first row: a `SiteBrand`. */
@@ -63,7 +65,7 @@ export function SiteMenu({ brand, links = [], tools, themeToggle, loops = false,
   }, [wide, open]);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger ref={trigger} aria-label={menuLabel} {...barButton} className="basalt-button basalt-site-menu-trigger">
+      <SheetTrigger ref={trigger} aria-label={menuLabel} {...hungAtEnd} className="basalt-button basalt-site-menu-trigger">
         <MorphIcon glyph={open ? CloseGlyph : MenuGlyph} />
       </SheetTrigger>
       <SheetContent
@@ -100,7 +102,7 @@ function MenuClose({ ref, label, open }: { ref: React.Ref<HTMLButtonElement>; la
   const [shown, setShown] = React.useState(false);
   React.useEffect(() => { setShown(open); }, [open]);
   return (
-    <SheetClose ref={ref} aria-label={label} {...barButton} className="basalt-button basalt-site-menu-close">
+    <SheetClose ref={ref} aria-label={label} {...hungAtEnd} className="basalt-button basalt-site-menu-close">
       <MorphIcon glyph={shown ? CloseGlyph : MenuGlyph} />
     </SheetClose>
   );

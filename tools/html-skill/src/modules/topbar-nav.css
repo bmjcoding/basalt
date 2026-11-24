@@ -77,7 +77,10 @@
   @media (width < %bp-md%) {
     .topbar-links, .topbar-action { display: none; }
     .topbar-menu-trigger { display: inline-flex; }
+    /* Menu is the last control shown here, so a tool hung at the end on a wide bar gives no room before it (DECISIONS 336). */
+    .topbar-inner:has(> .topbar-menu-trigger) > :not(.topbar-menu-trigger) { --basalt-edge-room-end: initial; }
   }
+  .topbar-menu-actions > :not(:last-child) { --basalt-edge-room-end: initial; }
 
   /* The narrow menu: a top sheet. Its band is the bar's own row, redrawn (sheet.css); its buttons are the bar's, 44 with radius 8. The list is Nav's rows with
      no glyph. The foot holds the action, full width. */
@@ -92,15 +95,17 @@
   .topbar-menu .sheet-band { gap: var(--basalt-space-2); }
   /* The hold's row, when the bar has a loops toggle: the pressed-toggle button at the band's own gutter, natural width, 44 tall (React's .basalt-site-menu-loops). */
   .topbar-menu-loops {
-    padding: var(--basalt-space-2) max(var(--basalt-gutter), env(safe-area-inset-right, var(--basalt-space-0))) 0 max(var(--basalt-gutter), env(safe-area-inset-left, var(--basalt-space-0)));
+    padding-block: var(--basalt-space-2) 0;
+    padding-inline: max(var(--basalt-gutter), var(--bh-inset-start)) max(var(--basalt-gutter), var(--bh-inset-end));
   }
   .topbar-menu-loops .btn { --_h: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); }
   .topbar-menu .nav {
     padding-block: var(--basalt-space-2);
-    padding-inline: max(var(--basalt-space-1-5), env(safe-area-inset-left, var(--basalt-space-0))) max(var(--basalt-space-1-5), env(safe-area-inset-right, var(--basalt-space-0)));
+    padding-inline: max(var(--basalt-space-1-5), var(--bh-inset-start)) max(var(--basalt-space-1-5), var(--bh-inset-end));
   }
   .topbar-menu-foot {
-    padding: var(--basalt-space-2) max(var(--basalt-gutter), env(safe-area-inset-right, var(--basalt-space-0))) max(var(--basalt-space-4), env(safe-area-inset-bottom, var(--basalt-space-0))) max(var(--basalt-gutter), env(safe-area-inset-left, var(--basalt-space-0)));
+    padding-block: var(--basalt-space-2) max(var(--basalt-space-4), env(safe-area-inset-bottom, var(--basalt-space-0)));
+    padding-inline: max(var(--basalt-gutter), var(--bh-inset-start)) max(var(--basalt-gutter), var(--bh-inset-end));
   }
   .topbar-menu-foot .btn {
     --_h: var(--basalt-size-tap-min);

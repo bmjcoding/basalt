@@ -9,6 +9,7 @@ import { pathToFileURL } from "node:url";
 import * as esbuild from "esbuild";
 import stylelint from "stylelint";
 
+import { withGlyphMasks } from "../glyph-mask.mjs";
 import { minifyCss } from "../minify-css.mjs";
 import { bundleFixture, bundleFixtureFromScratch, pkg, sourceStyles } from "./support.mjs";
 
@@ -18,12 +19,17 @@ const read = (...parts) => fs.readFileSync(path.join(...parts), "utf8");
 
 // ---- A1-12: the shipped style sheets are the sources without their comments and whitespace ----
 
-test("styles.css and components.css are the sources with their comments and whitespace taken out, and nothing else", () => {
+test("styles.css and components.css are the sources with their glyph masks written in and their comments and whitespace taken out, and nothing else", () => {
   const tokens = read(repo, "packages", "tokens", "dist", "css", "tokens.css");
-  const components = `${read(pkg, "src", "styles", "components.css")}\n${read(repo, "packages", "tokens", "dist", "css", "accents.css")}`;
+  const accents = read(repo, "packages", "tokens", "dist", "css", "accents.css");
+  const written = read(pkg, "src", "styles", "components.css");
+  // `%glyph-mask:name%` is a core glyph's drawing as a data URI (glyph-mask.mjs), written in by the build before the sheet is minified (build.mjs).
+  const components = `${withGlyphMasks(written)}\n${accents}`;
+  assert.ok(/%glyph-mask:[\w-]+%/.test(written), "the source names a glyph mask (else this test no longer needs withGlyphMasks)");
   assert.equal(read(dist, "styles.css"), minifyCss(`${tokens}\n${components}`));
   assert.equal(read(dist, "components.css"), minifyCss(components));
-  assert.equal(sourceStyles(), `${tokens}\n${components}`, "the helper the text tests read is the sheet as it was written");
+  for (const name of ["styles.css", "components.css"]) assert.ok(!read(dist, name).includes("%glyph-mask:"), `${name} holds a glyph-mask placeholder`);
+  assert.equal(sourceStyles(), `${tokens}\n${written}\n${accents}`, "the helper the text tests read is the sheet as it was written");
   for (const name of ["styles.css", "components.css"]) {
     const css = read(dist, name);
     assert.ok(!/\/\*(?!!)/.test(css), `${name} holds a comment`);
@@ -49,14 +55,29 @@ test("composition.d.ts does not write out every HTML attribute for Text and Head
 
 // ---- A1-15: a consumer's build prints no warning, and the package loses nothing ----
 
-test("an app built with esbuild, importing one component from dist, gets no warning", async () => {
+// The one warning a consumer's build may print (DECISIONS 350): elkjs's own code, shipped unmodified (DECISIONS 306, 1.8 item 8.9); `x == -0` is
+// `x == 0`; hidden for an installed package (esbuild does not print it for a file under node_modules). Only this id, from this file, at most once a build.
+const ELK_WARNING = { id: "equals-negative-zero", file: "dist/diagram-elk.js" };
+const isElkWarning = (warning) => warning.id === ELK_WARNING.id && (warning.location?.file ?? "").replaceAll("\\", "/").endsWith(ELK_WARNING.file);
+
+test("an app built with esbuild, importing one component from dist, gets no warning but elkjs's one", async () => {
   for (const name of ["Button", "Menu", "TimeChart", "CommandMenu"]) {
     const result = await esbuild.build({
       stdin: { contents: `import { ${name} } from "./dist/index.js"; console.log(${name});`, resolveDir: pkg, loader: "js" },
       bundle: true, minify: true, format: "esm", splitting: true, outdir: path.join(pkg, ".bundle-check"), write: false, external: ["react", "react-dom", "react/jsx-runtime"], logLevel: "silent",
     });
-    assert.deepEqual(result.warnings.map((warning) => `${warning.id}: ${warning.text}`), [], `${name}: a consumer's build warns`);
+    const elk = result.warnings.filter(isElkWarning);
+    assert.ok(elk.length <= 1, `${name}: elkjs's file warns ${elk.length} times, and only one is allowed`);
+    assert.deepEqual(result.warnings.filter((warning) => !isElkWarning(warning)).map((warning) => `${warning.id}: ${warning.text}`), [], `${name}: a consumer's build warns`);
   }
+});
+
+test("the elkjs allowance is still needed: dist/diagram-elk.js bundled alone gives exactly that one warning (else remove the allowance)", async () => {
+  const result = await esbuild.build({
+    entryPoints: [path.join(dist, "diagram-elk.js")],
+    bundle: true, minify: true, format: "esm", write: false, logLevel: "silent",
+  });
+  assert.deepEqual(result.warnings.map((warning) => ({ id: warning.id, elk: isElkWarning(warning) })), [{ id: ELK_WARNING.id, elk: true }], "elkjs's file no longer warns as it did: take the allowance out of the test above");
 });
 
 test("dist has no bare import of one of its own chunks, every chunk is still imported by name, and every relative import resolves", () => {

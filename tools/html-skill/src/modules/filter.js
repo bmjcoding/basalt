@@ -92,8 +92,9 @@
       head.appendChild(el('span', 'filter-label', { id: id.label }, null)).textContent = label;
       var count = el('span', 'filter-count', { id: id.count, 'data-reserved': '', 'data-any': 'Any', 'data-widest': opts.length + ' of ' + opts.length });
       shell.value = count.appendChild(el('span', 'filter-count-value'));
-      head.appendChild(count);
+      // Label, Clear, count (DECISIONS 336): Clear never moves, and the count's spare room is the row's open end.
       head.appendChild(clear);
+      head.appendChild(count);
       var chips = el('div', 'filter-chips', { role: 'group', 'aria-labelledby': id.label, 'aria-describedby': id.count });
       opts.forEach(function (o) {
         var chip = el('label', 'chip');
@@ -144,6 +145,7 @@
       pop.appendChild(group);
       shell.count = el('span', 'filter-count', { id: id.count });
       var foot = el('div', 'filter-foot');
+      clear.setAttribute('data-edge', 'end');
       foot.appendChild(shell.count);
       foot.appendChild(clear);
       pop.appendChild(foot);

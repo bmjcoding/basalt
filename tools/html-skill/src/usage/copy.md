@@ -1,6 +1,6 @@
 # copy
 
-`<button class="btn" data-copy="#code-id">` or `data-copy-text="…"`; keep an icon and a `<span>` label inside.
+`<button class="btn" data-copy="#code-id">` or `data-copy-text="…"`; keep an icon and a `<span>` label inside. Its words hold; the glyph turns check (close if refused).
 
 `Basalt.copyText(text)` copies from script. Copy buttons are not printed.
 

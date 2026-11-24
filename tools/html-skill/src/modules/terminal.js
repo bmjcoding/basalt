@@ -78,8 +78,9 @@
       actions += '<button type="button" class="btn terminal-control" data-variant="ghost" data-size="sm">' + swap('Play', words(['Play', 'Pause', 'Resume', 'Replay'])) + '</button>';
     }
     var copyDisabled = commands ? '' : ' disabled';
-    actions += '<button type="button" class="btn terminal-copy" data-variant="ghost" data-size="sm"' + copyDisabled + '>' + COPY + swap('Copy commands', words(['Copy commands', 'Copied'])) + '</button>' +
-      '<button type="button" class="btn terminal-copy-compact" data-variant="ghost" data-size="sm" data-icon-only aria-label="Copy commands"' + copyDisabled + '>' + COPY + '</button>' +
+    // The words hold and the glyph says what happened (DECISIONS 336, Q5): the check after a write, the close after a refused one.
+    actions += '<button type="button" class="btn terminal-copy" data-variant="ghost" data-size="sm" data-edge="end"' + copyDisabled + '>' + COPY + '%glyph-svg:check%%glyph-svg:close%<span>Copy commands</span></button>' +
+      '<button type="button" class="btn terminal-copy-compact" data-variant="ghost" data-size="sm" data-icon-only data-edge="end" aria-label="Copy commands"' + copyDisabled + '>' + COPY + '%glyph-svg:check%%glyph-svg:close%</button>' +
       '<span class="visually-hidden" role="status"></span>';
     head.classList.add('code-head');
     head.innerHTML = '<span class="terminal-title">' + esc(title) + '</span><span class="terminal-actions">' + actions + '</span>';
@@ -99,9 +100,12 @@
     }
     var stateEl = root.querySelector('.terminal-state .terminal-swap');
     var controlEl = root.querySelector('.terminal-control .terminal-swap');
-    var copyEl = root.querySelector('.terminal-copy .terminal-swap');
+    var copyEl = root.querySelector('.terminal-copy');
+    // Each copy button's three glyphs (copy, check, close) are drawn once; one shows at a time, so no markup is written after the head.
+    var glyphTo = function (at) { [copyEl, compact].forEach(function (b) { Array.prototype.forEach.call(b.querySelectorAll('svg'), function (g, i) { g.toggleAttribute('data-off', i !== at); }); }); };
     var live = root.querySelector('.terminal-actions [role="status"]');
     var compact = root.querySelector('.terminal-copy-compact');
+    glyphTo(0);
     var STATES = ['idle', 'running', 'paused', 'done', 'failed'];
     var CONTROL = ['Play', 'Pause', 'Resume', 'Replay'];
 
@@ -140,13 +144,12 @@
     function copy() {
       if (!commands || !B.copyText) return;
       B.copyText(commands).then(function (ok) {
-        if (!ok) return;
-        show(copyEl, 'Copied', ['Copy commands', 'Copied']);
-        compact.innerHTML = '%glyph-svg:check%';
-        compact.setAttribute('aria-label', 'Copied');
-        live.textContent = 'Copied';
+        glyphTo(ok ? 1 : 2);
+        // The icon alone shows the same result: the check, or the close after a refused write (DECISIONS 336, the open items' ruling), swapped at once.
+        compact.setAttribute('aria-label', ok ? 'Copied' : 'Copy failed');
+        live.textContent = ok ? 'Copied' : 'Copy failed';
         clearTimeout(reset);
-        reset = setTimeout(function () { show(copyEl, 'Copy commands', ['Copy commands', 'Copied']); compact.innerHTML = COPY; compact.setAttribute('aria-label', 'Copy commands'); live.textContent = ''; }, %duration-confirm%);
+        reset = setTimeout(function () { glyphTo(0); compact.setAttribute('aria-label', 'Copy commands'); live.textContent = ''; }, %duration-confirm%);
       });
     }
     root.querySelector('.terminal-copy').addEventListener('click', copy);

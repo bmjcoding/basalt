@@ -423,7 +423,7 @@ function Release({ release, form, product, running, runningBuild, shared }: { re
           <ArrivedWord on={arrival.on} ever={arrival.ever} label={words.linked} />
           {heading}
         </div>
-        <CopyButton variant="ghost" size="sm" text={() => `${shared.base()}#${id}`} aria-label={words.copyLinkTo(name)} copiedLabel={words.copied} statusLabel={words.linkCopied} className="basalt-release-copy">
+        <CopyButton variant="ghost" size="sm" edge="end" text={() => `${shared.base()}#${id}`} aria-label={words.copyLinkTo(name)} copiedLabel={words.copied} statusLabel={words.linkCopied} className="basalt-release-copy">
           {words.copyLink}
         </CopyButton>
       </header>

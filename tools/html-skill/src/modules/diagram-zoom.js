@@ -31,7 +31,7 @@ import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint, vie
     d.innerHTML =
       '<header class="sheet-head"><div class="sheet-head-text"><h2 class="dialog-title" tabindex="-1">' + esc(model.title) + '</h2>' +
         (spec.source ? '<p class="dialog-description diagram-viewer-source">' + esc(spec.source) + '</p>' : '') + '</div>' +
-        '<button type="button" class="btn sheet-close" data-variant="ghost" data-dialog-close aria-label="Close">%glyph-svg:close%</button></header>' +
+        '<button type="button" class="btn sheet-close" data-variant="ghost" data-icon-only data-edge="end" data-dialog-close aria-label="Close">%glyph-svg:close%</button></header>' +
       '<p class="visually-hidden" id="' + id + '-summary">' + esc(spec.summary) + '</p>' +
       '<div class="diagram-stage" tabindex="0" role="group" aria-label="Zoomed drawing">' +
         '<span class="diagram-probe" data-probe="row" aria-hidden="true"></span><span class="diagram-probe" data-probe="contain" aria-hidden="true"></span>' +
@@ -39,7 +39,7 @@ import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint, vie
       '<footer class="sheet-foot diagram-viewer-foot">' +
         (key ? '<div class="diagram-viewer-key">' + kit.toHtml(key) + '</div>' : '') +
         '<div class="diagram-viewer-row"><div class="diagram-zoom">' +
-          '<button type="button" class="btn" data-variant="ghost" data-size="sm" data-icon-only data-zoom="out" aria-label="Zoom out">%glyph-svg:minus%</button>' +
+          '<button type="button" class="btn" data-variant="ghost" data-size="sm" data-icon-only data-edge="start" data-zoom="out" aria-label="Zoom out">%glyph-svg:minus%</button>' +
           '<span class="diagram-level" aria-hidden="true" data-reserve="400%"><span>100%</span></span>' +
           '<button type="button" class="btn" data-variant="ghost" data-size="sm" data-icon-only data-zoom="in" aria-label="Zoom in">%glyph-svg:plus%</button>' +
           '<button type="button" class="btn diagram-fit" data-variant="secondary" data-size="sm" data-zoom="fit"><span>Fit</span></button></div>' +

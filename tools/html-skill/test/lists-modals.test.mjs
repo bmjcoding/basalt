@@ -21,7 +21,7 @@ const BODY = `<main id="main" style="padding: 16px">
   <span class="select" id="size-wrap"><select class="input" id="size" data-numeric aria-label="Incidents per page"><option>10</option><option selected>25</option><option>50</option><option>100</option></select></span>
   <button class="btn" id="opener" data-dialog-open="#d">Declare incident</button>
   <dialog class="panel float modal dialog" data-form id="d">
-    <header class="sheet-head"><div class="sheet-head-text"><h2 class="dialog-title" tabindex="-1">Declare an incident</h2></div><button class="btn sheet-close" data-variant="ghost" data-dialog-close aria-label="Close"><span data-glyph="close"></span></button></header>
+    <header class="sheet-head"><div class="sheet-head-text"><h2 class="dialog-title" tabindex="-1">Declare an incident</h2></div><button class="btn sheet-close" data-variant="ghost" data-icon-only data-edge="end" data-dialog-close aria-label="Close"><span data-glyph="close"></span></button></header>
     <div class="sheet-body"><p class="dialog-description">Say what is happening.</p><div class="field"><label for="what">What is happening</label><input class="input" id="what"></div><div id="grow" hidden style="height: 40px">An error</div><div id="fill" style="height: 100px"></div></div>
     <footer class="sheet-foot"><div class="dialog-actions"><button class="btn" id="cancel" data-dialog-close>Cancel</button><button class="btn" data-variant="primary" id="go">Declare</button></div></footer>
   </dialog>

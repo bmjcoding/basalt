@@ -3,12 +3,15 @@
   /* ---- Table selection: a checkbox column (React's documented pattern, display.tsx and foundations "Selected rows") ----
      The first column is a checkbox per row, labelled "Select NAME", under a header box that is mixed while some rows are selected. A selected row
      is the wash band (table.css) with no bar and no edge mark, in forced colours too: the wash is about 1.2:1 and says nothing alone, so the
-     state is the row's checked box and the count in words. The column is size-control-md wide (foundations), the 16px box centred between two 8px insets, so it is the same
-     width whether a row is selected or not and no column moves. */
+     state is the row's checked box and the count in words. The column is --basalt-select-column wide (DECISIONS 336, S10): 32 on a pointer, 44 on touch and under 720,
+     where it holds the checkbox's whole hit area; a <col> may make it wider. The box is centred in it, so no column moves when a row is selected. */
+  :root { --basalt-select-column: var(--basalt-size-control-md); }
+  @media (pointer: coarse), (width < %bp-md%) { :root { --basalt-select-column: var(--basalt-size-tap-min); } }
 
-  .select-col { box-sizing: border-box; width: var(--basalt-size-control-md); padding-inline: var(--basalt-space-2); }
-  /* Block-level, so the cell's own middle alignment centres the box and no line box adds a pixel above it. */
-  .select-col input[type="checkbox"] { display: flex; }
+  .select-col { box-sizing: border-box; width: var(--basalt-select-column); padding-inline: 0; }
+  /* Block-level, so the cell's own middle alignment centres the box and no line box adds a pixel above it. Centred, never more than space-4 from the column's start:
+     in a wider column a word heads, the box starts on the cell's line, under the word (the polish ruling). */
+  .select-col input[type="checkbox"] { display: flex; margin-inline: min(var(--basalt-space-4), calc((100% - var(--basalt-size-choice)) / 2)) auto; }
   /* A tap lands on the box over the cell's 44px, as React's checkbox does: a box around the 16px glyph that draws nothing (a percentage on an offset reads the glyph's own
      size, so it grows only the missing amount). */
   @media (pointer: coarse), (width < %bp-md%) {
