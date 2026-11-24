@@ -17,6 +17,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import zlib from "node:zlib";
 
 import { fixturePage, launch, pkg } from "./support.mjs";
 
@@ -73,6 +74,31 @@ function readZipEntries(bytes) {
     const dataStart = localOff + 30 + lNameLen + lExtraLen;
     entries.set(name, buf.subarray(dataStart, dataStart + uncompSize));
     p += 46 + nameLen + extraLen + commentLen;
+  }
+  return entries;
+}
+
+/** Reads any ZIP's entries (stored or deflated, any timestamps): for fixtures written by other tools, such as the RunTask proof. */
+function readForeignZipEntries(bytes) {
+  const buf = Buffer.from(bytes);
+  let eocd = -1;
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) {
+    if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
+  }
+  assert.ok(eocd >= 0, "ZIP EOCD signature missing");
+  const entries = new Map();
+  let p = buf.readUInt32LE(eocd + 16);
+  for (let i = 0, n = buf.readUInt16LE(eocd + 10); i < n; i++) {
+    const method = buf.readUInt16LE(p + 10);
+    const compSize = buf.readUInt32LE(p + 20);
+    const nameLen = buf.readUInt16LE(p + 28);
+    const localOff = buf.readUInt32LE(p + 42);
+    const name = buf.subarray(p + 46, p + 46 + nameLen).toString("utf8");
+    const dataStart = localOff + 30 + buf.readUInt16LE(localOff + 26) + buf.readUInt16LE(localOff + 28);
+    const raw = buf.subarray(dataStart, dataStart + compSize);
+    assert.ok(method === 0 || method === 8, `${name}: method ${method}`);
+    entries.set(name, method === 8 ? zlib.inflateRawSync(raw) : raw);
+    p += 46 + nameLen + buf.readUInt16LE(p + 30) + buf.readUInt16LE(p + 32);
   }
   return entries;
 }
@@ -212,7 +238,7 @@ function assertValidDrawio(xml, spec, context) {
 
 /** Parses and validates Visio .vsdx OPC archive, XML well-formedness, glue, ConFixedCode=2, and Visio-inch port alignment. */
 function assertValidVsdx(bytes, spec, context) {
-  const entries = readZipEntries(bytes);
+  const entries = bytes instanceof Map ? bytes : readZipEntries(bytes);
   const required = [
     "[Content_Types].xml",
     "_rels/.rels",
@@ -262,8 +288,8 @@ function assertValidVsdx(bytes, spec, context) {
     // Only inspect cells/connections belonging directly to the top-level shape (before any nested <Shapes>)
     const ownBody = body.split("<Shapes>")[0] ?? body;
     const objType = cellVal(ownBody, "ObjType");
-    const conns = [...ownBody.matchAll(/<Row T="Connection" IX="(\d+)">[\s\S]*?<Cell N="X" V="([^"]+)"[\s\S]*?<Cell N="Y" V="([^"]+)"/g)]
-      .map((m) => ({ ix: Number(m[1]), x: Number(m[2]), y: Number(m[3]) }));
+    const conns = [...ownBody.matchAll(/<Row T="Connection" IX="(\d+)">[\s\S]*?<Cell N="X" V="([^"]+)"(?: F="([^"]+)")?\/>[\s\S]*?<Cell N="Y" V="([^"]+)"(?: F="([^"]+)")?\/>/g)]
+      .map((m) => ({ ix: Number(m[1]), x: Number(m[2]), fx: m[3], y: Number(m[4]), fy: m[5] }));
     const rec = {
       id,
       nameU,
@@ -277,6 +303,13 @@ function assertValidVsdx(bytes, spec, context) {
       conns,
       body: ownBody,
     };
+    // Verify every Connection row's F formula (Width*fx, Height*fy) agrees with its V value within 2e-6 in.
+    for (const c of conns) {
+      const mFx = c.fx?.match(/^Width\*([\d.]+)$/);
+      const mFy = c.fy?.match(/^Height\*([\d.]+)$/);
+      if (mFx) assert.ok(Math.abs(rec.w * Number(mFx[1]) - c.x) <= 2e-6, `${context} ${nameU} Conn ${c.ix} X formula drift`);
+      if (mFy) assert.ok(Math.abs(rec.h * Number(mFy[1]) - c.y) <= 2e-6, `${context} ${nameU} Conn ${c.ix} Y formula drift`);
+    }
     byId.set(id, rec);
     if (objType === "2") connectors.push(rec);
   }
@@ -328,6 +361,22 @@ function assertValidVsdx(bytes, spec, context) {
     assertAxisAlignedRoute(geomRows, startPort, endPort, 2e-5, `${context} vsdx ${c.nameU}`);
   }
   assert.equal(labelledCount, expectedLabelCount(spec), `${context}: all labelled edges have connector <Text>`);
+
+  // Verify architecture groups are real Visio Containers (User.msvStructureType="Container" + Relationships DEPENDSON).
+  if (spec.type === "architecture" && spec.groups?.length) {
+    for (const g of spec.groups) {
+      const gShape = [...byId.values()].find((s) => s.nameU === `Group_${g.id}`);
+      assert.ok(gShape, `${context}: Group_${g.id} shape present`);
+      assert.match(gShape.body, /<Row N="msvStructureType"><Cell N="Value" V="Container" U="STR"\/>/, `${context}: Group_${g.id} has User.msvStructureType=Container`);
+      const members = spec.nodes.filter((n) => n.group === g.id);
+      for (const m of members) {
+        const mShape = [...byId.values()].find((s) => s.nameU === `Node_${m.id}`);
+        assert.ok(mShape, `${context}: member Node_${m.id} present`);
+        assert.match(gShape.body, new RegExp(`DEPENDSON\\(1,(?:Sheet\\.\\d+!SheetRef\\(\\),)*Sheet\\.${mShape.id}!SheetRef\\(\\)[,)]`), `${context}: container lists member ${m.id}`);
+        assert.match(mShape.body, new RegExp(`DEPENDSON\\(4,Sheet\\.${gShape.id}!SheetRef\\(\\)\\)`), `${context}: member ${m.id} points to container ${g.id}`);
+      }
+    }
+  }
 }
 
 /** Validates Lucid Standard Import ZIP + document.json contract and port axis-alignment. */
@@ -363,7 +412,11 @@ function assertValidLucid(bytes, spec, context) {
   if (spec.type === "schema") {
     const tables = page.shapes.filter((s) => s.type === "table");
     assert.equal(tables.length, spec.tables.length, `${context}: native table count`);
-    for (const t of tables) assert.equal(t.verticalBorder, false, `${context}: verticalBorder false`);
+    for (const t of tables) {
+      assert.equal(t.verticalBorder, false, `${context}: verticalBorder false`);
+      const rowSum = (t.userSpecifiedRows ?? []).reduce((a, r) => a + r.size, 0);
+      assert.ok(Math.abs(rowSum - t.boundingBox.h) <= 0.05, `${context} ${t.id}: userSpecifiedRows sum (${rowSum}) != boundingBox.h (${t.boundingBox.h})`);
+    }
   }
   if (spec.type === "flowchart") {
     assert.ok(page.shapes.some((s) => s.type === "decision"), `${context}: flowchart decision shape`);
@@ -396,7 +449,22 @@ function assertValidLucid(bytes, spec, context) {
   for (const line of edgeLines) {
     assert.ok(line.endpoint1.type === "shapeEndpoint" || line.endpoint1.type === "lineEndpoint", `${context} ${line.id}: endpoint1 glued`);
     assert.ok(line.endpoint2.type === "shapeEndpoint" || line.endpoint2.type === "lineEndpoint", `${context} ${line.id}: endpoint2 glued`);
-    if (spec.type === "schema") assert.equal(line.endpoint1.style, "closedCircle", `${context} ${line.id}: FK dot`);
+    if (spec.type === "schema") {
+      assert.equal(line.endpoint1.style, "closedCircle", `${context} ${line.id}: FK dot`);
+      // Verify every FK endpoint lands at the vertical center of one of its table's Lucid rows (within 0.5px).
+      for (const ep of [line.endpoint1, line.endpoint2]) {
+        const tbl = shapeById.get(ep.shapeId);
+        const yLocal = ep.position.y * tbl.boundingBox.h;
+        let acc = 0;
+        let minCenterDiff = Infinity;
+        for (const r of tbl.userSpecifiedRows ?? []) {
+          const center = acc + r.size / 2;
+          minCenterDiff = Math.min(minCenterDiff, Math.abs(yLocal - center));
+          acc += r.size;
+        }
+        assert.ok(minCenterDiff <= 0.51, `${context} ${line.id} on ${ep.shapeId}: FK y=${yLocal.toFixed(2)} off nearest Lucid row center by ${minCenterDiff.toFixed(2)}px`);
+      }
+    }
     if (line.text?.length) labelled++;
     const start = endpointPt(line.endpoint1);
     const end = endpointPt(line.endpoint2);
@@ -441,32 +509,77 @@ describe("all five CIMIP fixtures: determinism, schemas, glue and exact port axi
       }
     });
 
-    test(`${key}: .vsdx OPC parts, Connects glue, ConFixedCode=2, and zero-jog Visio-inch port alignment`, () => {
+    test(`${key}: .vsdx OPC parts, Connects glue, ConFixedCode=2, dark PageBackground, and zero-jog Visio-inch port alignment`, () => {
       for (const theme of ["light", "dark"]) {
         const bytes = interop.diagramToVsdx(spec, { theme });
         assertValidVsdx(bytes, spec, `${key}/${theme}`);
+        const page1 = readZipEntries(bytes).get("visio/pages/page1.xml").toString("utf8");
+        const firstShape = page1.match(/<Shape ID="(\d+)" NameU="([^"]+)"[^>]*>([\s\S]*?)<\/Shape>/);
+        assert.ok(firstShape, `${key}/${theme}: first shape exists`);
+        if (theme === "dark") {
+          assert.equal(firstShape[1], "1", `${key}/dark: PageBackground is ID 1`);
+          assert.equal(firstShape[2], "PageBackground", `${key}/dark: first shape is PageBackground`);
+          assert.match(firstShape[3], /<Cell N="FillForegnd" V="#000000"\/>/, `${key}/dark: surface-page fill #000000`);
+          assert.match(firstShape[3], /<Cell N="LockSelect" V="1"\/>/, `${key}/dark: PageBackground is locked`);
+          assert.match(firstShape[3], /<Cell N="LockMoveX" V="1"\/>/, `${key}/dark: PageBackground move locked`);
+        } else {
+          assert.notEqual(firstShape[2], "PageBackground", `${key}/light: no dark background shape`);
+        }
       }
     });
 
-    test(`${key}: .lucid Standard Import JSON contract and Lucid-unit port alignment`, () => {
+    test(`${key}: .lucid Standard Import JSON contract, dark fillColor and Lucid-unit port alignment`, () => {
       for (const theme of ["light", "dark"]) {
         const bytes = interop.diagramToLucid(spec, { theme });
         assertValidLucid(bytes, spec, `${key}/${theme}`);
+        const doc = JSON.parse(readZipEntries(bytes).get("document.json").toString("utf8"));
+        assert.equal(doc.pages[0].settings.fillColor, theme === "dark" ? "#000000" : "#fafafa", `${key}/${theme}: page fillColor`);
       }
     });
   }
 
-  test("architecture RunTask (svc -> ecs) in .vsdx is a clean 3-point L-bend with 0.000000 in port delta", () => {
-    const entries = readZipEntries(interop.diagramToVsdx(CIMIP.architecture));
-    const page1 = entries.get("visio/pages/page1.xml").toString("utf8");
-    const runTask = page1.match(/<Shape ID="\d+" NameU="Connector_4"[^>]*>([\s\S]*?)<\/Shape>/)?.[1];
-    assert.ok(runTask, "Connector_4 (RunTask) present");
-    const rows = [...runTask.matchAll(/<Row T="(MoveTo|LineTo)" IX="\d+"><Cell N="X" V="([^"]+)"\/><Cell N="Y" V="([^"]+)"\/><\/Row>/g)];
-    assert.equal(rows.length, 3, "RunTask has exactly 3 geometry vertices (no extra joining jog)");
-    assert.equal(rows[0][2], "0.000000", "MoveTo X === 0");
-    assert.equal(rows[0][3], "0.000000", "MoveTo Y === 0");
-    assert.equal(rows[1][2], "0.000000", "first bend stays strictly on X === 0 (no horizontal jog below cimip service)");
+  test("architecture RunTask (svc -> ecs) in .vsdx glues Begin/End to exact Connection rows and rejects proof-style 0.5px drift", () => {
+    // RunTask's Begin and End against the Connection rows they are glued to, worked out from page1.xml alone (value and, where written, formula).
+    const runTaskGlue = (page1) => {
+      const svc = page1.match(/<Shape ID="(\d+)" NameU="Node_svc"[^>]*>([\s\S]*?)<\/Shape>/);
+      const ecs = page1.match(/<Shape ID="(\d+)" NameU="Node_ecs"[^>]*>([\s\S]*?)<\/Shape>/);
+      const runTask = page1.match(/<Shape ID="(\d+)" NameU="Connector_4"[^>]*>([\s\S]*?)<\/Shape>/);
+      assert.ok(svc && ecs && runTask, "Node_svc, Node_ecs, and Connector_4 (RunTask) present");
+      const cellV = (b, n) => Number(b.match(new RegExp(`<Cell N="${n}" V="([^"]+)"`))?.[1]);
+      const beginConn = page1.match(new RegExp(`<Connect FromSheet="${runTask[1]}" FromCell="BeginX" FromPart="9" ToSheet="${svc[1]}" ToCell="Connections\\.X(\\d+)" ToPart="(\\d+)"\\/>`));
+      const endConn = page1.match(new RegExp(`<Connect FromSheet="${runTask[1]}" FromCell="EndX" FromPart="12" ToSheet="${ecs[1]}" ToCell="Connections\\.X(\\d+)" ToPart="(\\d+)"\\/>`));
+      assert.ok(beginConn && endConn, "RunTask glued from Node_svc to Node_ecs");
+      const connPt = (shapeBody, ix) => {
+        const row = shapeBody.match(new RegExp(`<Row T="Connection" IX="${ix}">[\\s\\S]*?<Cell N="X" V="([^"]+)"(?: F="Width\\*([^"]+)")?\\/>[\\s\\S]*?<Cell N="Y" V="([^"]+)"(?: F="Height\\*([^"]+)")?\\/>`));
+        assert.ok(row, `Connection IX=${ix} present`);
+        const ox = cellV(shapeBody, "PinX") - cellV(shapeBody, "LocPinX"), oy = cellV(shapeBody, "PinY") - cellV(shapeBody, "LocPinY");
+        const w = cellV(shapeBody, "Width"), h = cellV(shapeBody, "Height");
+        const x = ox + Number(row[1]), y = oy + Number(row[3]);
+        return { x, y, fx: row[2] ? ox + w * Number(row[2]) : x, fy: row[4] ? oy + h * Number(row[4]) : y };
+      };
+      const from = connPt(svc[2], Number(beginConn[2]) - 100), to = connPt(ecs[2], Number(endConn[2]) - 100);
+      const b = { x: cellV(runTask[2], "BeginX"), y: cellV(runTask[2], "BeginY") }, e = { x: cellV(runTask[2], "EndX"), y: cellV(runTask[2], "EndY") };
+      const off = (p, c) => Math.max(Math.abs(p.x - c.x), Math.abs(p.y - c.y), Math.abs(p.x - c.fx), Math.abs(p.y - c.fy));
+      return { runTask, begin: b, end: e, from, to, beginOff: off(b, from), endOff: off(e, to) };
+    };
+
+    const page1 = readZipEntries(interop.diagramToVsdx(CIMIP.architecture)).get("visio/pages/page1.xml").toString("utf8");
+    const { runTask, begin, end, from, to, beginOff, endOff } = runTaskGlue(page1);
+    assert.ok(beginOff <= 2e-6, `RunTask Begin (${begin.x},${begin.y}) on its Connection row (${from.x},${from.y}; formula ${from.fx},${from.fy})`);
+    assert.ok(endOff <= 2e-6, `RunTask End (${end.x},${end.y}) on its Connection row (${to.x},${to.y}; formula ${to.fx},${to.fy})`);
+
+    const rows = [...runTask[2].matchAll(/<Row T="(MoveTo|LineTo)" IX="\d+"><Cell N="X" V="([^"]+)"\/><Cell N="Y" V="([^"]+)"\/><\/Row>/g)];
+    assert.equal(rows.length, 3, "RunTask has exactly 3 geometry vertices");
+    assert.equal(rows[1][2], "0.000000", "first bend stays strictly on X === 0");
     assert.equal(rows[1][3], rows[2][3], "final leg stays strictly horizontal into ECS");
+
+    // Negative fixture: the proof .vsdx that jogged in Lucid (DECISIONS 314). Its geometry was already an L-bend; its BeginX sat 0.5 px
+    // (0.0052 in) off the cimip service's Connection row, which is what Lucid re-glued and drew as the jog. It must fail.
+    const proof = fs.readFileSync(path.join(here, "fixtures", "runtask-jog-proof.vsdx"));
+    const proofEntries = readForeignZipEntries(proof);
+    const proofGlue = runTaskGlue(proofEntries.get("visio/pages/page1.xml").toString("utf8"));
+    assert.ok(proofGlue.beginOff > 0.005 && proofGlue.beginOff < 0.0055, `the proof's RunTask Begin is 0.5 px off its Connection row (${proofGlue.beginOff} in)`);
+    assert.throws(() => assertValidVsdx(proofEntries, CIMIP.architecture, "runtask-jog-proof"), /Connector_\d+: Begin .* != Connection/);
   });
 });
 
@@ -478,7 +591,7 @@ describe("live DOM measured Geo entry (exportMeasuredDiagram)", () => {
       import { readMeasuredExtras } from "./dist/diagram-interop.js";
       const C = { architecture: B.ArchitectureDiagram, flowchart: B.FlowchartDiagram, "data-flow": B.DataFlowDiagram, sequence: B.SequenceDiagram, schema: B.SchemaDiagram };
       function Host() {
-        return <main style={{ maxWidth: 1104, margin: "0 auto", padding: 16, display: "grid", gap: 64 }}>
+        return <main style={{ width: 1104, margin: "0 auto", display: "grid", gap: 64 }}>
           {Object.entries(data).map(([key, d]) => { const X = C[d.type]; const { type, ...props } = d; return <X key={key} id={"fig-" + key} {...props} />; })}
         </main>;
       }
@@ -517,6 +630,96 @@ describe("live DOM measured Geo entry (exportMeasuredDiagram)", () => {
         assertValidVsdx(vsdx, CIMIP[key], `measured/${key}`);
         assertValidLucid(lucid, CIMIP[key], `measured/${key}`);
       }
+
+      // Comparison: headless vs live at the same drawing width (records exact box & route deltas without asserting 0.5px yet; B2 lands after Batch B).
+      const comparison = {};
+      for (const key of CIMIP_KEYS) {
+        const { geo, extras } = measured[key];
+        const liveDoc = interop.exportMeasuredDiagram(CIMIP[key], geo, "lucid-json", { extras });
+        const headDoc = interop.diagramToLucidJson(CIMIP[key], { width: geo.w });
+        const L = liveDoc.pages[0], H = headDoc.pages[0];
+        assert.deepEqual(L.shapes.map((s) => s.id), H.shapes.map((s) => s.id), `${key}: live vs headless shape ids match`);
+        assert.deepEqual(L.lines.map((l) => l.id), H.lines.map((l) => l.id), `${key}: live vs headless line ids match`);
+
+        let maxBoxDelta = 0, shapesOverHalfPx = 0;
+        const boxDeltas = {};
+        for (const s of L.shapes) {
+          const h = H.shapes.find((x) => x.id === s.id);
+          const dx = Math.abs(s.boundingBox.x - h.boundingBox.x);
+          const dy = Math.abs(s.boundingBox.y - h.boundingBox.y);
+          const dw = Math.abs(s.boundingBox.w - h.boundingBox.w);
+          const dh = Math.abs(s.boundingBox.h - h.boundingBox.h);
+          const m = Math.max(dx, dy, dw, dh);
+          if (m > 0.5) shapesOverHalfPx++;
+          if (m > maxBoxDelta) maxBoxDelta = m;
+          boxDeltas[s.id] = { dx: +dx.toFixed(2), dy: +dy.toFixed(2), dw: +dw.toFixed(2), dh: +dh.toFixed(2) };
+        }
+        let maxRouteDelta = 0, routesOverHalfPx = 0;
+        const routeDeltas = {};
+        for (const l of L.lines.filter((x) => x.id.startsWith("edge_"))) {
+          const h = H.lines.find((x) => x.id === l.id);
+          const lp = l.elbowControlPoints ?? [], hp = h.elbowControlPoints ?? [];
+          let m = lp.length === hp.length ? 0 : Infinity;
+          if (lp.length === hp.length) {
+            for (let k = 0; k < lp.length; k++) {
+              m = Math.max(m, Math.abs(lp[k].x - hp[k].x), Math.abs(lp[k].y - hp[k].y));
+            }
+          }
+          if (m > 0.5) routesOverHalfPx++;
+          if (Number.isFinite(m) && m > maxRouteDelta) maxRouteDelta = m;
+          routeDeltas[l.id] = Number.isFinite(m) ? +m.toFixed(2) : "point-count-mismatch";
+        }
+        comparison[key] = {
+          liveW: geo.w, liveH: geo.h,
+          headlessW: H.settings.size.w - 64, headlessH: H.settings.size.h - 64,
+          shapesOverHalfPx, maxBoxDelta: +maxBoxDelta.toFixed(2),
+          routesOverHalfPx, maxRouteDelta: +maxRouteDelta.toFixed(2),
+          boxDeltas, routeDeltas,
+        };
+      }
+      if (process.env.PRINT_INTEROP_COMPARISON) {
+        process.stdout.write(`HEADLESS_VS_LIVE=${JSON.stringify(comparison)}\n`);
+      }
+
+      // Polish 2: measured lane rects keyed as lane-0..lane-5 (readMeasuredExtras' format) must reach sceneFromMeasured.
+      const df = measured.dataFlow;
+      assert.equal(df.extras.lanes?.length, CIMIP.dataFlow.lanes.length);
+      const customLanes = df.extras.lanes.map((l, idx) => ({
+        ...l,
+        rect: idx === 0 ? { l: 0, t: 0, r: df.geo.w, b: 140 } : { l: 0, t: 140 + idx * 90, r: df.geo.w, b: 200 + idx * 90 },
+      }));
+      const docWithCustomLanes = interop.exportMeasuredDiagram(CIMIP.dataFlow, df.geo, "lucid-json", { extras: { ...df.extras, lanes: customLanes } });
+      const swCustom = docWithCustomLanes.pages[0].shapes.find((s) => s.type === "swimLanes");
+      const docDefaultLanes = interop.exportMeasuredDiagram(CIMIP.dataFlow, df.geo, "lucid-json", { extras: df.extras });
+      const swDefault = docDefaultLanes.pages[0].shapes.find((s) => s.type === "swimLanes");
+      assert.notEqual(swCustom.lanes[0].width, swDefault.lanes[0].width, "measured lane-0..N rects must change exported swimlane geometry");
+      assert.equal(swCustom.lanes[0].width, 185, "lane 0 bottom hits midpoint between lane 0 bottom (140) and lane 1 top (230) = 185");
+
+      // Polish 7: dist/diagram-interop.js runs directly in a browser without any `process` global defined.
+      const rawPage = await browser.newPage();
+      const interopSrc = fs.readFileSync(path.join(pkg, "dist", "diagram-interop.js"), "utf8");
+      await rawPage.route("https://interop-browser-check.local/**", async (route) => {
+        if (route.request().url().endsWith("/diagram-interop.js")) {
+          await route.fulfill({ status: 200, contentType: "application/javascript; charset=utf-8", body: interopSrc });
+        } else {
+          await route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: "<!doctype html><html><body></body></html>" });
+        }
+      });
+      await rawPage.goto("https://interop-browser-check.local/index.html");
+      const browserOut = await rawPage.evaluate(async (spec) => {
+        const mod = await import("https://interop-browser-check.local/diagram-interop.js");
+        return {
+          hasProcess: typeof globalThis.process !== "undefined",
+          drawioOk: mod.diagramToDrawio(spec).includes("<mxfile"),
+          vsdxLen: mod.diagramToVsdx(spec).byteLength,
+          lucidLen: mod.diagramToLucid(spec).byteLength,
+        };
+      }, CIMIP.architecture);
+      assert.equal(browserOut.hasProcess, false, "no process global in native browser");
+      assert.equal(browserOut.drawioOk, true, "diagramToDrawio works in native browser ESM");
+      assert.ok(browserOut.vsdxLen > 0 && browserOut.lucidLen > 0, "vsdx and lucid work in native browser ESM");
+      await rawPage.close();
+
       await page.close();
     } finally {
       await browser.close();
@@ -545,12 +748,14 @@ describe("service marks embedding policy (manifest terms)", () => {
       nodes: [
         { id: "ecs", name: "ECS service", col: 1, row: 1, mark: "aws-ecs-service" },
         { id: "k8s", name: "Kubernetes", col: 2, row: 1, mark: "kubernetes" },
-        { id: "br", name: "Bedrock", col: 3, row: 1, mark: "aws-bedrock" },
-        { id: "gh", name: "GitHub", col: 4, row: 1, mark: "github" },
+        { id: "db", name: "Database", col: 3, row: 1, mark: "aws-database" },
+        { id: "br", name: "Bedrock", col: 4, row: 1, mark: "aws-bedrock" },
+        { id: "gh", name: "GitHub", col: 5, row: 1, mark: "github" },
       ],
       edges: [
         { from: "ecs", to: "k8s" },
-        { from: "k8s", to: "br" },
+        { from: "k8s", to: "db" },
+        { from: "db", to: "br" },
         { from: "br", to: "gh" },
       ],
     };
@@ -561,20 +766,32 @@ describe("service marks embedding policy (manifest terms)", () => {
     assert.equal([...readZipEntries(interop.diagramToVsdx(spec, { resolveMark })).keys()].filter((k) => k.startsWith("visio/media/")).length, 0);
     assert.equal([...readZipEntries(interop.diagramToLucid(spec, { resolveMark })).keys()].filter((k) => k.startsWith("images/")).length, 0);
 
-    // Embed: only aws-ecs-service and kubernetes (NOT unofficial aws-bedrock or restricted github)
+    // Embed: official allowed marks only (NOT unofficial aws-bedrock or restricted github)
     const drawioEmbed = interop.diagramToDrawio(spec, { marks: "embed", resolveMark });
     assertValidDrawio(drawioEmbed, spec, "marks-embed");
     assert.match(drawioEmbed, /id="mark-ecs"/);
     assert.match(drawioEmbed, /id="mark-k8s"/);
+    assert.match(drawioEmbed, /id="mark-db"/);
     assert.doesNotMatch(drawioEmbed, /id="mark-br"/);
     assert.doesNotMatch(drawioEmbed, /id="mark-gh"/);
 
+    // Adaptive draw.io embeds prefers-color-scheme dual-form SVG for marks with distinct light/dark forms (aws-database)
+    const drawioAdaptive = interop.diagramToDrawio(spec, { theme: "adaptive", marks: "embed", resolveMark });
+    assertValidDrawio(drawioAdaptive, spec, "marks-embed-adaptive");
+    assert.match(drawioAdaptive, /prefers-color-scheme%3Adark/, "adaptive draw.io embeds dual light/dark mark form");
+
     const vsdxEmbed = readZipEntries(interop.diagramToVsdx(spec, { marks: "embed", resolveMark }));
-    assert.equal([...vsdxEmbed.keys()].filter((k) => k.startsWith("visio/media/")).length, 2);
+    assert.equal([...vsdxEmbed.keys()].filter((k) => k.startsWith("visio/media/")).length, 3);
     assert.ok(vsdxEmbed.has("visio/pages/_rels/page1.xml.rels"));
+    // Kubernetes attribution from manifest.json lands in Visio DocumentProperties Description and Lucid customData
+    assert.ok(interop.bundledMarkAttribution("kubernetes")?.includes("Apache-2.0"));
+    assert.match(vsdxEmbed.get("visio/document.xml").toString("utf8"), /Apache-2\.0/, "Kubernetes attribution in Visio document.xml");
 
     const lucidEmbed = readZipEntries(interop.diagramToLucid(spec, { marks: "embed", resolveMark }));
-    assert.equal([...lucidEmbed.keys()].filter((k) => k.startsWith("images/")).length, 2);
+    assert.equal([...lucidEmbed.keys()].filter((k) => k.startsWith("images/")).length, 3);
+    const lucidDoc = JSON.parse(lucidEmbed.get("document.json").toString("utf8"));
+    const k8sMarkShape = lucidDoc.pages[0].shapes.find((s) => s.id === "mark_k8s");
+    assert.ok(k8sMarkShape?.customData?.some((d) => d.key === "attribution" && d.value.includes("Apache-2.0")), "Kubernetes attribution in Lucid customData");
   });
 });
 
@@ -582,22 +799,38 @@ describe("basalt-diagram-export CLI", () => {
   test("exports JSON map, single JSON, and HTML script[data-diagram] (ignoring comments/textarea decoys) deterministically", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-interop-cli-"));
     try {
-      // 1. Multi-diagram JSON (all 5 CIMIP fixtures)
+      // 1. Multi-diagram JSON under two different TZ and LC_ALL environments (Polish 8: cross-TZ/locale determinism)
       const outA = path.join(dir, "a");
       const outB = path.join(dir, "b");
-      const r1 = spawnSync(process.execPath, [CLI, path.join(here, "fixtures", "cimip-diagrams.json"), "--to", "drawio,vsdx,lucid", "--out", outA], { encoding: "utf8" });
+      const r1 = spawnSync(process.execPath, [CLI, path.join(here, "fixtures", "cimip-diagrams.json"), "--to", "drawio,vsdx,lucid,lucid-json", "--out", outA], {
+        encoding: "utf8",
+        env: { ...process.env, TZ: "UTC", LC_ALL: "C" },
+      });
       assert.equal(r1.status, 0, r1.stderr);
-      const r2 = spawnSync(process.execPath, [CLI, path.join(here, "fixtures", "cimip-diagrams.json"), "--to", "drawio,vsdx,lucid", "--out", outB], { encoding: "utf8" });
+      const r2 = spawnSync(process.execPath, [CLI, path.join(here, "fixtures", "cimip-diagrams.json"), "--to", "drawio,vsdx,lucid,lucid-json", "--out", outB], {
+        encoding: "utf8",
+        env: { ...process.env, TZ: "Asia/Kolkata", LC_ALL: "de_DE.UTF-8" },
+      });
       assert.equal(r2.status, 0, r2.stderr);
 
       const expectedStems = ["architecture", "flowchart", "data-flow", "sequence", "schema"];
       for (const stem of expectedStems) {
-        for (const ext of [".drawio", ".vsdx", ".lucid"]) {
+        for (const ext of [".drawio", ".vsdx", ".lucid", ".lucid.json"]) {
           const fa = fs.readFileSync(path.join(outA, stem + ext));
           const fb = fs.readFileSync(path.join(outB, stem + ext));
-          assert.equal(sha256(fa), sha256(fb), `CLI repeat deterministic: ${stem}${ext}`);
+          assert.equal(sha256(fa), sha256(fb), `CLI repeat deterministic across TZ/LC_ALL: ${stem}${ext}`);
         }
       }
+
+      // 1b. B1: invoking the CLI through a symlink (as npm installs node_modules/.bin/basalt-diagram-export) executes and writes files
+      const symLink = path.join(dir, "basalt-diagram-export-link");
+      fs.symlinkSync(CLI, symLink);
+      const symOut = path.join(dir, "from-symlink");
+      const singleJson = path.join(dir, "one.json");
+      fs.writeFileSync(singleJson, JSON.stringify(CIMIP.flowchart));
+      const rSym = spawnSync(process.execPath, [symLink, singleJson, "--to", "vsdx", "--out", symOut], { encoding: "utf8" });
+      assert.equal(rSym.status, 0, rSym.stderr);
+      assert.ok(fs.existsSync(path.join(symOut, "one.vsdx")), "symlinked CLI wrote output file");
 
       // 2. HTML input with a real diagram + decoys inside comment and textarea
       const decoy = JSON.stringify({ type: "architecture", title: "Decoy", summary: "No", nodes: [{ id: "x", name: "X", col: 1, row: 1 }], edges: [] });
@@ -615,17 +848,57 @@ describe("basalt-diagram-export CLI", () => {
       assertValidDrawio(fs.readFileSync(path.join(htmlOut, "arch.drawio"), "utf8"), CIMIP.architecture, "cli-html-adaptive");
       assertValidVsdx(fs.readFileSync(path.join(htmlOut, "arch.vsdx")), CIMIP.architecture, "cli-html-vsdx");
 
-      // 3. Single file --out path
-      const singleJson = path.join(dir, "one.json");
-      fs.writeFileSync(singleJson, JSON.stringify(CIMIP.flowchart));
+      // 3. Single file --out path (valid + Polish 10 mismatched extension check)
       const exactOut = path.join(dir, "exact.drawio");
       const r4 = spawnSync(process.execPath, [CLI, singleJson, "--to", "drawio", "--out", exactOut], { encoding: "utf8" });
       assert.equal(r4.status, 0, r4.stderr);
       assert.ok(fs.existsSync(exactOut));
 
-      // 4. Error handling on unknown format
+      const mismatch = spawnSync(process.execPath, [CLI, singleJson, "--to", "drawio", "--out", path.join(dir, "wrong.vsdx")], { encoding: "utf8" });
+      assert.notEqual(mismatch.status, 0, "mismatched --out extension must fail");
+      assert.match(mismatch.stderr, /extension does not match/i);
+
+      // 4. Polish 9: custom mark SVG file resolved relative to input file + warning when missing
+      fs.writeFileSync(path.join(dir, "logo.svg"), `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#000"/></svg>`);
+      const customMarkSpec = {
+        type: "architecture",
+        title: "Custom marks",
+        summary: "Custom mark resolution.",
+        nodes: [
+          { id: "ok", name: "Present", col: 1, row: 1, mark: { onLight: "logo.svg" } },
+          { id: "miss", name: "Missing", col: 2, row: 1, mark: { onLight: "no-such.svg" } },
+        ],
+        edges: [{ from: "ok", to: "miss" }],
+      };
+      const customIn = path.join(dir, "custom.json");
+      fs.writeFileSync(customIn, JSON.stringify(customMarkSpec));
+      const customOut = path.join(dir, "custom-out");
+      const rCustom = spawnSync(process.execPath, [CLI, customIn, "--to", "drawio,vsdx", "--marks", "embed", "--out", customOut], { encoding: "utf8" });
+      assert.equal(rCustom.status, 0, rCustom.stderr);
+      assert.match(rCustom.stderr, /warning: custom mark file "no-such\.svg" not found/i, "warns on missing custom mark file");
+      const customDrawio = fs.readFileSync(path.join(customOut, "custom.drawio"), "utf8");
+      assert.match(customDrawio, /id="mark-ok"/, "resolved custom SVG file embedded");
+      assert.doesNotMatch(customDrawio, /id="mark-miss"/, "missing custom SVG skipped");
+
+      // 5. Error handling on unknown format
       const bad = spawnSync(process.execPath, [CLI, singleJson, "--to", "bogus"], { encoding: "utf8" });
       assert.notEqual(bad.status, 0);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("packaged --browser harness measures through dist/ alone (no repo HTML skill dependency)", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-interop-browser-"));
+    try {
+      const outDir = path.join(dir, "out");
+      const res = spawnSync(process.execPath, [CLI, path.join(here, "fixtures", "cimip-diagrams.json"), "--browser", "--to", "drawio,vsdx,lucid", "--out", outDir], { encoding: "utf8", timeout: 90000 });
+      assert.equal(res.status, 0, res.stderr);
+      for (const [key, stem] of [["architecture", "architecture"], ["flowchart", "flowchart"], ["dataFlow", "data-flow"], ["sequence", "sequence"], ["schema", "schema"]]) {
+        assertValidDrawio(fs.readFileSync(path.join(outDir, `${stem}.drawio`), "utf8"), CIMIP[key], `cli-browser/${key}`);
+        assertValidVsdx(fs.readFileSync(path.join(outDir, `${stem}.vsdx`)), CIMIP[key], `cli-browser/${key}`);
+        assertValidLucid(fs.readFileSync(path.join(outDir, `${stem}.lucid`)), CIMIP[key], `cli-browser/${key}`);
+      }
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
