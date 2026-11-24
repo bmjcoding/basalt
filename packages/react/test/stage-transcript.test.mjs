@@ -346,10 +346,14 @@ describe("the head under 480px of the Terminal's own width (ruling 12)", () => {
         const figure = words(document.querySelector(".basalt-terminal-time .basalt-run-timer [data-on]"));
         const seat = document.querySelector(".basalt-terminal-time").getBoundingClientRect();
         const copy = document.querySelector(".basalt-terminal-copy").getBoundingClientRect();
-        return { afterTitle: state.left - title.right, beforeCopy: copy.left - seat.right, seatEnd: seat.right - figure.right, order: state.left < seat.left && seat.right <= copy.left };
+        const head = document.querySelector(".basalt-terminal-head");
+        const contentEnd = head.getBoundingClientRect().right - parseFloat(getComputedStyle(head).paddingRight);
+        const copyWords = words(document.querySelector(".basalt-terminal-copy .basalt-button-label [data-on]") ?? document.querySelector(".basalt-terminal-copy .basalt-button-label"));
+        return { afterTitle: state.left - title.right, beforeCopy: copy.left - seat.right, seatEnd: seat.right - figure.right, copyEnd: Math.round((contentEnd - copyWords.right) * 100) / 100, order: state.left < seat.left && seat.right <= copy.left };
       });
       assert.equal(r.afterTitle, 12, "space-3 after the title");
       assert.equal(r.beforeCopy, 12, "space-3 before Copy");
+      assert.ok(Math.abs(r.copyEnd) <= 0.5, `"Copy commands" ends on the head's padding line, where the durations end (${r.copyEnd}; the re-check's polish 2)`);
       assert.ok(Math.abs(r.seatEnd) <= 0.5, `the figures end their seat (${r.seatEnd})`);
       assert.ok(r.order, JSON.stringify(r));
     });

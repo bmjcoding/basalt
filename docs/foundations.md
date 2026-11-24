@@ -2732,9 +2732,9 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   stands at the line's end in tertiary, one column down the log. The head gains the run's time. A stage transcript is never a `log`: from its
   first frame its window is a named `region` (a `group` while empty) and the run's `RunAnnouncer` speaks. With `keep`, lines older than the
   newest `keep` stages step back once (see Logs, status and forms); a command never does.
-- **`RunTimeline` and the counter.** An append-only `ol` of steps, a sentence each: the mark, `space-3`, the sentence, the meta (a result, a
-  middle dot, the time), at `text-sm`; the sentence is primary while the step runs, retries or waits, secondary once it has finished. From 640px of its own container the meta ends on the row's end edge; under it the meta goes under the
-  sentence. A detail and an action are always drawn under a full step. `keep` (3 when left out; `false` is the whole record) is the counter:
+- **`RunTimeline` and the counter.** An append-only `ol` of steps, a sentence each: the mark, `space-3`, the sentence, the meta (a result and
+  the time), at `text-sm`; the sentence is primary while the step runs, retries or waits, secondary once it has finished. From 640px of its own container the meta ends on the row's end edge, the time's seat `space-3` after the result with no dot between
+  them; under it the meta goes under the sentence, a middle dot between the result and the time. The comma is said at both. A detail and an action are always drawn under a full step. `keep` (3 when left out; `false` is the whole record) is the counter:
   the newest `keep` steps stay in full and a finished step older than those rolls into the tail (a step running, retrying or waiting never
   rolls, and nothing after it does). A tail row is `text-xs` at 400, 20px, one line cut with an ellipsis, its mark still 16, no connector and
   no detail, its ink its depth's step (see Principles); everything it says stays in the accessibility tree. The window is the list's

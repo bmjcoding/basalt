@@ -122,16 +122,19 @@ const pad: React.CSSProperties = { padding: 20, display: "flex", flexDirection: 
 
 // A run's head (sweep 67-4, DECISIONS 326). From 720: one row, the title and the badge, then the time and the controls at its end, as before. Under 720: the title
 // and the badge first (the badge wraps under a long title), then one row with the time at its start, start-aligned in its seat, and the controls at its end; the
-// hold there is the 44px icon form, its glyph on the card's content edge (half of 44 - 16 hangs into the padding). 8 between rows, 12 between items.
+// hold there is the 44px icon form, its glyph on the card's content edge (half of 44 - 16 hangs into the padding). 8 between rows, 12 between items. The
+// controls' row is size-control-sm tall, as the head is from 720: every control in it is ghost, so its 44px is hit area that hangs 8 above and below and
+// takes no room (the re-check's gap ruling: the badge to the time 14, the head 58). With no time, the controls end the row at every width.
 const HEAD_CSS = `.review-run-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 16px; }
 .review-run-head > span { display: contents; }
-.review-run-time { margin-inline-start: auto; }
+.review-run-time { display: flex; margin-inline-start: auto; }
+.review-run-head > span > .review-run-controls:first-child { margin-inline-start: auto; }
 @media (width < 720px) {
   .review-run-head { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
   .review-run-head > span { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
   .review-run-time { margin-inline-start: 0; }
   .review-run-time .basalt-run-timer > .basalt-reserve { justify-items: start; }
-  .review-run-controls { margin-inline-start: auto; }
+  .review-run-controls { margin-inline-start: auto; block-size: var(--basalt-size-control-sm); }
   .review-run-controls > .basalt-button[data-icon-only] { margin-inline-end: -14px; }
 }`;
 

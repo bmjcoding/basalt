@@ -4496,7 +4496,7 @@
   /* Under 480px of the Terminal's own width the figure is start-aligned, right after the state word, so the two read as one status and the seat's
      spare room falls at the line's open end (ruling 12). */
   .basalt-terminal-time .basalt-run-timer > .basalt-reserve { justify-items: start; }
-  /* A head with a run's time keeps every part inside its padding at every width: the actions give up the ghost button's optical overhang. */
+  /* Under 480px a head with a run's time keeps its actions inside its padding (the compact copy button hangs by its own margin, below). */
   .basalt-terminal-actions:has(> .basalt-terminal-time) { margin-inline-end: 0; }
   /* From 480px of its own width a head with a run's time reads title, state … time, Copy, as a card's head reads name, badge … time, controls
      (DECISIONS 326, 67-5): the state follows the title space-3 after it, start-aligned in its seat; the time keeps its place space-3 before Copy,
@@ -4509,6 +4509,8 @@
     .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-state > .basalt-reserve { justify-items: start; }
     .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-time { order: 2; margin-inline-start: auto; }
     .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-time .basalt-run-timer > .basalt-reserve { justify-items: end; }
+    /* "Copy commands" ends on the line every duration under it ends on: the ghost button's glyph-side padding hangs past the head's (the re-check). */
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-copy { margin-inline-end: calc(-1 * var(--basalt-space-2-5)); }
   }
   /* Under 480px of the Terminal's own width a head with a run's time is two rows (ruling 12): the title and the copy button (its glyph on the end
      padding line), then the state and its time from the title's start edge; space-2 between the two lines, the words 15 from the head's edges. The button's row is its own height
