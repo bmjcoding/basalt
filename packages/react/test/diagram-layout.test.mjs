@@ -260,3 +260,84 @@ describe("the viewer", () => {
     await phone.page.close();
   });
 });
+
+describe("a layout that is out of date (Opus P5 on the re-check)", () => {
+  test("cards that change while the layout runs: the stale answer is discarded and the figure is laid out again on the new cards", async () => {
+    const { page, errors } = await figurePage();
+    // Two figures under one key: the second replaces the first's cards before the layout module has answered (both in one task, so no answer can land
+    // between them). The figure must draw as a fresh figure of the second's data draws (the control), with none of the first's cards.
+    const first = FIG.autoArchitecture, second = FIG.autoFlowchart;
+    const cells = (key) => page.evaluate(({ P, key }) => Object.fromEntries([...document.querySelectorAll(`#fig-${key} .${P}-node`)].map((n) => [n.dataset.node, ["--_c", "--_r", "--_r2"].map((v) => n.style.getPropertyValue(v)).join(" ")])), { P, key });
+    await page.evaluate(({ a, b }) => { window.__set([{ key: "p5", spec: a }]); window.__set([{ key: "p5", spec: b }]); }, { a: first, b: second });
+    await page.waitForFunction(() => document.querySelector("#fig-p5")?.getAttribute("data-layout") === "drawn", null, { timeout: 15000 });
+    await draw(page, [{ key: "p5", spec: second }, { key: "ctl", spec: second }]);
+    await page.waitForFunction(() => document.querySelector("#fig-ctl")?.getAttribute("data-layout") === "drawn", null, { timeout: 15000 });
+    await frames(page, 4);
+    const got = await cells("p5");
+    assert.deepEqual(Object.keys(got).sort(), second.nodes.map((n) => n.id).sort(), "the second figure's cards, none of the first's");
+    assert.deepEqual(got, await cells("ctl"), "each card in the cell of the second figure's own placement");
+    // A change of lines alone (the same cards) lays out again too.
+    const relined = { ...second, edges: second.edges.slice(0, -1) };
+    await draw(page, [{ key: "p5", spec: relined }, { key: "ctl2", spec: relined }]);
+    await page.waitForFunction(() => document.querySelector("#fig-ctl2")?.getAttribute("data-layout") === "drawn", null, { timeout: 15000 });
+    await frames(page, 4);
+    const relaid = await cells("p5");
+    assert.deepEqual(relaid, await cells("ctl2"), "after the lines changed");
+    assert.notDeepEqual(relaid, got, "and the placement moved (placeDiagram gives other cells without the last line)");
+    assert.deepEqual(errors, []);
+    await page.close();
+  });
+});
+
+describe("the layout module is fetched only when a figure needs it (Neon B12)", () => {
+  // The other fixtures bundle into one script, where a dynamic import is inlined and no request can be seen. Here the page is an app's: an ES module
+  // build with code splitting, served from a routed origin, so each lazy chunk is a request of its own. The chunk that holds elkjs is found from esbuild's
+  // metafile, not by its name.
+  const ORIGIN = "http://basalt.test";
+  const APP = `import * as React from "react"; import { createRoot } from "react-dom/client"; import { flushSync } from "react-dom"; import * as B from "./dist/index.js";
+const C = { architecture: B.ArchitectureDiagram, flowchart: B.FlowchartDiagram };
+function Host() { const [list, setList] = React.useState([]); window.__set = (next) => flushSync(() => setList(next)); return <div style={{ display: "grid", gap: 64 }}>{list.map(({ key, spec }) => { const { type, ...props } = spec; const X = C[type]; return <X key={key} id={"fig-" + key} {...props} />; })}</div>; }
+createRoot(document.getElementById("root")).render(<Host />);`;
+  let files, elkChunk;
+  before(async () => {
+    const built = await esbuild.build({ stdin: { contents: APP, resolveDir: pkg, loader: "tsx" }, bundle: true, splitting: true, format: "esm", outdir: "/out", write: false, metafile: true, jsx: "automatic", platform: "browser", logLevel: "silent", define: { "process.env.NODE_ENV": '"production"' } });
+    files = new Map(built.outputFiles.map((f) => [f.path.replace(/^\/out/, ""), f.text]));
+    elkChunk = Object.entries(built.metafile.outputs).find(([, o]) => Object.keys(o.inputs).some((i) => i.endsWith("dist/diagram-elk.js")))?.[0].replace(/^\/?out/, "");
+  });
+  async function appPage(width) {
+    const page = await browser.newPage({ viewport: { width, height: 1000 } });
+    const asked = [];
+    await page.route(`${ORIGIN}/**`, (route) => {
+      const url = new URL(route.request().url());
+      if (url.pathname === "/") return route.fulfill({ contentType: "text/html", body: `<!doctype html><html data-theme="dark"><head><link rel="stylesheet" href="/styles.css"></head><body style="margin:0;padding:0 16px"><div id="root" style="width:${Math.min(1104, width - 32)}px"></div><script type="module" src="/stdin.js"></script></body></html>` });
+      if (url.pathname === "/styles.css") return route.fulfill({ contentType: "text/css", body: fs.readFileSync(path.join(pkg, "dist", "styles.css"), "utf8") });
+      asked.push(url.pathname);
+      const body = files.get(url.pathname);
+      return body === undefined ? route.fulfill({ status: 404, body: "" }) : route.fulfill({ contentType: "text/javascript", body });
+    });
+    await page.goto(`${ORIGIN}/`);
+    await page.waitForFunction(() => typeof window.__set === "function");
+    return { page, asked };
+  }
+
+  test("a fixed layout and a phone's automatic one fetch no layout; an automatic figure at 1104 fetches it once", async () => {
+    assert.ok(elkChunk, "esbuild put elkjs in a chunk of its own");
+    const fixed = { type: "architecture", title: "t", summary: "s", nodes: [{ id: "a", name: "A", col: 1, row: 1 }, { id: "b", name: "B", col: 2, row: 1 }], edges: [{ from: "a", to: "b" }] };
+    const wide = await appPage(1440);
+    await wide.page.evaluate((spec) => window.__set([{ key: "fixed", spec }]), fixed);
+    await wide.page.waitForSelector("#fig-fixed[data-layout]");
+    await wide.page.waitForTimeout(500);
+    assert.ok(!wide.asked.includes(elkChunk), `a fixed layout fetches no layout ${JSON.stringify(wide.asked)}`);
+    await wide.page.evaluate((spec) => window.__set([{ key: "auto", spec }, { key: "auto2", spec }]), FIG.autoArchitecture);
+    await wide.page.waitForFunction(() => document.querySelector("#fig-auto")?.getAttribute("data-layout") === "drawn", null, { timeout: 15000 });
+    assert.equal(wide.asked.filter((p) => p === elkChunk).length, 1, `fetched once for two figures ${JSON.stringify(wide.asked)}`);
+    await wide.page.close();
+    // Under 640 an automatic figure stacks without asking where its cards go (8.5), so nothing is fetched.
+    const phone = await appPage(390);
+    await phone.page.evaluate((spec) => window.__set([{ key: "auto", spec }]), FIG.autoArchitecture);
+    await phone.page.waitForSelector("#fig-auto[data-layout='stacked']");
+    await phone.page.waitForTimeout(800);
+    assert.ok(!phone.asked.includes(elkChunk), `the phone fetches no layout ${JSON.stringify(phone.asked)}`);
+    await phone.page.close();
+  });
+});

@@ -139,7 +139,12 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
   const auto = spec.layout === "auto" && (spec.type === "architecture" || spec.type === "flowchart" || spec.type === "schema");
   const given = React.useMemo(() => (spec.placement ? (Array.isArray(spec.placement) ? spec.placement : [spec.placement]) : []), [spec.placement]);
   const [loaded, setLoaded] = React.useState<DiagramPlacement[] | null>(null);
-  const placing = React.useRef<DiagramSpec | null>(null);
+  // What placement reads (the cards, their groups and the lines, by id): new cards are placed afresh. The answer for the old ones, loaded or still in
+  // flight, is dropped (P-R1 of the code re-check), so a card added while elk runs is never left without a cell. Other props (words, a legend) do not count.
+  const placedFrom = React.useMemo(() => (auto ? JSON.stringify([spec.type, (spec.type === "schema" ? spec.tables?.map((t) => [t.name, t.columns?.map((c) => c.references ?? "")]) : spec.nodes?.map((n) => [n.id, (n as { group?: string }).group])), spec.edges?.map((e) => [e.from, e.to, e.kind]), spec.groups?.map((g) => [g.id, g.parent])]) : ""), [auto, spec.type, spec.tables, spec.nodes, spec.edges, spec.groups]);
+  const placing = React.useRef<string | null>(null);
+  const placedFor = React.useRef(placedFrom);
+  if (placedFor.current !== placedFrom) { placedFor.current = placedFrom; placing.current = null; if (loaded) setLoaded(null); }
   // A figure that unmounts drops an answer still in flight.
   React.useEffect(() => () => { placing.current = null; }, []);
   const placements = React.useMemo(() => (given.length ? given : loaded ?? []), [given, loaded]);
@@ -214,7 +219,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     // that has gone is dropped.
     if (auto && !given.length && !loaded && !placing.current && (viewer || fig.clientWidth >= 640)) {
       const input = { type: spec.type as "architecture" | "flowchart" | "schema", nodes: spec.nodes as Array<{ id: string; group?: string }>, tables: spec.tables, edges: spec.edges, groups: spec.groups };
-      const ask = spec;
+      const ask = placedFrom;
       placing.current = ask;
       loadLayout().then((mod) => Promise.all(order.map((d) => mod.placeDiagram(input, d)))).then((all) => { if (placing.current === ask) { placing.current = null; setLoaded(all); } }, (error: unknown) => {
         if (placing.current === ask) placing.current = null;
@@ -304,7 +309,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, entrance: 
     // A figure hidden (the viewer's list is open) was not measured: the viewer keeps the drawing's size and place it had. A text figure's art is in the DOM
     // only once React has written it, so its size is read after that (below).
     if (viewer && result.tokens && !model.text) viewer.onMeasured(result, fig);
-  }, [model, base, options, component, viewer, rtl, auto, given, loaded, placements, order, placementFor, dirAt, spec, textModule, transcriptHtml, errorOnce]);
+  }, [model, base, options, component, viewer, rtl, auto, given, loaded, placements, order, placementFor, dirAt, spec, textModule, transcriptHtml, placedFrom, errorOnce]);
 
   // The viewer's text figure (9.3): its size is read once React has written the art it measured, so the zoom fits the art and not the transcript.
   React.useLayoutEffect(() => {
