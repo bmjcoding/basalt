@@ -40,6 +40,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const THEME_INIT = `(function(){var t,c,r=document.documentElement;try{t=localStorage.getItem("basalt-theme")}catch(e){}c=t==="light"||t==="dark"?t:"system";if(c==="system")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";r.setAttribute("data-theme",t);r.setAttribute("data-theme-choice",c);try{if(sessionStorage.getItem("basalt-keyboard")==="hardware")document.documentElement.setAttribute("data-keyboard","hardware")}catch(e){}})();`;
 
 // A page with the loops module sets a stored hold before first paint (React's loopsBootstrap), beside the theme's line.
+// The modules that draw a loop (their own held rules travel with them), and the toggle's.
+const LOOPING = new Set(["loops", "spinner", "braille", "sparkline", "ambient"]);
 const LOOPS_INIT = `(function(){try{if(localStorage.getItem("basalt-loops")==="held")document.documentElement.setAttribute("data-loops","held")}catch(e){}})();`;
 
 const read = (dir, name) => fs.readFileSync(path.join(dir, name), "utf8");
@@ -607,7 +609,8 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     `<title>${title}</title>`,
     ...headTags,
     `<script>${THEME_INIT}</script>`,
-    ...(chosen.modules.includes("loops") ? [`<script>${LOOPS_INIT}</script>`] : []),
+    // Any page that draws a loop keeps a hold the reader stored on another page of the origin, not only a page with the toggle.
+    ...(chosen.modules.some((n) => LOOPING.has(n)) ? [`<script>${LOOPS_INIT}</script>`] : []),
     ...(fonts ? ["<style data-basalt-fonts>", read(parts, "geist.css").trim(), "</style>"] : []),
     `<style>${css}</style>`,
     ...styles.map((style) => `<style${style.media === undefined ? "" : ` media="${style.media.replaceAll('"', "&quot;")}"`}>${style.css}</style>`),

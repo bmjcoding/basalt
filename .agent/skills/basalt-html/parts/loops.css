@@ -1,1 +1,1 @@
-@layer basalt{:root[data-loops=held] .spinner{animation:none;border-top-color:currentColor}:root[data-loops=held] .braille-dot[data-dot]{animation:none}:root[data-loops=held] .btn[aria-busy=true]:after{animation:none;border-top-color:currentColor}}
+@layer basalt{:root[data-loops=held] .btn[aria-busy=true]:after{animation:none;border-top-color:currentColor}}
