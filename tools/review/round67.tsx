@@ -130,6 +130,7 @@ const HEAD_CSS = `.review-run-head { display: flex; flex-wrap: wrap; align-items
   .review-run-head { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
   .review-run-head > span { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
   .review-run-time { margin-inline-start: 0; }
+  .review-run-time .basalt-run-timer > .basalt-reserve { justify-items: start; }
   .review-run-controls { margin-inline-start: auto; }
   .review-run-controls > .basalt-button[data-icon-only] { margin-inline-end: -14px; }
 }`;
