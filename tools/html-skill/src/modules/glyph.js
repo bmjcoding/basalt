@@ -1,6 +1,6 @@
 /* Basalt HTML script, glyph module: Basalt's own glyphs (the core set, packages/react/glyphs/source.mjs), drawn from <span data-glyph="home"></span>.
    A glyph is eight cubic strokes on a 24 grid, 2.25 units wide at every size. At rest it has an opening; inside the current page (an ancestor with
-   aria-current, or data-current; drawn again when a page that routes itself moves the mark) or with data-selected it is drawn selected: the opening closed, the shape filled, its inner strokes cut out. In a segment or a tab it follows the item's choice. data-size is 16
+   aria-current, or data-current; drawn again when a page that routes itself moves the mark) or with data-selected it is drawn selected: the opening closed, the shape filled, its inner strokes cut out. In a segment or a tab it follows the item's choice, and so it does in a toggle's seat (.btn-check) when it has a selected form (pause). data-size is 16
    (the default), 20 or 24. The drawings are worked out at build time (build.mjs), and a page carries only the glyphs it names, plus the ones a module draws itself
    (compose.mjs adds them with Basalt._.addGlyphs). Used by the sheet's Menu and Close, the navigation's glyphs and the tab bar.
    Source: tools/html-skill/src/modules/glyph.js (do not edit the copy in the skill folder). */
@@ -35,12 +35,18 @@
   var drawn = [];
   var observer;
 
+  /** Both forms of a glyph in one box, rest then selected; the item's own state shows the one that matches, and the two crossfade. */
+  function pair(name, size) { return '<span data-pair>' + glyph(name, { size: size }) + glyph(name, { size: size, selected: true }) + '</span>'; }
+
+  /** What a toggle's seat (.btn-check) holds: the pair where the glyph has a selected form (React's `changes()`: pause's bars fill), else the glyph at rest (pressed shows the check). */
+  function seat(name, size) { var g = GLYPHS[name]; return g && g[1] ? pair(name, size) : glyph(name, { size: size }); }
+
   /** The glyph drawn in place of `el`: its settled form, or both in one box where the item's own state shows the one that matches. Returns the new node. */
   function put(el, name, size, selected) {
     var svg = glyph(name, { size: size, selected: selected });
     if (!svg) return null;
     var t = document.createElement('template');
-    t.innerHTML = !selected && el.closest(PAIRED) ? '<span data-pair>' + svg + glyph(name, { size: size, selected: true }) + '</span>' : svg;
+    t.innerHTML = selected ? svg : el.closest(PAIRED) ? pair(name, size) : el.matches('.btn-check') ? seat(name, size) : svg;
     var node = t.content.firstChild;
     // A toggle's seat (.btn-check) is drawn into, so it keeps its place and the check it crossfades with.
     if (el.matches('.btn-check')) el.replaceChildren(node);
@@ -76,6 +82,8 @@
 
   _.addGlyphs = function (data) { for (var k in data) GLYPHS[k] = data[k]; };
   _.glyph = glyph;
+  _.glyphPair = pair;
+  _.glyphSeat = seat;
   _.hydrateGlyphs = hydrate;
   _.step(45, 'hydrateGlyphs', function () { hydrate(); });
 })(window.Basalt);

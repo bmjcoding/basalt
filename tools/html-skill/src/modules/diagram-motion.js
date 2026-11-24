@@ -36,7 +36,7 @@ import { attachMotion, motionErrors } from "../../../../packages/react/src/diagr
       pause = button('diagram-pause', 'Pause animations', function (b) {
         b.setAttribute('data-loops-toggle', '');
         b.setAttribute('aria-pressed', String(Boolean(B.loops && B.loops.held())));
-        b.insertAdjacentHTML('beforeend', '<span class="btn-check" data-glyph="pause" aria-hidden="true">' + _.glyph('pause') + '</span>');
+        b.insertAdjacentHTML('beforeend', '<span class="btn-check" data-glyph="pause" aria-hidden="true">' + _.glyphSeat('pause') + '</span>');
       });
       run.hidden = pause.hidden = true;
       foot.appendChild(run);

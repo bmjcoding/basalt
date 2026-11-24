@@ -34,10 +34,10 @@
     document.querySelectorAll('[data-loops-toggle]').forEach(function (el) {
       if (el.type === 'checkbox') { el.checked = held; return; }
       el.setAttribute('aria-pressed', String(held));
-      // The icon form (data-icon-only) draws the core pause glyph, at rest or selected (closed and filled) when pressed.
-      var icon = el.hasAttribute('data-icon-only') && _.glyph && el.querySelector('svg.icon');
-      var drawn = icon && _.glyph('pause', { size: 16, selected: held });
-      if (drawn) icon.outerHTML = drawn;
+      // The icon form (data-icon-only) draws the core pause glyph's two forms in one box (toggle.css): aria-pressed shows the held one (the bars
+      // filled), and the two crossfade over duration-fast. Drawn once; a state set on load paints at once (data-still).
+      var icon = el.hasAttribute('data-icon-only') && _.glyphPair && el.querySelector('svg.icon:not([data-pair] > svg)');
+      if (icon) icon.outerHTML = _.glyphPair('pause', 16);
     });
   }
 
