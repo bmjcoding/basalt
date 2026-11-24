@@ -41,12 +41,16 @@ describe("print", () => {
       const rest = fig.querySelector(`.${P}-edge:not([data-lit]):not([data-dim]) .${P}-line[data-kind="plain"]`) ?? fig.querySelector(`.${P}-line[data-kind="plain"]`);
       return { primary: getComputedStyle(document.documentElement).getPropertyValue("--basalt-text-primary").trim(), scheme: getComputedStyle(document.documentElement).colorScheme,
         hint: getComputedStyle(fig.querySelector(`.${P}-hint`)).display, expand: getComputedStyle(fig.querySelector(`.${P}-expand`)).display,
+        // Every control in the foot, "View as list" included (the foot decision, 3.2): the foot does not print.
+        foot: getComputedStyle(fig.querySelector(`.${P}-foot`)).display, controls: [...fig.querySelectorAll(`.${P}-foot button`)].filter((b) => b.getClientRects().length).map((b) => b.textContent.trim()),
         traced: lit ? [getComputedStyle(lit).stroke, lit.getAttribute("data-kind")] : null, plain: rest ? getComputedStyle(rest).stroke : null };
     }, P);
     assert.equal(got.primary, lightPrimary);
     assert.equal(got.scheme, "light");
     assert.equal(got.hint, "none");
     assert.equal(got.expand, "none");
+    assert.equal(got.foot, "none");
+    assert.deepEqual(got.controls, [], "no control in the foot prints");
     assert.ok(got.traced, "a traced plain line is there to read");
     assert.equal(got.traced[0], got.plain, "a traced line prints in its resting ink");
     await page.close();
