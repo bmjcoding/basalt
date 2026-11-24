@@ -46,8 +46,8 @@ export function entryLine(entry) {
  * A package's ("reference"): the summary, Action needed opening with the upgrade line, then the sections, which a GitHub Release groups under "Changes".
  * A product's ("notes"): Action needed first, with no upgrade line; then the headline as a heading over the paragraph for everyone, a heading under it
  * for each audience; then the fold's own heading ("All changes", or "Other changes" under Action needed) over the summary and the sections. Every
- * paragraph then sits under a heading of its own, so none reads as part of the list above it. A product's release with no paragraphs (a patch) is
- * its summary and its sections.
+ * paragraph then sits under a heading of its own, so none reads as part of the list above it. When every change stands in Action needed there is no
+ * fold, and the summary follows the paragraphs, as on the page. A product's release with no paragraphs (a patch) is its summary and its sections.
  */
 function releaseBody(release, { form = "reference", level = 3 } = {}) {
   const h = (depth) => "#".repeat(level + depth);
@@ -67,6 +67,9 @@ function releaseBody(release, { form = "reference", level = 3 } = {}) {
     if (rest.length) {
       const fold = `${h(0)} ${action ? "Other changes" : "All changes"}`;
       blocks.push({ kind: "fold", text: [fold, ...(release.summary ? [release.summary] : []), ...rest.map((section) => list(section, 1))].join("\n\n") });
+    } else if (release.summary) {
+      // Every change stands in Action needed, so there is no fold: the page draws the summary after the paragraphs, and so does this.
+      blocks.push({ kind: "notes", text: release.summary });
     }
     return blocks;
   }

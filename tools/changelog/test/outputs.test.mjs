@@ -62,6 +62,21 @@ test("a product's patch with an action and no headline gets no package upgrade l
   assert.match(changelogMarkdown([release], { form: "reference" }), /Before upgrading from 1\.3\.1, check this change\./);
 });
 
+test("a product release whose every change needs action keeps its summary, after the paragraphs, in CHANGELOG.md and a GitHub Release (recheck 6)", async () => {
+  const { changelogMarkdown, githubBody } = await import("../outputs.mjs");
+  const release = {
+    version: "1.4.1", previous: "1.4.0", date: "2026-11-22", title: "Recovery", summary: "The recovery screen changed.",
+    audiences: [{ text: "Use a recovery code.", covers: ["login"] }, { for: "For admins", text: "Send each person a new code.", covers: ["login"] }],
+    entries: [{ id: "login", type: "security", bump: "patch", action: true, text: "Use a new recovery code after resetting a password" }],
+  };
+  for (const [name, text] of [["CHANGELOG.md", changelogMarkdown([release], { form: "notes" })], ["GitHub", githubBody(release, { form: "notes" })]]) {
+    const at = (words) => text.indexOf(words);
+    assert.ok(at("The recovery screen changed.") > 0, `${name}: the summary is written`);
+    assert.ok(at("Action needed") < at("Use a recovery code.") && at("Send each person a new code.") < at("The recovery screen changed."), `${name}: after the paragraphs, as on the page`);
+    assert.doesNotMatch(text, /Other changes|All changes/, `${name}: no fold over nothing`);
+  }
+});
+
 test("a replaced pre-release is in no output, and its entries are each in one place", () => {
   const harbor = outputs(path.join(FIXTURES, "harbor"));
   assert.deepEqual(harbor.releases.map((release) => release.version), ["2.0.0", "1.4.1", "1.4.0", "1.3.1", "1.3.0"]);
