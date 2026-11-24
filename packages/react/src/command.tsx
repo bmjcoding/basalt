@@ -241,7 +241,8 @@ export interface CommandListProps {
 
 /**
  * The command panel set in the page: a level-1 panel in the flow with no scrim or shadow, a search field that keeps focus while
- * the arrows move through the rows, and a foot that counts what is shown. Filtering never changes its height. Until cmdk
+ * the arrows move through the rows, and a foot that counts what is shown. The panel is as tall as its rows; on the open page (with `reserve`) the taller of its unfiltered and its
+ * "Nothing matches" heights is kept as page under it, so filtering never moves what follows. Until cmdk
  * arrives (the first mount, as `CommandMenu`'s first opening), the rows are drawn as they will be and what is typed is kept.
  */
 export function CommandList({ groups, label, placeholder = "Search commands", noun = "command", onSelect, detail, bindShortcut = false, reserve = true, className }: CommandListProps) {

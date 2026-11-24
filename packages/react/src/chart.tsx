@@ -24,7 +24,7 @@ export interface ChartSeries {
   /** The series' name: it is in the legend, in the direct label and in every spoken sentence. */
   name: string;
   values: Array<number | null>;
-  /** Why a day was not observed, per day: "not worn, travel". It is said in the lane, the summary, the readout and the table. */
+  /** Why a day was not observed, per day: "not worn, travel". It is said in the lane (where it fits), the date line, the summary, the day's description and the table; the legend says "Not observed" alone. */
   reasons?: Array<string | null | undefined>;
 }
 
