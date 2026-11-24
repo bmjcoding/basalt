@@ -1,5 +1,5 @@
 export { Button, IconButton } from "./button";
-export type { ButtonProps, ButtonVariant, ControlSize, IconButtonProps } from "./button";
+export type { ButtonEdge, ButtonProps, ButtonVariant, ControlSize, IconButtonProps } from "./button";
 export { Icon } from "./icon";
 export type { IconProps, IconSize } from "./icon";
 // The core set: one module per glyph, so an app bundles the ones it imports.

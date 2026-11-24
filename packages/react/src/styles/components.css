@@ -244,6 +244,39 @@
   .basalt-button[data-icon-only] { width: var(--_h); padding: 0; }
   .basalt-button[data-full-width] { display: flex; width: 100%; }
 
+  /* A ghost control at an edge (DECISIONS 336): `edge="start"` or `"end"` puts what it shows (its glyph, or its words) on the head's content
+     line and hangs its own box into the head's padding by its inset: its inline padding with words, half the size it is drawn at less its
+     glyph when icon-only. It hangs only into room the head declares (`--basalt-edge-room`, or `-start` and `-end`: the head's padding on that
+     side less any safe-area inset), never by more; a head that declares nothing gives no room. `--_drawn` is the size in force on the button
+     itself (the touch block raises it to 44) and `--_glyph` the size its glyph is drawn at. The hang is plate and hit area, never layout. */
+  .basalt-button { --_drawn: var(--_h); --_glyph: var(--basalt-size-icon-sm); }
+  .basalt-button[data-size="xl"] { --_glyph: var(--basalt-size-icon-md); }
+  .basalt-button[data-variant="ghost"][data-edge] { --_inset: var(--_px); }
+  .basalt-button[data-variant="ghost"][data-icon-only][data-edge] { --_inset: calc((var(--_drawn) - var(--_glyph)) / 2); }
+  .basalt-button[data-variant="ghost"][data-edge="start"] {
+    --_hang: min(var(--_inset), var(--basalt-edge-room-start, var(--basalt-edge-room, var(--basalt-space-0))));
+    margin-inline-start: calc(-1 * var(--_hang));
+  }
+  .basalt-button[data-variant="ghost"][data-edge="end"] {
+    --_hang: min(var(--_inset), var(--basalt-edge-room-end, var(--basalt-edge-room, var(--basalt-space-0))));
+    margin-inline-end: calc(-1 * var(--_hang));
+  }
+  /* The ring, by the rule every control has: at +2 where the hung box keeps focus-offset + focus-width (4) from the edge of its room, inside at
+     -2 only where it does not. What is left of the room after the hang, less those 4, times 999: a whole pixel short gives -2, none short +2.
+     With no room declared the fallback is the hang plus a target, so the ring is the ordinary +2. */
+  .basalt-button[data-variant="ghost"][data-edge="start"]:focus-visible {
+    outline-offset: clamp(calc(-1 * var(--basalt-size-focus-width)),
+      calc((var(--basalt-edge-room-start, var(--basalt-edge-room, calc(var(--_hang) + var(--basalt-size-tap-min)))) - var(--_hang)
+        - var(--basalt-size-focus-offset) - var(--basalt-size-focus-width)) * 999 + var(--basalt-size-focus-offset)),
+      var(--basalt-size-focus-offset));
+  }
+  .basalt-button[data-variant="ghost"][data-edge="end"]:focus-visible {
+    outline-offset: clamp(calc(-1 * var(--basalt-size-focus-width)),
+      calc((var(--basalt-edge-room-end, var(--basalt-edge-room, calc(var(--_hang) + var(--basalt-size-tap-min)))) - var(--_hang)
+        - var(--basalt-size-focus-offset) - var(--basalt-size-focus-width)) * 999 + var(--basalt-size-focus-offset)),
+      var(--basalt-size-focus-offset));
+  }
+
   .basalt-button[data-variant="primary"] {
     background: var(--basalt-action-primary);
     color: var(--basalt-action-primary-text);
@@ -1378,9 +1411,13 @@
     --basalt-sticky-offset: calc(var(--basalt-size-header) + var(--_inset-top));     /* what a sticky thing under a bar adds */
     --basalt-site-row: var(--basalt-sticky-offset);                                  /* the resting row's height: a bar that arrives keeps it in a slot, and a stage is pulled up by it */
     --basalt-bottom-offset: var(--basalt-space-0);
-    --_pad-left: max(var(--basalt-gutter), var(--_inset-left));                      /* a bar's inline padding: the gutter or the side inset */
-    --_pad-right: max(var(--basalt-gutter), var(--_inset-right));
+    /* The side insets by direction (DECISIONS 336): start and end are left and right, swapped right to left, so a bar pads the side its inset is on. */
+    --_inset-start: var(--_inset-left);
+    --_inset-end: var(--_inset-right);
+    --_pad-start: max(var(--basalt-gutter), var(--_inset-start));                    /* a bar's inline padding: the gutter or the side inset */
+    --_pad-end: max(var(--basalt-gutter), var(--_inset-end));
   }
+  :root:dir(rtl) { --_inset-start: var(--_inset-right); --_inset-end: var(--_inset-left); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the links go into the menu and the gutter narrows */
   @media (width < 720px) {
     :root { --basalt-gutter: var(--basalt-size-gutter-narrow); }
@@ -1433,11 +1470,11 @@
   :root:has(.basalt-site-header, .basalt-app-header, .basalt-sticky-bar) .basalt-skip-link {
     position: fixed;
     top: calc(var(--basalt-sticky-offset) + var(--basalt-space-2));
-    inset-inline-start: var(--_pad-left);
+    inset-inline-start: var(--_pad-start);
     transform: none;
   }
   :root:has(.basalt-site-header) .basalt-skip-link {
-    inset-inline-start: max(var(--_pad-left), calc((100% - var(--basalt-size-page-width)) / 2 + var(--_pad-left)));
+    inset-inline-start: max(var(--_pad-start), calc((100% - var(--basalt-size-page-width)) / 2 + var(--_pad-start)));
   }
   /* In an app shell the skip link starts on the brand link's start edge, as it does under a site header: from 1024 that is the sidebar's
      space-3 and the brand band's space-1-5 + space-3 in from the shell's start (and a capped shell starts half the window's spare width
@@ -1490,7 +1527,7 @@
     align-items: center;
     height: calc(var(--basalt-size-header) - var(--basalt-size-hairline));
     padding-top: var(--basalt-size-hairline);
-    padding-inline: var(--_pad-left) var(--_pad-right);
+    padding-inline: var(--_pad-start) var(--_pad-end);
   }
   .basalt-site-bar { max-width: var(--basalt-size-page-width); margin-inline: auto; }
   .basalt-app-bar { gap: var(--basalt-space-2); }
@@ -1707,12 +1744,13 @@
     flex: none;
     height: var(--basalt-size-header);
     padding-top: var(--basalt-size-hairline);
-    padding-inline: var(--_pad-left) var(--_pad-right);
+    padding-inline: var(--_pad-start) var(--_pad-end);
     border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
   }
   /* The menu's first row when the page has a loops toggle: the same control in its Button form, at the band's own gutter, 44 on touch like the foot's button. */
   .basalt-site-menu-loops {
-    padding: var(--basalt-space-2) var(--_pad-right) 0 var(--_pad-left);
+    padding-block: var(--basalt-space-2) 0;
+    padding-inline: var(--_pad-start) var(--_pad-end);
   }
   .basalt-site-menu-loops .basalt-button {
     --_h: var(--basalt-size-tap-min);
@@ -1720,10 +1758,11 @@
   }
   .basalt-site-menu-nav {
     padding-block: var(--basalt-space-2);
-    padding-inline: max(var(--basalt-space-1-5), var(--_inset-left)) max(var(--basalt-space-1-5), var(--_inset-right));
+    padding-inline: max(var(--basalt-space-1-5), var(--_inset-start)) max(var(--basalt-space-1-5), var(--_inset-end));
   }
   .basalt-site-menu-foot {
-    padding: var(--basalt-space-2) var(--_pad-right) max(var(--basalt-space-4), var(--_inset-bottom)) var(--_pad-left);
+    padding-block: var(--basalt-space-2) max(var(--basalt-space-4), var(--_inset-bottom));
+    padding-inline: var(--_pad-start) var(--_pad-end);
   }
   .basalt-site-menu-foot .basalt-button {
     --_h: var(--basalt-size-tap-min);
@@ -1894,7 +1933,8 @@
     box-sizing: border-box;
     min-width: 0;
     max-width: var(--basalt-size-page-width);
-    padding: var(--basalt-space-6) var(--_pad-right) var(--basalt-space-16) var(--_pad-left);
+    padding-block: var(--basalt-space-6) var(--basalt-space-16);
+    padding-inline: var(--_pad-start) var(--_pad-end);
   }
   .basalt-app-shell[data-capped] .basalt-app-main { max-width: none; }
   /* The rail, 72: Nav's collapsed form, the brand's mark alone. */
@@ -1968,7 +2008,7 @@
       box-sizing: border-box;
       display: block;
       padding-bottom: var(--_inset-bottom);
-      padding-inline: var(--_inset-left) var(--_inset-right);
+      padding-inline: var(--_inset-start) var(--_inset-end);
       border-top: var(--basalt-size-hairline) solid var(--basalt-border-hairline);
       background: var(--basalt-surface-page);
       color: var(--basalt-text-primary);
@@ -5597,6 +5637,28 @@
        bar's 44px buttons are. A segment keeps its 6: it is nested in a track that is 8 with 2 of padding. */
     .basalt-button,
     .basalt-button[data-size] { --_radius: var(--basalt-radius-md); }
+    /* The size in force here (DECISIONS 336): a hung icon-only button drawn at 44 hangs 14 on a 16px glyph. */
+    .basalt-button { --_drawn: max(var(--_h), var(--basalt-size-tap-min)); }
+    /* A hung control with words is as wide as its words, so its inset is its padding; what it lacks of 44 is hit area on ::before (46: the
+       press's .98 keeps it at 45.08), toward the edge as far as the room allows and the rest toward the inside. ::before, as a pressed
+       Button's ::after is taken. */
+    .basalt-button[data-variant="ghost"][data-edge]:not([data-icon-only]) {
+      min-width: 0;
+      --_miss: max(var(--basalt-space-0), calc(var(--basalt-size-tap-min) + 2 * var(--basalt-size-hairline) - 100%));
+    }
+    .basalt-button[data-variant="ghost"][data-edge]:not([data-icon-only])::before {
+      content: "";
+      position: absolute;
+      inset-block: min(var(--basalt-space-0), calc((100% - var(--basalt-size-tap-min)) / 2 - var(--basalt-size-hairline)));
+    }
+    .basalt-button[data-variant="ghost"][data-edge="end"]:not([data-icon-only])::before {
+      --_out: min(calc(var(--_miss) / 2), calc(var(--basalt-edge-room-end, var(--basalt-edge-room, var(--basalt-space-0))) - var(--_hang)));
+      inset-inline: calc(var(--_out) - var(--_miss)) calc(-1 * var(--_out));
+    }
+    .basalt-button[data-variant="ghost"][data-edge="start"]:not([data-icon-only])::before {
+      --_out: min(calc(var(--_miss) / 2), calc(var(--basalt-edge-room-start, var(--basalt-edge-room, var(--basalt-space-0))) - var(--_hang)));
+      inset-inline: calc(-1 * var(--_out)) calc(var(--_out) - var(--_miss));
+    }
     .basalt-input,
     .basalt-input[data-size],
     .basalt-select-trigger,
@@ -5676,13 +5738,11 @@
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    padding: var(--basalt-space-6);
-    padding-top: max(var(--basalt-space-6), env(safe-area-inset-top));
-    padding-right: max(var(--basalt-space-6), env(safe-area-inset-right));
+    padding-block-start: max(var(--basalt-space-6), env(safe-area-inset-top));
+    padding-inline: max(var(--basalt-space-6), var(--_inset-start)) max(var(--basalt-space-6), var(--_inset-end));
     /* The bottom padding: space-6, or the home indicator's safe area where it is deeper. An on-screen keyboard covers the safe area, so there it is space-6. */
     --_sheet-floor: max(var(--basalt-space-6), env(safe-area-inset-bottom));
-    padding-bottom: var(--_sheet-floor);
-    padding-left: max(var(--basalt-space-6), env(safe-area-inset-left));
+    padding-block-end: var(--_sheet-floor);
     background: var(--_surface, var(--basalt-surface-overlay));
     color: var(--basalt-text-primary);
     box-shadow: var(--basalt-shadow-modal);
@@ -5745,7 +5805,11 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--basalt-space-3);
-    padding: max(var(--basalt-space-3), env(safe-area-inset-top)) max(var(--basalt-space-3), env(safe-area-inset-right)) var(--basalt-space-3) max(var(--basalt-space-5), env(safe-area-inset-left));
+    padding-block: max(var(--basalt-space-3), env(safe-area-inset-top)) var(--basalt-space-3);
+    /* The same padding on both sides (DECISIONS 336): Close is hung at the end, its glyph on the line the title starts on. Its room is the end
+       padding less the inset there, so the whole target stays clear of a notch or a corner. */
+    padding-inline: max(var(--basalt-space-5), var(--_inset-start)) max(var(--basalt-space-5), var(--_inset-end));
+    --basalt-edge-room-end: calc(max(var(--basalt-space-5), var(--_inset-end)) - var(--_inset-end));
     border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
   }
   .basalt-sheet-head-text { flex: 1; min-width: 0; }
@@ -5757,7 +5821,7 @@
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding-inline: max(var(--basalt-space-5), env(safe-area-inset-left)) max(var(--basalt-space-5), env(safe-area-inset-right));
+    padding-inline: max(var(--basalt-space-5), var(--_inset-start)) max(var(--basalt-space-5), var(--_inset-end));
     /* The body clips what it scrolls: space-1-5 at each end keeps a focused control's ring (2px at +2) whole against the head and the foot. */
     padding-block: var(--basalt-space-1-5);
   }
@@ -5765,7 +5829,8 @@
   .basalt-sheet-foot {
     box-sizing: border-box;
     flex: none;
-    padding: var(--basalt-space-4) max(var(--basalt-space-5), env(safe-area-inset-right)) max(var(--basalt-space-5), env(safe-area-inset-bottom)) max(var(--basalt-space-5), env(safe-area-inset-left));
+    padding-block: var(--basalt-space-4) max(var(--basalt-space-5), env(safe-area-inset-bottom));
+    padding-inline: max(var(--basalt-space-5), var(--_inset-start)) max(var(--basalt-space-5), var(--_inset-end));
     border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
   }
 
@@ -6641,7 +6706,7 @@
     width: 100%;
     max-width: var(--basalt-size-page-width);
     margin-inline: auto;
-    padding-inline: var(--_pad-left) var(--_pad-right);
+    padding-inline: var(--_pad-start) var(--_pad-end);
   }
   /* The rhythm: sections are one section gap apart, the first starts half a gap below the bar and the page ends a gap above its footer.
      No section is given the window's height, so the widest empty band on a page is one gap. */
@@ -7307,7 +7372,7 @@
   /* The sources button is a ghost sm Button (28, radius 6) with no open look of its own (DECISIONS 167, Q9b): the open state is aria-expanded and the drawer it opens. */
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the bar is fixed at the foot */
   @media (width < 720px) {
-    .basalt-status-bar { position: fixed; inset-inline: 0; bottom: 0; z-index: var(--basalt-layer-sticky); padding-block-end: var(--_inset-bottom); padding-inline: max(var(--basalt-gutter), var(--_inset-left)) max(var(--basalt-gutter), var(--_inset-right)); min-height: calc(var(--basalt-size-tab-bar) + var(--_inset-bottom)); gap: var(--basalt-space-2); }
+    .basalt-status-bar { position: fixed; inset-inline: 0; bottom: 0; z-index: var(--basalt-layer-sticky); padding-block-end: var(--_inset-bottom); padding-inline: max(var(--basalt-gutter), var(--_inset-start)) max(var(--basalt-gutter), var(--_inset-end)); min-height: calc(var(--basalt-size-tab-bar) + var(--_inset-bottom)); gap: var(--basalt-space-2); }
     .basalt-status-bar-sources { margin-inline-start: auto; }
     /* The message is stacked above the bar, out of flow, so a message coming and going moves nothing. */
     .basalt-status-bar-message { position: absolute; inset-inline: 0; bottom: calc(100% + var(--basalt-size-hairline)); justify-content: flex-start; padding: var(--basalt-space-2) var(--basalt-gutter); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); background: var(--basalt-surface-page); white-space: normal; }
@@ -7931,13 +7996,14 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     /* The home indicator's safe area is the foot's to keep where no tab bar holds it. */
-    padding: var(--basalt-space-3) var(--_pad-right) max(var(--basalt-space-3), calc(var(--_inset-bottom) - var(--basalt-bottom-offset))) var(--_pad-left);
+    padding-block: var(--basalt-space-3) max(var(--basalt-space-3), calc(var(--_inset-bottom) - var(--basalt-bottom-offset)));
+    padding-inline: var(--_pad-start) var(--_pad-end);
     border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
     background: var(--basalt-surface-page);
     color: var(--basalt-text-primary);
     font-family: var(--basalt-font-family-sans);
   }
-  .basalt-app-foot > * { flex: none; box-sizing: border-box; width: 100%; max-width: calc(var(--basalt-size-page-width) - var(--_pad-left) - var(--_pad-right)); min-width: 0; }
+  .basalt-app-foot > * { flex: none; box-sizing: border-box; width: 100%; max-width: calc(var(--basalt-size-page-width) - var(--_pad-start) - var(--_pad-end)); min-width: 0; }
   .basalt-app-foot > .basalt-tray { flex: 0 1 auto; min-height: var(--basalt-size-tap-min); overflow-y: auto; overscroll-behavior: contain; }
   @media print { .basalt-app-foot { position: static; max-height: none; overflow: visible; } }
   @media (forced-colors: active) { .basalt-app-foot { border-top-color: CanvasText; } }

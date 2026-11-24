@@ -16,7 +16,8 @@
     margin: 0;
     height: auto;
     max-height: none;
-    padding: max(var(--_pad), var(--_safe-top)) max(var(--_pad), env(safe-area-inset-right, var(--basalt-space-0))) max(var(--_pad), env(safe-area-inset-bottom, var(--basalt-space-0))) max(var(--_pad), env(safe-area-inset-left, var(--basalt-space-0)));
+    padding-block: max(var(--_pad), var(--_safe-top)) max(var(--_pad), env(safe-area-inset-bottom, var(--basalt-space-0)));
+    padding-inline: max(var(--_pad), var(--bh-inset-start)) max(var(--_pad), var(--bh-inset-end));
     border: 0;
     border-radius: 0;
     opacity: 1;
@@ -52,7 +53,7 @@
   @starting-style { dialog.sheet[data-side="top"][open] { opacity: 1; transform: none; clip-path: inset(0 var(--_reach) calc(100% - var(--basalt-size-header) - var(--_safe-top)) var(--_reach)); } }
 
   /* The band is the bar's own row, redrawn: the header's height, its line inside, and the gutter or the side safe area, whichever is larger. */
-  .sheet-band { box-sizing: border-box; display: flex; align-items: center; flex: none; height: var(--basalt-size-header); padding: var(--basalt-size-hairline) max(var(--basalt-gutter), env(safe-area-inset-right, var(--basalt-space-0))) 0 max(var(--basalt-gutter), env(safe-area-inset-left, var(--basalt-space-0))); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .sheet-band { box-sizing: border-box; display: flex; align-items: center; flex: none; height: var(--basalt-size-header); padding-block: var(--basalt-size-hairline) 0; padding-inline: max(var(--basalt-gutter), var(--bh-inset-start)) max(var(--basalt-gutter), var(--bh-inset-end)); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
 
   /* Actions stay at the foot of the sheet, on a divider, however long the content scrolls. As React's (B5): the box reaches space-1-5 above the band it
      draws, and that strip is clipped away, so a focused field right before the actions shows its whole ring at the end of the scroll; the band itself
@@ -78,26 +79,31 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--basalt-space-3);
-    padding: max(var(--basalt-space-3), env(safe-area-inset-top, var(--basalt-space-0))) max(var(--basalt-space-3), env(safe-area-inset-right, var(--basalt-space-0))) var(--basalt-space-3) max(var(--basalt-space-5), env(safe-area-inset-left, var(--basalt-space-0)));
+    padding-block: max(var(--basalt-space-3), env(safe-area-inset-top, var(--basalt-space-0))) var(--basalt-space-3);
+    /* The same padding on both sides (DECISIONS 336): Close is hung at the end, its glyph on the line the title starts on; the room is the end
+       padding less the inset there, so the whole target stays clear of a notch. */
+    padding-inline: max(var(--basalt-space-5), var(--bh-inset-start)) max(var(--basalt-space-5), var(--bh-inset-end));
+    --basalt-edge-room-end: calc(max(var(--basalt-space-5), var(--bh-inset-end)) - var(--bh-inset-end));
     border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
   }
   .sheet-head-text { flex: 1; min-width: 0; }
   .sheet-head .dialog-title { font: var(--basalt-font-weight-semibold) var(--basalt-text-xl-size) / var(--basalt-text-xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-xl-tracking); }
   .sheet-head .dialog-description { margin: 0; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); }
-  .sheet-close { --_h: var(--_control-44); border-radius: var(--basalt-radius-md); flex: none; }
+  .sheet-close { --_h: var(--_control-44); width: var(--_h); padding: 0; border-radius: var(--basalt-radius-md); flex: none; }
   .sheet-body {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding-inline: max(var(--basalt-space-5), env(safe-area-inset-left, var(--basalt-space-0))) max(var(--basalt-space-5), env(safe-area-inset-right, var(--basalt-space-0)));
+    padding-inline: max(var(--basalt-space-5), var(--bh-inset-start)) max(var(--basalt-space-5), var(--bh-inset-end));
     /* The body clips what it scrolls: space-1-5 at each end keeps a focused control's ring (2px at +2) whole against the head and the foot (React's, B5). */
     padding-block: var(--basalt-space-1-5);
   }
   .sheet-foot {
     box-sizing: border-box;
     flex: none;
-    padding: var(--basalt-space-4) max(var(--basalt-space-5), env(safe-area-inset-right, var(--basalt-space-0))) max(var(--basalt-space-5), env(safe-area-inset-bottom, var(--basalt-space-0))) max(var(--basalt-space-5), env(safe-area-inset-left, var(--basalt-space-0)));
+    padding-block: var(--basalt-space-4) max(var(--basalt-space-5), env(safe-area-inset-bottom, var(--basalt-space-0)));
+    padding-inline: max(var(--basalt-space-5), var(--bh-inset-start)) max(var(--basalt-space-5), var(--bh-inset-end));
     border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
   }
 

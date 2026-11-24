@@ -10,8 +10,6 @@
      --bh-inset-bottom-sim is for previews and tests only: it stands in for a home indicator where env() reads 0. */
   :root {
     --bh-inset-bottom: max(env(safe-area-inset-bottom, var(--basalt-space-0)), var(--bh-inset-bottom-sim, var(--basalt-space-0)));
-    --bh-inset-left: env(safe-area-inset-left, var(--basalt-space-0));
-    --bh-inset-right: env(safe-area-inset-right, var(--basalt-space-0));
     --basalt-bottom-offset: var(--basalt-space-0);
   }
   @media (width < %bp-md%) {
@@ -30,7 +28,7 @@
       box-sizing: border-box;
       display: block;
       padding-bottom: var(--bh-inset-bottom);
-      padding-inline: var(--bh-inset-left) var(--bh-inset-right);
+      padding-inline: var(--bh-inset-start) var(--bh-inset-end);
       border-top: var(--basalt-size-hairline) solid var(--basalt-border-hairline);
       background: var(--basalt-surface-page);
       color: var(--basalt-text-primary);

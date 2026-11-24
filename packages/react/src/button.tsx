@@ -46,7 +46,17 @@ type BaseProps = Omit<PartProps<"button">, "children"> & {
    * "(opens in a new tab)". The arrow and the words come from the target alone; there is no prop for them.
    */
   newTabLabel?: string;
+  /**
+   * A ghost button that starts or ends a head, a bar, a band or a row (DECISIONS 336): what it shows (its glyph, or its words) goes on the
+   * head's content line and its own box hangs into the head's padding, only as far as the head's `--basalt-edge-room` allows (none when the
+   * head declares nothing). Its focus ring stays at +2 where the room keeps 4 and is drawn inside where it does not. Ghost only: with another
+   * variant it does nothing (and warns once in development).
+   */
+  edge?: ButtonEdge;
 };
+
+/** The side of its head a ghost button is hung at. */
+export type ButtonEdge = "start" | "end";
 
 /**
  * A toggle: `pressed` writes `aria-pressed`. Only secondary and ghost buttons toggle (a latched primary would read as the
@@ -98,9 +108,21 @@ const iconSize = (size: ControlSize) => (size === "xl" ? 20 : 16);
 
 declare const process: { env: { NODE_ENV?: string } };
 let warnedBare = false;
+let warnedEdge = false;
+
+/** `data-edge` for a ghost button; any other variant gets none, and a development warning once. */
+function edgeOf(edge: ButtonEdge | undefined, variant: ButtonVariant): ButtonEdge | undefined {
+  if (edge === undefined) return undefined;
+  if (variant === "ghost") return edge;
+  if (process.env.NODE_ENV !== "production" && !warnedEdge) {
+    warnedEdge = true;
+    console.warn("Basalt Button: `edge` hangs a ghost button at its head's edge; with another variant it does nothing (DECISIONS 336)");
+  }
+  return undefined;
+}
 
 /** A button. Its label says what happens: "Deploy", not "OK". */
-export function Button({ variant = "secondary", size = "md", fullWidth, icon, iconEnd, fillSafe, pressed, amount, amountReserve, count, note, loading: loadingProp = false, waitForAnswer = true, disabled, onClick, className, children, newTabLabel, render, ref, ...props }: ButtonProps) {
+export function Button({ variant = "secondary", size = "md", fullWidth, edge, icon, iconEnd, fillSafe, pressed, amount, amountReserve, count, note, loading: loadingProp = false, waitForAnswer = true, disabled, onClick, className, children, newTabLabel, render, ref, ...props }: ButtonProps) {
   // A button rendered as a link that opens a new tab draws the arrow in its trailing slot and says so in its name.
   // A handler on the rendered element is taken into the press, so the wait guards it too.
   const [rendered, handler] = takeClick(render, onClick);
@@ -130,6 +152,7 @@ export function Button({ variant = "secondary", size = "md", fullWidth, icon, ic
       data-variant={variant}
       data-size={size}
       data-full-width={fullWidth ? "" : undefined}
+      data-edge={edgeOf(edge, variant)}
       data-lines={note ? "" : undefined}
       className={withClass("basalt-button", className)}
       onClick={wait.press}
@@ -216,7 +239,7 @@ function DoneSeat({ icon, doneIcon, done, size, selected, fillSafe }: DoneSeatPr
 }
 
 /** A square button with only an icon. As a toggle it has no check: the plate, the ink step and the glyph's selected form say pressed. */
-export function IconButton({ variant = "ghost", size = "md", fullWidth, icon, done, doneIcon = CheckGlyph, fillSafe, pressed, label, loading: loadingProp = false, waitForAnswer = true, disabled, onClick, className, newTabLabel, render, ref, ...props }: IconButtonProps) {
+export function IconButton({ variant = "ghost", size = "md", fullWidth, edge, icon, done, doneIcon = CheckGlyph, fillSafe, pressed, label, loading: loadingProp = false, waitForAnswer = true, disabled, onClick, className, newTabLabel, render, ref, ...props }: IconButtonProps) {
   // A handler on the rendered element is taken into the press, so the wait guards it too.
   const [rendered, handler] = takeClick(render, onClick);
   const link = newTabRender(rendered);
@@ -240,6 +263,7 @@ export function IconButton({ variant = "ghost", size = "md", fullWidth, icon, do
       data-size={size}
       data-icon-only=""
       data-full-width={fullWidth ? "" : undefined}
+      data-edge={edgeOf(edge, variant)}
       data-done={done ? "" : undefined}
       className={withClass("basalt-button", className)}
       onClick={wait.press}

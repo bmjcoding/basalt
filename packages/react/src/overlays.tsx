@@ -113,7 +113,7 @@ export function SheetHeader({ closeLabel, className, children, ...props }: Sheet
   return (
     <header {...props} className={join("basalt-sheet-head", className)}>
       <div className="basalt-sheet-head-text">{children}</div>
-      {closeLabel ? <DialogClose render={<IconButton icon={CloseGlyph} label={closeLabel} className="basalt-sheet-close" />} /> : null}
+      {closeLabel ? <DialogClose render={<IconButton icon={CloseGlyph} label={closeLabel} edge="end" className="basalt-sheet-close" />} /> : null}
     </header>
   );
 }
