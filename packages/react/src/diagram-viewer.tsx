@@ -1,7 +1,8 @@
 import * as React from "react";
 
 import { Button, IconButton } from "./button";
-import type { DiagramFigureInternalProps, DiagramViewerMode } from "./diagram-figure";
+import type { DiagramActions } from "./diagram-actions";
+import type { DiagramAction, DiagramFigureInternalProps, DiagramLayoutInfo, DiagramViewerMode } from "./diagram-figure";
 import type { buildModel, DiagramSpec, figureKey, figureList, hintEntries, Measured, measureFigure, Model, toHtml } from "./diagram-core";
 import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint, viewerTextWidth } from "./diagram-zoom-core";
 import type { ViewerMemo, ZoomController, ZoomState } from "./diagram-zoom-core";
@@ -39,6 +40,10 @@ export interface ViewerKit {
 
 export interface DiagramViewerProps {
   kit: ViewerKit;
+  /** An app's own actions, after "View as list" (all but those marked `inViewer: false`). */
+  actions?: readonly DiagramAction[];
+  /** Their component, loaded by the figure (diagram-actions.tsx): the viewer imports nothing for them. */
+  Actions?: typeof DiagramActions;
   spec: DiagramSpec;
   component: string;
   source?: React.ReactNode;
@@ -53,7 +58,7 @@ const EMPTY: ZoomState = { zoom: 1, level: 100, fit: 1, min: 1, max: 4, atMin: f
 /** A length token's value in CSS pixels, read from a probe the stage holds. */
 const probeWidth = (stage: HTMLElement | null, which: string) => stage?.querySelector<HTMLElement>(`.${P}-probe[data-probe="${which}"]`)?.offsetWidth ?? 0;
 
-export function DiagramViewer({ kit, spec, component, source, summary, opener, onClose }: DiagramViewerProps) {
+export function DiagramViewer({ kit, actions, Actions, spec, component, source, summary, opener, onClose }: DiagramViewerProps) {
   const { Figure: DiagramFigure, Kbd, buildModel, figureKey, figureList, hintEntries, toHtml, inLevel, measureFigure } = kit;
   // The viewer's figure is still (9.7): no entrance, flow, mover or run, so no motion code is loaded for it.
   const still = React.useMemo<DiagramSpec>(() => ({ ...spec, motion: "still" }), [spec]);
@@ -108,6 +113,9 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
     setLayout({ layout: measured.dyn.layout, bare: measured.dyn.bare, open: measured.dyn.open });
     zoomRef.current?.size(fig.offsetWidth, fig.offsetHeight);
   }, []);
+  // The drawing's layout, for an app's action pressed here: the viewer's figure reports it after every layout.
+  const laidRef = React.useRef<DiagramLayoutInfo | null>(null);
+  const laid = React.useCallback((info: DiagramLayoutInfo) => { laidRef.current = info; }, []);
   const memo = React.useRef<ViewerMemo>({});
   // The figure is laid out as the dialog opens, through its scale from .98; once the entrance has ended it is laid out again, unscaled, so its lines
   // snap on the pixel grid they are drawn on.
@@ -123,10 +131,11 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
         return { w: (stage?.clientWidth ?? 0) - 2 * pad, h: (stage?.clientHeight ?? 0) - 2 * pad };
       },
       onMeasured,
+      laid,
       measure: (fig, m, p, base, current, apply, warn) => measureViewerFigure(fig, m, p, base, current, apply, warn, { layer, avail, row: dims.row, contain: dims.contain, memo: memo.current, measureFigure }),
       textWidth: (need) => viewerTextWidth({ layer, avail, row: dims.row, contain: dims.contain, memo: memo.current, measureFigure }, need),
     };
-  }, [avail, dims, onMeasured, measureFigure, settled]);
+  }, [avail, dims, onMeasured, laid, measureFigure, settled]);
 
   // A stack with no lines has its list open, as on the page (9.3).
   const showList = listOpen || Boolean(layout.bare);
@@ -210,7 +219,7 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
           <span className={`${P}-probe`} data-probe="contain" aria-hidden="true" />
           <div ref={sizerRef} className={`${P}-sizer`} hidden={showList}>
             <div ref={layerRef} className={`${P}-layer`}>
-              {viewer ? <DiagramFigure spec={still} component={component} title={model.title} summary={summary} viewer={viewer} /> : null}
+              {viewer ? <DiagramFigure spec={still} component={component} title={model.title} source={source} summary={summary} viewer={viewer} /> : null}
             </div>
           </div>
           {showList ? (
@@ -249,6 +258,8 @@ export function DiagramViewer({ kit, spec, component, source, summary, opener, o
                   <span className="basalt-button-label">{showList ? "Hide the list" : "View as list"}</span>
                 </button>
               )}
+              {/* An app's actions follow the figure (the foot decision): handed the viewer's drawing, at 100% whatever the zoom, the list open or closed. */}
+              {Actions && actions ? <Actions actions={actions} viewer component={component} context={() => ({ figure: layerRef.current!.querySelector<HTMLElement>(`.${P}`)!, viewer: true, layout: laidRef.current })} /> : null}
             </div>
           </div>
           <span ref={statusRef} className="basalt-visually-hidden" role="status" />

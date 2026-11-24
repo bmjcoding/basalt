@@ -5,6 +5,7 @@ import type { DiagramFigureProps } from "./diagram-figure";
 import type { SequenceParticipant, SequenceStep, DiagramFrameLabels } from "./diagram-core";
 
 export type { DiagramFrameLabels, DiagramLegend, DiagramLineKind, SequenceMessage, SequenceParticipant, SequenceStep } from "./diagram-core";
+export type { DiagramAction, DiagramActionContext } from "./diagram-figure";
 
 export interface SequenceDiagramProps extends DiagramFigureProps {
   /** The participants, start to end. `short` names one in the stacked list. */

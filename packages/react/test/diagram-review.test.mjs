@@ -471,10 +471,10 @@ describe("the sequence's fit and order (Neon B7, P8)", () => {
 });
 
 describe("the package's lazy parts (Neon B12)", () => {
-  test("the index and every diagram component reach diagram-layout, its graph, elkjs, export, the viewer, motion and the text art only by a dynamic import", () => {
+  test("the index and every diagram component reach diagram-layout, its graph, elkjs, export, the viewer, motion, the text art and the actions only by a dynamic import", () => {
     const dist = path.join(pkg, "dist");
     const statics = (file) => [...fs.readFileSync(path.join(dist, file), "utf8").matchAll(/(?:^|[;\n])\s*(?:import|export)\s[^;]*?from\s*"(\.\/[^"]+)"|(?:^|[;\n])\s*import\s*"(\.\/[^"]+)"/g)].map((m) => path.normalize(path.join(path.dirname(file), m[1] ?? m[2])));
-    const lazy = ["diagram-layout.js", "diagram-layout-graph.js", "diagram-elk.js", "diagram-export.js", "diagram-viewer.js", "diagram-motion.js", "diagram-text.js"];
+    const lazy = ["diagram-layout.js", "diagram-layout-graph.js", "diagram-elk.js", "diagram-export.js", "diagram-viewer.js", "diagram-motion.js", "diagram-text.js", "diagram-actions.js"];
     for (const entry of ["index.js", "architecture-diagram.js", "flowchart-diagram.js", "data-flow-diagram.js", "sequence-diagram.js", "schema-diagram.js"]) {
       const seen = new Set([entry]);
       const todo = [entry];
