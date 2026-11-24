@@ -324,7 +324,9 @@
   /* The amount (DECISIONS 154, A8): after the label, in tabular figures and the label's own weight, in a seat as wide as the widest amount the app
      names, so the label never moves as the amount changes. Its ink is the label's at opacity-amount (0.72) on the variants where that holds 4.5:1
      on every surface they sit on (primary, secondary, outline); on ghost and danger, where it would not, it is the label's ink. Never in forced colours. */
-  .basalt-button-amount { font-variant-numeric: tabular-nums; }
+  /* The amount ends its seat (DECISIONS 326): the label anchors to the button's start and the amount to its end, so a shorter amount leaves its
+     spare room between the two, where the button is open, and the padding after it is the padding before the label. */
+  .basalt-button-amount { justify-items: end; font-variant-numeric: tabular-nums; }
   .basalt-button:is([data-variant="primary"], [data-variant="secondary"], [data-variant="outline"]):not([data-disabled], [data-loading]) > .basalt-button-amount { opacity: var(--basalt-opacity-amount); }
 
   /* The count (DECISIONS 154, D11d): an outlined pill, 24 tall, in neutral ink, the number secondary at zero and primary above. It holds two tabular
@@ -386,13 +388,20 @@
   /* A pressed toggle (aria-pressed; only secondary and ghost, and IconButton). Pressed is the selected plate as ONE solid fill per
      level (--basalt-plate: the next level plus the wash in dark, the wash over white in light; the page has its own, the wash over
      surface-page in light), never a layered wash, so forced colours can replace it. The label steps to primary, with no weight change. A secondary's
-     hairline steps to border-hover; a ghost gains its rectangle; the radius is the button's own. A text toggle holds a 16px seat at the
-     label's start that shows the core check while pressed and is empty while not, so both states are one width; the check swaps, it
-     does not morph. An icon toggle has no check: the plate, the ink step and the glyph's selected form say it. The doubled class lifts
-     these over hover and the momentary press, which keep their own steps on an unpressed button; the .98 scale stays Button's. */
+     hairline steps to border-hover; a ghost gains its rectangle; the radius is the button's own. A text toggle carries its glyph (`icon`)
+     in a 16px seat before the label. Pressed, the seat shows the glyph's selected form, or the core check where the glyph has none; the two
+     crossfade over `duration-fast`. The seat is never empty, and both states are one width. (DECISIONS 326. A glyph with a selected form
+     of its own is the button's icon; any other shares the seat with the check, [data-glyph]. A seat without data-glyph is an untyped toggle
+     with no icon: the check while pressed and empty while not, as before.) An IconButton toggle has no check: the plate, the ink step and the
+     glyph's selected form say it. The doubled class lifts these over hover and the momentary press, which keep their own steps on an
+     unpressed button; the .98 scale stays Button's. */
   .basalt-button-check { position: relative; flex: none; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); }
   .basalt-button-check > .basalt-icon { opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
   .basalt-button[aria-pressed="true"] > .basalt-button-check > .basalt-icon { opacity: 1; }
+  .basalt-button-check[data-glyph] { display: grid; width: auto; height: auto; }
+  .basalt-button-check[data-glyph] > .basalt-icon { grid-area: 1 / 1; }
+  .basalt-button-check[data-glyph] > .basalt-icon:first-child { opacity: 1; }
+  .basalt-button[aria-pressed="true"] > .basalt-button-check[data-glyph] > .basalt-icon:first-child { opacity: 0; }
   .basalt-button.basalt-button[aria-pressed="true"][data-variant="secondary"],
   .basalt-button.basalt-button[aria-pressed="true"][data-variant="ghost"] {
     background: var(--basalt-plate);
@@ -4330,12 +4339,14 @@
   .basalt-run-timer[data-held] { visibility: hidden; }
 
   /* StageBadge: one seat as wide as the widest face (the words in a hidden cell beside the dot's seat, which is braille's width), every face
-     stacked in it and stretched to it, so an outline pill is one width whatever it says. */
+     stacked in it at its start. Each face is a pill as wide as its own words (DECISIONS 326): the seat is unseen, and its spare room falls
+     after the pill, where the head is open, so what follows the seat never moves. */
   /* Its figures are tabular, and its seat's least width is its widest face: it never gives way under width pressure (ruling 10). */
   .basalt-run-badge { display: inline-grid; flex: none; min-inline-size: max-content; vertical-align: middle; font-variant-numeric: tabular-nums; }
   .basalt-run-badge > * { display: grid; grid-area: 1 / 1; }
   .basalt-run-badge .basalt-badge { font-variant-numeric: tabular-nums; }
   .basalt-run-badge-measure { visibility: hidden; }
+  .basalt-run-badge-face { justify-self: start; }
   /* Sequential: out (0.75 of duration-base, ease-in, rising space-1), then in (duration-base, ease-out, from space-1 below), the new face held at
      opacity 0 for the old one's time whether or not the old one is still there. */
   .basalt-run-badge-face[data-leaving] { animation: basalt-run-face-out calc(var(--basalt-duration-base) * 0.75) var(--basalt-ease-in) both; }
@@ -4482,23 +4493,44 @@
   .basalt-terminal-duration .basalt-run-timer { font: inherit; color: var(--basalt-text-tertiary); }
   .basalt-terminal-time { display: inline-flex; }
   .basalt-terminal-time .basalt-run-timer { color: var(--basalt-text-secondary); font-size: inherit; line-height: inherit; }
-  /* In the head the figure is start-aligned, right after the state word (the actions' space-2), so the two read as one status and the seat's spare
-     room falls before the copy button (ruling 6). */
+  /* Under 480px of the Terminal's own width the figure is start-aligned, right after the state word, so the two read as one status and the seat's
+     spare room falls at the line's open end (ruling 12). */
   .basalt-terminal-time .basalt-run-timer > .basalt-reserve { justify-items: start; }
   /* A head with a run's time keeps every part inside its padding at every width: the actions give up the ghost button's optical overhang. */
   .basalt-terminal-actions:has(> .basalt-terminal-time) { margin-inline-end: 0; }
-  /* Under 480px of the Terminal's own width a head with a run's time is two rows (ruling 12): the title and the copy button (on the end edge), then
-     the state and its time from the title's start edge; space-2 between the two lines, space-3 under the status. The button's row is its own height
+  /* From 480px of its own width a head with a run's time reads title, state … time, Copy, as a card's head reads name, badge … time, controls
+     (DECISIONS 326, 67-5): the state follows the title space-3 after it, start-aligned in its seat; the time keeps its place space-3 before Copy,
+     end-aligned in its seat. Both seats' spare room is the head's own open middle. */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px); a container query cannot read a custom property */
+  @container (width >= 480px) {
+    .basalt-terminal-head:has(.basalt-terminal-time) > .basalt-terminal-actions { display: contents; }
+    .basalt-terminal-head:has(.basalt-terminal-time) > .basalt-terminal-actions > * { order: 3; }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-state { order: 1; }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-state > .basalt-reserve { justify-items: start; }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-time { order: 2; margin-inline-start: auto; }
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-time .basalt-run-timer > .basalt-reserve { justify-items: end; }
+  }
+  /* Under 480px of the Terminal's own width a head with a run's time is two rows (ruling 12): the title and the copy button (its glyph on the end
+     padding line), then the state and its time from the title's start edge; space-2 between the two lines, the words 15 from the head's edges. The button's row is its own height
      (the control, 44 where touch sizes apply), the title centred on it, and the status line starts space-2 under the title's line. */
   .basalt-terminal-head { --_head-button: var(--basalt-size-control-sm); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) { .basalt-terminal-head { --_head-button: var(--basalt-size-tap-min); } }
   /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px); a container query cannot read a custom property */
   @container (width < 480px) {
-    .basalt-terminal-head:has(.basalt-terminal-time) { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0 var(--basalt-space-2); padding-block-end: var(--basalt-space-3); }
+    .basalt-terminal-head:has(.basalt-terminal-time) {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 0 var(--basalt-space-2);
+      /* The words 15 from the head's top and bottom edges (DECISIONS 326, 67-6): the title's line centred on the button's row, the status line's end
+         15 above the bottom; at 44 that is 1 and 15. */
+      padding-block: calc(var(--basalt-space-4) - var(--basalt-size-hairline) - (var(--_head-button) - var(--basalt-text-xs-line-height)) / 2) calc(var(--basalt-space-4) - var(--basalt-size-hairline));
+    }
     .basalt-terminal-head:has(.basalt-terminal-time) > .basalt-terminal-actions { display: contents; }
     .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-title { grid-area: 1 / 1 / 2 / 3; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-copy-compact { grid-area: 1 / 3; justify-self: end; }
+    /* The copy glyph on the head's inline padding line, where the title starts and every duration ends: the target hangs into the padding (14 at 44). */
+    .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-copy-compact { grid-area: 1 / 3; justify-self: end; margin-inline-end: calc((var(--_head-button) - var(--basalt-size-icon-sm)) / -2); }
     .basalt-terminal-head:has(.basalt-terminal-time) :is(.basalt-terminal-state, .basalt-terminal-time) { grid-row: 2; margin-block-start: calc(var(--basalt-space-2) - (var(--_head-button) - var(--basalt-text-xs-line-height)) / 2); }
     .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-state { grid-column: 1; }
     .basalt-terminal-head:has(.basalt-terminal-time) .basalt-terminal-state > .basalt-reserve { justify-items: start; }
@@ -4558,6 +4590,14 @@
   .basalt-run-step[data-state="retrying"] .basalt-run-step-sentence { color: var(--basalt-text-primary); }
   /* Under the hold a step's own running time hides, and the dot before it goes with it. */
   .basalt-run-step-meta:has(> .basalt-run-timer[data-held]) > .basalt-run-step-dot { visibility: hidden; }
+  /* Where the meta is at the row's end, no dot is drawn before the time (DECISIONS 326, 67-7): the time's seat starts space-3 after the result, as a
+     StageList row's meta and time are set, so its end-aligned spare room never pushes a dot off-centre. The dot's spoken comma stays. Where the meta
+     is under the step's words the dot stays: the time is start-aligned there and its spare room is at the line's open end. */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
+  @container (width >= 640px) {
+    .basalt-run-step-meta > .basalt-run-step-dot[data-spaced]::before { content: none; }
+    .basalt-run-step-meta > .basalt-run-step-dot + .basalt-run-timer { margin-inline-start: var(--basalt-space-3); }
+  }
   /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px); a container query cannot read a custom property */
   @container (width < 640px) {
     .basalt-run-step .basalt-run-step-line { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr); }

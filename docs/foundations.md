@@ -348,6 +348,15 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   underline or plate; any of many, and on, is a check in a reserved seat or a filled choice box; a glyph closes and fills.
   The ink steps to primary with it. The wash alone, and the ink step alone, are never the cue. The silhouette follows the
   furniture the state sits in; the weight, the ink step and the shape do not change.
+- **Reserved room.** A seat is room held so nothing moves when a word or state changes (DECISIONS 326). A drawn box (a border, a
+  fill or a plate) hugs what it shows, with equal padding on facing sides, and never holds room for a word, a mark or a row that is
+  not showing. The seat is an unseen cell around the box: what it shows sits against the edge that faces its fixed neighbour, and
+  the spare room falls where the row is already open. A seat is never put where its spare room opens a gap between two things a
+  fixed distance apart, and it is centred only where its row is. A control's box never changes size, so a seat inside a control is
+  never empty: at rest it holds its mark's rest form and, on, its on form. A control whose words change is as wide as its widest
+  words, centred; a control with words at its start and an amount at its end anchors each to its own end. Room every row of a
+  list, menu or table shares is a column, not a seat. A box changes face by fading out and in; no width animates. A label's 600
+  width (DECISIONS 150) stands.
 - **The choice card** (`ChoiceCard`, in a `ChoiceCardGroup`) is a native radio (one of many) or checkbox (any of many)
   wearing a card: the whole card is the label and the input is visually hidden but focusable. Plain `Card` gets no selected
   prop, because paint without semantics ends up on a `div` nothing can operate. A real choice box (`size-choice`, the
@@ -369,11 +378,11 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   primary (a latched primary reads as the action) and never danger (a latched red reads as an error). Pressed is the
   selected plate as one solid fill per level (never a layered wash, so forced colours can replace it; on the page itself, with no level, it is the wash over `surface-page` in light, about `#e8e8e8`, and the next level plus the wash in dark), the label steps to
   `text-primary` with no weight change, a secondary's hairline steps to `border-hover`, a ghost gains its rectangle, and the
-  radius does not change. A text toggle holds a 16px seat at the label's inline start that shows the core `check` while
-  pressed and is empty while not, so a pressed and an unpressed toggle of one label are the same width; the check swaps,
-  it does not morph. An icon toggle, and every IconButton toggle, carries no check: the plate, the ink step and the glyph's
+  radius does not change. A text toggle carries its glyph (`icon`) in a 16px seat before the label. Pressed, the seat shows the
+  glyph's selected form, or the core check where the glyph has none; the two crossfade over `duration-fast`. The seat is never
+  empty, and both states are one width. An IconButton toggle carries no check: the plate, the ink step and the glyph's
   selected form (a core glyph closes and fills; a `fillSafe` Phosphor glyph fills) say it. The momentary .98 press stays
-  Button's. In forced colours it is `Highlight` with `HighlightText` for the fill, the label and the check, at rest,
+  Button's. In forced colours it is `Highlight` with `HighlightText` for the fill, the label and the seat, at rest,
   hovered, pressed and focused. Reduced motion is the 100ms crossfade. A text-only on/off with no glyph to fill is a
   `Switch`; exactly one of many is a segmented control, never toggle buttons.
 - **External links** (`Link`, and a `Button` or `IconButton` rendered as an anchor; council, DECISIONS 95). The arrow means
@@ -2702,8 +2711,8 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   `border-input` line on the marks' centre line from `space-1` under one mark to `space-1` above the next, beside an open detail too, and never a
   state (see Vertical lines). A stage's detail (`detail`, `action`: a failure's reason and Retry, what waits and Approve) opens under it, indented
   to the name, by height and opacity over `duration-slow` on `ease-out`, closing at 0.75 on `ease-in`, `inert` while closed; inside it `code` is
-  Geist Mono at 1em. The room for one detail is held from the start (`reserveDetail`), a `calc` of tokens and never a measure, so a failure
-  moves only the rows under it. Retry and Approve are `Button`s whose `onClick` returns the app's promise. When a detail closes or its action
+  Geist Mono at 1em. A detail opens under its stage and moves the rows under it. `reserveDetail` holds the room for one detail from the
+  start; it is off unless asked for, and is for a list on the open page, never inside a card or panel. Retry and Approve are `Button`s whose `onClick` returns the app's promise. When a detail closes or its action
   leaves while focus is inside it, focus goes to that stage's name, whoever resolved it.
 - **`StageRail`.** The same rows on one line: two to four stages at any width, five or six from 480px of its own container (under it, drawn as
   the list). A node is the mark in a `space-6` row, the name (`text-sm`, centred) and one status seat (`text-xs`): its time while running or
@@ -2713,8 +2722,8 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   only sign of anything. No bead and no pulse: the running ring is the rail's only moving thing. `Progress`'s value takes tabular figures and the
   room of "100%".
 - **`StageBadge`.** A `Badge` bound to the seven states (the pending ring, braille, the success, danger and neutral dots), `outline` in a run's
-  head and `plain` in a list or table. Its seat is as wide as its widest face from a static measure, and never narrower under width pressure;
-  its figures are tabular, so a changed digit changes no width. A change of face is sequential: the old face
+  head and `plain` in a list or table. Its seat is as wide as its widest face; each face is a pill as wide as its own words. The seat comes
+  from a static measure and is never narrower under width pressure; its figures are tabular, so a changed digit changes no width. A change of face is sequential: the old face
   fades and rises `space-1` over 0.75 of `duration-base` on `ease-in`, then the new one fades in from `space-1` below over `duration-base` on
   `ease-out`. One accessible name at every moment.
 - **The deploy log** is a `Terminal` declared `stages`, with lines `{ kind: "stage", state, text, word?, start?, end? }`. The gutter holds braille

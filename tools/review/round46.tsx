@@ -110,8 +110,8 @@ function Specimen({ which }: { which: "before" | "after" }) {
         <Tabs value="week"><TabsList aria-label={`Range ${which}`}><Tab value="week">Week</Tab><Tab value="trends">Trends</Tab><Tab value="sources">Sources</Tab></TabsList></Tabs>
         <SegmentedControl aria-label={`View ${which}`} defaultValue="week"><Segment value="day">Day</Segment><Segment value="week">Week</Segment><Segment value="month">Month</Segment></SegmentedControl>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Button variant="ghost" pressed>Pressed</Button>
-          <Button variant="ghost" pressed={false}>Not pressed</Button>
+          <Button variant="ghost" aria-pressed>Pressed</Button>
+          <Button variant="ghost" aria-pressed={false}>Not pressed</Button>
         </div>
       </div>
 

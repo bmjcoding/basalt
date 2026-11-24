@@ -194,7 +194,7 @@ function TwoLineDemo() {
 /** The view's control: a pressed-toggle Button in the head band, with a fixed name and `aria-pressed`. */
 function ViewToggle() {
   const { held, setHeld } = useLoops();
-  return <Button size="sm" pressed={held} onClick={() => setHeld(!held)}>Pause animations</Button>;
+  return <Button size="sm" aria-pressed={held} onClick={() => setHeld(!held)}>Pause animations</Button>;
 }
 
 function RunningToast() {
@@ -314,7 +314,7 @@ function TextDemo({ state }: { state: string }) {
       <TwoLineDemo />
       <Caption>Live: this table ticks until you hold, then shows the start times.</Caption>
       <Fit><RunsTable held={held} now={live} label="Live runs" /></Fit>
-      <Button variant="secondary" pressed={held} onClick={() => setHeld(!held)}>Pause animations</Button>
+      <Button variant="secondary" aria-pressed={held} onClick={() => setHeld(!held)}>Pause animations</Button>
     </div>
   );
 }

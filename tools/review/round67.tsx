@@ -117,14 +117,49 @@ function useHeldState(state: string) {
   }, [state]);
 }
 
-const head: React.CSSProperties = { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 12px", marginBottom: 16 };
 const title: React.CSSProperties = { margin: 0, font: "500 13px / 18px var(--basalt-font-family-sans)" };
 const pad: React.CSSProperties = { padding: 20, display: "flex", flexDirection: "column" };
-const timeEnd: React.CSSProperties = { marginInlineStart: "auto" };
 
-/** Replay and the page's hold, side by side in each run's head (the hold is the walkthrough's: every run on the page follows it). */
-function Replay({ onClick }: { onClick: () => void }) {
-  return <span style={{ display: "inline-flex", gap: 8 }}><Button size="sm" variant="ghost" icon={ArrowClockwiseIcon} onClick={onClick}>Replay</Button><LoopsToggle form="button" size="sm" /></span>;
+// A run's head (sweep 67-4, DECISIONS 326). From 720: one row, the title and the badge, then the time and the controls at its end, as before. Under 720: the title
+// and the badge first (the badge wraps under a long title), then one row with the time at its start, start-aligned in its seat, and the controls at its end; the
+// hold there is the 44px icon form, its glyph on the card's content edge (half of 44 - 16 hangs into the padding). 8 between rows, 12 between items.
+const HEAD_CSS = `.review-run-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 16px; }
+.review-run-head > span { display: contents; }
+.review-run-time { margin-inline-start: auto; }
+@media (width < 720px) {
+  .review-run-head { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+  .review-run-head > span { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .review-run-time { margin-inline-start: 0; }
+  .review-run-controls { margin-inline-start: auto; }
+  .review-run-controls > .basalt-button[data-icon-only] { margin-inline-end: -14px; }
+}`;
+
+const subscribeNarrow = (notify: () => void) => { const query = window.matchMedia("(width < 720px)"); query.addEventListener("change", notify); return () => query.removeEventListener("change", notify); };
+const useNarrow = () => React.useSyncExternalStore(subscribeNarrow, () => window.matchMedia("(width < 720px)").matches, () => false);
+
+/** A run's head: the name (title and badge) and the meta (the time and the controls). */
+function RunHead({ name, time, controls }: { name: React.ReactNode; time?: React.ReactNode; controls?: React.ReactNode }) {
+  return (
+    <div className="review-run-head">
+      <style>{HEAD_CSS}</style>
+      <span>{name}</span>
+      <span>
+        {time ? <span className="review-run-time">{time}</span> : null}
+        {controls}
+      </span>
+    </div>
+  );
+}
+
+/** Replay and the page's hold, side by side in each run's head (the hold is the walkthrough's: every run on the page follows it). Under 720 a head's hold is its icon form. */
+function Replay({ onClick, head = true }: { onClick: () => void; head?: boolean }) {
+  const narrow = useNarrow() && head;
+  return (
+    <span className="review-run-controls" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+      <Button size="sm" variant="ghost" icon={ArrowClockwiseIcon} onClick={onClick}>Replay</Button>
+      {narrow ? <LoopsToggle form="icon" /> : <LoopsToggle form="button" size="sm" />}
+    </span>
+  );
 }
 
 // ---- 1. The stage list: Deploy 812, Test fails, Retry, the retry passes
@@ -169,12 +204,11 @@ function DeployList({ state, fixed = false }: { state: string; fixed?: boolean }
   const retry = () => new Promise<void>((resolve) => window.setTimeout(() => { setState((s) => LIST_STEPS[9]!.apply(s, Date.now())); resolve(); }, 300));
   return (
     <Card style={pad}>
-      <div style={head}>
-        <h3 style={title}>Deploy #812</h3>
-        <StageBadge state={run.run} words={{ retrying: "Retrying, 2 of 2" }} />
-        <span style={timeEnd}><RunTimer start={run.start} end={run.end} carried={run.carried} since={run.since} /></span>
-        {fixed ? null : <Replay onClick={play} />}
-      </div>
+      <RunHead
+        name={<><h3 style={title}>Deploy #812</h3><StageBadge state={run.run} words={{ retrying: "Retrying, 2 of 2" }} /></>}
+        time={<RunTimer start={run.start} end={run.end} carried={run.carried} since={run.since} />}
+        controls={fixed ? null : <Replay onClick={play} />}
+      />
       <StageList label="Deploy 812 stages">
         {run.stages.map((s, i) => (
           <RunStage key={s.name} name={s.name} state={s.state} word={s.word} meta={s.meta} start={s.start} end={s.end}
@@ -222,12 +256,11 @@ function ReleaseRail({ state }: { state: string }) {
   const running = run.nodes.find((n) => n.state === "running")?.name;
   return (
     <Card style={pad}>
-      <div style={head}>
-        <h3 style={title}>Release v2.14.0</h3>
-        <StageBadge state={run.run} words={{ running: "In progress" }} />
-        <span style={timeEnd}><RunTimer start={run.start} end={run.end} /></span>
-        <Replay onClick={play} />
-      </div>
+      <RunHead
+        name={<><h3 style={title}>Release v2.14.0</h3><StageBadge state={run.run} words={{ running: "In progress" }} /></>}
+        time={<RunTimer start={run.start} end={run.end} />}
+        controls={<Replay onClick={play} />}
+      />
       <StageRail label="Release v2.14.0 stages">
         {run.nodes.map((n) => <RunStage key={n.name} name={n.name} state={n.state} word={n.word} start={n.start} end={n.end} />)}
       </StageRail>
@@ -271,7 +304,8 @@ function DeployLog({ state, fixed = false }: { state: string; fixed?: boolean })
   const { state: run, play } = useRun(LOG_START, LOG_STEPS, name === "passed" ? LOG_STEPS.length - 1 : LOG_STEPS.length - 3, { fixed });
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      {fixed ? null : <div><Replay onClick={play} /></div>}
+      {/* Sweep 67-9: the ghost Replay's glyph on the Terminal's start edge under it. */}
+      {fixed ? null : <div className="review-log-replay"><style>{".review-log-replay .basalt-button[data-variant=\"ghost\"]:first-child { margin-inline-start: calc(-1 * var(--basalt-space-2-5)); }"}</style><Replay onClick={play} head={false} /></div>}
       <Terminal title="Deploy · basalt-sra" stages keep={3} status={run.status === "idle" ? undefined : run.status} time={{ start: run.start, end: run.end }} lines={run.lines} />
       <RunAnnouncer label="Deploy updates" events={run.events} />
     </div>
@@ -300,10 +334,10 @@ function CiJobs({ state }: { state: string }) {
   const { state: run, play } = useRun(JOBS_START, JOBS_STEPS, name === "passed" ? JOBS_STEPS.length - 1 : 3);
   return (
     <Card style={pad}>
-      <div style={head}><h3 style={title}>Checks · pull request #128</h3><span style={timeEnd}><Replay onClick={play} /></span></div>
+      <RunHead name={<h3 style={title}>Checks · pull request #128</h3>} controls={<Replay onClick={play} />} />
       <ul aria-label="Checks" style={{ listStyle: "none", margin: 0, padding: 0, font: "400 13px / 18px var(--basalt-font-family-sans)" }}>
         {run.jobs.map((j, i) => (
-          <li key={j.name} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto auto", alignItems: "center", gap: 16, padding: "10px 0", borderTop: i ? "1px solid var(--basalt-border-divider)" : 0 }}>
+          <li key={j.name} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto auto", alignItems: "center", gap: 16, padding: i === run.jobs.length - 1 ? "10px 0 0" : "10px 0", borderTop: i ? "1px solid var(--basalt-border-divider)" : 0 }}>
             <span style={{ display: "flex", flexWrap: "wrap", gap: "0 8px", minWidth: 0 }}>{j.name}<span style={{ color: "var(--basalt-text-tertiary)", fontSize: 12 }}>{j.meta}</span></span>
             <StageBadge variant="plain" state={j.state} words={{ retrying: "Retrying, 2 of 3" }} />
             <RunTimer start={j.start} end={j.end} whenHeld="hidden" />
@@ -353,12 +387,11 @@ function AgentRun({ state, fixed = false }: { state: string; fixed?: boolean }) 
   const approve = () => new Promise<void>((resolve) => window.setTimeout(() => { setState((s) => ({ ...s, items: s.items.map((x) => (x.id === "approve" ? { ...x, state: "success" as StageState, word: "Approved by you", end: Date.now(), approval: false } : x)) })); resolve(); }, 300));
   return (
     <Card style={pad}>
-      <div style={head}>
-        <h3 style={title}>INC-0042 · Payments API latency</h3>
-        <StageBadge state={run.run} words={{ running: "Investigating", success: "Completed" }} />
-        <span style={timeEnd}><RunTimer start={run.start} end={run.end} /></span>
-        {fixed ? null : <Replay onClick={play} />}
-      </div>
+      <RunHead
+        name={<><h3 style={title}>INC-0042 · Payments API latency</h3><StageBadge state={run.run} words={{ running: "Investigating", success: "Completed" }} /></>}
+        time={<RunTimer start={run.start} end={run.end} />}
+        controls={fixed ? null : <Replay onClick={play} />}
+      />
       {/* The app's step line hides under the hold (foundations: a streaming line hides while the status word stays). */}
       <p aria-hidden="true" style={{ margin: "-8px 0 12px", font: "400 12px / 16px var(--basalt-font-family-sans)", color: "var(--basalt-text-tertiary)", visibility: held && run.run === "running" ? "hidden" : undefined }}>{run.line}</p>
       <RunTimeline label="Agent steps" defaultOpen={name === "open"}>
@@ -460,7 +493,7 @@ function HeldRail() {
   useHeldState("held");
   return (
     <Card style={pad}>
-      <div style={head}><h3 style={title}>Release v2.14.0</h3><StageBadge state="running" words={{ running: "In progress" }} /><span style={timeEnd}><RunTimer start={t0 - 3300} /></span></div>
+      <RunHead name={<><h3 style={title}>Release v2.14.0</h3><StageBadge state="running" words={{ running: "In progress" }} /></>} time={<RunTimer start={t0 - 3300} />} />
       <StageRail label="Release v2.14.0 stages">
         <RunStage name="Build" state="success" start={t0 - 3300} end={t0 - 1200} />
         <RunStage name="Checks" state="running" start={t0 - 1200} />
@@ -497,7 +530,7 @@ export const ROUND_67: Round = {
     {
       id: "stage-list",
       name: "Stage list: a deploy pipeline",
-      intro: "Deploy #812: Test fails, its reason and Retry open under it, Deploy and Promote are blocked, the retry passes. The room for one reason is held from the start, so the card never moves.",
+      intro: "Deploy #812: Test fails, its reason and Retry open under it, Deploy and Promote are blocked, the retry passes.",
       decisions: [
         ...COMMON,
         "Every word but a passed stage's is drawn; a passed stage is its check and its time. The connector is one still 1px line between marks, beside the open reason too (departure 4).",

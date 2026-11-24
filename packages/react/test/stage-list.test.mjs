@@ -30,8 +30,9 @@ createRoot(document.getElementById("root")).render(
     </B.StageList>
   </div>);`;
 
-// A deploy whose Test stage fails, opens its reason and Retry, and passes on a retry. The app owns every change; Retry's promise is the app's.
-const DEPLOY = (width = 640) => `
+// A deploy whose Test stage fails, opens its reason and Retry, and passes on a retry. The app owns every change; Retry's promise is the app's. The list is
+// on the open page (DECISIONS 326: reserveDetail is never inside a card or panel), and holds the room for one detail unless reserve is false.
+const DEPLOY = (width = 640, reserve = true) => `
 function App() {
   const [test, setTest] = React.useState("running");
   const [sends, setSends] = React.useState(0);
@@ -45,8 +46,8 @@ function App() {
   const retry = () => { setSends((n) => n + 1); return new Promise((resolve) => { resolver.current = resolve; }); };
   const failed = test === "failed";
   return <div style={{ padding: 24, maxWidth: ${width} }}>
-    <B.Card><div style={{ padding: 16 }}>
-      <B.StageList label="Deploy 812 stages">
+    <div style={{ padding: 16 }}>
+      <B.StageList label="Deploy 812 stages"${reserve ? " reserveDetail" : ""}>
         <B.RunStage name="Clone" state="success" meta="main@4f2a1c0" start={0} end={800} />
         <B.RunStage name="Install" state="success" meta="412 packages" start={0} end={1600} />
         <B.RunStage name="Test" state={test} meta="unit and e2e" start={0} end={failed ? 1400 : undefined}
@@ -55,7 +56,7 @@ function App() {
         <B.RunStage name="Deploy" state={failed ? "skipped" : "queued"} word={failed ? "Blocked by Test" : undefined} meta="production" />
         <B.RunStage name="Promote" state={failed ? "skipped" : "queued"} word={failed ? "Blocked by Test" : undefined} meta="basalt-sra.example" />
       </B.StageList>
-    </div></B.Card>
+    </div>
     <p id="after">After the list</p>
     <output id="sends">{sends}</output>
   </div>;
@@ -193,6 +194,25 @@ describe("the detail", () => {
       assert.deepEqual(back.rows, start.rows, "closing gives the room back");
     });
   }
+
+  test("reserveDetail is off unless asked for (DECISIONS 326, 67-3): no room is held, a failure opens its detail under its stage and moves the rows under it and what follows, and closing gives it back", async () => {
+    const page = await open(DEPLOY(640, false));
+    const watch = () => page.evaluate(() => ({ reserve: document.querySelector(".basalt-run-stages").hasAttribute("data-reserve"), after: document.querySelector("#after").getBoundingClientRect().top, rows: [...document.querySelectorAll(".basalt-run-stage-line")].map((l) => l.getBoundingClientRect().top), list: document.querySelector(".basalt-run-stages").getBoundingClientRect().height }));
+    const start = await watch();
+    assert.equal(start.reserve, false, "no data-reserve by default");
+    assert.equal(start.list, 5 * 34, "five 34px rows and no held room");
+    await page.evaluate(() => window.fail());
+    await settle(page);
+    const failed = await watch();
+    const grew = failed.list - start.list;
+    assert.ok(grew > 0, "the detail opens");
+    assert.deepEqual(failed.rows.slice(0, 3), start.rows.slice(0, 3), "rows above and the failed row stay");
+    assert.equal(failed.after - start.after, grew, "what follows moves by the detail's height");
+    await page.evaluate(() => window.retried());
+    await settle(page);
+    const back = await watch();
+    assert.deepEqual([back.after, back.rows], [start.after, start.rows], "closing gives the room back");
+  });
 
   test("a reason longer than the room grows the list by its extra line, once", async () => {
     const page = await open(DEPLOY());

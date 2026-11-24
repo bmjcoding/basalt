@@ -31,7 +31,7 @@ Markup built only at run time (a `.row` your script writes) won't be seen: add `
 - **select** `<select>`: wrap in `.select`, class `input`; a second line is `.option-description`.
 - **choice** `type="checkbox"`, `role="switch"`: bare inputs in a `label.choice`; radios in `.radio-group`.
 - **choice-card** `.choice-card`: a `label.panel` around a hidden radio or checkbox; words only, no link or control inside.
-- **toggle** `aria-pressed`: secondary or ghost `.btn` only; your script flips it; the `.btn-check` seat comes first.
+- **toggle** `aria-pressed`: secondary or ghost `.btn` only; your script flips it; its glyph's `.btn-check` seat comes first.
 - **rows** `.rows`, `.row`: `.input-row` is a panel's first child; `data-active` is the lit row's fill, never a bar.
 - **glide** `.plate`: the palette's, a menu's and the centre's shared plate; never write one.
 - **links** `.links`, `target="_blank"`: a glyph then the name, none for a service without a mark; never write the arrow.

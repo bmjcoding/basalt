@@ -132,6 +132,8 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   pseudo-element layer, and a hovered or selected row's wash is on every cell of the row, pinned or not, in React and the skill. Horizontal tabs keep their underline: it is horizontal. In a segmented
   control and in vertical tabs one pill slides to the chosen item (`duration-slow`, `ease-out`);
   under reduced motion and in forced colours each item paints its own.
+- **Reserved room is page, not paint:** a box hugs what it shows; a seat's spare room lies outside it, on the open side; a seat
+  inside a control is never empty (a glyph at rest, its selected form or the check when on).
 - **Reservation limits:** native-element width copies are cleaned in props without an observer; opaque components need DOM cleanup and a second live instance, so server HTML can duplicate ids and controls until hydration (permanently without scripts), and an unsafe component can narrow when hydration declines it. The HTML skill still widens resting items once on initialization; build-time reservation and glyphs are a later batch (DECISIONS 150).
 - **A focusable row** (a link or button in a list, not a listbox option) takes the control ring
   at +2, outside the row, and its list keeps at least `space-1-5` from any clipping edge. A

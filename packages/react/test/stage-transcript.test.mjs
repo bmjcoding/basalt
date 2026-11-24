@@ -290,7 +290,7 @@ describe("the council's review", () => {
 describe("the head under 480px of the Terminal's own width (ruling 12)", () => {
   for (const width of [390, 320]) {
     for (const theme of ["light", "dark"]) {
-      test(`a head with a run's time is two rows, 70px: the title and the copy button, then the state and its time from the title's edge (${width}, ${theme})`, async () => {
+      test(`a head with a run's time is two rows, 70px, its words 15 from its edges: the title and the copy glyph on the padding line, then the state and its time from the title's edge (${width}, ${theme})`, async () => {
         const body = `createRoot(document.getElementById("root")).render(<div style={{ padding: 16 }}><B.Card style={{ padding: 16 }}><B.Terminal title="Deploy · basalt-sra" stages keep={3} status="running" time={{ start: Date.now() - 6300 }} lines={[{ kind: "command", text: "basalt deploy --prod" }, { kind: "stage", state: "running", text: "Cloning main@4f2a1c0", start: Date.now() - 300 }]} /></B.Card></div>);`;
         const page = await open(body, { theme, viewport: { width, height: 500 } });
         await page.evaluate(() => document.fonts.ready);
@@ -304,19 +304,22 @@ describe("the head under 480px of the Terminal's own width (ruling 12)", () => {
           const state = document.querySelector(".basalt-terminal-state [data-on]").getBoundingClientRect();
           const time = document.querySelector(".basalt-terminal-time").getBoundingClientRect();
           const button = document.querySelector(".basalt-terminal-copy-compact").getBoundingClientRect();
-          const drawn = [...h.querySelectorAll("*")].filter((e) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility === "visible" && !e.closest(".basalt-visually-hidden"));
+          const glyph = document.querySelector(".basalt-terminal-copy-compact svg").getBoundingClientRect();
+          // The copy button's target hangs into the padding (DECISIONS 326, 67-6); what is drawn, its glyph included, stays inside it.
+          const drawn = [...h.querySelectorAll("*")].filter((e) => e.getBoundingClientRect().width > 0 && getComputedStyle(e).visibility === "visible" && !e.closest(".basalt-visually-hidden") && !e.matches(".basalt-terminal-copy-compact"));
           // The title's line box (text-xs's 16px line) is read from the row it is centred on, not from the fallback face's glyphs, which a fixture without Geist draws.
           const line = parseFloat(getComputedStyle(document.querySelector(".basalt-terminal-title")).lineHeight);
           const centre = (button.top + button.bottom) / 2;
           const stateLine = document.querySelector(".basalt-terminal-state").getBoundingClientRect();
-          return { head: hr.height, titleTop: centre - line / 2 - hr.top, stateFromTitle: state.left - title.left, between: stateLine.top + (stateLine.height - line) / 2 - (centre + line / 2), under: hr.bottom - (stateLine.top + (stateLine.height + line) / 2), buttonEnd: Math.round(pad - button.right), buttonRow: Math.abs((button.top + button.bottom) / 2 - (title.top + title.bottom) / 2) < 1, timeAfterState: time.left > state.left && Math.abs(time.top - state.top) < 4, past: Math.max(...drawn.map((e) => e.getBoundingClientRect().right)) - pad };
+          return { head: hr.height, titleTop: centre - line / 2 - hr.top, stateFromTitle: state.left - title.left, between: stateLine.top + (stateLine.height - line) / 2 - (centre + line / 2), under: hr.bottom - (stateLine.top + (stateLine.height + line) / 2), buttonEnd: Math.round(pad - button.right), glyphEnd: Math.round((pad - glyph.right) * 100) / 100, buttonRow: Math.abs((button.top + button.bottom) / 2 - (title.top + title.bottom) / 2) < 1, timeAfterState: time.left > state.left && Math.abs(time.top - state.top) < 4, past: Math.max(...drawn.map((e) => e.getBoundingClientRect().right)) - pad };
         });
         assert.equal(r.head, 70);
-        assert.equal(r.titleTop, 18, "the title's line is centred on the button's row");
+        assert.equal(r.titleTop, 15, "the title's line is centred on the button's row, 15 under the head's top (67-6)");
         assert.equal(r.stateFromTitle, 0, "the state starts on the title's edge");
         assert.equal(r.between, 8, "space-2 between the two lines");
-        assert.equal(r.under, 12, "space-3 under the status");
-        assert.equal(r.buttonEnd, 0, "the copy button on the end edge");
+        assert.equal(r.under, 15, "15 under the status, as above the title (67-6)");
+        assert.equal(r.glyphEnd, 0, "the copy glyph on the head's end padding line, where the title starts on the other side (0px)");
+        assert.equal(r.buttonEnd, -14, "its 44px target hangs 14px into the padding");
         assert.ok(r.buttonRow && r.timeAfterState, JSON.stringify(r));
         assert.ok(r.past <= 0.01, `${r.past}px past the head's padding`);
       });
@@ -329,4 +332,26 @@ describe("the head under 480px of the Terminal's own width (ruling 12)", () => {
     const tops = await page.evaluate(() => [".basalt-terminal-title", ".basalt-terminal-state", ".basalt-terminal-time"].map((s) => Math.round(document.querySelector(s).getBoundingClientRect().top + document.querySelector(s).getBoundingClientRect().height / 2)));
     assert.ok(tops.every((t) => Math.abs(t - tops[0]) <= 1), tops.join(", "));
   });
+
+  for (const status of ["running", "done", "failed"]) {
+    test(`from 480px the head reads title, state … time, Copy: the state space-3 after the title, the time's figures space-3 before Copy, at the end of its seat (DECISIONS 326, 67-5; ${status})`, async () => {
+      const end = status === "running" ? "" : ", end: Date.now() - 300";
+      const body = `createRoot(document.getElementById("root")).render(<div style={{ padding: 16, width: 700 }}><B.Terminal title="Deploy · basalt-sra" stages status="${status}" time={{ start: Date.now() - 6900${end} }} lines={[{ kind: "command", text: "basalt deploy --prod" }]} /></div>);`;
+      const page = await open(body, { viewport: { width: 1024, height: 400 } });
+      await page.evaluate(() => document.fonts.ready);
+      const r = await page.evaluate(() => {
+        const words = (el) => { const range = document.createRange(); range.selectNodeContents(el); return range.getBoundingClientRect(); };
+        const title = words(document.querySelector(".basalt-terminal-title"));
+        const state = words(document.querySelector(".basalt-terminal-state [data-on]"));
+        const figure = words(document.querySelector(".basalt-terminal-time .basalt-run-timer [data-on]"));
+        const seat = document.querySelector(".basalt-terminal-time").getBoundingClientRect();
+        const copy = document.querySelector(".basalt-terminal-copy").getBoundingClientRect();
+        return { afterTitle: state.left - title.right, beforeCopy: copy.left - seat.right, seatEnd: seat.right - figure.right, order: state.left < seat.left && seat.right <= copy.left };
+      });
+      assert.equal(r.afterTitle, 12, "space-3 after the title");
+      assert.equal(r.beforeCopy, 12, "space-3 before Copy");
+      assert.ok(Math.abs(r.seatEnd) <= 0.5, `the figures end their seat (${r.seatEnd})`);
+      assert.ok(r.order, JSON.stringify(r));
+    });
+  }
 });

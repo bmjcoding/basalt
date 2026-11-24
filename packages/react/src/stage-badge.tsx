@@ -12,7 +12,8 @@ import { join } from "./utils";
 // ---- A status that changes in place (DECISIONS 316, 1.6) ----
 // A `Badge` bound to the seven states: queued is the pending ring, running and retrying braille, passed the success dot, failed the danger dot,
 // skipped and canceled the neutral dot. Its seat is as wide as its widest face, mark included, from a static measure (the words alone in a hidden
-// cell, with the dot's seat, which is braille's width): no spinner is mounted to measure with. A change of face is sequential: the old face fades out
+// cell, with the dot's seat, which is braille's width): no spinner is mounted to measure with. Each face is a pill as wide as its own words, at the
+// seat's start (DECISIONS 326). A change of face is sequential: the old face fades out
 // and rises space-1 over 0.75 of duration-base on ease-in, then the new one fades in from space-1 below over duration-base on ease-out, held at
 // opacity 0 until the old has gone whether or not the old is still in the DOM. No width animates. Reduced motion fades only; the hold swaps at once.
 

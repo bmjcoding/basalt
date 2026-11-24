@@ -830,6 +830,24 @@ const CHOICES = [
     ],
   },
   {
+    // DECISIONS 326: a text toggle carries its glyph; the seat shows it at rest and hands over to the check while pressed. The case above is a page written before.
+    id: "pressed toggle with its glyph",
+    react: `<><Button icon={B.PauseGlyph} pressed>Pause animations</Button><Button icon={B.PauseGlyph} pressed={false}>Pause animations</Button><Button variant="ghost" icon={B.PauseGlyph} pressed>Ghost</Button><Button variant="ghost" icon={B.PauseGlyph} pressed={false}>Ghost</Button></>`,
+    skill: `<button class="btn" aria-pressed="true"><span class="btn-check" data-glyph="pause" aria-hidden="true"></span>Pause animations</button><button class="btn" aria-pressed="false"><span class="btn-check" data-glyph="pause" aria-hidden="true"></span>Pause animations</button><button class="btn" data-variant="ghost" aria-pressed="true"><span class="btn-check" data-glyph="pause" aria-hidden="true"></span>Ghost</button><button class="btn" data-variant="ghost" aria-pressed="false"><span class="btn-check" data-glyph="pause" aria-hidden="true"></span>Ghost</button>`,
+    pairs: [
+      ["secondary pressed", ".basalt-button[data-variant=secondary][aria-pressed=true]", ".btn:not([data-variant])[aria-pressed=true]", [...BOX, "boxWidth"]],
+      ["secondary rest", ".basalt-button[data-variant=secondary][aria-pressed=false]", ".btn:not([data-variant])[aria-pressed=false]", [...BOX, "boxWidth"]],
+      ["ghost pressed", ".basalt-button[data-variant=ghost][aria-pressed=true]", ".btn[data-variant=ghost][aria-pressed=true]", [...BOX, "boxWidth"]],
+      ["ghost rest", ".basalt-button[data-variant=ghost][aria-pressed=false]", ".btn[data-variant=ghost][aria-pressed=false]", [...BOX, "boxWidth"]],
+      ["seat, pressed", ".basalt-button[data-variant=secondary][aria-pressed=true] .basalt-button-check", ".btn:not([data-variant])[aria-pressed=true] .btn-check", ["boxWidth", "boxHeight", "inLeft"]],
+      ["seat, rest", ".basalt-button[data-variant=secondary][aria-pressed=false] .basalt-button-check", ".btn:not([data-variant])[aria-pressed=false] .btn-check", ["boxWidth", "boxHeight", "inLeft"]],
+      ["glyph, rest", ".basalt-button[data-variant=secondary][aria-pressed=false] .basalt-button-check .basalt-icon:first-child", ".btn:not([data-variant])[aria-pressed=false] .btn-check > svg", ["boxWidth", "boxHeight", "opacity", "ink"]],
+      ["glyph, pressed", ".basalt-button[data-variant=secondary][aria-pressed=true] .basalt-button-check .basalt-icon:first-child", ".btn:not([data-variant])[aria-pressed=true] .btn-check > svg", ["opacity"]],
+      ["check, pressed", ".basalt-button[data-variant=secondary][aria-pressed=true] .basalt-button-check .basalt-icon:last-child", ".btn:not([data-variant])[aria-pressed=true] .btn-check", ["opacity", "ink"], { skillPseudo: "::before" }],
+      ["check, rest", ".basalt-button[data-variant=secondary][aria-pressed=false] .basalt-button-check .basalt-icon:last-child", ".btn:not([data-variant])[aria-pressed=false] .btn-check", ["opacity"], { skillPseudo: "::before" }],
+    ],
+  },
+  {
     id: "table selection",
     react: `<div style={{ width: 640 }}><TableContainer><Table><TableHeader><TableRow><TableHead style={{ width: 32, boxSizing: "border-box", paddingInline: 8 }}><Checkbox aria-label="Select all" indeterminate /></TableHead><TableHead>Run</TableHead></TableRow></TableHeader><TableBody><TableRow selected><TableCell style={{ width: 32, boxSizing: "border-box", paddingInline: 8 }}><Checkbox aria-label="Select one" defaultChecked /></TableCell><TableCell>run-0141</TableCell></TableRow><TableRow><TableCell style={{ width: 32, boxSizing: "border-box", paddingInline: 8 }}><Checkbox aria-label="Select two" /></TableCell><TableCell>run-0140</TableCell></TableRow></TableBody></Table></TableContainer></div>`,
     skill: `<div style="width: 640px"><div class="panel table-wrap"><table><thead><tr><th class="select-col"><input type="checkbox" data-select-all aria-label="Select all"></th><th>Run</th></tr></thead><tbody><tr><td class="select-col"><input type="checkbox" aria-label="Select one" checked></td><td>run-0141</td></tr><tr><td class="select-col"><input type="checkbox" aria-label="Select two"></td><td>run-0140</td></tr></tbody></table></div></div>`,

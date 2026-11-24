@@ -51,7 +51,7 @@
       "attrs": [
         "data-glyph"
       ],
-      "budget": 1900,
+      "budget": 1950,
       "usage": 1000
     },
     "topbar": {
@@ -212,7 +212,7 @@
       "textWords": [
         "a .btn with aria-pressed"
       ],
-      "budget": 1850,
+      "budget": 1950,
       "usage": 900
     },
     "rows": {
@@ -838,13 +838,18 @@
       "requires": [
         "diagram",
         "loops",
-        "toggle"
+        "toggle",
+        "glyph"
       ],
       "budget": 26850,
       "usage": 1300,
       "builds": [
         "loops",
-        "toggle"
+        "toggle",
+        "glyph"
+      ],
+      "glyphs": [
+        "pause"
       ]
     },
     "sparkline": {
@@ -1287,9 +1292,10 @@
       ],
       "glyphs": [
         "menu",
-        "close"
+        "close",
+        "pause"
       ],
-      "budget": 7500,
+      "budget": 7550,
       "usage": 1950,
       "builds": [
         "glide",

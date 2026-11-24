@@ -317,6 +317,21 @@ describe("one edge and the end", () => {
     assert.ok(r[3].seat > 30 && r[3].end === 0, "a queued step holds its time's seat from its arrival");
   });
 
+  test("from 640 no dot is drawn before a step's time: the time's seat starts space-3 after the result, 0px on every row whatever its figures; under 640 the dot stays, and the comma is said at both (DECISIONS 326, 67-7)", async () => {
+    const initial = [done(1, { ms: 800 }), done(2, { ms: 12400 }), { id: "r", state: "success", text: "Risk", meta: "Medium risk", ms: 61000 }];
+    const measure = (page) => page.evaluate(() => [...document.querySelectorAll(".basalt-run-step-meta")].map((meta) => {
+      const result = meta.querySelector(".basalt-run-step-result");
+      const range = document.createRange();
+      range.selectNodeContents(result);
+      const dot = meta.querySelector(".basalt-run-step-dot");
+      return { gap: meta.querySelector(".basalt-run-timer").getBoundingClientRect().left - range.getBoundingClientRect().right, dot: getComputedStyle(dot, "::before").content, said: dot.textContent };
+    }));
+    const wide = await open(APP({ props: "keep={false}", width: 1000 }), { initial, width: 1440 });
+    for (const row of await measure(wide)) assert.deepEqual([row.gap, row.dot, row.said], [12, "none", ", "], "from 640");
+    const narrow = await open(APP({ props: "keep={false}", width: 390 }), { initial, width: 390 });
+    for (const row of await measure(narrow)) assert.ok(row.dot !== "none" && row.said === ", ", `under 640 the dot stays: ${JSON.stringify(row)}`);
+  });
+
   for (const width of [390, 1440]) {
     for (const theme of ["dark", "light"]) {
       test(`mounted already finished, the last step's meta is whole inside the window, and still whole after a result lands (${width}, ${theme})`, async () => {

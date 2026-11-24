@@ -49,12 +49,33 @@ describe("the faces", () => {
       const page = await open();
       const widths = await page.evaluate(({ states, variant }) => states.map((s) => document.querySelector(`#${variant}-${s} .basalt-run-badge`).getBoundingClientRect().width), { states: STATES, variant });
       assert.ok(widths.every((w) => w === widths[0]), widths.join(", "));
-      if (variant === "outline") {
-        const pills = await page.evaluate((states) => states.map((s) => document.querySelector(`#outline-${s} .basalt-run-badge-face .basalt-badge`).getBoundingClientRect().width), STATES);
-        assert.ok(pills.every((w) => w === pills[0]), `the pill is one width: ${pills.join(", ")}`);
-      }
+      const next = await page.evaluate(({ states, variant }) => states.map((s) => document.querySelector(`#${variant}-${s} i`).getBoundingClientRect().x), { states: STATES, variant });
+      assert.ok(next.every((x) => x === next[0]), `the next sibling's x, 0px: ${next.join(", ")}`);
     });
   }
+
+  test("each outline face is a pill as wide as its own words, at the seat's start; the seat is the widest face (DECISIONS 326, 67-1)", async () => {
+    const page = await open();
+    const r = await page.evaluate((states) => states.map((s) => {
+      const seat = document.querySelector(`#outline-${s} .basalt-run-badge`).getBoundingClientRect();
+      const pill = document.querySelector(`#outline-${s} .basalt-run-badge-face .basalt-badge`);
+      // The pill's own width: a copy of it on its own, at max-content.
+      const own = pill.cloneNode(true);
+      own.style.cssText = "position: absolute; inline-size: max-content;";
+      document.querySelector(`#outline-${s}`).append(own);
+      const ownWidth = own.getBoundingClientRect().width;
+      own.remove();
+      const box = pill.getBoundingClientRect();
+      return { state: s, pill: box.width, own: ownWidth, start: box.x - seat.x, seat: seat.width };
+    }), STATES);
+    for (const row of r) {
+      assert.ok(Math.abs(row.pill - row.own) <= 0.5, `${row.state}: the pill ${row.pill} is its words' ${row.own}`);
+      assert.equal(row.start, 0, `${row.state}: at the seat's start`);
+    }
+    const widest = Math.max(...r.map((row) => row.pill));
+    assert.ok(r.every((row) => Math.abs(row.seat - widest) <= 0.5), `the seat ${r[0].seat} is the widest face ${widest}`);
+    assert.ok(new Set(r.map((row) => row.pill)).size > 1, "the faces differ in width");
+  });
 
   test("no animation runs in the hidden measure, and the measure holds no spinner", async () => {
     const page = await open();
