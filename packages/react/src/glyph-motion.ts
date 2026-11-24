@@ -11,7 +11,10 @@
 //   - a request for the drawing it left runs back along the same path (a turn turns back; it never deforms);
 //   - a request for another member of the rotation group it is turning in turns on from the angle on screen;
 //   - anything else swaps at once.
-// Reduced motion swaps at once.
+// Reduced motion swaps at once (a toggle's seat crossfades instead: `Morphing`).
+//
+// A pair runs only between two unfilled drawings: a pair's frames carry no loops, so a filled end (held pause) would drop to its outline.
+// A pair with a filled end is no morph, and swaps (DECISIONS 361).
 
 import { settle, turn } from "./glyph";
 import type { Drawing, GlyphData, GlyphSlot } from "./glyph";
@@ -40,7 +43,8 @@ interface Pair {
 function pairs(): Readonly<Record<string, Pair>> {
   return {
     "menu>close": { map: [0, 2, 1, 3, 4, 5, 6, 7] },
-    "play>pause": {},
+    // play's upright to the left bar, the upper diagonal to the right bar; the lower diagonal departs to its middle (DECISIONS 361)
+    "play>pause": { map: [0, 4, 1, 2, 3, 5, 6, 7] },
     "copy>check": {},
     "chevron-down>download": {},
   };
@@ -88,6 +92,8 @@ export function between(a: Endpoint, b: Endpoint, e: number, pair: Pair | null):
 export function prepare(from: Endpoint, target: Endpoint): { kind: MorphKind | null; from: Endpoint; pair: Pair | null } {
   if (from.name === target.name) return { kind: "same", from, pair: null };
   if (from.group && from.group === target.group) return { kind: "group", from, pair: null };
+  // a pair's frames carry no fill (`between`), so a filled end is no pair
+  if (from.f > 0 || target.f > 0) return { kind: null, from, pair: null };
   const table = pairs();
   const forward = table[`${from.name}>${target.name}`];
   const back = table[`${target.name}>${from.name}`];

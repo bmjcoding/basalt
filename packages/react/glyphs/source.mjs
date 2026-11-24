@@ -12,7 +12,8 @@
 //   that slot by GAP at that end; the selected drawing is the closed one. So the opening closes as the step into the
 //   fill. A glyph with no joint of its own has no seam.
 // - Selected: every loop in `loops` fills, every slot in `knock` becomes a hole in the fill, `sel` may move or unfold
-//   other slots. Actions keep their drawing.
+//   other slots. Actions keep their drawing, except pause: its two bars fill when selected, because it is the glyph of a
+//   held toggle (DECISIONS 361).
 // - Stroke: a constant 2.25 units on 24 (1.125 px at 12, 1.5 at 16, 1.875 at 20, 2.25 at 24).
 
 export const GRID = 24;
@@ -118,9 +119,20 @@ export const GLYPHS = {
   "chevron-up": { family: "line", label: "Chevron up", ph: "CaretUp", morphIcon: true, group: "chevron", rotate: 270, of: "chevron-right" },
   external: { family: "line", label: "External", ph: "ArrowUpRight", s: [L(7, 17, 17, 7), L(9.5, 7, 17, 7), L(17, 7, 17, 14.5)] },
   play: { family: "line", label: "Play", ph: "Play", s: [L(7.5, 4.5, 7.5, 19.5), L(7.5, 4.5, 19, 12), L(19, 12, 7.5, 19.5)] },
-  pause: { family: "line", label: "Pause", ph: "Pause", s: [L(8.5, 5, 8.5, 19), L(15.5, 5, 15.5, 19), O(15.5, 12)] },
 
   // ------------------------------------------------------------------------------------ actions: rich, 8 slots
+  // Pause (the pause toggle, DECISIONS n): the glyph of a held toggle, so the one action with a selected form. Each bar is
+  // a closed loop 1.5 wide on its own centreline (x 8.5 and 15.5, 3.75 of ink with the stroke), and the loop fills. At
+  // rest each loop folds to the one line drawn before: slots 1 and 3 (5 and 7) grow from the bar's ends, slot 2 (and 6)
+  // from its middle, so the bar thickens evenly about its centreline.
+  pause: {
+    family: "rich", label: "Pause", ph: "Pause", where: "none: two bars have no joint",
+    s: [L(7.75, 5, 7.75, 19), L(7.75, 19, 9.25, 19), L(9.25, 19, 9.25, 5), L(9.25, 5, 7.75, 5),
+        L(14.75, 5, 14.75, 19), L(14.75, 19, 16.25, 19), L(16.25, 19, 16.25, 5), L(16.25, 5, 14.75, 5)],
+    rest: { 0: L(8.5, 5, 8.5, 19), 1: O(8.5, 19), 2: O(8.5, 12), 3: O(8.5, 5),
+            4: L(15.5, 5, 15.5, 19), 5: O(15.5, 19), 6: O(15.5, 12), 7: O(15.5, 5) },
+    loops: [[0, 1, 2, 3], [4, 5, 6, 7]],
+  },
   // Download (item 39c): four straight strokes, so a rich glyph. It is arrow-down lifted 3 units over a tray: the same
   // 11-unit shaft and the same head (5 across, 6 down). Slots 0 and 1 are the head, so chevron-down's two strokes
   // become them; slot 2, the shaft, takes the chevron's unused third slot and grows from its own middle; the tray grows

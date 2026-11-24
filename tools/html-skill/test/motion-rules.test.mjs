@@ -215,7 +215,7 @@ describe("the icon toggle", () => {
   test("it keeps its name, sets aria-pressed, and draws the pause glyph at rest and selected", async () => {
     const { page, errors } = await open(STAGE);
     const icon = page.locator("header .btn[data-loops-toggle]");
-    const rest = await icon.locator("svg").innerHTML();
+    const rest = await icon.locator("[data-pair] > svg").first().innerHTML();
     const react = await import("../../../packages/react/dist/glyphs/pause.js");
     assert.ok(rest.includes("M8.5 5C8.5 9.667 8.5 14.333 8.5 19") && rest.includes("M15.5 5C15.5 9.667 15.5 14.333 15.5 19"), "the core pause glyph: two bars");
     assert.ok(react.PauseGlyph, "React draws the same glyph");
@@ -231,9 +231,45 @@ describe("the icon toggle", () => {
     assert.equal(await page.evaluate(() => document.documentElement.getAttribute("data-loops")), "held");
     assert.equal(await page.locator(".stage-content .btn[data-loops-toggle]").getAttribute("aria-pressed"), "true", "the other form follows");
     await icon.click();
-    assert.equal(await icon.locator("svg").innerHTML(), rest);
+    assert.equal(await icon.locator("[data-pair] > svg").first().innerHTML(), rest);
     assert.equal(await icon.getAttribute("aria-pressed"), "false");
     assert.deepEqual(errors, []);
+    await page.context().close();
+  });
+  // DECISIONS 361: held, pause's bars fill. Both forms are in one box from the start, aria-pressed shows the one that matches, and the two crossfade over
+  // duration-fast (with or without reduced motion); a state set on load paints at once. Written while tests are paused; run when they resume.
+  test("held, its bars fill: both forms in one box, the held one shown by aria-pressed, a 100ms crossfade both ways", async () => {
+    for (const reducedMotion of ["no-preference", "reduce"]) {
+      const { page, errors } = await open(STAGE, { reducedMotion });
+      const icon = page.locator("header .btn[data-loops-toggle]");
+      const forms = () => icon.locator("[data-pair] > svg").evaluateAll((svgs) => svgs.map((s) => [Number(getComputedStyle(s).opacity), s.querySelectorAll('path[fill="currentColor"]').length, getComputedStyle(s).transitionDuration]));
+      assert.equal(await icon.locator("svg").count(), 2, "rest and held, one box");
+      assert.deepEqual((await forms()).map((f) => f.slice(0, 2)), [[1, 0], [0, 1]], `${reducedMotion}: the bars at rest; the held form is filled and hidden`);
+      assert.deepEqual((await forms()).map((f) => f[2]), ["0.1s", "0.1s"], `${reducedMotion}: duration-fast`);
+      const box = await icon.locator("[data-pair]").boundingBox();
+      await icon.click();
+      await page.mouse.move(700, 600);
+      await page.waitForTimeout(200);
+      assert.deepEqual((await forms()).map((f) => f[0]), [0, 1], `${reducedMotion}: held shows the filled bars`);
+      assert.deepEqual(await icon.locator("[data-pair]").boundingBox(), box, "the box does not move");
+      assert.equal(await icon.locator("svg").count(), 2, "the same two drawings: nothing is redrawn");
+      await icon.click();
+      await page.waitForTimeout(200);
+      assert.deepEqual((await forms()).map((f) => f[0]), [1, 0]);
+      assert.deepEqual(errors, []);
+      await page.context().close();
+    }
+  });
+  test("the Button form's seat (data-glyph=\"pause\") draws the pair, not the check", async () => {
+    const { page } = await open(`<main class="page"><button class="btn" data-loops-toggle aria-pressed="false"><span class="btn-check" data-glyph="pause" aria-hidden="true"></span>Pause animations</button></main>`);
+    const button = page.locator(".btn[data-loops-toggle]");
+    const seat = () => button.locator(".btn-check").evaluate((s) => ({ check: getComputedStyle(s, "::before").content, forms: [...s.querySelectorAll(":scope > [data-pair] > svg")].map((g) => Number(getComputedStyle(g).opacity)) }));
+    const rest = await seat();
+    assert.equal(rest.check, "none", "no check where the glyph has a selected form");
+    assert.deepEqual(rest.forms, [1, 0]);
+    await button.click();
+    await page.waitForTimeout(200);
+    assert.deepEqual((await seat()).forms, [0, 1], "held: the bars filled");
     await page.context().close();
   });
   test("a stored hold opens the page pressed, with the selected glyph and the marks still", async () => {

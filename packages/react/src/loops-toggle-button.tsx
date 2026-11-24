@@ -11,7 +11,7 @@ export interface LoopsToggleButtonProps {
   size?: "sm" | "md";
 }
 
-/** `LoopsToggle`'s Button form: a pressed-toggle Button labelled "Pause animations", its pause glyph at rest and the check while held. `SiteHeader`'s narrow menu draws it as its first row. */
+/** `LoopsToggle`'s Button form: a pressed-toggle Button labelled "Pause animations", its pause glyph at rest and the bars filled while held. `SiteHeader`'s narrow menu draws it as its first row. */
 export function LoopsToggleButton({ className, size = "md" }: LoopsToggleButtonProps) {
   const { held, setHeld } = useLoops();
   return <Button variant="secondary" size={size} icon={PauseGlyph} pressed={held} className={className} onClick={() => setHeld(!held)}>{LOOPS_TOGGLE_NAME}</Button>;

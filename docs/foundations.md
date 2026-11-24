@@ -414,7 +414,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   radius does not change. A text toggle carries its glyph (`icon`) in a 16px seat before the label. Pressed, the seat shows the
   glyph's selected form, or the core check where the glyph has none; the two crossfade over `duration-fast`. The seat is never
   empty, and both states are one width. An IconButton toggle carries no check: the plate, the ink step and the glyph's
-  selected form (a core glyph closes and fills; a `fillSafe` Phosphor glyph fills) say it. The momentary .98 press stays
+  selected form (a core glyph closes and fills (pause fills its bars); a `fillSafe` Phosphor glyph fills) say it. The momentary .98 press stays
   Button's. In forced colours it is `Highlight` with `HighlightText` for the fill, the label and the seat, at rest,
   hovered, pressed and focused. Reduced motion is the 100ms crossfade. A text-only on/off with no glyph to fill is a
   `Switch`; exactly one of many is a segmented control, never toggle buttons.
@@ -667,7 +667,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   (Pause, Stop, Hide, Level A) asks for beside content that runs for more than five seconds:
   reduced motion alone is OS-wide and leaves the ring fading, so it is not one.
   **The control is `LoopsToggle`, in the form the place needs, with the fixed name "Pause animations"** (it does not change when
-  pressed; `aria-pressed` or the switch's state says it is on): on a site, an icon-only ghost toggle (`LoopsToggleIcon`, which loads no `Switch`) with the core `pause` glyph, named by its `title` alone (the browser's own tooltip on a fine pointer; no `aria-label` beside it, so a screen reader hears the name once; no `Tooltip`) in the
+  pressed; `aria-pressed` or the switch's state says it is on): on a site, an icon-only ghost toggle (`LoopsToggleIcon`, which loads no `Switch`) with the core `pause` glyph, its bars filled while held, in both forms, named by its `title` alone (the browser's own tooltip on a fine pointer; no `aria-label` beside it, so a screen reader hears the name once; no `Tooltip`) in the
   site header's end cluster, first in it (before any tools and the primary Button), on any page with an ambient loop or a loop that can run past five seconds;
   in an app, a pressed toggle in the head band of the view that shows running work, in either of two forms: the Button form (`form="button"`,
   secondary or ghost, labelled "Pause animations", `size` `md` or `sm`) or the icon form (`LoopsToggleIcon`, the same ghost icon toggle as a site's), and a settings row (the
@@ -2403,20 +2403,20 @@ A product's own logo is its own; the social marks are Phosphor's (below). A diag
   marks), and the key glyphs ⌘ ⌥ ⌃ stay Phosphor's. A component never draws Phosphor's version of a core glyph. **Status:** decided by the
   council (DECISIONS 138) and approved by the owner (DECISIONS 139); the implementation has not been reviewed.
 - **Drawing.** Actions are exactly three straight lines (copy, edit, trash and download are the
-  agreed exceptions, drawn richer). Every other glyph is eight cubic slots on the 24 grid, and an
+  agreed exceptions, drawn richer, and pause is two closed bars; DECISIONS 361). Every other glyph is eight cubic slots on the 24 grid, and an
   unused slot is an invisible point. The stroke is a constant 2.25 units on 24 (1.5px at 16,
   1.875 at 20, 2.25 at 24), with round caps and joins, and a point is drawn 1.5 times the stroke.
   Colour is `currentColor`.
 - **Rest and selected come from one drawing.** Most navigation and product glyphs have one
   intentional opening at the object's own joint, 2 units of air between the caps. Selected closes
   it, fills every closed loop and turns the strokes inside a loop into holes. Actions keep their
-  drawing.
+  drawing, except pause: its two bars fill when selected, because it is the glyph of a held toggle (DECISIONS 361).
 - **Morphs.** Only rest and selected, a rotation group (the four arrows, the four chevrons, plus
   and close), and the drawn pairs menu and close, play and pause, copy and check, chevron-down and
   download, both ways. Every other change swaps at once. A morph in flight keeps its identity: a
   request for where it is going does nothing, a request for where it came from runs it back, and a
   request for another member of its group turns on; anything else swaps at once. They run at
-  `slow` on `ease-out`, and reduced motion swaps at once. Status: Basalt's controls draw their core glyphs through the morph (engineering restoring DECISIONS 38 and 55); the implementation hasn't been reviewed.
+  `slow` on `ease-out`. Under reduced motion a change swaps at once, except in a pressed toggle's seat, where it crossfades over `duration-fast` on `ease-out` (DECISIONS 361). Status: Basalt's controls draw their core glyphs through the morph (engineering restoring DECISIONS 38 and 55); the implementation hasn't been reviewed.
 - **Sizes.** Glyphs are drawn at 16, 20 and 24, and at 12 only as a mark inside a box: a choice box's check or dash (the core's) and a key chip's ⌘ ⌥ ⌃ (Phosphor Bold's, which the core does not draw), the chip drawn at its real height, `size-kbd`. Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the implementation hasn't been reviewed.
 - **The long tail** is Phosphor Bold at 20 and up, as at 16, so its line is the core's. Fill only
   for selected navigation and object identities whose drawing keeps its silhouette (`fillSafe`).

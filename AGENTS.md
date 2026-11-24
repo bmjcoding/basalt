@@ -207,7 +207,8 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   can be measured for reference and cited in the panel's reasoning. Their colours,
   sizes, CSS, icons and assets never land here as-is.
 - **Icons:** the core set on the web (`@srasyndicate/basalt`, one module per glyph: 2.25 units
-  on 24 at every size, an opening at rest that selected closes and fills, morphs only between rest
+  on 24 at every size, an opening at rest that selected closes and fills (actions keep their drawing, except pause, whose bars fill
+  when held), morphs only between rest
   and selected, within a rotation group, and the four drawn pairs), and Phosphor Bold at 16, 20
   and 24 for what the core set does not draw (a component never draws Phosphor's version of a core glyph: check, close, the
   chevrons, copy, plus, minus and search are the core's; the key glyphs ⌘ ⌥ ⌃ stay Phosphor's; glyphs are drawn at 16, 20 and 24,
