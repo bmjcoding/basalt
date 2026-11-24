@@ -293,6 +293,9 @@ test("no module in dist builds a registry or reads a primitive's part when it lo
   for (const file of files) {
     // command-panel.js is the lazy module: it loads on first open, and its Maps are Phosphor's icon tables, bundled in
     if (path.basename(file) === "command-panel.js") continue;
+    // The release notes' Sources popup and the rail's tooltip are lazy too, with Base UI inlined so they share no chunk (build.mjs): its module-level
+    // tables are Base UI's own, and load only when a reader first reaches for a source line, or a rail shows a version.
+    if (["release-sources.js", "rail-tooltip.js"].includes(path.basename(file))) continue;
     const source = fs.readFileSync(file, "utf8");
     // `var x = /* @__PURE__ */ new Set()` is still an allocation at load
     for (const match of source.matchAll(/^(?:var|let|const) \w+ = (?:\/\*.*?\*\/ )?(?:new (?:Map|Set|WeakMap|WeakSet|Intl\.\w+|RegExp)\(|Base\w+\.\w+;)/gm)) offenders.push(`${path.relative(dist, file)}: ${match[0]}`);
@@ -555,7 +558,7 @@ test("the whole package up front and styles.css, minified and gzipped, stay with
 test("importing every file in dist allocates no registry or formatter, reads no browser global, and throws nothing", async () => {
   const { execFileSync } = await import("node:child_process");
   const dist = path.join(pkg, "dist");
-  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && path.basename(f) !== "command-panel.js" && !["head/theme.js", "head/loops.js"].includes(f.split(path.sep).join("/"))).sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
+  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && !["command-panel.js", "release-sources.js", "rail-tooltip.js"].includes(path.basename(f)) && !["head/theme.js", "head/loops.js"].includes(f.split(path.sep).join("/"))).sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
   assert.ok(files.length > 200, `${files.length} files in dist`);
   const script = `
     import { pathToFileURL } from "node:url";
@@ -676,6 +679,37 @@ test("the imports plugin never rewrites a file that resolves another copy of Bas
   } finally {
     nodeFs.rmSync(root, { recursive: true, force: true });
   }
+});
+
+// DECISIONS 320, 2.15: the version link, the release notes and the versions are each a module of their own, so an app that shows only the foot's link
+// loads only that (VersionLink takes the rail's tooltip from AppShell, which loads it on demand). The Sources popup loads on a reader's first reach for a
+// source line (release-sources.js, built on its own with Base UI's popover inlined, so it makes no shared chunk), and AppShell's rail tooltip for the
+// version the same way (rail-tooltip.js). Measured with splitting: VersionLink 2,107, ReleaseIndex 31,035 (Base UI's accordion), ReleaseNotes 67,232
+// (the accordion, the callout, the copy and text buttons; 173,798 with the popup up front); each limit is the measurement rounded up to the next 50.
+// ReleaseNotes measured 67,535 once #127 was merged in (DECISIONS 328's Button and TextButton changes, which its copy and text buttons carry).
+for (const [name, limit] of [["VersionLink", 2_150], ["ReleaseIndex", 31_050], ["ReleaseNotes", 67_550]]) {
+  test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
+    const { bytes, chunks } = await graph(name);
+    assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
+  });
+}
+
+test("VersionLink loads none of the release notes, the versions or the tooltip", async () => {
+  const { inputs } = await graph("VersionLink");
+  assert.deepEqual(inputs.filter((input) => /release-notes|release-index|display\.js|@base-ui/.test(input)), []);
+});
+
+test("ReleaseNotes loads no popup up front: no popover, no positioning, no Floating UI until a source line is pressed", async () => {
+  const { inputs } = await graph("ReleaseNotes");
+  assert.deepEqual(inputs.filter((input) => /@floating-ui\/(dom|core|react-dom)|floating-ui-react|@base-ui\/react\/popover|release-sources|useAnchorPositioning/.test(input)), []);
+});
+
+// AppShell measured alone (the size table): 103,887 before the version, 115,101 with the rail's tooltip up front, 104,373 with it on demand; with
+// splitting its static graph measures 104,964, so the limit is 105,000.
+test("AppShell loads the rail's tooltip for the version on demand", async () => {
+  const { inputs, bytes } = await graph("AppShell");
+  assert.deepEqual(inputs.filter((input) => /rail-tooltip/.test(input)), []);
+  assert.ok(bytes < 105_000, `AppShell: ${bytes} bytes (limit 105,000)`);
 });
 
 // DECISIONS 316, ruling 3: TextButton draws its end icon through ControlIcon, so a chevron that opens something in place morphs; measured 11,412 (10,600 to 11,450).

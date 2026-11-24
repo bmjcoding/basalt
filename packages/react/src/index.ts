@@ -129,6 +129,13 @@ export { EventLine, EventLog, EventLogRule, EventText, EventTime } from "./event
 export type { EventLineProps, EventLogProps, EventLogRuleProps, EventTextProps, EventTimeProps } from "./event-log";
 export { Stream, StreamArrivedWord, StreamBlock, StreamEntry, StreamMessage, StreamNote, StreamQuote } from "./stream";
 export type { ArrivalProps, StreamBlockProps, StreamEntryProps, StreamMessageProps, StreamNoteProps, StreamProps, StreamQuoteProps } from "./stream";
+// Versions and release notes (DECISIONS 320): each its own module, so an app that shows only the foot's link loads only that.
+export { VersionLink } from "./version-link";
+export type { VersionLinkProps } from "./version-link";
+export { ReleaseNotes } from "./release-notes";
+export type { ReleaseAudience, ReleaseBuildRow, ReleaseBump, ReleaseEntryRecord, ReleaseEntryType, ReleaseNotesProps, ReleaseRecord, ReleaseWords } from "./release-notes";
+export { ReleaseIndex } from "./release-index";
+export type { ReleaseIndexProps } from "./release-index";
 export { DisclosureRow } from "./disclosure-row";
 export type { DisclosureRowProps } from "./disclosure-row";
 export { ActivityList, ActivityStep } from "./activity-list";

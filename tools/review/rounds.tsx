@@ -132,6 +132,7 @@ import { ROUND_63 } from "./round63";
 import { ROUND_64 } from "./round64";
 import { ROUND_65 } from "./round65";
 import { ROUND_67 } from "./round67";
+import { ROUND_68 } from "./round68";
 
 export interface Step {
   id: string;
@@ -704,3 +705,4 @@ ROUNDS.push(ROUND_64);
 ROUNDS.push(ROUND_65);
 // Round 66 is left for diagram batch B (claude/diagrams-b), building beside this one.
 ROUNDS.push(ROUND_67);
+ROUNDS.push(ROUND_68);

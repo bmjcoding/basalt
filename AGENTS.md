@@ -168,6 +168,21 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   traveller between two resting places on screen uses `ease-in-out` (a leg of 300ms up to 150px, 2ms a pixel above, 600ms from 300px); a
   filtered or sorted list or grid moves what stays by transform and never replaces an item (past 48 items that would move, it lands at once); a number beside a figure never counts up. The hold or printing settles a running entrance at once, and a page change without a reload counts as a load.
   Under reduced motion, opacity only. See `docs/motion.md`.
+- **Versions and release notes:** a version is SemVer shown with its ship date ("Version 1.4.0 · Nov 23, 2026"), one link to the
+  release notes (`VersionLink`): at the sidebar's foot under the account items, the number alone in the rail, the last row of More's
+  sheet on a phone, after the legal line in a site's footer. Nothing marks a release as new, and there is no "What's new" item. A
+  release is its number and date in one heading, a summary, "Action needed" (a warning callout, never folded), a paragraph for each
+  audience it changes something for, then one line a change under Security, Deprecated, Removed, Added, Changed and Fixed, with counts
+  computed from the list. A product's list is one fold holding its summary, "All changes", or "Other changes" when action entries
+  stand above it, counted by what it opens; a package's is open, and only Fixed folds (past 3, in a release of more than 10). An
+  entry's source line is the pull request and at most two tickets, a quiet text button that opens "Sources" (pull request, tickets,
+  commit, and the author when the entry has one): beside the words from 640 of the release's own width, under them below it. On
+  touch no 44px box reaches another target's box or crosses a rim, a divider or a clipping edge: an entry is `space-3` above and
+  below, and a link with a source line under it stands `space-6` above it. The last change in Action needed or in a release has no
+  padding under it, and its box reaches into the callout's or the release's own padding. A release's last line is `space-10` above
+  its divider, whatever ends it. A change that has arrived keeps its padding. A release is `#v1.4.0`; an entry's id is permanent
+  and holds no version. The entry or release a link opens is the stream's arrival (the plate and "Linked"). Build details is on
+  the running release alone, from the running build. No area filter.
 - **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
   targets stay at least 44px whatever the density, on touch and in any window under 720 whatever the pointer (16px text entry stays touch-only), except a chart's day, reached by drag and by the keys (the phase lane's marks keep 44px). Text entry is 16px on touch. A one-line notification entry is at least 44 tall on
   touch, and a `Link` on a line of its own has a 44px hit box with no change to layout, its words raised over a stacked neighbour's box; a link in a sentence keeps its line.
@@ -244,7 +259,8 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 ## Writing words
 
 Any agent that writes, edits or reviews words a visitor will read (the sites, the products, Basalt's own UI strings) reads
-`.agent/skills/site-words/SKILL.md` first: the owner's rules for copy, the research behind them, and how a rewrite is approved.
+`.agent/skills/site-words/SKILL.md` first: the owner's rules for copy, the research behind them, and how a rewrite is approved. A changelog entry,
+a release's summary or release notes also follows `.agent/skills/release-words/SKILL.md` (DECISIONS 320).
 
 ## Generating HTML
 
