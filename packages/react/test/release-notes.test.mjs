@@ -6,7 +6,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { after, before, describe, test } from "node:test";
 
-import { HARBOR, RUNNING_BUILD, SLATE, harborShell } from "./release-fixture.mjs";
+import { HARBOR, RUNNING_BUILD, SLATE, SWEEP, harborShell } from "./release-fixture.mjs";
 import { bundleFixture, fixturePage, launch, pkg, settle } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
@@ -328,6 +328,42 @@ describe("the header, the lazy panel and long sources", () => {
     assert.equal(await page.locator(".basalt-accordion-trigger").count(), 0);
     assert.equal(await page.locator(".basalt-release-entry").count(), 11);
   });
+});
+
+describe("the spacing sweep (DECISIONS 326, round 68)", () => {
+  /** Slate's changelog on a site page with its footer: the page's own room under the last release is half the section gap, the footer's the other half. */
+  const SLATE_SITE = `return <B.SitePage><main style={{ boxSizing: "border-box", width: "100%", maxWidth: 1200, margin: "0 auto", padding: "48px 16px calc(var(--basalt-section-gap) / 2)" }}>
+  <B.PaneLayout pane={<B.ReleaseIndex releases={SLATE} />} paneLabel="Versions"><B.ReleaseIndex releases={SLATE} form="fold" /><B.ReleaseNotes releases={SLATE} form="reference" product="Slate" /></B.PaneLayout></main><B.SiteFooter id="slate-footer" brand="Slate" legal="© 2026 Example" /></B.SitePage>;`;
+  for (const [width, touch] of [[1440, false], [390, false], [390, true]]) {
+    test(`each box hugs what it shows (${width}${touch ? ", touch" : ""})`, async () => {
+      for (const [name, jsx] of [["Slate", SLATE_SITE], ["Harbor", harborShell()]]) {
+        const page = await open(jsx, { width, height: 900, hasTouch: touch });
+        await openAll(page);
+        const m = await page.evaluate(`(${SWEEP})("basalt-")`);
+        // 68-1: Copy link is a ghost button at the header's end, so its words end on the header's edge.
+        assert.ok(m.copy.length >= 4, name);
+        assert.deepEqual(m.copy.filter((c) => Math.abs(c.off) > 0.5), [], `${name}: Copy link's words end on the edge`);
+        // 68-2: the callout's inset is the same above its first words and under its last.
+        assert.ok(m.callouts.length >= 1, name);
+        for (const c of m.callouts) assert.ok(Math.abs(c.top - c.bottom) <= 0.5, `${name} ${c.id}: ${c.top} above, ${c.bottom} under`);
+        // 68-3: at the wide form one reference column runs down the page, inside the callout and out of it.
+        if (width === 1440) assert.equal(new Set(m.references.map((r) => r.x)).size, 1, `${name}: references start at ${[...new Set(m.references.map((r) => `${r.inCallout ? "callout " : ""}${r.x}`))]}`);
+        // 68-4: the last release carries no padding under it; the others keep space-10.
+        assert.deepEqual(m.padding.map((r) => r.bottom), [...m.padding.slice(1).map(() => "40px"), "0px"], name);
+        // 68-5: every change ends alike, a linked one too: one gap from a change's last line to the next change's first.
+        assert.ok(m.gaps.length >= 5, name);
+        assert.equal(new Set(m.gaps.map((g) => g.gap)).size, 1, `${name}: ${m.gaps.map((g) => `${g.id}${g.linked ? " (linked)" : ""} ${g.gap}`).join(", ")}`);
+        // 68-6: a code chip shorter than its line is drawn on one line.
+        assert.deepEqual(m.chips.filter((c) => !c.wider && c.lines !== 1).map((c) => c.text), [], name);
+        if (name === "Slate") {
+          assert.ok(m.chips.some((c) => c.text === "() => localStorage"), "the chip the sweep found split is measured");
+          // 68-4: the gap from the last release to the footer is the section gap alone (128 from 1024, 64 under 720).
+          const gap = await page.evaluate(() => document.getElementById("slate-footer").getBoundingClientRect().top - [...document.querySelectorAll(".basalt-release")].at(-1).getBoundingClientRect().bottom);
+          assert.equal(Math.round(gap), width === 1440 ? 128 : 64, "the gap above the footer");
+        }
+      }
+    });
+  }
 });
 
 describe("Build details", () => {

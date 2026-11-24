@@ -27,6 +27,8 @@
     scroll-margin-top: calc(var(--basalt-sticky-offset, var(--basalt-space-0)) + var(--basalt-space-4));
   }
   .release:first-of-type { padding-top: 0; border-top: 0; }
+  /* The last release carries no padding under it: what follows is the page's gap alone (sweep 68-4). */
+  .release:last-of-type { padding-bottom: 0; }
   .release-notes > .release-build:first-child { max-width: calc(var(--basalt-size-prose-width) + var(--basalt-space-6) + var(--basalt-size-sidebar-width)); margin: 0 0 var(--basalt-space-6); }
   .release:focus, .release-entry:focus { outline: none; }
   /* The header is a grid: Copy link stands at the end of the first line, centred on it, and only that line makes room for it. */
@@ -39,7 +41,8 @@
   .release-head-text > .release-heading[data-headline] ~ .release-meta { grid-row: 4; }
   .release-head-text > .release-heading:not([data-headline]) ~ .release-meta { grid-row: 3; }
   .release-head-text > :not(.release-word) ~ * { margin-top: var(--basalt-space-1); }
-  .release-head > .release-copy { grid-column: 2; grid-row: 2; align-self: center; margin-block: calc(-1 * var(--basalt-size-tap-min)); }
+  /* A ghost button at the column's edge puts its words on the edge: its plate hangs space-2-5 past it (sweep 68-1). */
+  .release-head > .release-copy { grid-column: 2; grid-row: 2; align-self: center; margin-block: calc(-1 * var(--basalt-size-tap-min)); margin-inline-end: calc(-1 * var(--basalt-space-2-5)); }
   .release-heading { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-2xl-size) / var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-2xl-tracking); text-wrap: balance; overflow-wrap: break-word; }
   /* The number standing alone is mono; in a line with its date (a headline's meta line) it is Geist, as at the foot. */
   .release-version { font-family: var(--basalt-font-family-mono); letter-spacing: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
@@ -56,6 +59,11 @@
   .release-audience-title { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
   .release-action { margin-top: var(--basalt-space-6); }
   .release-action > div { flex: 1; min-width: 0; }
+  /* The callout's last change carries no padding under it, so its padding is the same at the top and the bottom (sweep 68-2). */
+  .release-action .release-entry:last-child { padding-bottom: 0; }
+  /* One reference column down the page: inside the callout the words' column is shorter by the callout's inset (its hairline, space-4, the 16px
+     mark and space-3), so its references start where the open lists' do (sweep 68-3). Under 640 of the release's width the list is one column. */
+  .release-action .release-list { grid-template-columns: min(calc(var(--basalt-size-prose-width) - var(--basalt-size-hairline) - var(--basalt-space-4) - var(--basalt-size-icon-sm) - var(--basalt-space-3)), 100%) minmax(0, max-content); }
   .release-callout-title { margin: 0; font: inherit; letter-spacing: inherit; }
   .release-action .callout-body { color: var(--basalt-text-primary); }
   .release-upgrade { margin: 0 0 var(--basalt-space-2); color: var(--basalt-text-secondary); }
@@ -94,6 +102,8 @@
   .release-word { grid-column: 1 / -1; }
   .release-entry-words { grid-column: 1; display: grid; justify-items: start; gap: var(--basalt-space-1); min-width: 0; }
   .release-entry-text { margin: 0; color: var(--basalt-text-primary); font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); letter-spacing: var(--basalt-text-base-tracking); text-wrap: pretty; overflow-wrap: break-word; }
+  /* A code chip moves to the next line whole, and breaks inside only when it is wider than the line (sweep 68-6). */
+  .release-entry-text code { display: inline-block; max-inline-size: 100%; }
   .release-area { font-weight: var(--basalt-font-weight-medium); }
   .release-migrate { position: relative; font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); }
   .release-source-cell { grid-column: 2; justify-self: start; min-width: 0; }
@@ -114,7 +124,7 @@
   /* Narrow (under 640 of the release's own width): the source line is its own line under the words, space-0-5 below, wrapping between ids. */
   /* size-breakpoint-container-lg: a container query cannot read a token, so the build writes its value here */
   @container (width < %bp-container-lg%) {
-    .release-list { grid-template-columns: minmax(0, 1fr); }
+    .release-list, .release-action .release-list { grid-template-columns: minmax(0, 1fr); }
     .release-entry { row-gap: var(--basalt-space-0-5); padding-block: var(--basalt-space-2); }
     .release-source-cell { grid-column: 1; }
     .release-source { padding-block: calc((var(--basalt-size-control-xs) - var(--basalt-text-sm-line-height)) / 2); margin-block: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-control-xs)) / 2); line-height: var(--basalt-text-sm-line-height); white-space: normal; }
@@ -135,9 +145,9 @@
     /* size-breakpoint-container-lg: a container query cannot read a token, so the build writes its value here */
     @container (width < %bp-container-lg%) {
       .release-source { padding-block: calc((var(--basalt-size-control-xs) - var(--basalt-text-base-line-height)) / 2); margin-block: calc((var(--basalt-text-base-line-height) - var(--basalt-size-control-xs)) / 2); line-height: var(--basalt-text-base-line-height); }
-      /* A link with a source line under it: space-6 between the two (10 + 24 + 10, so the two boxes meet and do not overlap) and space-6 under
-         the entry, so the source line stays nearer its own entry than the next one. */
-      .release-entry[data-link]:has(.release-source) { row-gap: var(--basalt-space-6); padding-bottom: var(--basalt-space-6); }
+      /* A link with a source line under it: space-6 between the two (10 + 24 + 10, so the two boxes meet and do not overlap); the change ends as
+         every other change does, space-3 under it, which still holds the source line's box (sweep 68-5). */
+      .release-entry[data-link]:has(.release-source) { row-gap: var(--basalt-space-6); }
     }
   }
 

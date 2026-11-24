@@ -6,7 +6,7 @@ import fs from "node:fs";
 import { after, before, describe, test } from "node:test";
 
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
-import { HARBOR, SLATE } from "../../../packages/react/test/release-fixture.mjs";
+import { HARBOR, SLATE, SWEEP } from "../../../packages/react/test/release-fixture.mjs";
 import { pageBody, releaseNotesHtml, versionLink } from "../../changelog/skill-body.mjs";
 import { launch } from "./support.mjs";
 
@@ -210,4 +210,28 @@ describe("the Sources panel: Safari's keyboard and touch", () => {
     assert.deepEqual(rows.filter((row) => row.hit < 44).map((row) => `${row.label}: ${row.hit}`), []);
     await context.close();
   });
+});
+
+describe("the spacing sweep (DECISIONS 326, round 68)", () => {
+  for (const [width, touch] of [[1440, false], [390, false], [390, true]]) {
+    test(`each box hugs what it shows (${width}${touch ? ", touch" : ""})`, async () => {
+      for (const [name, body] of [["Slate", SLATE_BODY], ["Harbor", HARBOR_BODY]]) {
+        const { page, context, errors } = await open(body, { width, hasTouch: touch });
+        for (const button of await page.locator("[aria-controls][aria-expanded='false']").all()) if (await button.isVisible()) await button.click();
+        const m = await page.evaluate(`(${SWEEP})("")`);
+        assert.ok(m.copy.length >= 4, name);
+        assert.deepEqual(m.copy.filter((c) => Math.abs(c.off) > 0.5), [], `${name}: Copy link's words end on the edge (68-1)`);
+        assert.ok(m.callouts.length >= 1, name);
+        for (const c of m.callouts) assert.ok(Math.abs(c.top - c.bottom) <= 0.5, `${name} ${c.id}: ${c.top} above, ${c.bottom} under (68-2)`);
+        if (width === 1440) assert.equal(new Set(m.references.map((r) => r.x)).size, 1, `${name}: references start at ${[...new Set(m.references.map((r) => `${r.inCallout ? "callout " : ""}${r.x}`))]} (68-3)`);
+        assert.deepEqual(m.padding.map((r) => r.bottom), [...m.padding.slice(1).map(() => "40px"), "0px"], `${name} (68-4)`);
+        assert.ok(m.gaps.length >= 5, name);
+        assert.equal(new Set(m.gaps.map((g) => g.gap)).size, 1, `${name}: ${m.gaps.map((g) => `${g.id}${g.linked ? " (linked)" : ""} ${g.gap}`).join(", ")} (68-5)`);
+        assert.deepEqual(m.chips.filter((c) => !c.wider && c.lines !== 1).map((c) => c.text), [], `${name} (68-6)`);
+        if (name === "Slate") assert.ok(m.chips.some((c) => c.text === "() => localStorage"), "the chip the sweep found split is measured");
+        assert.deepEqual(errors, []);
+        await context.close();
+      }
+    });
+  }
 });

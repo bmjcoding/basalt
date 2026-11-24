@@ -7227,6 +7227,8 @@
     scroll-margin-top: calc(var(--basalt-sticky-offset) + var(--basalt-space-4));
   }
   .basalt-release:first-of-type { padding-top: 0; border-top: 0; }
+  /* The last release carries no padding of its own under it: what follows the list is the page's gap alone (sweep 68-4). */
+  .basalt-release:last-of-type { padding-bottom: 0; }
   .basalt-release-notes > .basalt-release-build:first-child { max-width: calc(var(--basalt-size-prose-width) + var(--basalt-space-6) + var(--basalt-size-sidebar-width)); margin: 0 0 var(--basalt-space-6); }
   .basalt-release:focus, .basalt-release-entry:focus { outline: none; }
   /* The header is a grid: Copy link stands at the end of the first line (the number, or a headline release's number-and-date line), centred on it,
@@ -7241,7 +7243,8 @@
   .basalt-release-head-text > .basalt-release-heading[data-headline] ~ .basalt-release-meta { grid-row: 4; }
   .basalt-release-head-text > .basalt-release-heading:not([data-headline]) ~ .basalt-release-meta { grid-row: 3; }
   .basalt-release-head-text > :not(.basalt-release-word) ~ * { margin-top: var(--basalt-space-1); }
-  .basalt-release-head > .basalt-release-copy { grid-column: 2; grid-row: 2; align-self: center; margin-block: calc(-1 * var(--basalt-size-tap-min)); }
+  /* A ghost button at the column's edge puts its words on the edge: its plate hangs space-2-5 past it (DECISIONS 326, sweep 68-1). */
+  .basalt-release-head > .basalt-release-copy { grid-column: 2; grid-row: 2; align-self: center; margin-block: calc(-1 * var(--basalt-size-tap-min)); margin-inline-end: calc(-1 * var(--basalt-space-2-5)); }
   .basalt-release-heading { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-2xl-size) / var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-2xl-tracking); text-wrap: balance; overflow-wrap: break-word; }
   /* The number standing alone is mono; in a line with its date (a headline's meta line) it is Geist, as at the foot. */
   .basalt-release-version { font-family: var(--basalt-font-family-mono); letter-spacing: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
@@ -7257,6 +7260,11 @@
   .basalt-release-audience { display: grid; gap: var(--basalt-space-1); margin-top: var(--basalt-space-4); }
   .basalt-release-audience-title { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
   .basalt-release-action { margin-top: var(--basalt-space-6); }
+  /* The callout's last change carries no padding under it, so the callout's own padding is the same at the top and the bottom (sweep 68-2). */
+  .basalt-release-action .basalt-release-entry:last-child { padding-bottom: 0; }
+  /* One reference column down the page: inside the callout the words' column is shorter by the callout's inset (its hairline, space-4, the 16px
+     mark and space-3), so its references start where the open lists' do (sweep 68-3). Under 640 of the release's width the list is one column. */
+  .basalt-release-action .basalt-release-list { grid-template-columns: min(calc(var(--basalt-size-prose-width) - var(--basalt-size-hairline) - var(--basalt-space-4) - var(--basalt-size-icon-sm) - var(--basalt-space-3)), 100%) minmax(0, max-content); }
   .basalt-release-callout-title { margin: 0; font: inherit; letter-spacing: inherit; }
   .basalt-release-action .basalt-callout-text { color: var(--basalt-text-primary); }
   .basalt-release-upgrade { margin: 0 0 var(--basalt-space-2); color: var(--basalt-text-secondary); }
@@ -7297,7 +7305,8 @@
   .basalt-release-entry-text { margin: 0; color: var(--basalt-text-primary); font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); letter-spacing: var(--basalt-text-base-tracking); text-wrap: pretty; overflow-wrap: break-word; }
   .basalt-release-area { font-weight: var(--basalt-font-weight-medium); }
   /* Inline code keeps the entry's 20px line (its own line would grow a line by a pixel), so a one-line entry is the height the touch rule counts on. */
-  .basalt-release-entry-text .basalt-inline-code { line-height: 1; }
+  /* A code chip moves to the next line whole, and breaks inside only when it is wider than the line (sweep 68-6). */
+  .basalt-release-entry-text .basalt-inline-code { display: inline-block; max-inline-size: 100%; line-height: 1; }
   .basalt-release-migrate { position: relative; font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); }
   .basalt-release-source-cell { grid-column: 2; justify-self: start; min-width: 0; }
   .basalt-release-source-cell:empty { display: none; }
@@ -7315,7 +7324,7 @@
   /* Narrow (under 640 of the release's own width): the source line is its own line under the words, space-0-5 below, wrapping between ids. */
   /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px): a container query cannot read a custom property */
   @container (width < 640px) {
-    .basalt-release-list { grid-template-columns: minmax(0, 1fr); }
+    .basalt-release-list, .basalt-release-action .basalt-release-list { grid-template-columns: minmax(0, 1fr); }
     .basalt-release-entry { row-gap: var(--basalt-space-0-5); padding-block: var(--basalt-space-2); }
     .basalt-release-source-cell { grid-column: 1; }
     .basalt-text-button.basalt-release-source { padding-block: calc((var(--basalt-size-control-xs) - var(--basalt-text-sm-line-height)) / 2); margin-block: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-control-xs)) / 2); line-height: var(--basalt-text-sm-line-height); white-space: normal; }
@@ -7336,9 +7345,9 @@
     /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-lg (640px): a container query cannot read a custom property */
     @container (width < 640px) {
       .basalt-text-button.basalt-release-source { padding-block: calc((var(--basalt-size-control-xs) - var(--basalt-text-base-line-height)) / 2); margin-block: calc((var(--basalt-text-base-line-height) - var(--basalt-size-control-xs)) / 2); line-height: var(--basalt-text-base-line-height); }
-      /* A link with a source line under it: space-6 between the two (10 + 24 + 10, so the two boxes meet and do not overlap) and space-6 under
-         the entry, so the source line stays nearer its own entry than the next one. */
-      .basalt-release-entry[data-link]:has(.basalt-release-source) { row-gap: var(--basalt-space-6); padding-bottom: var(--basalt-space-6); }
+      /* A link with a source line under it: space-6 between the two (10 + 24 + 10, so the two boxes meet and do not overlap); the change ends as
+         every other change does, space-3 under it, which still holds the source line's box (sweep 68-5). */
+      .basalt-release-entry[data-link]:has(.basalt-release-source) { row-gap: var(--basalt-space-6); }
     }
   }
 

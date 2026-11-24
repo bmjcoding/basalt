@@ -27,3 +27,42 @@ export const harborShell = ({ running = "1.4.0", date = "2026-11-23", releases =
       <B.ReleaseNotes releases={${releases}} form="notes" product="Harbor" running="${running}" runningBuild={RUNNING_BUILD} baseHref="https://harbor.example/release-notes" ${extra} />
     </B.AppShell>
   );`;
+
+/**
+ * The spacing sweep's measurements of a page of releases (DECISIONS 326, round 68), run in the page with the class prefix ("basalt-" for React,
+ * "" for the HTML skill): where Copy link's words end against the header's edge (68-1), the action callout's inset above its first words and
+ * under its last (68-2), the left edge of each list's references (68-3), each release's padding under it (68-4), the gap from each change's
+ * last line to the next change's first (68-5) and how many lines each code chip in a change's words is drawn on (68-6).
+ */
+export const SWEEP = (p) => {
+  const q = (root, s) => root.querySelector(s.replace(/@/g, `.${p}`));
+  const qa = (root, s) => [...root.querySelectorAll(s.replace(/@/g, `.${p}`))];
+  const r = (el) => el.getBoundingClientRect();
+  const textRight = (el) => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let right = -Infinity;
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (!node.textContent.trim() || node.parentElement.closest("[hidden], [aria-hidden='true']") || getComputedStyle(node.parentElement).visibility === "hidden") continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      for (const rect of range.getClientRects()) if (rect.width) right = Math.max(right, rect.right);
+    }
+    return right;
+  };
+  const contentBottom = (el) => r(el).bottom - parseFloat(getComputedStyle(el).paddingBottom);
+  const contentTop = (el) => r(el).top + parseFloat(getComputedStyle(el).paddingTop);
+  const releases = qa(document, "@release");
+  return {
+    copy: releases.map((el) => { const copy = q(el, "@release-copy"); const head = q(el, "@release-head"); return copy && copy.offsetParent ? { id: el.id, off: Math.round((r(head).right - textRight(copy)) * 10) / 10 } : null; }).filter(Boolean),
+    callouts: qa(document, "@release-action").map((el) => {
+      const body = el.lastElementChild;
+      const entries = qa(el, "@release-entry");
+      const last = entries.at(-1);
+      return { id: el.id, top: Math.round((r(body).top - r(el).top) * 10) / 10, bottom: Math.round((r(el).bottom - contentBottom(last)) * 10) / 10 };
+    }),
+    references: qa(document, "@release-source-cell").filter((el) => el.offsetParent && r(el).width).map((el) => ({ inCallout: !!el.closest(`.${p}release-action`), x: Math.round(r(el).left * 10) / 10 })),
+    padding: releases.map((el) => ({ id: el.id, bottom: getComputedStyle(el).paddingBottom })),
+    gaps: qa(document, "@release-entry").filter((el) => el.offsetParent && el.nextElementSibling?.matches(`.${p}release-entry`)).map((el) => ({ id: el.id, linked: el.hasAttribute("data-link"), gap: Math.round((contentTop(el.nextElementSibling) - contentBottom(el)) * 10) / 10, under: Math.round((r(el).bottom - Math.max(...[...el.children].filter((c) => r(c).height).map((c) => r(c).bottom))) * 10) / 10 })),
+    chips: qa(document, "@release-entry-text " + (p ? "@inline-code" : "code")).filter((el) => el.offsetParent).map((el) => ({ text: el.textContent, lines: [...el.getClientRects()].filter((rect) => rect.width).length, wider: r(el).width > r(el.parentElement).width })),
+  };
+};
