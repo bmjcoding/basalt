@@ -124,7 +124,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   tabs that scrolls, a sortable header cell (a header band that is itself a button), a phone tab bar cell, and a cut cell of a still table (a focus stop, which shows its own ring after Esc has closed its plate). These structural
   vertical lines are allowed, each named and never a selection, sort, active or status mark: the 1px divider at a pinned table
   column's edge while the table is scrolled, the app sidebar's 1px edge, a meter's labelled target tick, the vertical
-  `Separator` between groups of controls, the edges between a `NumberField`'s value and its steppers, a diagram's connector and a sequence diagram's lifeline, and a stage list's or run timeline's connector (1px between two marks, never
+  `Separator` between groups of controls, the edges between a `NumberField`'s value and its steppers, a diagram's connector, a sequence diagram's lifeline with its activation bar, a frame's sides, and a stage list's or run timeline's connector (1px between two marks, never
   filled and never a state). The active row in a menu, select, combobox or command menu is a rounded plate
   (radius 8, one solid fill per level) plus a lift from secondary ink to primary, with no
   weight change: it is the row the keyboard is on, and it changes with every arrow key (WCAG 1.4.1). A selected table row is the wash band, and its checked box
@@ -184,7 +184,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   and holds no version. The entry or release a link opens is the stream's arrival (the plate and "Linked"). Build details is on
   the running release alone, from the running build. No area filter.
 - **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
-  targets stay at least 44px whatever the density, on touch and in any window under 720 whatever the pointer (16px text entry stays touch-only), except a chart's day, reached by drag and by the keys (the phase lane's marks keep 44px). Text entry is 16px on touch. A one-line notification entry is at least 44 tall on
+  targets stay at least 44px whatever the density, on touch and in any window under 720 whatever the pointer (16px text entry stays touch-only), except a chart's day, reached by drag and by the keys (the phase lane's marks keep 44px); a diagram's card that answers a tap is 44px tall. Text entry is 16px on touch. A one-line notification entry is at least 44 tall on
   touch, and a `Link` on a line of its own has a 44px hit box with no change to layout, its words raised over a stacked neighbour's box; a link in a sentence keeps its line.
 - **The phone and what is pinned:** while an on-screen keyboard is up (`data-screen-keyboard`) the tab bar and the phone's status bar are covered, and the
   foot, sheets, dialogs, the command menu and the toasts are laid out on what is seen. A page that pins more than the bar opts into measured sizes
@@ -219,7 +219,15 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   (the faces arriving, a resize) never restarts, hides or cuts short an entrance. An architecture card may carry its service's own mark,
   16px in the top end corner: the owner's file, never recoloured, a form for each ground, decoration beside the name, recorded in
   `packages/react/marks/manifest.json`; a service without one is its name alone. In print a mark prints, and so does the fill of a
-  focal node that carries one (`print-color-adjust: exact`).
+  focal node that carries one (`print-color-adjust: exact`). A schema may state how many (crow's foot in the line's ink, on every key or none) and
+  draws far keys along a corridor. A sequence may show a participant working (a bar) and frame a run of messages
+  (`opt`, `loop`, `alt`: structure, never a panel, every word plated), and may be written as text art, which never hides a line and has no caret.
+  Groups nest two deep; four end lanes at most. A card may be a link (the card is the stop; the arrow is the cue). A label breaks only where its
+  author breaks it. Arrow keys are spatial, on tracks. On touch a tap traces and "Clear highlight" clears. In print a figure is untraced and light.
+  Right to left mirrors the figure, not the words. Automatic layout asks elkjs for a column and a row and nothing else; Basalt routes, and a figure
+  is never scaled. elkjs loads on demand or not at all: place at build time. "Expand" opens the viewer: the drawn layout in a dialog (full screen under
+  720), laid out at 100% and zoomed by the reader with one transform, from Fit or 100% to 400%, in steps that land at once; it pans by scrolling; it
+  is never a picture, a `viewBox` or CSS `zoom`; it is still, and it does not print.
 - **Type:** Geist and Geist Mono at 400, 500 and 600 only, and a `Geist Fallback` face (local Arial, one face per weight) that reduces the shift when Geist
   arrives; it does not promise the same wrap at every width.
 - **Display type:** two roles a page writes, hero (96/96; 72/76 from 720 to 1023; 44/48 under 720) and display (72/76; 56/60; 36/40), made of the fixed

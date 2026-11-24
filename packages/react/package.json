@@ -25,6 +25,14 @@
       "types": "./dist/tooling/imports.d.ts",
       "default": "./dist/tooling/imports.js"
     },
+    "./diagram-export": {
+      "types": "./dist/diagram-export.d.ts",
+      "default": "./dist/diagram-export.js"
+    },
+    "./diagram-layout": {
+      "types": "./dist/diagram-layout.d.ts",
+      "default": "./dist/diagram-layout.js"
+    },
     "./marks/*": {
       "types": "./dist/marks/*.d.ts",
       "default": "./dist/marks/*.js"
@@ -37,7 +45,8 @@
   },
   "files": [
     "dist",
-    "THIRD-PARTY-MARKS.md"
+    "THIRD-PARTY-MARKS.md",
+    "THIRD-PARTY-NOTICES.md"
   ],
   "scripts": {
     "build": "node build.mjs",
@@ -60,6 +69,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "axe-core": "4.14.0",
+    "elkjs": "0.12.1",
     "esbuild": "0.28.2",
     "geist": "1.9.0",
     "playwright": "1.63.0",

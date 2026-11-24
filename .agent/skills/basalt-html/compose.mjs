@@ -33,6 +33,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
+import { MessageChannel, receiveMessageOnPort, Worker } from "node:worker_threads";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -581,7 +582,12 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
 
   // Detection reads markup and code, never comments: a word written about in a comment (an HTML one, or one inside a script or a style) brings nothing in.
   const code = `${held.restore(markup, true)}\n${styles.map((style) => stripCssComments(style.css)).join("\n")}`;
-  const chosen = detect(code, manifest, Object.keys(iconFile.icons), { all, use, glyphNames: Object.keys(glyphFile) });
+  let chosen = detect(code, manifest, Object.keys(iconFile.icons), { all, use, glyphNames: Object.keys(glyphFile) });
+  // The diagram viewer (DECISIONS 310): a page with a figure has "Expand" and its dialog, unless every figure on it says "zoom": false. A figure drawn from
+  // script (Basalt.diagram) may want it, so it counts.
+  if (chosen.modules.includes("diagram") && !chosen.modules.includes("diagram-zoom") && "diagram-zoom" in manifest.modules && zoomWanted(held, code)) {
+    chosen = detect(code, manifest, Object.keys(iconFile.icons), { all, use: [...use, "diagram-zoom"], glyphNames: Object.keys(glyphFile) });
+  }
   // A module the body never triggers, which is in only because another module's script builds its markup (the palette's rows and key chips).
   const bare = { ...manifest, modules: Object.fromEntries(Object.entries(manifest.modules).map(([n, m]) => [n, { ...m, requires: [] }])) };
   const direct = detect(code, bare, [], { all, use }).modules;
@@ -631,6 +637,30 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
 }
 
 /**
+ * An automatic diagram's placement for both directions (DECISIONS 306, 1.8), from parts/diagram-place.mjs run in a worker, waited for here: elk answers with
+ * a promise and compose is synchronous, so this thread sleeps on a shared flag until the worker has posted its answer and woken it.
+ */
+function placeNow(parts, spec) {
+  const signal = new SharedArrayBuffer(4);
+  const { port1, port2 } = new MessageChannel();
+  const worker = new Worker(path.join(parts, "diagram-place.mjs"), { workerData: { spec, port: port2, signal }, transferList: [port2] });
+  Atomics.wait(new Int32Array(signal), 0, 0, 60_000);
+  const got = receiveMessageOnPort(port1)?.message;
+  worker.terminate();
+  port1.close();
+  if (!got || got.error) throw new Error(got?.error ?? "the placer did not answer");
+  return got.placement;
+}
+
+/** Whether any figure on the page keeps its viewer: a `data-diagram` JSON without `"zoom": false`, or a figure drawn from script. */
+function zoomWanted(held, code) {
+  if (/Basalt\s*\.\s*diagram\b/.test(code)) return true;
+  const specs = held.saved.filter((item) => item.kind === "script" && item.attrs.some(([k]) => k === "data-diagram"));
+  if (!specs.length) return true;
+  return specs.some((item) => { try { return JSON.parse(item.inner).zoom !== false; } catch { return true; } });
+}
+
+/**
  * A diagram's words, written into the page (DECISIONS 281, 1.19): each `<figure class="diagram">` that holds only its JSON gets the markup the diagram module's
  * script would write for it, from that same script (parts/diagram.js, run here without a page), so the page reads before any script runs. The figure's own
  * attributes stay (its class joins ours, its id stays); the JSON stays for the script. A figure whose JSON does not parse is left for the script, which says why.
@@ -661,11 +691,24 @@ function writeDiagrams(markup, held, parts, notes, marks) {
     try { spec = JSON.parse(item.inner); } catch (e) { notes.push(`a diagram's JSON does not parse (${e.message}); the page's script will say so`); continue; }
     // Each card's mark: a bundled id is checked and its rule written once; the page's own mark is read into the page and named by an id, so the JSON
     // the script reads carries the id and never a path.
-    if (spec && spec.type === "architecture" && Array.isArray(spec.nodes)) {
+    // An automatic figure (DECISIONS 306, 1.8) is placed here, at build time, for both directions; the page holds the placement and never elkjs.
+    if (spec && spec.layout === "auto" && !spec.placement && ["architecture", "flowchart", "schema"].includes(spec.type)) {
+      try {
+        spec.placement = placeNow(parts, spec);
+        const inner = `\n${JSON.stringify(spec).replace(/</g, "\\u003c")}\n`;
+        item.text = item.text.replace(item.inner, () => inner);
+        item.inner = inner;
+      } catch (e) { notes.push(`${spec.title ?? "a diagram"} could not be placed (${String(e.message).split("\n")[0]}); it is stacked`); }
+    }
+    // An architecture's cards, a data flow's steps and a sequence's participants may carry one (DECISIONS 306, 1.6).
+    const cards = spec && (spec.type === "architecture" || spec.type === "data-flow") ? spec.nodes : spec && spec.type === "sequence" ? spec.participants : null;
+    if (Array.isArray(cards)) {
       let rewrote = false;
-      for (const n of spec.nodes) {
+      for (const n of cards) {
         if (!n || n.mark === undefined || n.mark === null) continue;
-        if (typeof n.mark === "string") useMark(marks, n.mark, n, notes);
+        // A data flow's step counts its lane's label as its words, as React's check does (DECISIONS 306, 1.6; Neon's B10 of the code review).
+        const lane = spec.type === "data-flow" && Array.isArray(spec.lanes) ? spec.lanes.find((l) => l && l.id === n.lane) : null;
+        if (typeof n.mark === "string") useMark(marks, n.mark, lane ? { ...n, laneLabel: lane.label } : n, notes);
         else { n.mark = ownMark(marks, n.mark); rewrote = true; }
       }
       if (rewrote) {
@@ -715,7 +758,7 @@ function useMark(marks, id, node, notes) {
 }
 function checkSays(file, id, node, notes) {
   const says = (Object.hasOwn(file.says, id) ? file.says[id] : undefined) ?? [];
-  const words = [node.name, node.kind, node.detail].filter(Boolean).join(" ").toLowerCase();
+  const words = [node.name, node.kind, node.detail, node.laneLabel].filter(Boolean).join(" ").toLowerCase();
   if (says.length && !says.some((w) => words.includes(w.toLowerCase()))) notes.push(`${node.id}'s mark (${id}) stands for ${says.join(" or ")}, and none of its words say so: a mark never carries a fact alone`);
 }
 

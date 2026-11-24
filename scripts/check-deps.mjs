@@ -56,7 +56,14 @@ export function checkDependencies(repo = repoRoot) {
     const where = `packages/${dir}`;
     const pkg = JSON.parse(fs.readFileSync(file, "utf8"));
     const kinds = ["dependencies", "peerDependencies", "optionalDependencies"];
-    compare(where, [...new Set(kinds.flatMap((k) => Object.keys(pkg[k] ?? {})))]);
+    // An approved package whose file is copied into dist is a devDependency (it is not installed with the package), listed in $copied at the exact version
+    // the copy was made from: it counts as used while that devDependency is there, at that version.
+    const copied = allowed.$copied?.[where] ?? {};
+    for (const [name, version] of Object.entries(copied)) {
+      const dev = pkg.devDependencies?.[name];
+      if (dev !== version) problems.push(`$copied: ${where} "${name}" is listed as "${version}" but is ${dev === undefined ? "not a devDependency" : `"${dev}" in devDependencies`}; the copy in dist and the list must agree.`);
+    }
+    compare(where, [...new Set([...kinds.flatMap((k) => Object.keys(pkg[k] ?? {})), ...Object.keys(copied).filter((name) => pkg.devDependencies?.[name] === copied[name])])]);
     for (const kind of kinds) for (const [name, version] of Object.entries(pkg[kind] ?? {})) {
       if (EXACT.test(version)) continue;
       if (ranges[where]?.[name] === version) continue;

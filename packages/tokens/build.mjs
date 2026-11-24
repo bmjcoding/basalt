@@ -193,6 +193,17 @@ const css = [
   "  }",
   "}",
   "",
+  "/* Print (DECISIONS 306, 1.7): the light set, whatever theme the screen shows, on the root and on every selector that sets a theme, last, so",
+  "   it wins over each of them. Generated from the light tokens, so it cannot drift. --_dkm is the diagram marks' theme switch (components.css),",
+  "   set to the light form. An app that prints dark on purpose overrides this with its own CSS. */",
+  "@media print {",
+  `  ${MORE_CONTRAST_SELECTORS} {`,
+  "    color-scheme: light;",
+  "    --_dkm: initial;",
+  ...themed("light").map((t) => decl(t, "    ")),
+  "  }",
+  "}",
+  "",
 ].join("\n");
 
 // shadcn/ui's variable names, so its components and blocks pick up Basalt unchanged.
