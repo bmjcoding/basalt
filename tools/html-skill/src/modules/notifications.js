@@ -42,8 +42,10 @@
     var side = _.pick(o.side, ['top', 'bottom', 'left', 'right'], 'bottom');
     var align = _.pick(o.align, ['start', 'center', 'end'], 'end');
     var viewAllHref = href(o.viewAllHref);
+    // The bell is hung at a bar's end when it is the bar's last control (DECISIONS 336): `edge: 'end'`, or data-edge on its host.
+    var edge = _.pick(o.edge || host.getAttribute('data-edge'), ['start', 'end'], '');
     host.innerHTML =
-      '<button type="button" class="btn" data-variant="ghost" data-icon-only popovertarget="' + id + '" aria-haspopup="dialog">' + BELL + '<span class="notifications-dot" aria-hidden="true" hidden></span></button>' +
+      '<button type="button" class="btn" data-variant="ghost" data-icon-only' + (edge ? ' data-edge="' + edge + '"' : '') + ' popovertarget="' + id + '" aria-haspopup="dialog">' + BELL + '<span class="notifications-dot" aria-hidden="true" hidden></span></button>' +
       '<div class="panel float popover notifications" popover id="' + id + '" data-side="' + side + '" data-align="' + align + '" aria-labelledby="' + id + '-title">' +
         '<div class="notifications-head"><h2 class="popover-title notifications-title" id="' + id + '-title">' + _.esc(label) + '</h2><span class="notifications-count"></span>' +
           '<button type="button" class="btn notifications-mark" data-variant="ghost" data-size="sm" data-edge="end">Mark all as read</button></div>' +

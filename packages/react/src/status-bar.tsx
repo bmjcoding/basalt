@@ -50,15 +50,27 @@ export interface StatusBarProps extends Omit<React.ComponentProps<"footer">, "ch
   end?: React.ReactNode;
 }
 
+type Hangable = { variant?: string; edge?: ButtonEdge; label?: unknown; icon?: unknown; children?: React.ReactNode };
+
+/** A ghost control, read from its props so the bar imports no button: `variant="ghost"`, or an `IconButton`'s defaults (a label and an icon, no variant). */
+function isGhost(props: Hangable): boolean {
+  return props.variant === "ghost" || (props.variant === undefined && props.label !== undefined && props.icon !== undefined);
+}
+
 /**
- * A slot's first (or last) control, when it is a component given `variant="ghost"` and no edge of its own (a ghost `Button`, `IconButton` or
- * `DrawerTrigger`), hung at the bar's edge (DECISIONS 336). Read from its props, so the bar imports no button.
+ * A slot's first (or last) control, when it is a ghost Basalt control with no edge of its own (a ghost `Button`, `IconButton` or `DrawerTrigger`),
+ * hung at the bar's edge (DECISIONS 336). A fragment is looked into, so its first or last child is the slot's (the code review's finding 4).
  */
 function hang(slot: React.ReactNode, side: ButtonEdge): React.ReactNode {
   const items = React.Children.toArray(slot);
   const at = side === "start" ? 0 : items.length - 1;
   const item = items[at];
-  if (!React.isValidElement<{ variant?: string; edge?: ButtonEdge }>(item) || typeof item.type === "string" || item.props.variant !== "ghost" || item.props.edge !== undefined) return slot;
+  if (!React.isValidElement<Hangable>(item)) return slot;
+  if (item.type === React.Fragment) {
+    items[at] = React.cloneElement(item, undefined, hang(item.props.children, side));
+    return items;
+  }
+  if (typeof item.type === "string" || !isGhost(item.props) || item.props.edge !== undefined) return slot;
   items[at] = React.cloneElement(item, { edge: side });
   return items;
 }

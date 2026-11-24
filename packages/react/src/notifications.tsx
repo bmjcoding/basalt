@@ -76,6 +76,11 @@ interface ListParts {
 }
 
 export interface NotificationCenterProps extends ListParts {
+  /**
+   * The bell is a ghost icon button: when it is the last control of a bar (`AppHeader`'s last action, `SiteHeader`'s last tool), give it
+   * `edge="end"` so its glyph goes on the bar's line (DECISIONS 336).
+   */
+  edge?: ButtonEdge;
   /** "View all" was pressed (the app's own page). With `viewAllHref` it is a link as well. */
   onViewAll?: () => void;
   viewAllHref?: string;
@@ -128,7 +133,7 @@ function drawn(entries: readonly NotificationEntry[]): NotificationEntry[] {
  * On a phone the bell gives way to a page: put `NotificationList` on the app's own page and link to it from the tab bar (`TabBarItem`
  * with `NotificationsGlyph` and its `dot`), the same page "View all" opens.
  */
-export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, onClearAll, onViewAll, viewAllHref, label = "Notifications", open, defaultOpen, onOpenChange, side = "bottom", align = "end", className }: NotificationCenterProps) {
+export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, onClearAll, onViewAll, viewAllHref, label = "Notifications", open, defaultOpen, onOpenChange, side = "bottom", align = "end", edge, className }: NotificationCenterProps) {
   const entries = drawn(given);
   const unread = unreadCount(entries);
   const popup = React.useRef<PopupActions | null>(null);
@@ -139,7 +144,7 @@ export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, on
       <PopoverTrigger
         className="basalt-notifications-trigger"
         data-unread={unread > 0 ? "" : undefined}
-        render={<IconButton icon={NotificationsGlyph} label={unread > 0 ? `${label}, ${unread} unread` : label} className={className} />}
+        render={<IconButton icon={NotificationsGlyph} label={unread > 0 ? `${label}, ${unread} unread` : label} edge={edge} className={className} />}
       />
       <PopoverContent side={side} align={align} className="basalt-notifications">
         <div className="basalt-notifications-head">

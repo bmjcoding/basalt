@@ -281,6 +281,10 @@ describe("Markup", () => {
     assert.equal((fragment.match(/<li class="basalt-social-item">/g) ?? []).length, 2, "a fragment's links are items of the row");
     assert.ok(ruleFor(REACT, '.basalt-social-links[data-icon-only] > .basalt-social-item:not(:first-child)').some((r) => decl(r.body, "--basalt-edge-room-start") === "initial" && decl(r.body, "--basalt-edge-room") === "initial"), "only the first rendered item has the room");
   });
+  test("NotificationCenter's bell takes edge, and the skill's generated bell takes it from an option or its host", () => {
+    assert.match(html(h(B.NotificationCenter, { entries: [], edge: "end" })), /data-edge="end"[^>]*class="basalt-button basalt-popover-trigger basalt-notifications-trigger"|class="basalt-button basalt-popover-trigger basalt-notifications-trigger"[^>]*data-edge="end"|data-edge="end"/);
+    assert.match(read(`${SKILL_DIR}/notifications.js`), /_\.pick\(o\.edge \|\| host\.getAttribute\('data-edge'\), \['start', 'end'\], ''\)/);
+  });
   test("the popups that cannot render on a server hang their controls in source: the search's Close, the notification popup, the checklist foot, the More sheet", () => {
     const src = (file) => read(`packages/react/src/${file}`);
     assert.match(src("search.tsx"), /label=\{closeLabel\} edge="end" className="basalt-search-close"/);
@@ -300,6 +304,11 @@ describe("Markup", () => {
     assert.ok(/\.basalt-status-bar:not\(:has\(> \.basalt-status-bar-sources\)\) > \.basalt-status-bar-end \{ --basalt-edge-room: initial; --basalt-edge-room-end: initial; \}/.test(REACT));
     const sourcesFirst = html(h(B.StatusBar, { sources: ghost("2 sources") }));
     assert.match(sourcesFirst, /data-edge="start"/);
+    const icon = html(h(B.StatusBar, { end: h(B.IconButton, { icon: B.SearchGlyph, label: "Search" }) }));
+    assert.match(icon, /data-edge="end"/, "an IconButton's default ghost is hung");
+    const inFragment = html(h(B.StatusBar, { start: h(React.Fragment, null, ghost("run"), ghost("open")), end: h(React.Fragment, null, ghost("A"), ghost("Theme")) }));
+    assert.deepEqual(inFragment.match(/data-edge="\w+"/g), ['data-edge="start"', 'data-edge="end"'], "a fragment's first and last are the slot's");
+    assert.match(inFragment, /data-edge="start"[^>]*>[\s\S]*?run/);
     const drawn = html(h(B.StatusBar, { start: h(B.Button, { variant: "secondary", size: "sm" }, "run") }));
     assert.ok(!drawn.includes("data-edge"), "a drawn button sits on the line with its edge");
   });
