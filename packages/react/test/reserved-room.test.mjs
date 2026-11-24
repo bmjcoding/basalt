@@ -172,7 +172,7 @@ describe("Targets", () => {
 describe("The toast's targets", () => {
   for (const theme of THEMES) {
     test(`${theme}, 390 on touch: Dismiss and a 'Go' action are 46 at rest and at least 44 held, inside the toast, apart, and every point of the row answers to one`, async () => {
-      const page = await open(`<B.ToastProvider><B.Toaster /><Show /></B.ToastProvider>`.replace("<Show />", `{(() => { const t = B.useToast(); React.useEffect(() => { t.add({ title: "Saved", actionProps: { children: "Go" } }); }, []); return null; })()}`), PHONE, theme);
+      const page = await open(`<B.ToastProvider>{React.createElement(function Show() { const t = B.useToast(); React.useEffect(() => { t.show({ title: "Saved", action: { label: "Go", onClick() {} }, timeout: 0 }); }, []); return null; })}</B.ToastProvider>`, PHONE, theme);
       await page.waitForSelector(".basalt-toast-close");
       const hit = (sel) => page.locator(sel).evaluate((el) => { const r = el.getBoundingClientRect(); const b = getComputedStyle(el, "::before"); return { x: r.x - parseFloat(b.left) * -1, w: r.width - parseFloat(b.left) - parseFloat(b.right), h: r.height - parseFloat(b.top) - parseFloat(b.bottom), r: r.toJSON() }; });
       const dismiss = await hit(".basalt-toast-close");
@@ -201,7 +201,7 @@ describe("The toast's targets", () => {
 });
 
 describe("The selection column", () => {
-  const TABLE = (width) => `<B.Table aria-label="Runs" columns={[{ width: "${width}" }, { width: "auto" }]} pinned={1}><B.TableHead><B.TableRow><B.TableHeadCell><B.Checkbox aria-label="Select all" /></B.TableHeadCell><B.TableHeadCell sortable>Run</B.TableHeadCell></B.TableRow></B.TableHead><B.TableBody><B.TableRow><B.TableCell><B.Checkbox aria-label="Select run-1" /></B.TableCell><B.TableCell><a href="#r">run-1</a></B.TableCell></B.TableRow></B.TableBody></B.Table>`;
+  const TABLE = (width) => `<B.TableContainer label="Runs"><B.Table columns={[{ width: "${width}" }, {}]} minWidth={320} pinned={2}><B.TableHeader><B.TableRow><B.TableHead><B.Checkbox aria-label="Select all" /></B.TableHead><B.TableHead onSortChange={() => {}}>Run</B.TableHead></B.TableRow></B.TableHeader><B.TableBody><B.TableRow><B.TableCell><B.Checkbox aria-label="Select run-1" /></B.TableCell><B.TableCell><a href="#r">run-1</a></B.TableCell></B.TableRow></B.TableBody></B.Table></B.TableContainer>`;
   test("on touch the column is 44 and holds the checkbox's whole hit area; the name's sort button starts the next pixel", async () => {
     for (const width of ["var(--basalt-select-column)", "max(40px, var(--basalt-select-column))"]) {
       const page = await open(TABLE(width), PHONE, "dark");
@@ -294,7 +294,7 @@ describe("Boxes", () => {
     await page.close();
   });
   test("a switch row with no tile has equal gaps to its words and its seat; the option chip's gaps are equal", async () => {
-    const page = await open(`<div style={{ width: 360 }}><B.SwitchRow name="Alerts" /><B.OptionChips legend="Size" options={[{ value: "s", label: "Small" }]} /></div>`, DESKTOP, "dark");
+    const page = await open(`<div style={{ width: 360 }}><B.SwitchRowGroup aria-label="Sources"><B.SwitchRow value="a">Alerts</B.SwitchRow></B.SwitchRowGroup><B.OptionChips legend="Size" options={[{ value: "s", label: "Small" }]} /></div>`, DESKTOP, "dark");
     const gaps = await page.locator(".basalt-switch-row").evaluate((el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return [cs.paddingInlineStart, cs.paddingInlineEnd]; });
     assert.equal(gaps[0], gaps[1]);
     const chip = await page.locator(".basalt-option-chip").first().evaluate((el) => { const cs = getComputedStyle(el); return [cs.paddingInlineStart, cs.paddingInlineEnd]; });
