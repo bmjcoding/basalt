@@ -4997,10 +4997,13 @@
   /* Right to left (DECISIONS 306, 1.7): the engine lays out a mirrored model on a left-to-right grid, so the drawing is set left to right and what is in it
      is set right to left again; identifiers are isolated left to right as runs, never as blocks, so they keep the card's start edge. */
   .basalt-diagram[data-rtl] > .basalt-diagram-drawing { direction: ltr; }
+  /* Stacked, the figure mirrors too (1.7): the end gutter is on the left, and a branch is indented from the right, its end lane on the left. */
+  .basalt-diagram[data-rtl] > .basalt-diagram-drawing { padding: var(--_d-pad, 0 0 0 var(--_gutter, 0)); }
+  .basalt-diagram[data-rtl] .basalt-diagram-node[data-branch] { margin-inline: var(--_d-mi, var(--basalt-space-6) var(--basalt-space-12)); }
   .basalt-diagram[data-rtl] > .basalt-diagram-drawing :is(.basalt-diagram-node > :not(.basalt-diagram-mark), .basalt-diagram-lane-name, .basalt-diagram-said, .basalt-diagram-note, .basalt-diagram-band, .basalt-diagram-fhead, .basalt-diagram-felse) { direction: rtl; }
   .basalt-diagram[data-rtl] .basalt-diagram-gbox > .basalt-diagram-glabel { inset-inline: auto var(--basalt-space-3); }
   /* Stacked, a group's label is on its start side too (the sweep's 66-3), its masking margin mirrored. */
-  .basalt-diagram[data-rtl] .basalt-diagram-group > .basalt-diagram-glabel { inset-inline: auto var(--basalt-space-3); margin-inline: 0 calc(-1 * var(--basalt-space-1-5)); }
+  .basalt-diagram[data-rtl] .basalt-diagram-group > .basalt-diagram-glabel { inset-inline: auto calc(var(--basalt-space-3) + var(--_gx, var(--basalt-space-0))); margin-inline: 0 calc(-1 * var(--basalt-space-1-5)); }
   /* A Mono detail is one left-to-right run in a right-to-left card (B5 of the pixel review), so its words keep their order and the card's start edge. */
   .basalt-diagram[data-rtl] .basalt-diagram-runs { direction: ltr; unicode-bidi: isolate; }
   /* A frame's header, its else row and its rule are set right to left, so their place across the mirrored grid is measured from the frame's end edge in
@@ -5177,6 +5180,9 @@
   .basalt-diagram-group > .basalt-diagram-glabel { --_d-gl: var(--_drawn) none; display: var(--_d-gl, block); }
   /* Stacked, a group's label sits on a ground plate over the lines, so a line that crosses it stops either side (DECISIONS 306, 1.3). */
   .basalt-diagram-group > .basalt-diagram-glabel { z-index: 1; margin-inline-start: calc(-1 * var(--basalt-space-1-5)); padding-inline: var(--basalt-space-1-5); background: var(--_ground); }
+  /* A line through the label's band moves it along the top edge, toward the end, to the first place clear of every line (the diagrams-rtl ruling): the engine
+     writes how far as --_gx. Its plate stays for the last resort, where no place is clear. */
+  .basalt-diagram-group > .basalt-diagram-glabel { inset-inline-start: calc(var(--basalt-space-3) + var(--_gx, var(--basalt-space-0))); }
   .basalt-diagram-gbox {
     --_d-gb: var(--_drawn) block;
     position: relative;
