@@ -367,7 +367,9 @@
 
   function upgrade() {
     var header = document.querySelector('header.basalt-site-header');
-    if (!header) return;
+    // Wired once: a second Basalt.init() must not add a second menu or a second set of document handlers.
+    if (!header || header.__basaltWired) return;
+    header.__basaltWired = true;
     var bar = header.querySelector('.basalt-site-bar');
     var nav = header.querySelector('nav.basalt-site-links');
     var actions = header.querySelector('.basalt-bar-actions');

@@ -49,6 +49,17 @@ const insideMenu = (page) => page.evaluate(() => !!document.activeElement?.close
 const menuOpen = (page) => page.evaluate(() => !document.querySelector(".basalt-site-menu-root").hidden);
 
 describe("the narrow menu's contract", () => {
+  test("a second Basalt.init() wires nothing twice: one menu, and Menu opens and Close closes it once", async () => {
+    const { page, context } = await openHtml(browser, sample, { scheme: "dark", width: 390 });
+    await page.evaluate(() => window.Basalt.init());
+    assert.equal(await page.locator(".basalt-site-menu-root").count(), 1);
+    await page.locator(".basalt-site-menu-trigger").click();
+    await page.waitForFunction(() => !document.querySelector(".basalt-site-menu-root").hidden);
+    await page.locator(".basalt-site-menu-close").click();
+    await page.waitForFunction(() => document.querySelector(".basalt-site-menu-root").hidden);
+    assert.equal(await page.locator(".basalt-site-menu-trigger").getAttribute("aria-expanded"), "false");
+    await context.close();
+  });
   for (const theme of ["dark", "light"]) {
     test(`it is a dialog the Menu button opens; focus lands on Close; the page is inert and does not scroll (${theme})`, async () => {
       const { page, context, errors } = await openHtml(browser, sample, { scheme: theme, width: 390 });
