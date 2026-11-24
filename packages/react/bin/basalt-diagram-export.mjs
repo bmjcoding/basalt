@@ -48,6 +48,14 @@ function usage() {
     "  --headless       Use pure-JS approximate headless layout without launching Chromium",
     "  -h, --help       Show this help",
     "",
+    "Formats:",
+    "  drawio           Uncompressed draw.io XML (.drawio).",
+    "  vsdx             Microsoft Visio (.vsdx); also use .vsdx to import through Lucid's own screen.",
+    "  lucid            Lucid Standard Import (.lucid) for Lucid's REST API only",
+    "                   (POST https://api.lucid.co/v1/documents with a token, type x-application/vnd.lucid.standardImport);",
+    "                   to import through Lucid's own screen, use .vsdx.",
+    "  lucid-json       Plain document.json form of Lucid Standard Import.",
+    "",
   ].join("\n");
 }
 
@@ -556,12 +564,15 @@ async function main() {
       }
       const outPath = singleFileOut ? path.resolve(opts.out) : path.join(outDir, `${name}${extFor(format)}`);
       fs.writeFileSync(outPath, data);
-      written.push({ path: outPath, bytes: typeof data === "string" ? Buffer.byteLength(data) : data.byteLength });
+      written.push({ path: outPath, bytes: typeof data === "string" ? Buffer.byteLength(data) : data.byteLength, format });
     }
   }
 
   for (const w of written) {
-    process.stdout.write(`${path.relative(process.cwd(), w.path) || w.path} (${w.bytes} bytes)\n`);
+    const note = w.format === "lucid"
+      ? " — Lucid REST API only (POST https://api.lucid.co/v1/documents with a token, type x-application/vnd.lucid.standardImport; use .vsdx to import through Lucid's own screen)"
+      : "";
+    process.stdout.write(`${path.relative(process.cwd(), w.path) || w.path} (${w.bytes} bytes)${note}\n`);
   }
 }
 

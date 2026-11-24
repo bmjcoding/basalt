@@ -91,19 +91,30 @@ export function diagramToVsdx(spec: DiagramSpec, options: InteropOptions = {}): 
   return sceneToVsdx(scene, options.theme ?? "light");
 }
 
-/** Exports a Basalt diagram spec to a deterministic Lucid Standard Import `.lucid` ZIP archive. */
+/**
+ * Exports a Basalt diagram spec to a deterministic Lucid Standard Import `.lucid` ZIP archive for Lucid's REST API
+ * (`POST https://api.lucid.co/v1/documents` with a token, type `x-application/vnd.lucid.standardImport`).
+ * To import through Lucid's own screen, use `.vsdx` (`diagramToVsdx`).
+ */
 export function diagramToLucid(spec: DiagramSpec, options: InteropOptions = {}): Uint8Array {
   const scene = layoutHeadless(spec, options);
   return sceneToLucid(scene, options.theme ?? "light");
 }
 
-/** Exports a Basalt diagram spec to the plain JSON form of Lucid Standard Import (`document.json`). */
+/**
+ * Exports a Basalt diagram spec to the plain JSON form of Lucid Standard Import (`document.json`, for Lucid's REST API;
+ * to import through Lucid's own screen, use `.vsdx`).
+ */
 export function diagramToLucidJson(spec: DiagramSpec, options: InteropOptions = {}): LucidDocument {
   const scene = layoutHeadless(spec, options);
   return sceneToLucidJson(scene, options.theme ?? "light");
 }
 
-/** Exports a live figure's measured `Geo` (from diagram-core's `measureFigure`) to `.drawio`, `.vsdx`, `.lucid`, or Lucid JSON. */
+/**
+ * Exports a live figure's measured `Geo` (from diagram-core's `measureFigure`) to `.drawio`, `.vsdx`, `.lucid`
+ * (Lucid REST API only: `POST https://api.lucid.co/v1/documents` with a token, type `x-application/vnd.lucid.standardImport`;
+ * to import through Lucid's own screen, use `.vsdx`), or Lucid JSON.
+ */
 export function exportMeasuredDiagram(spec: DiagramSpec, geo: Geo, format: "drawio", options?: MeasuredInteropOptions): string;
 export function exportMeasuredDiagram(spec: DiagramSpec, geo: Geo, format: "vsdx" | "lucid", options?: MeasuredInteropOptions): Uint8Array;
 export function exportMeasuredDiagram(spec: DiagramSpec, geo: Geo, format: "lucid-json", options?: MeasuredInteropOptions): LucidDocument;

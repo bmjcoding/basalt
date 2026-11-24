@@ -455,6 +455,16 @@ describe("basalt-diagram-export CLI (Node-only --headless mode)", () => {
       });
       assert.equal(r1.status, 0, r1.stderr);
       assert.match(r1.stderr, /approximate/i, "--headless notes approximate geometry on stderr");
+      assert.match(
+        r1.stdout,
+        /architecture\.lucid \(\d+ bytes\) — Lucid REST API only \(POST https:\/\/api\.lucid\.co\/v1\/documents with a token, type x-application\/vnd\.lucid\.standardImport; use \.vsdx to import through Lucid's own screen\)/,
+        ".lucid output line explains REST API only and points UI users to .vsdx",
+      );
+      const rHelp = spawnSync(process.execPath, [CLI, "--help"], { encoding: "utf8" });
+      assert.equal(rHelp.status, 0, rHelp.stderr);
+      assert.match(rHelp.stdout, /POST https:\/\/api\.lucid\.co\/v1\/documents/, "--help documents Lucid REST API endpoint");
+      assert.match(rHelp.stdout, /x-application\/vnd\.lucid\.standardImport/, "--help documents Lucid Standard Import media type");
+      assert.match(rHelp.stdout, /use \.vsdx/i, "--help points Lucid UI imports to .vsdx");
       const r2 = spawnSync(process.execPath, [CLI, path.join(here, "fixtures", "cimip-diagrams.json"), "--headless", "--to", "drawio,vsdx,lucid,lucid-json", "--out", outB], {
         encoding: "utf8",
         env: { ...process.env, TZ: "Asia/Kolkata", LC_ALL: "de_DE.UTF-8" },
