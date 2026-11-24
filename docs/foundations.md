@@ -1619,7 +1619,7 @@ The plan is secondary ink, never a series, and never carries a marker: a marker 
   observed series draws over it, its markers ringed.
 - **The reason in words** goes in the reserved lane above the plot, 12/16 tertiary, from where the gap starts: the full words if they
   fit ("Watch not observed · not worn, travel"), then "Watch not observed", then "Not observed". Only the last gap may step back to
-  fit, and never over an earlier one. The reason is always also in the summary, the table and the day's accessible description; the readout says 'Not observed' alone.
+  fit, and never over an earlier one. The reason is always also in the summary, the table, the day's accessible description and the date line; the readout's value says 'Not observed' alone.
   **The headline chart** has no legend rows, so whenever it has a gap it shows a "Not observed" key above the plot, the hatch swatch and the words, as the series charts' legend does (DECISIONS 167, Q11a, 4 to 0); a gap whose lane words do not fit is then never a hatch with no word.
 - **The table** says "Not observed" in tertiary with no mark (DECISIONS 95), and the reason in its Note column.
 
@@ -1628,8 +1628,8 @@ The plan is secondary ink, never a series, and never carries a marker: a marker 
 - It sits above the plot, under the title and the source line: a date line, then each key. A key is a 16px swatch (`size-icon-sm`)
   drawn like its mark, the name, and its value for the picked day.
 - **Nothing moves.** Every value reserves the widest form it can show ("10 h 59 m", "140 min so far", and "Not observed" for a series
-  that can be missing), and so does the date line: picking a day changes words, never positions. The legend never carries a gap's
-  reason.
+  that can be missing), and so does the date line: picking a day changes words, never positions. A gap's reason is
+  never in the legend; on that day the date line says it.
 - **It returns to the latest day** when the pointer leaves, but **never while keyboard focus is inside the chart**: then the focused
   day is the one shown, whatever the pointer does.
 - **The picked day** is a full-height `state-selected` plate behind the marks, its axis date lifting from tertiary to primary, and its

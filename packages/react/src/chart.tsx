@@ -788,6 +788,10 @@ export function legendForms(values: ReadonlyArray<number | null | undefined>, n:
 
 function Readout({ series, plan, bar, n, shown, active, partial, partialLabel, partialSuffix, format, formatPlan, formats, stamps, idBase }: ReadoutProps) {
   const dateOf = (i: number) => formats.withDay.format(at(stamps, i));
+  // On a day a series was not observed the date line says why ("Wed, Oct 21 · scale not used"), as the headline's context line does: the legend never
+  // carries a gap's reason, and the lane cuts it where it does not fit (the pixel review's finding 1). The first missing series with a reason says it.
+  const reasonOf = (i: number) => series.find((s) => s.values[i] == null && s.reasons?.[i])?.reasons?.[i] ?? undefined;
+  const dateText = (i: number, latest: boolean) => `${latest ? "Latest · " : ""}${dateOf(i)}${reasonOf(i) ? ` · ${reasonOf(i)}` : ""}`;
   const textOf = (v: number, i: number) => `${format(v)}${i === partial ? ` ${partialSuffix}` : ""}`;
   // A day that was not observed says so and no more: its reason is in the lane, the summary, the table's note and the day's description (DECISIONS 336, Q2).
   const valueOf = (s: ChartSeries, i: number) => {
@@ -813,8 +817,8 @@ function Readout({ series, plan, bar, n, shown, active, partial, partialLabel, p
   return (
     <div className="basalt-chart-key">
       <p className="basalt-chart-date">
-        {unique(Array.from({ length: n }, (_, k) => shapeOf(`Latest · ${dateOf(k)}`))).map((form) => <span key={form} className="basalt-chart-reserve" aria-hidden="true">{form}</span>)}
-        <span>{active === null ? "Latest · " : ""}{dateOf(i)}</span>
+        {unique(Array.from({ length: n }, (_, k) => [shapeOf(dateText(k, true)), shapeOf(dateText(k, false))]).flat()).map((form) => <span key={form} className="basalt-chart-reserve" aria-hidden="true">{form}</span>)}
+        <span>{dateText(i, active === null)}</span>
       </p>
       <ul className="basalt-chart-legend" aria-label="Key">
         {series.map((s, k) => (

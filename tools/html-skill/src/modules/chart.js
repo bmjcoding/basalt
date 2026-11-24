@@ -281,8 +281,11 @@
     }
     if (hasPartial) legend += '<li class="chart-entry">' + swatch('so-far', 0, id, bar) + '<span class="chart-name">' + esc(partialLabel) + '</span></li>';
     if (hasGap) legend += '<li class="chart-entry">' + swatch('missing', 0, id) + '<span class="chart-name">' + NOT_OBSERVED + '</span></li>';
+    // On a day a series was not observed the date line says why, as the headline's context line does (the pixel review's finding 1).
+    function reasonOf(i) { for (var k = 0; k < series.length; k++) { var r = series[k].values[i] == null && series[k].reasons && series[k].reasons[i]; if (r) return r; } return ''; }
+    function dateText(i, latest) { var r = reasonOf(i); return (latest ? 'Latest · ' : '') + dateOf(i) + (r ? ' · ' + r : ''); }
     var dateForms = [];
-    for (var d = 0; d < n; d++) dateForms.push(shapeOf('Latest · ' + dateOf(d)));
+    for (var d = 0; d < n; d++) dateForms.push(shapeOf(dateText(d, true)), shapeOf(dateText(d, false)));
 
     var kbdChip = function (t) { return '<kbd class="kbd">' + t + '</kbd>'; };
     figure.textContent = '';
@@ -551,7 +554,7 @@
 
     /* ---- Draw: the frame, the plate, the days and the readout ---- */
     function readout(shown, active) {
-      dateEl.textContent = (active === null ? 'Latest · ' : '') + dateOf(shown);
+      dateEl.textContent = dateText(shown, active === null);
       var vi = 0;
       series.forEach(function (s) {
         var el = valueEls[vi++].querySelector('[data-part="value"]');
