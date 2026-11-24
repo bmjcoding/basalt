@@ -567,7 +567,7 @@
   .basalt-input[data-writing] {
     color: var(--basalt-text-secondary);
     background: var(--basalt-surface-placeholder);
-    /* stylelint-disable-next-line unit-disallowed-list -- the skeleton's pulse period, the same literal as .basalt-skeleton's (a loop-duration token is undecided) */
+    /* stylelint-disable-next-line unit-disallowed-list -- the skeleton's pulse period, the same literal as .basalt-skeleton's (the duration-loop tokens hold the ring, braille, fade and ambient periods, not this one; a new token is design) */
     animation: basalt-writing 2s var(--basalt-ease-in-out) infinite alternate;
   }
   .basalt-input[data-writing]::placeholder { color: transparent; }
@@ -3712,7 +3712,7 @@
     position: absolute;
     left: 0;
     width: 30%;
-    /* stylelint-disable-next-line unit-disallowed-list -- the indeterminate bar's loop period: a token for a loop duration is the council's to decide (a new token is design), so the literal stays until then */
+    /* stylelint-disable-next-line unit-disallowed-list -- the indeterminate bar's loop period: no duration-loop token holds it (they hold the ring, braille, fade and ambient periods), and a new token is design, so the literal stays until then */
     animation: basalt-indeterminate 1.4s var(--basalt-ease-in-out) infinite;
   }
 
@@ -3779,7 +3779,7 @@
   /* The indeterminate bar, held: the track only. The indicator is hidden, not just stopped, because a still bar reads as a value
      (30% done, or under reduced motion a full-width bar that reads as done). The label still says the work is running, and the
      bar keeps its indeterminate semantics (no aria-valuenow). This sets the indicator's whole look, so it also overrides the
-     reduced-motion full-width pulse above. */
+     reduced-motion full-width pulse below (its specificity wins either way). */
   :root[data-loops="held"] .basalt-progress-indicator[data-indeterminate] { animation: none; visibility: hidden; }
 
   @keyframes basalt-drain {
@@ -3918,7 +3918,7 @@
     display: block;
     border-radius: var(--basalt-radius-sm);
     background: var(--basalt-surface-placeholder);
-    /* stylelint-disable-next-line unit-disallowed-list -- the skeleton's pulse period: a token for a loop duration is the council's to decide (a new token is design), so the literal stays until then */
+    /* stylelint-disable-next-line unit-disallowed-list -- the skeleton's pulse period: no duration-loop token holds it (they hold the ring, braille, fade and ambient periods), and a new token is design, so the literal stays until then */
     animation: basalt-skeleton 2s var(--basalt-ease-in-out) infinite alternate;
   }
 
@@ -4001,7 +4001,7 @@
   .basalt-bones[data-shown] > .basalt-bones-layer {
     visibility: visible;
     /* One pulse for the whole region, so every bone breathes together: Skeleton's own period and curve (DECISIONS 167). */
-    /* stylelint-disable-next-line unit-disallowed-list -- the skeleton's pulse period, as Skeleton's own rule: a token for a loop duration is the council's to decide */
+    /* stylelint-disable-next-line unit-disallowed-list -- the skeleton's pulse period, as Skeleton's own rule: no duration-loop token holds it, and a new token is the council's to decide */
     animation: basalt-skeleton 2s var(--basalt-ease-in-out) infinite alternate;
   }
   :is(.basalt-bones-layer, .basalt-bones-leaving) > .basalt-skeleton { position: absolute; animation: none; }
