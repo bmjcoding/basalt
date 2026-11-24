@@ -338,8 +338,9 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
         const trial = buildModel(spec, { rtl, placement: place });
         const t = viewer.measure(fig, trial, P, base, {}, (d) => syncAttributes(fig, figureTree(trial, d, options)));
         if (t.dyn.layout !== "drawn") continue;
-        // Fit as the viewer takes it (whole per cents, 200% at most), so two directions that both fit at 200% tie and the type's own stays.
-        const fit = Math.min(2, Math.floor(Math.min(room.w / fig.offsetWidth, room.h / fig.offsetHeight) * 100 + 1e-6) / 100);
+        // Fit as the viewer takes it (whole per cents, 200% at most, of the drawing's own box: the one-column ruling), so two directions that both fit at 200%
+        // tie and the type's own stays.
+        const fit = Math.min(2, Math.floor(Math.min(room.w / (fig.querySelector<HTMLElement>(`.${P}-drawing`)?.offsetWidth || fig.offsetWidth), room.h / fig.offsetHeight) * 100 + 1e-6) / 100);
         if (fit > best + 1e-6) { best = fit; pick = k; }
       }
       if (pick !== dirAt) { setDirAt(pick); return; }

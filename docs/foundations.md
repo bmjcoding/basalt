@@ -1815,6 +1815,9 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   receiver and kind. A schema is its cards in an auto-fit grid with no lines, because every foreign-key row writes its target. A stacked
   group whose first card is entered by a turn has `space-12` above; its label stays in the first `space-8`. Stacked, a group's label gives
   way to the lines at its top edge: it slides along the edge, on the start side, and is never set over a line that has room to pass.
+- **One column is at most 480 wide, drawn or stacked.** A drawn layout of one column (architecture, flowchart, data flow,
+  schema) is at most `size-breakpoint-container` wide on the start edge, as the stack is, or its track's least width where that
+  is more. The room beside it is open page. Two columns or more share the figure's width.
 - **Several end lines into one card nest:** the line from the outermost lane turns lowest and enters nearest the end edge; each
   line from a lane further in turns `space-5` higher and enters `space-3` further in. Their labels are seated `space-2-5` clear of
   the innermost entry, each on its own turn's height, taken before the half-pixel snap.
@@ -1913,7 +1916,8 @@ rim included, with the sheet's head, body and foot. "Expand" is words only. Deci
   size. Under `scale(3)` the figure is the pixels a 3x screen draws.
 - **Fit** is the whole drawing in the stage (padding `space-6`, `space-4` under 720), 200% at most, and is how it opens. The limits
   are Fit or 100%, whichever is less, and 400%. Buttons and keys step through 25, 33, 50, 67, 75, 100, 125, 150, 200, 300 and 400,
-  and a step lands at once. The level is written between the buttons and spoken once it rests.
+  and a step lands at once. The level is written between the buttons and spoken once it rests. The drawing is what is drawn: a
+  one-column figure is fitted and scrolled as its column, not as the width it was laid out in.
 - **Zoom:** "Zoom out", "Zoom in" and "Fit"; `+`, `−` and `0` while focus is in the stage; Ctrl or Command with the wheel and a
   trackpad pinch, about the pointer; two fingers on touch, about their midpoint.
 - **Pan is a scroll:** the stage scrolls both ways. A drag past `space-1`, one finger on touch, the wheel, and the scrolling keys

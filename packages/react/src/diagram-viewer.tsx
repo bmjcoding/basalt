@@ -4,7 +4,7 @@ import { Button, IconButton } from "./button";
 import type { DiagramActions } from "./diagram-actions";
 import type { DiagramAction, DiagramFigureInternalProps, DiagramLayoutInfo, DiagramViewerMode } from "./diagram-figure";
 import type { buildModel, DiagramSpec, figureKey, figureList, hintEntries, Measured, measureFigure, Model, toHtml } from "./diagram-core";
-import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint, viewerTextWidth } from "./diagram-zoom-core";
+import { attachZoom, drawnSize, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint, viewerTextWidth } from "./diagram-zoom-core";
 import type { ViewerMemo, ZoomController, ZoomState } from "./diagram-zoom-core";
 import { createPortal } from "react-dom";
 
@@ -108,10 +108,10 @@ export function DiagramViewer({ kit, actions, Actions, spec, component, source, 
     return () => { z.destroy(); zoomRef.current = null; observer.disconnect(); stage.removeEventListener("focusin", onFocusIn); };
   }, [stageNode, readStage]);
 
-  // After each layout the zoom learns the drawing's size at 100%: the figure's own box, read with the zoom taken off (offsetWidth ignores the transform).
+  // After each layout the zoom learns the drawing's size at 100%: the drawing's own box, read with the zoom taken off (offsetWidth ignores the transform).
   const onMeasured = React.useCallback((measured: Measured, fig: HTMLElement) => {
     setLayout({ layout: measured.dyn.layout, bare: measured.dyn.bare, open: measured.dyn.open });
-    zoomRef.current?.size(fig.offsetWidth, fig.offsetHeight);
+    zoomRef.current?.size(...drawnSize(fig));
   }, []);
   // The drawing's layout, for an app's action pressed here: the viewer's figure reports it after every layout.
   const laidRef = React.useRef<DiagramLayoutInfo | null>(null);

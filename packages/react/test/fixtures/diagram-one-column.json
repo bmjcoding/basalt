@@ -1,0 +1,304 @@
+{
+ "$comment": "One-column figures of the four kinds the one-column ruling caps (diagrams-cimip ruling 1), and one whose unbreakable word is wider than 480.",
+ "architecture": {
+  "type": "architecture",
+  "title": "How a request reaches the database",
+  "summary": "The browser calls the load balancer, which sends the request to the api service, which reads and writes Aurora.",
+  "legend": {
+   "main": "Request path",
+   "plain": "Call",
+   "focal": "The service"
+  },
+  "nodes": [
+   {
+    "id": "web",
+    "kind": "Client",
+    "name": "Browser",
+    "col": 1,
+    "row": 1
+   },
+   {
+    "id": "alb",
+    "kind": "Load balancer",
+    "name": "ALB",
+    "col": 1,
+    "row": 2
+   },
+   {
+    "id": "svc",
+    "kind": "ECS service",
+    "name": "api service",
+    "detail": "2 tasks",
+    "focal": true,
+    "col": 1,
+    "row": 3
+   },
+   {
+    "id": "db",
+    "kind": "Database",
+    "name": "Aurora",
+    "detail": "PostgreSQL 16",
+    "col": 1,
+    "row": 4
+   }
+  ],
+  "edges": [
+   {
+    "from": "web",
+    "to": "alb",
+    "kind": "main",
+    "label": "HTTPS"
+   },
+   {
+    "from": "alb",
+    "to": "svc",
+    "kind": "main",
+    "label": "HTTP"
+   },
+   {
+    "from": "svc",
+    "to": "db",
+    "label": "SQL"
+   }
+  ]
+ },
+ "flowchart": {
+  "type": "flowchart",
+  "title": "How a decision is recorded",
+  "summary": "The agent asks, CIMIP sets the risk, and the first decision stands.",
+  "legend": {
+   "main": "Usual path",
+   "focal": "CIMIP's own step"
+  },
+  "nodes": [
+   {
+    "id": "req",
+    "shape": "terminal",
+    "name": "Agent asks to run a command",
+    "col": 1,
+    "row": 1
+   },
+   {
+    "id": "risk",
+    "name": "CIMIP sets the risk",
+    "detail": "higher of the agent's and its own",
+    "focal": true,
+    "col": 1,
+    "row": 2
+   },
+   {
+    "id": "done",
+    "shape": "terminal",
+    "name": "The first decision stands",
+    "col": 1,
+    "row": 3
+   }
+  ],
+  "edges": [
+   {
+    "from": "req",
+    "to": "risk",
+    "kind": "main"
+   },
+   {
+    "from": "risk",
+    "to": "done",
+    "kind": "main"
+   }
+  ]
+ },
+ "dataFlow": {
+  "type": "data-flow",
+  "title": "A message, one step in each lane",
+  "summary": "The browser sends a message, the task appends it and Aurora stores the row.",
+  "legend": {
+   "main": "The message's path",
+   "plain": "Housekeeping"
+  },
+  "lanes": [
+   {
+    "id": "b",
+    "label": "The browser"
+   },
+   {
+    "id": "t",
+    "label": "The task"
+   },
+   {
+    "id": "a",
+    "label": "Aurora"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "send",
+    "lane": "b",
+    "name": "Sends a message",
+    "detail": "POST, retry key",
+    "col": 1
+   },
+   {
+    "id": "append",
+    "lane": "t",
+    "name": "Appends it",
+    "detail": "row lock, next seq",
+    "col": 1
+   },
+   {
+    "id": "row",
+    "lane": "a",
+    "name": "Stores the row",
+    "col": 1
+   }
+  ],
+  "edges": [
+   {
+    "from": "send",
+    "to": "append",
+    "kind": "main",
+    "label": "HTTPS"
+   },
+   {
+    "from": "append",
+    "to": "row",
+    "kind": "main",
+    "label": "INSERT"
+   }
+  ]
+ },
+ "schema": {
+  "type": "schema",
+  "title": "Incidents and their events",
+  "summary": "Each room event belongs to one incident, and each membership joins a user to an incident.",
+  "legend": {
+   "plain": "A foreign key, to the key it references"
+  },
+  "tables": [
+   {
+    "name": "incidents",
+    "col": 1,
+    "row": 1,
+    "columns": [
+     {
+      "name": "id",
+      "key": "PK",
+      "type": "uuid"
+     },
+     {
+      "name": "title",
+      "type": "text"
+     },
+     {
+      "name": "opened_at",
+      "type": "timestamptz"
+     }
+    ]
+   },
+   {
+    "name": "room_events",
+    "col": 1,
+    "row": 2,
+    "columns": [
+     {
+      "name": "incident_id",
+      "key": "FK",
+      "references": "incidents.id"
+     },
+     {
+      "name": "seq",
+      "key": "PK",
+      "type": "integer"
+     },
+     {
+      "name": "body",
+      "type": "jsonb"
+     }
+    ]
+   },
+   {
+    "name": "memberships",
+    "col": 1,
+    "row": 3,
+    "columns": [
+     {
+      "name": "incident_id",
+      "key": "FK",
+      "references": "incidents.id"
+     },
+     {
+      "name": "user_id",
+      "key": "PK",
+      "type": "uuid"
+     },
+     {
+      "name": "role",
+      "type": "text"
+     }
+    ]
+   }
+  ]
+ },
+ "wide": {
+  "type": "architecture",
+  "title": "A column with one long word",
+  "summary": "The browser calls the load balancer, which sends the request to the api service, which reads and writes Aurora.",
+  "legend": {
+   "main": "Request path",
+   "plain": "Call",
+   "focal": "The service"
+  },
+  "nodes": [
+   {
+    "id": "web",
+    "kind": "Client",
+    "name": "Browser",
+    "col": 1,
+    "row": 1
+   },
+   {
+    "id": "alb",
+    "kind": "Load balancer",
+    "name": "ALB",
+    "col": 1,
+    "row": 2
+   },
+   {
+    "id": "svc",
+    "kind": "ECS service",
+    "name": "api service",
+    "detail": "arn:aws:ecs:us-east-1:123456789012:service/cimip-production/api-service-blue",
+    "focal": true,
+    "col": 1,
+    "row": 3,
+    "detailMono": true
+   },
+   {
+    "id": "db",
+    "kind": "Database",
+    "name": "Aurora",
+    "detail": "PostgreSQL 16",
+    "col": 1,
+    "row": 4
+   }
+  ],
+  "edges": [
+   {
+    "from": "web",
+    "to": "alb",
+    "kind": "main",
+    "label": "HTTPS"
+   },
+   {
+    "from": "alb",
+    "to": "svc",
+    "kind": "main",
+    "label": "HTTP"
+   },
+   {
+    "from": "svc",
+    "to": "db",
+    "label": "SQL"
+   }
+  ]
+ }
+}

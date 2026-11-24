@@ -221,7 +221,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   and where it is drawn differs by part: foundations' table in "Stages and runs" is the rule.
 - **Diagrams:** monochrome; one focal node, inverted. Three lines named by look (main 2px, plain 1px, dashed), and the key says what
   each means. The drawn layout is used only when it fits (640, the track minimums, a clean seat for every label); otherwise stacked, in
-  the author's order, at most 480 wide. Nothing is cut and nothing overlaps at any width. Ports, routes, groups and foreign keys are derived from one
+  the author's order, at most 480 wide. One column is at most 480 wide, drawn or stacked (or its track's least width where that is more), on the start edge. Nothing is cut and nothing overlaps at any width. Ports, routes, groups and foreign keys are derived from one
   record each. A flowchart's shapes have a 3:1 contour. Tracing changes ink, never weight. The words are in the HTML before script.
   Still by default; `motion="animated"` adds an entrance on view (each line draws once, every word at rest, inside five seconds) and,
   where the data names them, a flow line (cuts, only while they move), a pulse (a bead) or a packet (a dot): one mover a figure, loops

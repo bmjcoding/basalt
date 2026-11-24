@@ -5035,6 +5035,12 @@
     align-items: start;
     max-width: none;
   }
+  /* One column is at most size-breakpoint-container wide, drawn or stacked (the one-column ruling, diagrams-cimip): a drawn layout of one column (not a
+     sequence's, whose columns are participants) is capped on the start edge as the stack is, or at its column's least width where that is more (--_one,
+     written by the engine with the layout, so the cap is in place before the drawing is measured). Before script the same cap, at the token. The room
+     beside it is open page. */
+  .basalt-diagram:not([data-type="sequence"])[data-cols="1"] > .basalt-diagram-drawing { --_d-max: var(--_drawn) max(var(--basalt-size-breakpoint-container), var(--_one, var(--basalt-size-breakpoint-container))); }
+  .basalt-diagram[data-type="schema"][data-cols="1"] > .basalt-diagram-drawing { max-width: var(--_d-max, none); }
   /* A schema that draws cardinality marks (DECISIONS 306, 1.1): its column gap is space-12 plus space-3, so three lanes keep 18 from its tables. */
   .basalt-diagram[data-type="schema"][data-marks] > .basalt-diagram-drawing { --_col-gap: calc(var(--basalt-space-12) + var(--basalt-space-3)); }
   .basalt-diagram[data-type="sequence"] > .basalt-diagram-drawing { display: flex; gap: 0; }
@@ -5793,6 +5799,9 @@
   /* The sizer is as large as the zoomed drawing, plus the padding; its auto margins centre a drawing smaller than the stage and resolve to 0 past it. */
   .basalt-diagram-sizer { position: relative; flex: none; box-sizing: content-box; margin: auto; padding: var(--_pad); }
   .basalt-diagram-sizer[hidden] { display: none; }
+  /* The sizer is the drawing's own box at the zoom (the one-column ruling): a capped column's layer is wider than its drawing, and what is past the drawing
+     is empty, so it is clipped and adds no scroll extent. */
+  .basalt-diagram-sizer { overflow: clip; }
   .basalt-diagram-layer { position: absolute; top: var(--_pad); inset-inline-start: var(--_pad); transform-origin: 0 0; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   .basalt-diagram-layer:dir(rtl) { transform-origin: 100% 0; }
   /* The viewer's figure shows its drawing alone: the dialog holds its title, its key, its hint and its controls. */

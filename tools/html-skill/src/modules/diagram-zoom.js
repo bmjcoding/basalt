@@ -4,7 +4,7 @@
    bundled into this module by build.mjs); the figure is drawn by the diagram module's engine (Basalt._.diagramKit), so this holds no second copy of it.
    compose.mjs adds this module to a page with a figure unless every figure on it says "zoom": false. The implementation hasn't been reviewed.
    Source: tools/html-skill/src/modules/diagram-zoom.js (do not edit the copy in the skill folder). */
-import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint, viewerTextWidth } from "../../../../packages/react/src/diagram-zoom-core.ts";
+import { attachZoom, drawnSize, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint, viewerTextWidth } from "../../../../packages/react/src/diagram-zoom-core.ts";
 
 (function (B) {
   'use strict';
@@ -74,7 +74,9 @@ import { attachZoom, measureViewerFigure, revealIn, VIEWER_KEYS, viewerHint, vie
         bare = Boolean(measured.dyn.bare);
         toggle.hidden = bare;
         showList(listOpen || bare);
-        zoom.size(f.offsetWidth, f.offsetHeight);
+        // The drawing's own box (the one-column ruling): a capped column is fitted and scrolled as its column.
+        var box = drawnSize(f);
+        zoom.size(box[0], box[1]);
       },
     };
     function readStage() {
