@@ -1867,6 +1867,13 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   drawn, the letters set as the tab sets them ("Only if", "Repeats", "One of these"): built in, because they are notation.
 - The summary is required. "View as list" opens the same facts as real lists in the same figure: the parts and connections, a
   flowchart's steps with each exit written once, a data flow's steps, a sequence's messages, a schema's tables.
+- **The foot** holds the figure's controls in one fixed order, `space-2` apart, wrapping from the start edge: "View as list", "Expand",
+  a sequence's run button, "Pause animations", the app's own actions, then "Clear highlight", which is last so that nothing moves when it
+  mounts. Each is a secondary small button with words. **An app's own actions** (`actions`) are the author asking for a control: words
+  only, in the order given, one press each and never a menu, three at most by intent (a development build warns past three, and past 24
+  characters in a label, and draws them as written). Each is busy on its own until its promise settles. They exist once script runs, as
+  "Expand" does, and their code is loaded only by a figure that has some. A press settles a running entrance and hands the action the
+  figure it was pressed in. The foot does not print.
 - The figure's words are in the HTML before script runs, and where scripting is off the list is open. Before script the figure is
   stacked unless it is at least its least width (the track minimums and gaps summed, never under 640); a figure of more than six
   columns is stacked until script.
@@ -1911,8 +1918,11 @@ rim included, with the sheet's head, body and foot. "Expand" is words only. Deci
   trackpad pinch, about the pointer; two fingers on touch, about their midpoint.
 - **Pan is a scroll:** the stage scrolls both ways. A drag past `space-1`, one finger on touch, the wheel, and the scrolling keys
   with the stage focused. No momentum and no rubber band. A drag does not select.
-- **The foot** holds the figure's key at its real size, the key hint, and "View as list", which puts the list in the stage in
-  place of the drawing.
+- **The foot** holds the figure's key at its real size, then one row: the zoom controls at the start, the key hint, and at the end "View
+  as list", which puts the list in the stage in place of the drawing, and after it the app's own actions (all but those marked
+  `inViewer: false`). The end group wraps and is never cut: it is at the row's end while it shares the row, and starts on the start edge
+  on a row of its own. An action pressed here is handed the viewer's drawing: the drawn layout at 100% whatever the zoom, with the list
+  open or closed. On a phone each row of actions takes 52px from the stage.
 - **Focus** opens on the stage (the flush field's inset ring). Esc always closes, and focus returns to "Expand".
 - **A trace works. Nothing else moves:** no entrance, flow, mover or run plays in the viewer, and the page's figure holds its
   loops while it is open.
@@ -2005,12 +2015,14 @@ over its lifeline; a stacked chip draws the mark before the name.
   the reader's "Background graphics" setting (`print-color-adjust: exact`, with the `-webkit-` form).
 - Forced colours: cardinality marks follow their line; an activation's edge is `CanvasText`; a frame's edges are `GrayText`; a
   linked name is `LinkText`, underlined.
-- Print: a figure prints untraced, in its resting ink, and in the light theme whatever the screen shows.
+- Print: a figure prints untraced, in its resting ink, and in the light theme whatever the screen shows. The foot does not print: no
+  control is drawn on paper, and the list prints only where the reader opened it.
 - Right to left: the figure mirrors and its words do not, drawn and stacked (stacked, the rail and the trunk run down the right, a
   branch is indented from the right, and the end lines and the end gutter are on the left). Identifiers are isolated left to right as
   runs; named sides swap; the arrow keys stay physical; the text art stays left to right.
 - Export: a linked card's arrow is not drawn in a file. A PNG is drawn through an image, so under a content policy `img-src` must allow
   `blob:` or `data:`; where it allows neither, `diagramToPng` rejects with an error that says so and no file is made (the SVG needs neither).
+  A figure that is not displayed cannot be measured: the promise rejects with an error that says so and no file is made.
 
 ### Diagram tokens
 
