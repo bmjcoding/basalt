@@ -472,6 +472,26 @@ const staysInFile = (url) => /^(?:#|(?:data|blob|about|javascript|mailto|tel):)/
  */
 function externalReferences(held, markup) {
   const found = new Set();
+  // The URLs of a srcset, read the way HTML reads one: a URL runs to whitespace (a data: URL's own commas included; trailing commas end the
+  // candidate), then its descriptors run to the next comma outside parentheses.
+  const srcsetUrls = (value) => {
+    const out = [];
+    let at = 0;
+    while (at < value.length) {
+      while (at < value.length && /[\s,]/.test(value[at])) at++;
+      let end = at;
+      while (end < value.length && !/\s/.test(value[end])) end++;
+      let url = value.slice(at, end);
+      const bare = url.replace(/,+$/, "");
+      at = end;
+      if (bare.length === url.length) {
+        for (let depth = 0; at < value.length && (depth > 0 || value[at] !== ","); at++) depth += value[at] === "(" ? 1 : value[at] === ")" ? -1 : 0;
+      }
+      url = bare;
+      if (url) out.push(url);
+    }
+    return out;
+  };
   const tags = (text) => {
     for (let at = text.indexOf("<"); at !== -1; at = text.indexOf("<", at + 1)) {
       if (!isAlpha(text[at + 1] ?? "")) continue;
@@ -482,7 +502,7 @@ function externalReferences(held, markup) {
         if (tag.name === "link" && rel === "canonical" && key === "href") continue;
         if (key === "style") for (const url of cssUrls(value)) found.add(`<${tag.name} style> url(${url})`);
         if (!["src", "href", "xlink:href", "data", "poster", "srcset"].includes(key)) continue;
-        const urls = key === "srcset" ? value.split(",").map((candidate) => candidate.trim().split(/\s+/)[0]) : [value];
+        const urls = key === "srcset" ? srcsetUrls(value) : [value];
         for (const url of urls) if (url && !staysInFile(url)) found.add(`<${tag.name} ${key}="${url}">${tag.name === "a" || tag.name === "area" ? " (a link)" : ""}`);
       }
       at = tag.end - 1;

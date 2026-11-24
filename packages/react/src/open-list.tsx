@@ -15,7 +15,7 @@ interface OpenListContext {
   cursor: string | undefined;
   setCursor: (id: string) => void;
 }
-const OpenListState = React.createContext<OpenListContext | null>(null);
+const OpenListState = /* @__PURE__ */ React.createContext<OpenListContext | null>(null);
 
 export interface OpenListProps extends React.ComponentProps<"div"> {
   /** Names the list as a group ("Work"). */

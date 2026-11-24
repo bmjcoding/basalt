@@ -73,9 +73,10 @@
     }
     var span = Math.max(hiPad - loPad, hi0 > 0 ? hi0 : 1);
     var magnitude = Math.floor(Math.log10(Math.max(span, 1e-9)));
-    for (var power = magnitude - 2; power <= magnitude + 2; power++) {
+    // Five powers, counted apart from the exponent: a span that overflows to Infinity has an infinite magnitude, and Infinity + 1 never ends a loop.
+    for (var k = 0; k < 5; k++) {
       for (var b = 0; b < NICE.length; b++) {
-        var step = NICE[b] * Math.pow(10, power);
+        var step = NICE[b] * Math.pow(10, magnitude - 2 + k);
         scale = fit(step);
         if (intervals(scale) <= 5) return intervals(scale) < 2 ? { lo: scale.lo, hi: scale.lo + 2 * step, step: step } : scale;
       }
@@ -83,9 +84,11 @@
     return fit(span);
   }
 
+  // The most gridlines a scale has (scaleOf's 3 to 6, with room); a scale that overflowed draws no more than this and never loops without end.
+  var MOST_TICKS = 12;
   function ticksOf(scale) {
     var out = [];
-    for (var k = 0; k <= Math.round((scale.hi - scale.lo) / scale.step); k++) out.push(Math.round((scale.lo + k * scale.step) * 1e9) / 1e9);
+    for (var k = 0, n = Math.min(Math.round((scale.hi - scale.lo) / scale.step), MOST_TICKS); k <= n; k++) out.push(Math.round((scale.lo + k * scale.step) * 1e9) / 1e9);
     return out;
   }
 

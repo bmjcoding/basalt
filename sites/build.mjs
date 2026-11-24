@@ -32,7 +32,7 @@ const NOT_SITES = new Set(["shared", "test", "dist", "node_modules"]);
 const MIME = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".avif": "image/avif" };
 const DIRECTIVE = /<!--\s*@(include|data)\s+(\S+?)\s*-->/g;
 
-const within = (parent, file) => { const rel = path.relative(parent, file); return rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel); };
+const within = (parent, file) => { const rel = path.relative(parent, file); return rel !== "" && rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel); };
 
 /** The file an include names, or an Error that says which page and which include. */
 function locate(name, { bodyFile, siteDir, sharedDir, brandDir }) {
@@ -45,6 +45,8 @@ function locate(name, { bodyFile, siteDir, sharedDir, brandDir }) {
   else { parent = siteDir; file = path.resolve(path.dirname(bodyFile), name); }
   if (!within(parent, file)) throw fail("reaches outside its folder");
   if (!fs.existsSync(file) || !fs.statSync(file).isFile()) throw fail(`is missing (looked for ${file})`);
+  // The spelled path is inside; so must the file it reaches be, since reading follows a link (compose.mjs checks a diagram's mark the same way).
+  if (!within(fs.realpathSync(parent), fs.realpathSync(file))) throw fail("links outside its folder; put the file itself there");
   return file;
 }
 
@@ -87,7 +89,8 @@ export function buildPage(bodyFile, { outFile, siteDir = path.dirname(bodyFile),
   const { body, includes } = resolveIncludes(finishHeaders(source, bodyFile), { bodyFile, siteDir, sharedDir, brandDir });
   let composed;
   try {
-    composed = compose(body, { fonts });
+    // A diagram's own mark is read from beside the body, wherever the build was started.
+    composed = compose(body, { fonts, baseDir: path.dirname(path.resolve(bodyFile)) });
   } catch (error) {
     throw new Error(`${bodyFile}: ${error.message}`);
   }
@@ -95,7 +98,7 @@ export function buildPage(bodyFile, { outFile, siteDir = path.dirname(bodyFile),
     fs.mkdirSync(path.dirname(outFile), { recursive: true });
     fs.writeFileSync(outFile, composed.html);
   }
-  return { bodyFile, outFile, html: composed.html, includes, modules: composed.modules, icons: composed.icons, bytes: composed.bytes };
+  return { bodyFile, outFile, html: composed.html, includes, modules: composed.modules, icons: composed.icons, external: composed.external, bytes: composed.bytes };
 }
 
 /** Every SITE/PAGE.body.html under `root` (a site is a folder of root that is not shared/, test/ or dist/), as { site, page, bodyFile }. */

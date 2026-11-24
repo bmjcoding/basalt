@@ -87,6 +87,21 @@ describe("the includes", () => {
     assert.throws(() => build("<!-- @include data.json -->"), /inlines \.css, \.js, \.svg and \.html/);
     assert.throws(() => build("<!-- @data data.json -->"), /not an image/);
   });
+
+  test("an include whose path is inside but which links outside is not read (the file it reaches is checked, as a diagram's mark is)", () => {
+    const root = makeRoot({ "a/index.body.html": `x`, "secret.css": `.secret {}`, "secret.png": "png" });
+    fs.symlinkSync(path.join(root, "secret.css"), path.join(root, "a", "linked.css"));
+    fs.symlinkSync(path.join(root, "secret.png"), path.join(root, "a", "linked.png"));
+    const build = (body) => { fs.writeFileSync(path.join(root, "a", "index.body.html"), `<title>A</title>\n${body}\n`); return buildSites({ root, outDir: path.join(root, "out") }); };
+    assert.throws(() => build("<!-- @include linked.css -->"), /links outside its folder/);
+    assert.throws(() => build('<img alt="" src="<!-- @data linked.png -->">'), /links outside its folder/);
+  });
+
+  test("a page's result carries the references that leave the file, for the caller to report", () => {
+    const root = makeRoot({ "a/index.body.html": `<title>A</title>\n<h1>A</h1>\n<img alt="" src="https://cdn.test/x.png">\n` });
+    const page = buildPage(path.join(root, "a", "index.body.html"), { fonts: false });
+    assert.deepEqual(page.external, ['<img src="https://cdn.test/x.png">']);
+  });
 });
 
 describe("pages are found and built per site", () => {

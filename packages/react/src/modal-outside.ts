@@ -29,6 +29,16 @@ export function inertOutside(popup: Element): () => void {
   return () => { for (const control of made) control.removeAttribute("inert"); };
 }
 
+/** `inertOutside`, kept true while the modal is open: a control that mounts outside it later (a live region's new button) is made inert too. Returns the undo. */
+function guardOutside(popup: Element): () => void {
+  const undos = [inertOutside(popup)];
+  const added = new MutationObserver((records) => {
+    if (records.some((record) => record.addedNodes.length > 0 && !popup.contains(record.target))) undos.push(inertOutside(popup));
+  });
+  added.observe(popup.ownerDocument.body, { childList: true, subtree: true });
+  return () => { added.disconnect(); for (const undo of undos) undo(); };
+}
+
 /**
  * A callback ref for a modal's popup (Dialog, AlertDialog, Sheet, CommandMenu): while the popup is mounted and `modal` is true, the controls
  * outside it that Base UI left exposed are inert. Pass the ref the caller gave the popup as `forwarded`, so it still receives the element.
@@ -36,21 +46,29 @@ export function inertOutside(popup: Element): () => void {
 export function useModalOutside<T extends HTMLElement>(forwarded?: React.Ref<T> | undefined, modal = true) {
   const [popup, setPopup] = React.useState<T | null>(null);
   const undo = React.useRef<(() => void) | null>(null);
+  // The popup whose guard the ref's cleanup just lifted. When the caller's ref changes, React detaches the old callback and attaches the new one to the same
+  // popup in one commit: `popup` ends where it was, so the effect does not run again, and the new callback puts the guard back itself.
+  const lifted = React.useRef<T | null>(null);
+  const modalNow = React.useRef(modal);
+  modalNow.current = modal;
   // After the commit that mounts the popup, so Base UI has done its own marking first.
   React.useEffect(() => {
     // A dialog that is not modal (`modal={false}` or `"trap-focus"`) leaves the page usable, so there is nothing to make inert.
     if (!popup || !modal) return undefined;
-    undo.current = inertOutside(popup);
+    undo.current = guardOutside(popup);
     return () => { undo.current?.(); undo.current = null; };
   }, [popup, modal]);
   return React.useCallback((node: T | null) => {
     if (!node) return undefined;
+    if (lifted.current === node && modalNow.current && !undo.current) undo.current = guardOutside(node);
+    lifted.current = null;
     setPopup(node);
     let cleanup: void | (() => void);
     if (typeof forwarded === "function") cleanup = forwarded(node);
     else if (forwarded) (forwarded as React.MutableRefObject<T | null>).current = node;
     return () => {
       // Lifted as the popup leaves, not a render later: the trigger gets focus back as it goes, and an inert one cannot take it.
+      if (undo.current) lifted.current = node;
       undo.current?.();
       undo.current = null;
       setPopup(null);

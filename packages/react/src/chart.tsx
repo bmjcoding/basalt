@@ -182,7 +182,8 @@ const NICE = [1, 2, 2.5, 5];
 /** Round steps, smallest first, from a tenth of the span's magnitude up. */
 function* niceSteps(span: number) {
   const magnitude = Math.floor(Math.log10(Math.max(span, 1e-9)));
-  for (let power = magnitude - 2; power <= magnitude + 2; power++) for (const base of NICE) yield base * 10 ** power;
+  // Five powers, counted apart from the exponent: a span that overflows to Infinity has an infinite magnitude, and Infinity + 1 never ends a loop.
+  for (let k = 0; k < 5; k++) for (const base of NICE) yield base * 10 ** (magnitude - 2 + k);
 }
 
 /** 3 to 6 gridlines on round steps. A bar chart starts at zero; a line chart's scale needn't. */
@@ -209,9 +210,12 @@ function scaleOf(values: number[], bar: boolean, fromZero: boolean, given?: numb
   return fit(span);
 }
 
+/** The most gridlines a scale has (scaleOf's 3 to 6, with room); a scale that overflowed draws no more than this and never loops without end. */
+const MOST_TICKS = 12;
+
 function ticksOf(scale: Scale) {
   const out: number[] = [];
-  for (let k = 0; k <= Math.round((scale.hi - scale.lo) / scale.step); k++) out.push(Math.round((scale.lo + k * scale.step) * 1e9) / 1e9);
+  for (let k = 0, n = Math.min(Math.round((scale.hi - scale.lo) / scale.step), MOST_TICKS); k <= n; k++) out.push(Math.round((scale.lo + k * scale.step) * 1e9) / 1e9);
   return out;
 }
 
@@ -285,7 +289,7 @@ interface Frame { width: number; metrics: Metrics }
 
 interface GroupSizes { gutter: number; right: number }
 interface GroupApi { shared: GroupSizes; report: (id: string, sizes: GroupSizes | null) => void }
-const GroupContext = React.createContext<GroupApi | null>(null);
+const GroupContext = /* @__PURE__ */ React.createContext<GroupApi | null>(null);
 
 export interface ChartGroupProps extends React.ComponentProps<"div"> {
   /** Names the stack for assistive technology when it is more than a layout. */

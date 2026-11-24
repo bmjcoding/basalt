@@ -41,7 +41,7 @@ export function EventText({ verb, object, className, ...props }: EventTextProps)
   return <span {...props} className={join("basalt-event-text", className)}><span className="basalt-event-verb">{verb}</span> <span className="basalt-event-object">{object}</span></span>;
 }
 
-const WidestContext = React.createContext("Mmm 00 00:00 PM");
+const WidestContext = /* @__PURE__ */ React.createContext("Mmm 00 00:00 PM");
 
 export interface EventLogProps extends Omit<React.ComponentProps<"ul">, "children"> {
   /** Names the list. */

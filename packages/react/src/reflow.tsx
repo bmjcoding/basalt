@@ -17,7 +17,7 @@ interface Seat {
   register: (key: string, element: HTMLElement | null) => void;
   phase: (key: string) => Phase;
 }
-const SeatContext = React.createContext<Seat | null>(null);
+const SeatContext = /* @__PURE__ */ React.createContext<Seat | null>(null);
 
 export interface ReflowReport {
   /** The ids shown after the change, in the order drawn. */

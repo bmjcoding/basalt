@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { ChosenLabel } from "./chosen";
 import { Select } from "./choice";
-import { join } from "./utils";
+import { join, safeHref } from "./utils";
 
 export interface LinkTabsProps extends Omit<React.ComponentProps<"nav">, "aria-label"> {
   /** Names the navigation ("What it is"). Required: a page can hold several. The `Select` under 720px wide has the same name. */
@@ -70,7 +70,9 @@ export function LinkTabs({ size = "lg", onNavigate, goToLabel = "Go to", classNa
             if (details.reason !== "item-press") return;
             if (value === null || value === current?.value) return;
             if (onNavigate) onNavigate(value);
-            else window.location.assign(value);
+            // React refuses a script URL in the row's anchor; the same string from the Select is checked here, before the page is sent anywhere.
+            else if (safeHref(value)) window.location.assign(value);
+            else console.error(`Basalt: LinkTabs will not navigate to ${JSON.stringify(value)}: a link must be relative, http, https or mailto`);
           }}
         />
       </div>

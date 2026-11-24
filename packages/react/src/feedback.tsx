@@ -21,6 +21,7 @@ import { inLevel, useFloatingLayer, usePanelLevel, usePopupLevel } from "./layer
 import type { Align, ChangeDetails, CollisionAvoidance, FocusTarget, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopoverHandle, PopupActions, Side } from "./types";
 import { join, withClass } from "./utils";
 import { CONFIRM_MS } from "./constants";
+import { useInRequiredField } from "./field-group";
 import { useJoinedRef, useWriting } from "./wait";
 import type { WritingEmpty } from "./wait";
 
@@ -41,10 +42,11 @@ export interface TextareaProps extends Omit<React.ComponentProps<"textarea">, "c
   writingEmpty?: WritingEmpty;
 }
 
-/** Multi-line text. Inside a `Field` it takes the field's label, description and error. */
+/** Multi-line text. Inside a `Field` it takes the field's label, description and error, and, in a required field, `required`. */
 export function Textarea({ className, rows = 4, id, name, value, defaultValue, disabled, autoFocus, required, readOnly, writing = false, writingEmpty, ref, ...props }: TextareaProps) {
   const own = React.useRef<HTMLTextAreaElement | null>(null);
   const written = useWriting(writing, value, own, writingEmpty);
+  const inRequiredField = useInRequiredField();
   return (
     <BaseField.Control
       id={id}
@@ -53,7 +55,7 @@ export function Textarea({ className, rows = 4, id, name, value, defaultValue, d
       defaultValue={defaultValue}
       disabled={disabled}
       autoFocus={autoFocus}
-      required={required}
+      required={required ?? (inRequiredField || undefined)}
       readOnly={written.busy || readOnly}
       className={join("basalt-input basalt-textarea", className)}
       render={<textarea rows={rows} {...props} ref={useJoinedRef(ref, own)} aria-busy={written.busy ? true : props["aria-busy"]} data-writing={written.shown ? "" : undefined} />}

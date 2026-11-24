@@ -49,6 +49,7 @@
       "files": ["**/test/**", "**/*.test.*"],
       "rules": {
         "no-eval": "off",
+        "import/namespace": "off",
         "no-constant-condition": "off",
         "no-self-assign": "off",
         "oxc/double-comparisons": "off",

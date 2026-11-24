@@ -25,6 +25,11 @@
     return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
   }
 
+  /** A link the script writes or follows from data may be relative, http, https or mailto. javascript:, data: and the rest are refused. Parsed the way a browser parses it. */
+  function safeHref(href) {
+    try { return /^(https?|mailto):$/.test(new URL(String(href), 'https://basalt.invalid/').protocol); } catch (e) { return false; }
+  }
+
   /* ------------------------------------------------------------------ icons */
 
   var warned = {};
@@ -185,6 +190,6 @@
     init: init, icon: icon, hydrateIcons: hydrateIcons, announce: announce,
     getTheme: getTheme, setTheme: setTheme, toggleTheme: toggleTheme,
     // For the modules and compose.mjs; not part of the page API.
-    _: { esc: esc, reserve: reserve, icon: icon, announce: announce, getTheme: getTheme, setTheme: setTheme, step: step, onTheme: onTheme, addIcons: function (data) { for (var k in data) ICONS[k] = data[k]; } }
+    _: { esc: esc, safeHref: safeHref, reserve: reserve, icon: icon, announce: announce, getTheme: getTheme, setTheme: setTheme, step: step, onTheme: onTheme, addIcons: function (data) { for (var k in data) ICONS[k] = data[k]; } }
   };
 })();
