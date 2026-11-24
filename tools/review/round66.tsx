@@ -54,7 +54,8 @@ const DATA_FLOW_PARTS: Inline = (() => {
   for (const n of d.nodes) if (n.id === "seg") n.mark = awsS3Bucket;
   // A dashed flow (1.5): the batch line's own dashes march. Two more lines make two cards entered by several end lines (1.3), seen stacked.
   d.edges = [...d.edges.map((e) => (e.kind === "dashed" ? { ...e, flow: true } : e)), { from: "append", to: "seal", label: "window check" }, { from: "hear", to: "seg", label: "cursor sync" }];
-  return { ...d, title: "How one message reaches everyone in the room (extended)", motion: "animated", summary: `${String(d.summary)} Two more lines show several end lines entering one card when it is stacked.` };
+  // Still, so the shot shows every line (an animated figure's lines wait until it comes into view); its flow marches where motion is asked for.
+  return { ...d, title: "How one message reaches everyone in the room (extended)", summary: `${String(d.summary)} Two more lines show several end lines entering one card when it is stacked.` };
 })();
 const schemaTable = (name: string, row: number, refs: string[] = []) => ({ name, col: 1, row, columns: [{ name: "id", key: "PK" }, ...refs.map((r) => ({ name: `${r}_id`, key: "FK", references: `${r}.id` }))] });
 const CALL_2: Inline = { type: "schema", title: "One column: turn-backs beside each other take lanes (section 4, call 2)", summary: "b references c and c references a; their turn-backs run beside each other down the column's end side, so each takes a lane.", legend: { plain: "A foreign key" }, tables: [schemaTable("a", 1), schemaTable("b", 2, ["c"]), schemaTable("c", 3, ["a"])] };
@@ -245,7 +246,7 @@ export const ROUND_66: Round = {
       decisions: [
         ...COMMON,
         "A step's mark (1.6) is 16px in its top end corner; the lane's label counts as the step's words, so \"S3\" says what the mark stands for.",
-        "A dashed flow (1.5): one period every 625ms, the dashes where the key draws them whenever they rest.",
+        "A dashed flow (1.5): one period every 625ms, the dashes where the key draws them whenever they rest. The figure here is still, so its lines show in the shot: with motion=\"animated\" the batch line's dashes march.",
         "Several end lines into one card (1.3): the outermost lane's line turns lowest and enters nearest the end edge; each further in turns space-5 higher and enters space-3 further in; their labels sit space-2-5 clear of the innermost entry, each on its own turn's height.",
       ],
       tryIt: ["Narrow to 390: the two cards entered by two end lines show the nesting and the labels' seats."],
