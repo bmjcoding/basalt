@@ -4661,8 +4661,9 @@
     border: var(--basalt-size-hairline) dashed var(--basalt-diagram-structure);
     border-radius: var(--basalt-radius-lg);
   }
+  .basalt-diagram-group { --_tl: 0; }
   .basalt-diagram-group:first-child { margin-block-start: 0; }
-  .basalt-diagram-group[data-turn] { padding-block-start: calc(var(--basalt-space-8) + var(--basalt-space-4)); }
+  .basalt-diagram-group[data-turn] { padding-block-start: calc(var(--basalt-space-12) + var(--basalt-space-4) * var(--_tl, 0)); }
   .basalt-diagram-group > .basalt-diagram-glabel + .basalt-diagram-node { --_d-mt: 0; }
   .basalt-diagram-glabel { position: absolute; top: var(--basalt-space-2); inset-inline-start: var(--basalt-space-3); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); white-space: nowrap; }
   .basalt-diagram-group > .basalt-diagram-glabel { --_d-gl: var(--_drawn) none; display: var(--_d-gl, block); }

@@ -1211,8 +1211,12 @@ function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
     // A group whose first card is entered by a turn (a trunk or an end line) has space-12 above it, so the turn runs under its label, not behind it
     // (DECISIONS 306, 1.3, the decider's answer 1 to the pixel review). The label keeps its place in the first space-8.
     const first = run[0]!;
-    const turn = Boolean(ctx.plan) && first.group === g.id && m.edges.some((e, k) => e.to === first.id && (ctx.plan!.routes[k] === "trunk" || ctx.plan!.routes[k] === "end-down"));
-    return h("div", { class: `${P}-group`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, "data-turn": turn ? "" : undefined, style: grow ? `--_ggrow:${grow}` : undefined }, h("span", { class: `${P}-glabel`, "aria-hidden": "true" }, g.label), kids);
+    const turns = ctx.plan && first.group === g.id ? m.edges.filter((e, k) => e.to === first.id && (ctx.plan!.routes[k] === "trunk" || ctx.plan!.routes[k] === "end-down")) : [];
+    // A labelled turn's label is seated beside its turn, inside the group (the decider's ruling 4 on the re-check): the group has space-4 more above for each
+    // line of the longest such label, so nothing grows above the group for it.
+    const lines = Math.max(0, ...turns.map((e) => (e.label ? labelLines(e.label) : 0)));
+    const style = [grow ? `--_ggrow:${grow}` : "", lines ? `--_tl:${lines}` : ""].filter(Boolean).join(";");
+    return h("div", { class: `${P}-group`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, "data-turn": turns.length ? "" : undefined, style: style || undefined }, h("span", { class: `${P}-glabel`, "aria-hidden": "true" }, g.label), kids);
   };
   let k = 0;
   while (k < m.nodes.length) {
@@ -2646,6 +2650,10 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
   });
   const order = m.nodes;
   const card = (i: number) => map.get(order[i]!.id)!;
+  // The first card of a group entered by a turn (ruling 4 on the re-check): its turn's label takes the first seat beside the turn that clears the card, a
+  // line at a time up into the room the group keeps for it, never above the group's edge (the group's edge and label are obstacles).
+  const turnInto = (id: string) => { const el = drawing.querySelector<HTMLElement>(`.${P}-node[data-node="${CSS.escape(id)}"]`); const g = el?.parentElement; return Boolean(g?.matches(`.${P}-group[data-turn]`) && g.querySelector(`:scope > .${P}-node`) === el); };
+  const beside = (box: Rect, id: string, lh: number) => (turnInto(id) ? Array.from({ length: Math.round(lh / 16) + 1 }, (_, j) => ({ ...box, t: box.t - j * s("4"), b: box.b - j * s("4") })) : [box]);
   // Each label's seats, in the order they are tried: a stem's are its clear shaft's middle and then its thirds (1.8's order); every other
   // route has its one fixed seat (1.13).
   const labelSeats: Array<{ k: number; cands: Rect[]; on: boolean; card: string }> = [];
@@ -2694,7 +2702,7 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
         const ex = sn.x(b.rect.l + s("6"), w);
         const ty = sn.y(b.rect.t - turn, w);
         pts = [start, { x, y: ty }, { x: ex, y: ty }, contour(b, "top", ex)];
-        if (label) labelSeats.push({ k, cands: lineSeats({ l: ex + s("2-5"), r: ex + s("2-5") + lw, t: ty - lh / 2, b: ty + lh / 2 }, e.to, -1), on: false, card: e.to });
+        if (label) labelSeats.push({ k, cands: [...beside({ l: ex + s("2-5"), r: ex + s("2-5") + lw, t: ty - lh / 2, b: ty + lh / 2 }, e.to, lh), ...lineSeats({ l: ex + s("2-5"), r: ex + s("2-5") + lw, t: ty - lh / 2, b: ty + lh / 2 }, e.to, -1).slice(1)], on: false, card: e.to });
       }
     } else {
       // An end line: out the end side, along the end lane or the gutter, into the card's top (down) or bottom (up), space-6 in from its end edge.
@@ -2715,7 +2723,7 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
       const ty = sn.y(tyRaw, w);
       pts = [exit, { x: laneX, y: exit.y }, { x: laneX, y: ty }, { x: ex, y: ty }, contour(b, down ? "top" : "bottom", ex)];
       const into = down ? e.to : order[b.i + 1]?.id ?? e.to;
-      if (label) labelSeats.push({ k, cands: lineSeats({ l: innerEx - s("2-5") - lw, r: innerEx - s("2-5"), t: tyRaw - lh / 2, b: tyRaw + lh / 2 }, into, down ? -1 : 1), on: false, card: into });
+      if (label) labelSeats.push({ k, cands: [...(down ? beside({ l: innerEx - s("2-5") - lw, r: innerEx - s("2-5"), t: tyRaw - lh / 2, b: tyRaw + lh / 2 }, into, lh) : [{ l: innerEx - s("2-5") - lw, r: innerEx - s("2-5"), t: tyRaw - lh / 2, b: tyRaw + lh / 2 }]), ...lineSeats({ l: innerEx - s("2-5") - lw, r: innerEx - s("2-5"), t: tyRaw - lh / 2, b: tyRaw + lh / 2 }, into, down ? -1 : 1).slice(1)], on: false, card: into });
     }
     const snapped = snapRoute(pts, w, sn);
     geo.lines.push({ i: k, from: e.from, to: e.to, kind: e.kind, pts: snapped, tip: snapped[snapped.length - 1]!, dir: finish(snapped), width: w });
@@ -3102,7 +3110,7 @@ export function keyTarget(m: Model, from: string, key: string, drawn = false, rt
 const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "tabindex", "data-stops", "hidden", "data-art"];
 // The figure's grid attributes follow the model too: an automatic figure's direction can change its columns after script (Neon's B8 of the code review).
 const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-motion", "data-first-visit", "data-rtl", "data-cols", "data-reach", "data-gutter", "data-marks"];
-const MANAGED_STYLE = ["--_track", "--_h", "--_ww", "--_gap", "--_ggrow", "--_gpad", "--_gw", "--_mh", "--_rows", "--_row-gap"];
+const MANAGED_STYLE = ["--_track", "--_h", "--_ww", "--_gap", "--_ggrow", "--_tl", "--_gpad", "--_gw", "--_mh", "--_rows", "--_row-gap"];
 const absent = (value: VAttrs[string]) => value === undefined || value === null || value === false;
 function pairs(el: Element, v: VElement): boolean {
   if (el.tagName.toLowerCase() !== v.t) return false;
