@@ -440,6 +440,11 @@
   .basalt-button-check[data-glyph] > .basalt-icon { grid-area: 1 / 1; }
   .basalt-button-check[data-glyph] > .basalt-icon:first-child { opacity: 1; }
   .basalt-button[aria-pressed="true"] > .basalt-button-check[data-glyph] > .basalt-icon:first-child { opacity: 0; }
+  /* A pressed toggle's glyph that changes without a flight (reduced motion; held pause and play, which the engine does not morph): the two settled
+     drawings in one tile, the leaving one fading out as the arriving one fades in, over duration-fast on ease-out (DECISIONS 361). Opacity only, so
+     it runs under reduced motion; both are currentColor, so forced colours needs nothing. The engine clears it when the arriving group ends. */
+  .basalt-icon > [data-fade="out"] { animation: basalt-glyph-fade-out var(--basalt-duration-fast) var(--basalt-ease-out) both; }
+  .basalt-icon > [data-fade="in"] { animation: basalt-fade-in var(--basalt-duration-fast) var(--basalt-ease-out) both; }
   .basalt-button.basalt-button[aria-pressed="true"][data-variant="secondary"],
   .basalt-button.basalt-button[aria-pressed="true"][data-variant="ghost"] {
     background: var(--basalt-plate);
@@ -3919,6 +3924,10 @@
 
   @keyframes basalt-fade-in {
     from { opacity: 0; }
+  }
+
+  @keyframes basalt-glyph-fade-out {
+    to { opacity: 0; }
   }
 
   @keyframes basalt-breathe {

@@ -74,7 +74,7 @@ export type ButtonProps = BaseProps &
   ButtonToggle & {
     /**
      * An icon before the label. On a toggle (`pressed`, which needs it) it is the toggle's glyph, shown at rest; pressed shows its selected form, or
-     * the core check in the same seat where the glyph has none (an action glyph such as pause, a long-tail glyph not `fillSafe`). The two crossfade.
+     * the core check in the same seat where the glyph has none (an action glyph, which keeps its drawing; pause is the one that fills; a long-tail glyph not `fillSafe`). The two crossfade.
      */
     icon?: IconComponent;
     /** An icon after the label, e.g. a caret. A button that opens a new tab has no other trailing icon, so this is ignored there. */
@@ -167,7 +167,7 @@ export function Button({ variant = "secondary", size = "md", fullWidth, edge, ic
       onClick={wait.press}
     >
       {icon && done !== undefined && !toggles ? <DoneSeat icon={icon} doneIcon={doneIcon} done={done} size={iconSize(size)} selected={false} fillSafe={fillSafe} /> : null}
-      {icon && !(toggles && !own) && !(done !== undefined && !toggles) ? <ControlIcon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} eager={toggles} /> : null}
+      {icon && !(toggles && !own) && !(done !== undefined && !toggles) ? <ControlIcon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} eager={toggles} crossfade={toggles} /> : null}
       {/* A text toggle's seat holds its glyph at rest and, pressed, the check where the glyph has no selected form; the two crossfade, so both states are one width. */}
       {toggles && icon && !own ? (
         <span className="basalt-button-check" data-glyph="" aria-hidden="true">
@@ -281,7 +281,7 @@ export function IconButton({ variant = "ghost", size = "md", fullWidth, edge, ic
       {done !== undefined ? (
         <DoneSeat icon={icon} doneIcon={doneIcon} done={done} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} />
       ) : (
-        <ControlIcon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} eager={toggles} />
+        <ControlIcon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} eager={toggles} crossfade={toggles} />
       )}
       {loading ? <span className="basalt-button-spinner" aria-hidden="true"><Spinner size={size === "xl" ? 20 : 16} /></span> : null}
     </BaseButton>

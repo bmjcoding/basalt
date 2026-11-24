@@ -174,6 +174,20 @@ export function DrawingSvg({ drawing, size = 16, ...rest }: { drawing: Drawing; 
 }
 
 /**
+ * Two settled drawings in one tile, crossfading: the leaving one (`data-fade="out"`) and the arriving one (`data-fade="in"`), each whole, the
+ * leaving one keeping its fill to its last frame. One element, so the seat's box does not change; the stylesheet runs the fade over `duration-fast`.
+ */
+export function CrossfadeSvg({ from, to, size = 16, ...rest }: { from: Drawing; to: Drawing; size?: number | string } & Omit<React.SVGProps<SVGSVGElement>, "ref" | "width" | "height" | "from" | "to">) {
+  const uid = React.useId();
+  return (
+    <svg {...rest} width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <g data-fade="out">{paths(from, `${uid}out`)}</g>
+      <g data-fade="in">{paths(to, `${uid}in`)}</g>
+    </svg>
+  );
+}
+
+/**
  * Make a core glyph into an icon component. A glyph draws at rest unless `weight` is "fill", which `Icon` passes for
  * `selected`; any other weight is ignored, since the set has one weight.
  */
