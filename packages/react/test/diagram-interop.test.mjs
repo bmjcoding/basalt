@@ -100,7 +100,7 @@ describe("all five CIMIP fixtures: determinism, schemas, glue and exact port axi
     });
   }
 
-  test("architecture RunTask (svc -> ecs) in .vsdx glues Begin/End to exact Connection rows and rejects proof-style 0.5px drift", () => {
+  test("architecture RunTask (svc -> ecs) in .vsdx: a free Begin on svc's bottom at 0.25, End glued to its exact Connection row, proof-style 0.5px drift rejected", () => {
     const runTaskGlue = (page1) => {
       const svc = page1.match(/<Shape ID="(\d+)" NameU="Node_svc"[^>]*>([\s\S]*?)<\/Shape>/);
       const ecs = page1.match(/<Shape ID="(\d+)" NameU="Node_ecs"[^>]*>([\s\S]*?)<\/Shape>/);
@@ -109,7 +109,7 @@ describe("all five CIMIP fixtures: determinism, schemas, glue and exact port axi
       const cellV = (b, n) => Number(b.match(new RegExp(`<Cell N="${n}" V="([^"]+)"`))?.[1]);
       const beginConn = page1.match(new RegExp(`<Connect FromSheet="${runTask[1]}" FromCell="BeginX" FromPart="9" ToSheet="${svc[1]}" ToCell="Connections\\.X(\\d+)" ToPart="(\\d+)"\\/>`));
       const endConn = page1.match(new RegExp(`<Connect FromSheet="${runTask[1]}" FromCell="EndX" FromPart="12" ToSheet="${ecs[1]}" ToCell="Connections\\.X(\\d+)" ToPart="(\\d+)"\\/>`));
-      assert.ok(beginConn && endConn, "RunTask glued from Node_svc to Node_ecs");
+      assert.ok(endConn, "RunTask End glued to Node_ecs");
       const connPt = (shapeBody, ix) => {
         const row = shapeBody.match(new RegExp(`<Row T="Connection" IX="${ix}">[\\s\\S]*?<Cell N="X" V="([^"]+)"(?: F="Width\\*([^"]+)")?\\/>[\\s\\S]*?<Cell N="Y" V="([^"]+)"(?: F="Height\\*([^"]+)")?\\/>`));
         assert.ok(row, `Connection IX=${ix} present`);
@@ -118,15 +118,21 @@ describe("all five CIMIP fixtures: determinism, schemas, glue and exact port axi
         const x = ox + Number(row[1]), y = oy + Number(row[3]);
         return { x, y, fx: row[2] ? ox + w * Number(row[2]) : x, fy: row[4] ? oy + h * Number(row[4]) : y };
       };
-      const from = connPt(svc[2], Number(beginConn[2]) - 100), to = connPt(ecs[2], Number(endConn[2]) - 100);
+      const svcEdge = {
+        x: cellV(svc[2], "PinX") - cellV(svc[2], "LocPinX") + 0.25 * cellV(svc[2], "Width"),
+        y: cellV(svc[2], "PinY") - cellV(svc[2], "LocPinY"),
+      };
+      const from = beginConn ? connPt(svc[2], Number(beginConn[2]) - 100) : { ...svcEdge, fx: svcEdge.x, fy: svcEdge.y };
+      const to = connPt(ecs[2], Number(endConn[2]) - 100);
       const b = { x: cellV(runTask[2], "BeginX"), y: cellV(runTask[2], "BeginY") }, e = { x: cellV(runTask[2], "EndX"), y: cellV(runTask[2], "EndY") };
       const off = (p, c) => Math.max(Math.abs(p.x - c.x), Math.abs(p.y - c.y), Math.abs(p.x - c.fx), Math.abs(p.y - c.fy));
-      return { runTask, begin: b, end: e, from, to, beginOff: off(b, from), endOff: off(e, to) };
+      return { runTask, begin: b, end: e, from, to, beginConn, beginOff: off(b, from), endOff: off(e, to) };
     };
 
     const page1 = readZipEntries(interop.diagramToVsdx(CIMIP.architecture)).get("visio/pages/page1.xml").toString("utf8");
-    const { runTask, begin, end, from, to, beginOff, endOff } = runTaskGlue(page1);
-    assert.ok(beginOff <= 2e-6, `RunTask Begin (${begin.x},${begin.y}) on its Connection row (${from.x},${from.y}; formula ${from.fx},${from.fy})`);
+    const { runTask, begin, end, from, to, beginConn, beginOff, endOff } = runTaskGlue(page1);
+    assert.equal(beginConn, null, "RunTask leaves svc's bottom at 0.25, so its Begin is free at its exact point (Lucid moves a glued one about 1px)");
+    assert.ok(beginOff <= 2e-6, `RunTask Begin (${begin.x},${begin.y}) on Node_svc bottom 0.25 edge (${from.x},${from.y})`);
     assert.ok(endOff <= 2e-6, `RunTask End (${end.x},${end.y}) on its Connection row (${to.x},${to.y}; formula ${to.fx},${to.fy})`);
 
     const rows = [...runTask[2].matchAll(/<Row T="(MoveTo|LineTo)" IX="\d+"><Cell N="X" V="([^"]+)"(?: F="[^"]*")?\/><Cell N="Y" V="([^"]+)"(?: F="[^"]*")?\/><\/Row>/g)];
@@ -139,6 +145,54 @@ describe("all five CIMIP fixtures: determinism, schemas, glue and exact port axi
     const proofGlue = runTaskGlue(proofEntries.get("visio/pages/page1.xml").toString("utf8"));
     assert.ok(proofGlue.beginOff > 0.005 && proofGlue.beginOff < 0.0055, `the proof's RunTask Begin is 0.5 px off its Connection row (${proofGlue.beginOff} in)`);
     assert.throws(() => assertValidVsdx(proofEntries, CIMIP.architecture, "runtask-jog-proof"), /Connector_\d+: Begin .* != Connection/);
+  });
+
+  test("architecture-auto in .vsdx: HTTP + SSE and inference are free only at their off-centre top and bottom ends; every other end stays glued", async () => {
+    const placed = await interop.placeAutoDiagram(CIMIP_B.autoArchitecture);
+    const page1 = readZipEntries(interop.diagramToVsdx(placed)).get("visio/pages/page1.xml").toString("utf8");
+    const shapes = [...page1.matchAll(/<Shape ID="(\d+)" NameU="([^"]+)"[^>]*>([\s\S]*?)<\/Shape>/g)].map((m) => ({ id: m[1], nameU: m[2], body: m[3] }));
+    const label = (text) => {
+      const el = shapes.find((s) => s.nameU.startsWith("EdgeLabel_") && s.body.includes(`<pp IX="0"/>${text}</Text>`));
+      assert.ok(el, `label ${text} present`);
+      return shapes.find((s) => s.nameU === `Connector_${el.nameU.slice("EdgeLabel_".length)}`);
+    };
+    const glued = (c, part) => new RegExp(`<Connect FromSheet="${c.id}" FromCell="[^"]+" FromPart="${part}"`).test(page1);
+    const sse = label("HTTP + SSE"), inference = label("inference");
+    assert.ok(!glued(sse, 9) && glued(sse, 12), "HTTP + SSE: Begin (svc's bottom, off-centre) free, End glued");
+    assert.ok(glued(inference, 9) && !glued(inference, 12), "inference: Begin glued, End (Bedrock's top, off-centre) free");
+    const connectors = shapes.filter((s) => s.nameU.startsWith("Connector_"));
+    const free = connectors.flatMap((c) => [glued(c, 9) ? [] : [`${c.nameU} Begin`], glued(c, 12) ? [] : [`${c.nameU} End`]].flat());
+    assert.deepEqual(free.sort(), [`${sse.nameU} Begin`, `${inference.nameU} End`].sort(), "only those two ends are free");
+    assertValidVsdx(interop.diagramToVsdx(placed), placed, "autoArchitecture/light");
+  });
+
+  test("edge labels in .vsdx: a backdrop the colour of the page (white in light, on Lucid's and Visio's canvas) sized as Basalt sizes its plate", () => {
+    const unescape = (s) => s.replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+    for (const [key, spec] of [["architecture", CIMIP.architecture], ["sequence", CIMIP.sequence], ["dataFlow", CIMIP.dataFlow]]) {
+      for (const theme of ["light", "dark"]) {
+        const page1 = readZipEntries(interop.diagramToVsdx(spec, { theme })).get("visio/pages/page1.xml").toString("utf8");
+        const labels = [...page1.matchAll(/<Shape ID="\d+" NameU="EdgeLabel_\d+" Name="([^"]*)"[^>]*>([\s\S]*?)<\/Shape>/g)];
+        assert.ok(labels.length > 0, `${key}/${theme}: labels present`);
+        for (const [, name, body] of labels) {
+          const text = unescape(name);
+          const cell = (n) => body.match(new RegExp(`<Cell N="${n}" V="([^"]+)"`))?.[1];
+          assert.equal(cell("FillForegnd"), theme === "light" ? "#ffffff" : "#000000", `${key}/${theme} ${text}: backdrop in the page's colour`);
+          assert.equal(cell("FillPattern"), "1", `${key}/${theme} ${text}: backdrop opaque`);
+          const words = Math.max(...text.split("\n").map((line) => line.length * 7.2));
+          const w = Math.round(Number(cell("Width")) * 96 * 100) / 100;
+          const h = Math.round(Number(cell("Height")) * 96 * 100) / 100;
+          const hasNote = /<cp IX="1"\/>/.test(body);
+          if (key === "sequence") {
+            if (!hasNote) assert.ok(Math.abs(w - (words + 12)) <= 0.02, `${key}/${theme} ${text}: words plus space-1-5 a side (${w} vs ${words + 12})`);
+            assert.equal(h, hasNote ? 32 : 16, `${key}/${theme} ${text}: ${hasNote ? 32 : 16}px tall`);
+          } else {
+            const pads = [words, words + 8].map((v) => Math.round(v * 100) / 100);
+            assert.ok(pads.some((v) => Math.abs(w - v) <= 0.02), `${key}/${theme} ${text}: its words (${pads[0]}) or its words plus space-1 a side (${pads[1]}), got ${w}`);
+            assert.equal(h, 16 * text.split("\n").length, `${key}/${theme} ${text}: 16px a line`);
+          }
+        }
+      }
+    }
   });
 });
 

@@ -384,7 +384,7 @@ export function assertValidVsdx(bytes, spec, context) {
     .map((m) => ({ fromSheet: m[1], fromCell: m[2], fromPart: Number(m[3]), toSheet: m[4], toCell: m[5], toPart: Number(m[6]) }));
 
   assert.equal(connectors.length, expectedEdgeCount(spec), `${context}: exact single 1-D connector count`);
-  assert.equal(connects.length, connectors.length * 2, `${context}: 2 Connect records per connector`);
+  assert.ok(connects.length <= connectors.length * 2, `${context}: at most 2 Connect records per connector`);
 
   const expectCard = schemaHasCardinality(spec);
   let gluedToBar = 0;
@@ -401,38 +401,64 @@ export function assertValidVsdx(bytes, spec, context) {
 
     const beginConn = connects.find((k) => k.fromSheet === c.id && k.fromPart === 9);
     const endConn = connects.find((k) => k.fromSheet === c.id && k.fromPart === 12);
-    assert.ok(beginConn && endConn, `${context} ${c.nameU}: missing Begin/End Connect elements`);
-    assert.match(cellFormula(c.body, "BeginX") ?? "", new RegExp(`Sheet\\.${beginConn.toSheet}!Connections\\.X${beginConn.toPart - 99}\\b`));
-    assert.match(cellFormula(c.body, "EndX") ?? "", new RegExp(`Sheet\\.${endConn.toSheet}!Connections\\.X${endConn.toPart - 99}\\b`));
-
-    const fromShape = byId.get(beginConn.toSheet);
-    const toShape = byId.get(endConn.toSheet);
-    assert.ok(fromShape && toShape, `${context} ${c.nameU}: glued shapes exist`);
-    if (fromShape.nameU.startsWith("Bar_") || toShape.nameU.startsWith("Bar_")) gluedToBar++;
-    const fc = fromShape.conns.find((r) => r.ix === beginConn.toPart - 100);
-    const tc = toShape.conns.find((r) => r.ix === endConn.toPart - 100);
-    assert.ok(fc && tc, `${context} ${c.nameU}: Connection rows exist for ToPart`);
-
-    const startPort = {
-      x: fromShape.pinX - fromShape.locPinX + fc.x,
-      y: fromShape.pinY - fromShape.locPinY + fc.y,
-    };
-    const endPort = {
-      x: toShape.pinX - toShape.locPinX + tc.x,
-      y: toShape.pinY - toShape.locPinY + tc.y,
-    };
     const bx = Number(cellVal(c.body, "BeginX"));
     const by = Number(cellVal(c.body, "BeginY"));
     const ex = Number(cellVal(c.body, "EndX"));
     const ey = Number(cellVal(c.body, "EndY"));
-    assert.ok(Math.abs(bx - startPort.x) <= 2e-6 && Math.abs(by - startPort.y) <= 2e-6,
-      `${context} ${c.nameU}: Begin (${bx},${by}) != Connection (${startPort.x},${startPort.y})`);
-    assert.ok(Math.abs(ex - endPort.x) <= 2e-6 && Math.abs(ey - endPort.y) <= 2e-6,
-      `${context} ${c.nameU}: End (${ex},${ey}) != Connection (${endPort.x},${endPort.y})`);
+
+    let startPort = { x: bx, y: by };
+    if (beginConn) {
+      assert.match(cellFormula(c.body, "BeginX") ?? "", new RegExp(`Sheet\\.${beginConn.toSheet}!Connections\\.X${beginConn.toPart - 99}\\b`));
+      const fromShape = byId.get(beginConn.toSheet);
+      assert.ok(fromShape, `${context} ${c.nameU}: glued source shape exists`);
+      if (fromShape.nameU.startsWith("Bar_")) gluedToBar++;
+      const fc = fromShape.conns.find((r) => r.ix === beginConn.toPart - 100);
+      assert.ok(fc, `${context} ${c.nameU}: source Connection row exists for ToPart`);
+      startPort = { x: fromShape.pinX - fromShape.locPinX + fc.x, y: fromShape.pinY - fromShape.locPinY + fc.y };
+      assert.ok(Math.abs(bx - startPort.x) <= 2e-6 && Math.abs(by - startPort.y) <= 2e-6,
+        `${context} ${c.nameU}: Begin (${bx},${by}) != Connection (${startPort.x},${startPort.y})`);
+    }
+    let endPort = { x: ex, y: ey };
+    if (endConn) {
+      assert.match(cellFormula(c.body, "EndX") ?? "", new RegExp(`Sheet\\.${endConn.toSheet}!Connections\\.X${endConn.toPart - 99}\\b`));
+      const toShape = byId.get(endConn.toSheet);
+      assert.ok(toShape, `${context} ${c.nameU}: glued target shape exists`);
+      if (toShape.nameU.startsWith("Bar_")) gluedToBar++;
+      const tc = toShape.conns.find((r) => r.ix === endConn.toPart - 100);
+      assert.ok(tc, `${context} ${c.nameU}: target Connection row exists for ToPart`);
+      endPort = { x: toShape.pinX - toShape.locPinX + tc.x, y: toShape.pinY - toShape.locPinY + tc.y };
+      assert.ok(Math.abs(ex - endPort.x) <= 2e-6 && Math.abs(ey - endPort.y) <= 2e-6,
+        `${context} ${c.nameU}: End (${ex},${ey}) != Connection (${endPort.x},${endPort.y})`);
+    }
 
     const geomRows = [...c.body.matchAll(/<Row T="(MoveTo|LineTo)" IX="\d+"><Cell N="X" V="([^"]+)"(?: F="[^"]*")?\/><Cell N="Y" V="([^"]+)"(?: F="[^"]*")?\/><\/Row>/g)]
       .map((m) => ({ x: bx + Number(m[2]), y: by + Number(m[3]) }));
     assertAxisAlignedRoute(geomRows, startPort, endPort, 2e-5, `${context} vsdx ${c.nameU}`);
+  }
+
+  // Lucidchart moves an end glued to a box's top or bottom away from the side's midpoint about 1px and steps the line
+  // to rejoin it (the owner's round-3 imports), so exactly those ends are free, at their exact point with no formula;
+  // every other end is glued.
+  const nodes = [...byId.values()].filter((s) => s.nameU.startsWith("Node_"));
+  const offCentreTopBottom = (shape, x, y) => {
+    const left = shape.pinX - shape.locPinX, bottom = shape.pinY - shape.locPinY;
+    const onTopOrBottom = Math.abs(y - bottom) <= 2e-6 || Math.abs(y - (bottom + shape.h)) <= 2e-6;
+    return onTopOrBottom && x >= left - 2e-6 && x <= left + shape.w + 2e-6 && Math.abs(x - shape.pinX) > 1e-4;
+  };
+  for (const c of connectors) {
+    for (const [end, part, cx, cy] of [["Begin", 9, "BeginX", "BeginY"], ["End", 12, "EndX", "EndY"]]) {
+      const k = connects.find((r) => r.fromSheet === c.id && r.fromPart === part);
+      const x = Number(cellVal(c.body, cx)), y = Number(cellVal(c.body, cy));
+      if (k) {
+        const shape = byId.get(k.toSheet);
+        if (shape.nameU.startsWith("Node_")) {
+          assert.ok(!offCentreTopBottom(shape, x, y), `${context} ${c.nameU}: ${end} glued off-centre on ${shape.nameU}'s top or bottom, which Lucid moves`);
+        }
+      } else {
+        assert.equal(cellFormula(c.body, cx), undefined, `${context} ${c.nameU}: free ${end} has no glue formula`);
+        assert.ok(nodes.some((n) => offCentreTopBottom(n, x, y)), `${context} ${c.nameU}: ${end} (${x},${y}) is free but not off-centre on a box's top or bottom`);
+      }
+    }
   }
 
   for (const c of connectors) {
@@ -440,6 +466,7 @@ export function assertValidVsdx(bytes, spec, context) {
     const beginConn = connects.find((k) => k.fromSheet === c.id && k.fromPart === 9);
     const endConn = connects.find((k) => k.fromSheet === c.id && k.fromPart === 12);
     for (const k of [beginConn, endConn]) {
+      if (!k) continue;
       const portKey = `${k.toSheet}:${k.toPart}`;
       assert.ok(!usedPorts.has(portKey), `${context} ${c.nameU}: port ${portKey} shared by multiple connectors`);
       usedPorts.add(portKey);
@@ -449,14 +476,15 @@ export function assertValidVsdx(bytes, spec, context) {
   const pagesXml = entries.get("visio/pages/pages.xml").toString("utf8");
   assert.match(pagesXml, /<Cell N="LineJumpCode" V="0"\/>/, `${context}: Visio PageSheet disables line jumps (LineJumpCode=0)`);
 
-  // Every edge label is emitted as a dedicated opaque page-colour EdgeLabel_* shape AFTER all connectors/bars
+  // Every edge label is emitted as a dedicated EdgeLabel_* shape AFTER all connectors/bars
   const shapeOrder = topShapes.map((s) => attrVal(s.attrs, "NameU") ?? "");
   const lastConnectorIdx = shapeOrder.reduce((acc, n, i) => (n.startsWith("Connector_") ? i : acc), -1);
   const lastBarIdx = shapeOrder.reduce((acc, n, i) => (n.startsWith("Bar_") ? i : acc), -1);
   const edgeLabels = [...byId.values()].filter((s) => s.nameU.startsWith("EdgeLabel_"));
-  assert.equal(edgeLabels.length, expectedLabelCount(spec), `${context}: all labelled edges have opaque EdgeLabel_* shapes`);
+  assert.equal(edgeLabels.length, expectedLabelCount(spec), `${context}: all labelled edges have EdgeLabel_* shapes`);
   for (const el of edgeLabels) {
     assert.equal(cellVal(el.body, "FillPattern"), "1", `${context} ${el.nameU}: opaque page-colour backdrop`);
+    assert.match(el.body, /<Cell N="NoFill" V="0"\/>/, `${context} ${el.nameU}: backdrop geometry filled`);
     assert.ok(shapeOrder.indexOf(el.nameU) > lastConnectorIdx, `${context} ${el.nameU}: painted above connectors`);
   }
   for (const fl of [...byId.values()].filter((s) => /^(FrameTab_|FrameLabel_|FrameElse_|BandLabel_)/.test(s.nameU))) {
