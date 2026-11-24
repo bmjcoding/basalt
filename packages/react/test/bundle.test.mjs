@@ -740,9 +740,11 @@ for (const [name, limit, phosphor] of [["StageMark", 14_500, true], ["StageBadge
 }
 
 // RunTimeline carries its toggle (TextButton, and so Base UI's button and the press wait) and the shared stage parts; StageList does not carry it (above).
-test("RunTimeline with RunStep loads Base UI's button and nothing else of Base UI (41,850 bytes at most)", async () => {
+// Main raised the limit to 41,850 for the safe-sinks merge (measured 41,838, above). The top edge's fade (DECISIONS 337: the cut row, measured on each
+// scroll, focus and landing) adds about 730 bytes: measured 42,569 on the merged tree, so the limit is 42,600.
+test("RunTimeline with RunStep loads Base UI's button and nothing else of Base UI (42,600 bytes at most)", async () => {
   const { bytes, inputs } = await graph("RunTimeline, RunStep");
-  assert.ok(bytes < 41_850, `RunTimeline bundle is ${bytes} bytes (limit 41,850)`);
+  assert.ok(bytes < 42_600, `RunTimeline bundle is ${bytes} bytes (limit 42,600)`);
   assert.deepEqual(inputs.filter((f) => /cmdk|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|progress|meter|tooltip)\//.test(f)), "an unrelated Base UI part");
 });

@@ -20,7 +20,9 @@ of Basalt's accent classes, in its named roles, and nowhere else.
   full ink and in full, and says when the tail holds a failure. Five things hold it: a step that is running, waiting or retrying
   never recedes; a failure was said when it happened and stood in full while it was among the newest; everything a tail row says
   stays in the accessibility tree; under more contrast and in forced colours nothing recedes; and no other text in Basalt uses these
-  tokens. A test holds each to it.
+  tokens. The window's top edge fades the one tail row it cuts, from transparent at the edge to opaque at that row's bottom, only when the row is at the
+  second step or deeper and the edge crosses its words; it never fades a whole row, a row holding focus, or a step that runs, waits or retries,
+  and under more contrast and in forced colours the edge is a plain cut. A test holds each to it.
 - **The page is the darkest layer, in both themes.** Anything closer to you is lighter.
   Light mode never puts a full white page in front of you.
 - **Borders build structure; shadows exist only for things that float.**
@@ -2917,7 +2919,9 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   rolls, and nothing after it does). A tail row is `text-xs` at 400, 20px, one line cut with an ellipsis, its mark still 16, no connector and
   no detail, its ink its depth's step (see Principles); everything it says stays in the accessibility tree. The window is the list's
   scrolling box, its floor the larger of `keep` and `minRows` rows plus two and a half tail rows, only growing; it draws no scrollbar and is a named tab stop while it
-  overflows. A roll moves the rows inside the window by transform over `duration-slow` on `ease-out`, the ink stepping on the same clock and
+  overflows. Its top edge fades the tail row it cuts over the part that shows (from the second step down, only when the edge crosses the row's words; any
+  other row is cut plainly, and every row while a step rolls in), a still mask on that row
+  alone, so it moves with the row and never reaches another row or the window's focus ring. A roll moves the rows inside the window by transform over `duration-slow` on `ease-out`, the ink stepping on the same clock and
   the arrival fading over `duration-base`; past 48 counted rows it lands at once, as `Reflow` does. It follows new steps only while the reader
   is at its end (read from its geometry), holds still while a control in it has focus or the pointer, and starts at its end. The toggle above
   it ("Show 5 earlier steps", "Show 5 earlier steps, 1 failed"; open, "Hide earlier steps") holds its line from the first frame and opens the
@@ -2939,8 +2943,8 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   detail and a roll land at once; an arriving step fades over 100ms; the badge's faces only fade; timers tick. The hold: the ring and braille
   stand still, the queued mark is still at full, every change of state lands at once, and a stage's own running time hides (see "A page can
   hold every loop"). A demonstration asks the hold when it would start and does not start under it; a run the reader starts runs whatever the
-  hold. More contrast: no tail, every stepped-back line at the first step and a failed one full `status-danger`. Forced colours: marks and
-  words are `currentColor`, nothing steps back, the queued mark is still and connectors are real borders. Print: as the hold, with the tail
+  hold. More contrast: no tail, every stepped-back line at the first step and a failed one full `status-danger`, and the window's top edge is a plain cut. Forced colours: marks and
+  words are `currentColor`, nothing steps back, the queued mark is still and connectors are real borders, and the top edge is a plain cut. Print: as the hold, with the tail
   open.
 
 ## Loading in the page's own shape

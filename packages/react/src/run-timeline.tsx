@@ -24,8 +24,8 @@ declare const process: { env: { NODE_ENV?: string } };
 // row older (the one named exception to 4.5:1: the toggle above the tail opens the whole record in full ink). A step that is running, retrying or
 // waiting never rolls, and nothing after it does. The window is the list's scrolling box: its floor holds `keep` rows and two and a half tail rows
 // from the first frame and only grows; it follows new steps only while the reader is at its end, holds still while a control in it has focus or the
-// pointer, and starts at its end. A roll moves the rows inside the window by transform; past REFLOW_BOUND counted rows it lands at once. Nothing
-// here speaks: the run's `RunAnnouncer` does.
+// pointer, and starts at its end. A roll moves the rows inside the window by transform; past REFLOW_BOUND counted rows it lands at once. Its top
+// edge fades the tail row it cuts, from the second step (DECISIONS 337). Nothing here speaks: the run's `RunAnnouncer` does.
 
 export interface RunStepProps {
   /** The step's state; left out, the step is a finding (its own `mark`), and counts as finished. */
@@ -171,6 +171,7 @@ export function RunTimeline({ label, keep: keepProp, minRows, timeScale = "secon
   const rolling = React.useRef(0);
   const atEnd = (el: HTMLElement) => el.scrollHeight - el.scrollTop - el.clientHeight <= 2;
   const onScroll = () => {
+    edge();
     const el = windowRef.current;
     if (!el || rolling.current > 0) return;
     if (lastSet.current !== null && Math.abs(el.scrollTop - lastSet.current) < 1) return;
@@ -184,13 +185,40 @@ export function RunTimeline({ label, keep: keepProp, minRows, timeScale = "secon
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ---- the top edge (DECISIONS 337): the one finished tail row at depth 2 or deeper that the window's top edge cuts through its words fades
+  // over the part that shows. Read from layout (offsetTop ignores a roll's transforms): the row, `data-cut` and `--_cut` (its visible height) are
+  // written on it and taken off the row that had them, or off every row. The stylesheet admits only such a row, outside a roll and outside more
+  // contrast, forced colours and print; everything else keeps the hard edge.
+  const marked = React.useRef<HTMLElement | undefined>(undefined);
+  const pad = React.useRef(0);
+  const edge = React.useCallback((focus: Element | null = document.activeElement) => {
+    const el = windowRef.current;
+    const list = listRef.current;
+    let next: HTMLElement | undefined;
+    let length = 0;
+    if (el && list && tailShown) {
+      // The row the edge is on: the first whose bottom is below it. It fades only when it is a tail row past the first step (data-depth 2 to 5),
+      // holds no focus, and the edge crosses its words, not only its padding: more than space-0-5 above the edge and more than space-0-5 below it.
+      pad.current ||= Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--basalt-space-0-5")) || 0;
+      const y = el.scrollTop;
+      next = ([...list.children] as HTMLElement[]).find((li) => li.offsetTop - list.offsetTop + li.offsetHeight > y);
+      const top = next ? next.offsetTop - list.offsetTop : 0;
+      length = top + (next?.offsetHeight ?? 0) - y;
+      if (!next || (next.dataset.depth ?? "1") === "1" || next.contains(focus) || y <= top + pad.current || length <= pad.current) next = undefined;
+    }
+    const was = marked.current;
+    if (was && was !== next) { was.removeAttribute("data-cut"); was.style.removeProperty("--_cut"); }
+    if (next) { next.setAttribute("data-cut", ""); next.style.setProperty("--_cut", `${length}px`); }
+    marked.current = next;
+  }, [tailShown]);
+
   // ---- the floor that only grows: the newest `keep` full rows and two and a half tail rows, measured once a step is taller than a row
   const grown = React.useRef(0);
   const [overflows, setOverflows] = React.useState(false);
   const measure = React.useCallback(() => {
     const el = windowRef.current;
     const list = listRef.current;
-    if (!el || !list || !tailShown) return;
+    if (!el || !list || !tailShown) { edge(); return; }
     const full = [...list.children].filter((li) => !li.hasAttribute("data-tail")).slice(-(keep as number));
     const rows = full.reduce((sum, li) => sum + (li as HTMLElement).offsetHeight, 0);
     // The floor's own rows and a tail row from their tokens (a row: text-sm's line and space-2 twice, and a second line under 640px of the
@@ -206,7 +234,8 @@ export function RunTimeline({ label, keep: keepProp, minRows, timeScale = "secon
     if (want > grown.current) { grown.current = want; el.style.setProperty("--_grown", `${want}px`); }
     setOverflows(el.scrollHeight > el.clientHeight + 1);
     toEnd();
-  }, [tailShown, keep, toEnd, floorRows]);
+    edge();
+  }, [tailShown, keep, toEnd, floorRows, edge]);
 
   // ---- the roll: where each row was drawn before this change, read before React writes the DOM
   const shape = `${steps.length}:${rolled}:${open}`;
@@ -275,7 +304,7 @@ export function RunTimeline({ label, keep: keepProp, minRows, timeScale = "secon
       if (!flying.current.delete(animation)) return;
       if (!roll) return;
       rolling.current -= 1;
-      if (rolling.current === 0) { windowRef.current?.removeAttribute("data-rolling"); toEnd(); }
+      if (rolling.current === 0) { windowRef.current?.removeAttribute("data-rolling"); toEnd(); edge(); }
     };
     animation.addEventListener("finish", done);
     animation.addEventListener("cancel", done);
@@ -301,8 +330,8 @@ export function RunTimeline({ label, keep: keepProp, minRows, timeScale = "secon
   const holdFor = {
     onPointerOver: (event: React.PointerEvent) => { const was = held(); hovered.current = controlOf(event.target); if (was && !held()) { toEnd(); release(); } },
     onPointerLeave: () => { hovered.current = null; if (!held()) { toEnd(); release(); } },
-    onFocus: (event: React.FocusEvent) => { focused.current = controlOf(event.target); },
-    onBlur: (event: React.FocusEvent) => { focused.current = windowRef.current?.contains(event.relatedTarget as Node | null) ? controlOf(event.relatedTarget) : null; if (!held()) { toEnd(); release(); } },
+    onFocus: (event: React.FocusEvent) => { focused.current = controlOf(event.target); edge(event.target as Element); },
+    onBlur: (event: React.FocusEvent) => { focused.current = windowRef.current?.contains(event.relatedTarget as Node | null) ? controlOf(event.relatedTarget) : null; if (!held()) { toEnd(); release(); } edge(event.relatedTarget as Element | null); },
   };
 
   const items = steps.map((step, i) => (
