@@ -22,7 +22,7 @@
     margin: 0;
     padding-block: var(--basalt-space-2);
     padding-inline: var(--basalt-space-4);
-    --basalt-edge-room: var(--basalt-space-4);
+    --basalt-edge-room: var(--basalt-space-4); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial;
     border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
     border-start-start-radius: var(--basalt-radius-lg);
     border-start-end-radius: var(--basalt-radius-lg);

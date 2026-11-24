@@ -122,7 +122,7 @@
   .tab-bar-item:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
   /* More's bottom sheet: a title and Close, then Nav rows. */
   /* Close is hung at the head's end, its glyph on the sheet's line; the room is the sheet's own end padding less the end inset (DECISIONS 336). */
-  .tab-bar-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-2); margin-bottom: var(--basalt-space-2); --basalt-edge-room-end: calc(max(var(--_pad), var(--bh-inset-end)) - var(--bh-inset-end)); }
+  .tab-bar-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-2); margin-bottom: var(--basalt-space-2); --basalt-edge-room-end: calc(max(var(--_pad), var(--bh-inset-end)) - var(--bh-inset-end)); --basalt-edge-room: initial; --basalt-edge-room-start: initial; }
   .tab-bar-sheet-head .dialog-title { margin: 0; }
 
   @media (forced-colors: active) {

@@ -32,7 +32,7 @@
      the row declares room: a card's space-4 (DECISIONS 336, S9). The glyph it hangs by is the one drawn. A row that ends a card hangs its spare
      half into the card's padding, so the glyph's foot is the card's line. */
   .links[data-size="20"] .btn { --_glyph: var(--basalt-size-icon-md); }
-  .card > .links[data-icon-only] { --basalt-edge-room: var(--basalt-space-4); }
+  .card > .links[data-icon-only] { --basalt-edge-room: var(--basalt-space-4); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; }
   .card > .links[data-icon-only]:last-child { margin-block-end: calc((var(--basalt-size-icon-sm) - var(--basalt-size-control-md)) / 2); }
   /* The arrow follows the name with the glyph's own bearing, not a gap: it cancels the link's gap. */
   .links > li > a:not(.btn) > .ext { margin-inline-start: calc(-1 * var(--basalt-space-1-5)); }

@@ -134,7 +134,7 @@
   .section > .section-head { margin-bottom: var(--basalt-space-4); }
   /* A head's last ghost .btn is hung at its end by itself (DECISIONS 336, Q10): a .panel-head into its own space-4, a page's own section head into the
      gutter. A section head in a column, a grid or a card declares no room, and its button stays on the line with its edge. */
-  .page > .section > .section-head { --basalt-edge-room: var(--basalt-gutter); }
+  .page > .section > .section-head { --basalt-edge-room: var(--basalt-gutter); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; }
 
   .footer { margin-top: var(--basalt-space-16); padding-top: var(--basalt-space-4); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); }
   /* Outside .page the footer sits on the page's column by itself: the .page above already ends in its own bottom padding, so no top margin doubles it. */
@@ -193,7 +193,7 @@
   }
   .panel-pad, .card { padding: var(--basalt-space-4); }
   @media (width >= %bp-md%) { .panel-pad.lg, .card.lg { padding: var(--basalt-space-6); } }
-  .panel-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2); padding: var(--basalt-space-3) var(--basalt-space-4); --basalt-edge-room: var(--basalt-space-4); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); font-weight: var(--basalt-font-weight-medium); }
+  .panel-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2); padding: var(--basalt-space-3) var(--basalt-space-4); --basalt-edge-room: var(--basalt-space-4); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); font-weight: var(--basalt-font-weight-medium); }
 
   /* Only a surface that leaves the flow floats: a menu, popover, dialog or palette (with a shadow). A popup is its opener plus one with a
      floor of 1: from the page it is level 1, and inside a panel the nesting rules above make it the next level. A modal (dialog, palette)

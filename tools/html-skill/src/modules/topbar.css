@@ -73,7 +73,7 @@
     padding-inline: var(--bh-pad-start) var(--bh-pad-end);
   }
   /* The room for a control hung at the bar's end (DECISIONS 336): the end padding less the end inset, so it never reaches under a notch. */
-  :is(.topbar, .app-header) { --basalt-edge-room-end: calc(var(--bh-pad-end) - var(--bh-inset-end)); }
+  :is(.topbar, .app-header) { --basalt-edge-room-end: calc(var(--bh-pad-end) - var(--bh-inset-end)); --basalt-edge-room: initial; --basalt-edge-room-start: initial; }
 
   /* The brand slot: the 32px header lockup (a mark, or a mark and a word) in a target at least 44 by 44. Identity, not a link of the row: no wash. The focus
      ring is the control ring round the 32px lockup, +2, drawn by a box the height of the lockup. */

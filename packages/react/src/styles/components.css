@@ -1540,7 +1540,7 @@
   .basalt-site-bar { max-width: var(--basalt-size-page-width); margin-inline: auto; }
   /* The bars' room for a control hung at their end (DECISIONS 336): the end padding less the end inset, so a hung Menu, Close or last ghost
      action never reaches under a notch. The menu's trigger and Close carry data-edge; an app hangs its own last ghost action with `edge="end"`. */
-  :is(.basalt-site-header, .basalt-app-header, .basalt-site-menu-band) { --basalt-edge-room-end: calc(var(--_pad-end) - var(--_inset-end)); }
+  :is(.basalt-site-header, .basalt-app-header, .basalt-site-menu-band) { --basalt-edge-room-end: calc(var(--_pad-end) - var(--_inset-end)); --basalt-edge-room: initial; --basalt-edge-room-start: initial; }
   .basalt-site-menu-band .basalt-bar-actions > :not(:last-child) { --basalt-edge-room-end: initial; }
   .basalt-app-bar { gap: var(--basalt-space-2); }
   .basalt-bar-spacer { flex: 1 1 auto; }
@@ -1954,8 +1954,8 @@
   /* A part with no padding of its own (a drawer, release notes, a composer) is not a head: its edge control hangs into the room of the box it sits in
      (DECISIONS 336, the open items' ruling). The main and the foot say theirs, their padding less the side insets, to their direct children only, so a
      control deeper in never hangs into room that is not its own. */
-  .basalt-app-main > :is(.basalt-drawer, .basalt-release-notes), .basalt-app-foot > .basalt-composer { --basalt-edge-room-start: calc(var(--_pad-start) - var(--_inset-start)); --basalt-edge-room-end: calc(var(--_pad-end) - var(--_inset-end)); }
-  .basalt-card-content > .basalt-composer { --basalt-edge-room: var(--basalt-space-4); }
+  .basalt-app-main > :is(.basalt-drawer, .basalt-release-notes), .basalt-app-foot > .basalt-composer { --basalt-edge-room-start: calc(var(--_pad-start) - var(--_inset-start)); --basalt-edge-room-end: calc(var(--_pad-end) - var(--_inset-end)); --basalt-edge-room: initial; }
+  .basalt-card-content > .basalt-composer { --basalt-edge-room: var(--basalt-space-4); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; }
   /* The rail, 72: Nav's collapsed form, the brand's mark alone. */
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px) and size-breakpoint-lg (1024px): a media query cannot read a token; from 720 the rail, from 1024 the sidebar */
   @media (width >= 720px) and (width < 1024px) {
@@ -2119,7 +2119,7 @@
   .basalt-tabbar-item:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
   /* More's bottom sheet: a title and Close, then Nav rows. */
   /* Close is hung at the head's end, its glyph on the sheet's line; the room is the sheet's own end padding less the end inset (DECISIONS 336). */
-  .basalt-tabbar-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-2); margin-bottom: var(--basalt-space-2); --basalt-edge-room-end: calc(max(var(--basalt-space-6), var(--_inset-end)) - var(--_inset-end)); }
+  .basalt-tabbar-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-2); margin-bottom: var(--basalt-space-2); --basalt-edge-room-end: calc(max(var(--basalt-space-6), var(--_inset-end)) - var(--_inset-end)); --basalt-edge-room: initial; --basalt-edge-room-start: initial; }
 
   @media (forced-colors: active) {
     .basalt-site-link:hover .basalt-site-pill,
@@ -2956,7 +2956,7 @@
   .basalt-filter-row[data-highlighted]::before { background-color: var(--_plate); }
   .basalt-filter-row[data-disabled] { color: var(--basalt-text-disabled); }
   /* The count at the foot's start and Clear at its end, on the popup's line: space-4 in, Clear hung by its padding (DECISIONS 336, S12). */
-  .basalt-filter-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-3); padding-block: var(--basalt-space-1-5); padding-inline: var(--basalt-space-4); --basalt-edge-room: var(--basalt-space-4); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); margin: var(--basalt-space-0-5) calc(-1 * var(--basalt-space-1)) 0; }
+  .basalt-filter-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-3); padding-block: var(--basalt-space-1-5); padding-inline: var(--basalt-space-4); --basalt-edge-room: var(--basalt-space-4); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); margin: var(--basalt-space-0-5) calc(-1 * var(--basalt-space-1)) 0; }
   .basalt-filter-foot .basalt-filter-clear { margin-inline-start: 0; }
   /* The rows scroll inside the popup cap (nine 40px rows show whole), with the search band and the foot outside them. */
   /* position: relative, so each row's hidden input (marked, so absolute at its place in the flow; DECISIONS 167, Q9j) is contained by the rows and scrolls with them: with the popup as its containing block the inputs made the popup itself scroll. */
@@ -3311,7 +3311,7 @@
   }
   /* The popup's head and foot: space-4 on both sides, Mark all as read and View all hung at the end and Clear all at the start, their words on the
      line the title and the entries are on (DECISIONS 336). The in-page list keeps its own padding, below, and declares no room. */
-  .basalt-notifications > :is(.basalt-notifications-head, .basalt-notifications-foot) { --basalt-edge-room: var(--basalt-space-4); }
+  .basalt-notifications > :is(.basalt-notifications-head, .basalt-notifications-foot) { --basalt-edge-room: var(--basalt-space-4); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; }
   .basalt-notifications-title { margin: 0; font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); font-weight: var(--basalt-font-weight-semibold); }
   .basalt-notifications-count { flex: 1; min-width: 0; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); font-variant-numeric: tabular-nums; }
   .basalt-notifications-mark { flex: none; }
@@ -4167,7 +4167,7 @@
   .basalt-code-title {
     padding: var(--basalt-space-1) var(--basalt-space-4);
     /* Its copy control hangs into the end padding, its glyph on the line the title starts on (DECISIONS 336). */
-    --basalt-edge-room: var(--basalt-space-4);
+    --basalt-edge-room: var(--basalt-space-4); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial;
     box-shadow: inset 0 calc(-1 * var(--basalt-size-hairline)) 0 var(--basalt-border-divider);
     font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
     color: var(--basalt-text-secondary);
@@ -5742,7 +5742,7 @@
   .basalt-diagram[data-viewer] > :is(.basalt-diagram-head, .basalt-diagram-key, .basalt-diagram-hint, .basalt-diagram-tap-hint, .basalt-diagram-foot, .basalt-diagram-list, .basalt-diagram-summary) { display: none; }
   .basalt-diagram-viewer-list { box-sizing: border-box; max-width: calc(var(--basalt-size-page-width) - 2 * var(--basalt-size-gutter) + 2 * var(--_pad)); padding: var(--_pad); }
   /* The zoom row's first control (Zoom out) is hung at the foot's start, its glyph on the line the key starts on (DECISIONS 336); the room is the foot's start padding less the inset. */
-  .basalt-diagram-viewer-foot { display: flex; flex-direction: column; gap: var(--basalt-space-3); padding-block-start: var(--basalt-space-3); --basalt-edge-room-start: calc(max(var(--basalt-space-5), var(--_inset-start)) - var(--_inset-start)); }
+  .basalt-diagram-viewer-foot { display: flex; flex-direction: column; gap: var(--basalt-space-3); padding-block-start: var(--basalt-space-3); --basalt-edge-room-start: calc(max(var(--basalt-space-5), var(--_inset-start)) - var(--_inset-start)); --basalt-edge-room: initial; --basalt-edge-room-end: initial; }
   .basalt-diagram-viewer-key { --_ground: var(--_surface, var(--basalt-surface-overlay)); }
   .basalt-diagram-viewer-key .basalt-diagram-key { padding-block-start: 0; border-top: 0; }
   .basalt-diagram-viewer-key[data-layout="drawn"] .basalt-diagram-entry[data-when="stacked"], .basalt-diagram-viewer-key[data-layout="stacked"] .basalt-diagram-entry[data-when="drawn"], .basalt-diagram-viewer-key[data-bare] .basalt-diagram-entry[data-line] { display: none; }
@@ -6270,7 +6270,7 @@
     /* The same padding on both sides (DECISIONS 336): Close is hung at the end, its glyph on the line the title starts on. Its room is the end
        padding less the inset there, so the whole target stays clear of a notch or a corner. */
     padding-inline: max(var(--basalt-space-5), var(--_inset-start)) max(var(--basalt-space-5), var(--_inset-end));
-    --basalt-edge-room-end: calc(max(var(--basalt-space-5), var(--_inset-end)) - var(--_inset-end));
+    --basalt-edge-room-end: calc(max(var(--basalt-space-5), var(--_inset-end)) - var(--_inset-end)); --basalt-edge-room: initial; --basalt-edge-room-start: initial;
     border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
   }
   .basalt-sheet-head-text { flex: 1; min-width: 0; }
@@ -6381,7 +6381,7 @@
     /* space-4 on both sides (DECISIONS 336): Close is hung at the end, its glyph on the line the count and the results end on. */
     padding-block: var(--basalt-space-2);
     padding-inline: var(--basalt-space-4);
-    --basalt-edge-room: var(--basalt-space-4);
+    --basalt-edge-room: var(--basalt-space-4); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial;
     border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider);
     border-start-start-radius: var(--basalt-radius-lg);
     border-start-end-radius: var(--basalt-radius-lg);
@@ -6888,7 +6888,7 @@
   .basalt-social-links[data-icon-only] { column-gap: var(--basalt-space-1); }
   /* An icon-only row's first link is hung at the start, its glyph on the line, only where the box round it declares room: a card's space-4
      (DECISIONS 336, S9). A row that ends a card hangs its spare half into the card's padding, so the glyph's foot is the card's line. */
-  .basalt-card-content > .basalt-social-links[data-icon-only] { --basalt-edge-room: var(--basalt-space-4); }
+  .basalt-card-content > .basalt-social-links[data-icon-only] { --basalt-edge-room: var(--basalt-space-4); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; }
   /* Every icon-only link carries edge="start"; only the first rendered item has the room, so the rest stand where they are. */
   .basalt-social-links[data-icon-only] > .basalt-social-item:not(:first-child) { --basalt-edge-room: initial; --basalt-edge-room-start: initial; }
   .basalt-card-content:last-child > .basalt-social-links[data-icon-only]:last-child { margin-block-end: calc((var(--basalt-size-icon-sm) - var(--basalt-size-control-md)) / 2); }
@@ -7837,7 +7837,7 @@
   .basalt-date-age-seat { justify-items: start; }
 
   /* ---- Status bar (D14b; V7, R6): a 44px foot from 720, fixed (56 plus the safe area) under it ---- */
-  .basalt-status-bar { position: relative; box-sizing: border-box; display: flex; align-items: center; gap: var(--basalt-space-4); min-height: var(--basalt-size-tap-min); padding-inline: var(--basalt-gutter); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); background: var(--basalt-surface-page); color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-mono); white-space: nowrap; --basalt-edge-room: var(--basalt-gutter); }
+  .basalt-status-bar { position: relative; box-sizing: border-box; display: flex; align-items: center; gap: var(--basalt-space-4); min-height: var(--basalt-size-tap-min); padding-inline: var(--basalt-gutter); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); background: var(--basalt-surface-page); color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-mono); white-space: nowrap; --basalt-edge-room: var(--basalt-gutter); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; }
   .basalt-status-bar-start, .basalt-status-bar-sources, .basalt-status-bar-end { display: flex; flex: none; align-items: center; gap: var(--basalt-space-2); }
   .basalt-status-bar-message { display: flex; flex: 1 1 0; align-items: center; justify-content: center; gap: var(--basalt-space-2); min-width: 0; min-height: var(--basalt-text-sm-line-height); margin: 0; color: var(--basalt-text-primary); }
   .basalt-status-bar-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -7847,7 +7847,7 @@
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the bar is fixed at the foot */
   @media (width < 720px) {
     .basalt-status-bar { position: fixed; inset-inline: 0; bottom: 0; z-index: var(--basalt-layer-sticky); padding-block-end: var(--_inset-bottom); padding-inline: max(var(--basalt-gutter), var(--_inset-start)) max(var(--basalt-gutter), var(--_inset-end)); min-height: calc(var(--basalt-size-tab-bar) + var(--_inset-bottom)); gap: var(--basalt-space-2);
-      --basalt-edge-room-start: calc(max(var(--basalt-gutter), var(--_inset-start)) - var(--_inset-start)); --basalt-edge-room-end: calc(max(var(--basalt-gutter), var(--_inset-end)) - var(--_inset-end)); }
+      --basalt-edge-room-start: calc(max(var(--basalt-gutter), var(--_inset-start)) - var(--_inset-start)); --basalt-edge-room-end: calc(max(var(--basalt-gutter), var(--_inset-end)) - var(--_inset-end)); --basalt-edge-room: initial; }
     .basalt-status-bar-sources { margin-inline-start: auto; }
     /* With no sources, end follows start here and is not at the bar's end, so its last button does not hang (DECISIONS 336). */
     .basalt-status-bar:not(:has(> .basalt-status-bar-sources)) > .basalt-status-bar-end { --basalt-edge-room: initial; --basalt-edge-room-end: initial; }

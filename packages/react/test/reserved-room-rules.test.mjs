@@ -178,6 +178,18 @@ describe("The edge rule is one rule", () => {
       assert.ok(ruleFor(SKILL_ALL, selector).some((r) => decl(r.body, property)), `${selector} { ${property}: … }`);
     });
   }
+  test("every rule that says a room says all three forms, the ones it does not use as initial, so an inner head never inherits an outer box's side (code review 3)", () => {
+    const FORMS = ["--basalt-edge-room", "--basalt-edge-room-start", "--basalt-edge-room-end"];
+    const found = [];
+    for (const [name, css] of [["components.css", REACT], ["skill", SKILL_ALL]]) {
+      for (const r of rules(css)) {
+        const said = FORMS.map((f) => decl(r.body, f));
+        if (said.every((v) => v === null || v === "initial")) continue;
+        if (said.some((v) => v === null)) found.push(`${name}: ${r.selector}`);
+      }
+    }
+    assert.deepEqual(found, []);
+  });
   test("a head that hangs a control has the same padding on both sides, apart from its insets", () => {
     for (const selector of [".basalt-search-form", ".basalt-filter-foot", ".basalt-notifications-head", ".basalt-notifications-foot"]) {
       const r = ruleFor(REACT, selector)[0];
