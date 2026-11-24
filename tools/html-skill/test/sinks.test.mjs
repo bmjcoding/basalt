@@ -70,6 +70,15 @@ describe("the sink check", () => {
     fails("// sink: a; b; c\nconst quiet = 1;", /above no sink/);
     assert.deepEqual(checkSource("tools/review/round99.tsx", "// sink: a synthetic page; built at review time\nel.innerHTML = v;"), []);
   });
+  test("a `//` reason may go on over the lines under it (CIMIP's port, DECISIONS 365): read whole, up to a line that is not one or another sink:", () => {
+    passes("// sink: the figure's ink, from the model;\n// every text and attribute is escaped there;\n// test/repo-review.test.mjs\nel.innerHTML = v;");
+    passes("const a = 1;\n  // sink: a value from props; escaped by escapeHtml\n  // in the builder; test/x.test.mjs\n  el.innerHTML = v;");
+    // The lines after the reason are part of it only while they run on: a line of code ends it, and so does a second reason.
+    fails("// sink: from props;\nconst x = 1; // escaped; test/x.test.mjs\nel.innerHTML = v;", /with no `sink:` reason|needs `sink:/);
+    fails("// sink: from props; escaped\n// sink: a; b; c\nel.innerHTML = v;", /needs `sink:|above no sink/);
+    // A block comment was always read whole; it still is.
+    passes("/* sink: from props;\n   escaped; test/x.test.mjs */\nel.innerHTML = v;");
+  });
   test("a file it cannot parse fails: the check never passes what it could not read", () => {
     assert.throws(() => checkSource(file, "el.innerHTML = ;"), /does not parse/);
   });

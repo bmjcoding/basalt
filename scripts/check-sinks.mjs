@@ -11,7 +11,7 @@
 //   - in tools/html-skill/src, where every module is a string builder, the file's count is in tools/html-skill/src/sinks.allowed.json with what the
 //     file takes ("takes"), why it is safe ("safe") and whether it takes data ("data": a data-taking module is in the hostile-input probe);
 //   - anywhere else, a comment in the block just above the line: `sink: <where the value comes from>; <why it is safe>; <the test that proves it>`
-//     (tools/review, whose pages are synthetic, may leave out the test).
+//     (tools/review, whose pages are synthetic, may leave out the test). A `//` reason may run on over the `//` lines straight under it.
 // A count that is off, an entry with no reason, a comment with no reason, and a `sink:` comment above no sink all fail. A file that does not parse fails:
 // the check never passes what it could not read. The skill's sources hold build placeholders (%duration-confirm%); they are read as numbers in place.
 import fs from "node:fs";
@@ -106,6 +106,7 @@ export function sinksIn(file, text) {
   const lang = file.endsWith(".tsx") ? "tsx" : file.endsWith(".ts") ? "ts" : file.endsWith(".jsx") ? "jsx" : "js";
   const parsed = parseSync(file, source, { lang, sourceType: "module" });
   if (parsed.errors.length) throw new Error(`${file}: does not parse (${parsed.errors[0].message}); the sink check reads no file it cannot parse`);
+  const lines = source.split("\n");
   const starts = [0];
   for (let i = 0; i < source.length; i++) if (source[i] === "\n") starts.push(i + 1);
   const lineOf = (offset) => { let lo = 0, hi = starts.length - 1; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= offset) lo = mid; else hi = mid - 1; } return lo + 1; };
@@ -164,7 +165,29 @@ export function sinksIn(file, text) {
     stack.shift();
   };
   descend(parsed.program);
-  return { found, comments: parsed.comments.map((c) => ({ text: c.value, line: lineOf(c.start), end: lineOf(c.end) })) };
+  return { found, comments: joinLineComments(parsed.comments.map((c) => ({ text: c.value, line: lineOf(c.start), end: lineOf(c.end), line1: c.type === "Line" && /^\s*\/\//.test(lines[lineOf(c.start) - 1] ?? "") }))) };
+}
+
+/**
+ * A `//` reason may go on over the lines under it: a `sink:` line comment takes each `//` comment on the lines straight after it (each on a line of its own,
+ * until a line that is not one, or another `sink:`), as one comment, so a reason too long for a line is read whole and not as one with no test.
+ */
+function joinLineComments(comments) {
+  const out = [];
+  for (let k = 0; k < comments.length; k++) {
+    const c = comments[k];
+    if (!c.line1 || !/^\s*sink:/.test(c.text)) { out.push(c); continue; }
+    const joined = { ...c };
+    while (k + 1 < comments.length) {
+      const next = comments[k + 1];
+      if (!next.line1 || next.line !== joined.end + 1 || /^\s*sink:/.test(next.text)) break;
+      joined.text += ` ${next.text.trim()}`;
+      joined.end = next.line;
+      k++;
+    }
+    out.push(joined);
+  }
+  return out.map(({ line1: _, ...c }) => c);
 }
 
 const REASON = /\bsink:\s*([^;]*?)\s*;\s*([^;]*?)\s*(?:;\s*(.*?))?\s*(?:\*\/)?$/;
