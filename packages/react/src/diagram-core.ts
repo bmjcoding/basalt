@@ -2968,6 +2968,9 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     // Dressed as where scripting is off (1.13): no line in the key, no key hint, no stops, and the list open when the figure becomes bare.
     const bare: Geo = { ...geo, lines: [], labels: [], crossings: [] };
     const dyn = stopOf({ ...d, grow: record(), bare: true, open: current.bare ? current.open : true, autoOpen: current.bare ? current.autoOpen : current.open ? undefined : true });
+    // Written as it is returned: the tries above wrote a state that is not bare, and a host that sees the same state as before renders nothing, so the
+    // figure would keep their markup (a stack with no lines, not dressed bare, its list closed: P-R3 of the code re-check).
+    apply(dyn);
     return { dyn, geo: bare, ink: "", tokens: tk, least: mins.least };
   }
   if (geo.crossings.length) dev && warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the stacked drawing (each is cut): ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
