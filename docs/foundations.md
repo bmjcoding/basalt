@@ -2667,8 +2667,10 @@ for the owner's answers, 320 revised by 321 for the rest); the implementation ha
 ### The page
 
 - **Releases highest first by SemVer precedence**, one column, each at most `size-prose-width` plus `space-6` plus `size-sidebar-width`, `space-10`
-  apart with a 1px divider between. The versions are a pane beside the list (`ReleaseIndex` in `PaneLayout`'s pane) and a closed fold above it where
-  the pane would follow the page. No filter and no search.
+  apart with a 1px divider between. A release ends on its last line: `space-10` from that line to the divider, as from the divider to the next
+  release's first line, whatever ends it. A fold that ends a release hangs the lower spare half of its button into that padding, open and closed; a
+  drawn box (Action needed, Copy build details) is measured from its edge. The versions are a pane beside the list (`ReleaseIndex` in `PaneLayout`'s
+  pane) and a closed fold above it where the pane would follow the page. No filter and no search.
 - **A package's changelog** ("Changelog") shows Unreleased (merged work) and leads each release with its summary; **a product's release notes**
   ("Release notes") never shows Unreleased and leads with its headline and a paragraph for each audience.
 - **The header:** one heading holds the number and the date. With no headline the number is the heading, Geist Mono at `text-2xl`, 600, the meta
@@ -2699,8 +2701,14 @@ for the owner's answers, 320 revised by 321 for the rest); the implementation ha
   then at most two tickets, then "3 more". Its name is its text after a hidden "Sources: ", described by the entry's words. From 640 of the
   release's own width it stands beside the words in a column of its own down the list (`space-6` away), so the words keep one measure down a list;
   under it, it is its own line under the words, wrapping between ids.
-- **On touch every 44px box lies inside its own entry:** an entry is `space-3` above and below and the source line keeps the 20px line; under 640, a
-  link with a source line under it stands `space-6` above it, with `space-6` under the entry. On a fine pointer the source line's hit is 24 tall.
+- **On touch no 44px box reaches another target's box**, and none crosses a rim, a divider or a clipping edge. A box is hit area and takes no room.
+  Between changes the entry keeps them apart: `space-3` above and below, the source line on the 20px line (a one-line entry is 44 tall), and, under
+  640, a link with a source line under it `space-6` above it, with `space-3` under the entry. Where nothing follows a change inside its box, the
+  change has no padding under it and its box reaches into that box's own padding: to the callout's rim in Action needed (`space-3`, all of it), and
+  `space-3` into a release's `space-10`. At the foot of the list it reaches into the page's gap, so what follows a release list stands at least
+  `space-3` below it. On a fine pointer the source line's hit is 24 tall and reaches `space-0-5`.
+- **A change that has arrived keeps its padding** in every place, for as long as its "Linked" line is held: the plate is a drawn box, equal above its
+  first line and under its last.
 - **The sources panel** is a `Popover` under the line, end-aligned, at most `size-popover-max`, titled "Sources": Pull request, Ticket or Tickets (the
   tracker's name in words, then the id), Commit, and Author only when the entry has one; then Copy link to this change. No "Built by", "Code review",
   "Edited by" or "Decision" row.

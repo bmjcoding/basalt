@@ -172,10 +172,12 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   stand above it, counted by what it opens; a package's is open, and only Fixed folds (past 3, in a release of more than 10). An
   entry's source line is the pull request and at most two tickets, a quiet text button that opens "Sources" (pull request, tickets,
   commit, and the author when the entry has one): beside the words from 640 of the release's own width, under them below it. On
-  touch every 44px box lies inside its own entry: an entry is `space-3` above and below, and a link with a source line under it
-  stands `space-6` above it. A release is `#v1.4.0`; an entry's id is permanent and holds no version. The entry or release a link
-  opens is the stream's arrival (the plate and "Linked"). Build details is on the running release alone, from the running build.
-  No area filter.
+  touch no 44px box reaches another target's box or crosses a rim, a divider or a clipping edge: an entry is `space-3` above and
+  below, and a link with a source line under it stands `space-6` above it. The last change in Action needed or in a release has no
+  padding under it, and its box reaches into the callout's or the release's own padding. A release's last line is `space-10` above
+  its divider, whatever ends it. A change that has arrived keeps its padding. A release is `#v1.4.0`; an entry's id is permanent
+  and holds no version. The entry or release a link opens is the stream's arrival (the plate and "Linked"). Build details is on
+  the running release alone, from the running build. No area filter.
 - **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
   targets stay at least 44px whatever the density, on touch and in any window under 720 whatever the pointer (16px text entry stays touch-only), except a chart's day, reached by drag and by the keys (the phase lane's marks keep 44px). Text entry is 16px on touch. A one-line notification entry is at least 44 tall on
   touch, and a `Link` on a line of its own has a 44px hit box with no change to layout, its words raised over a stacked neighbour's box; a link in a sentence keeps its line.

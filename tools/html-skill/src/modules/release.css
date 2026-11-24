@@ -59,8 +59,6 @@
   .release-audience-title { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
   .release-action { margin-top: var(--basalt-space-6); }
   .release-action > div { flex: 1; min-width: 0; }
-  /* The callout's last change carries no padding under it, so its padding is the same at the top and the bottom (sweep 68-2). */
-  .release-action .release-entry:last-child { padding-bottom: 0; }
   /* One reference column down the page: inside the callout the words' column is shorter by the callout's inset (its hairline, space-4, the 16px
      mark and space-3), so its references start where the open lists' do (sweep 68-3). Under 640 of the release's width the list is one column. */
   .release-action .release-list { grid-template-columns: min(calc(var(--basalt-size-prose-width) - var(--basalt-size-hairline) - var(--basalt-space-4) - var(--basalt-size-icon-sm) - var(--basalt-space-3)), 100%) minmax(0, max-content); }
@@ -81,11 +79,20 @@
   .release-fold-title { margin: 0; }
   /* A closed fold is hidden until found, so the browser's find opens it: the core's [hidden] would take it out of the page, which find cannot reach. */
   .release-fold-panel[hidden="until-found"] { display: block !important; content-visibility: hidden; }
-  .release-section[data-folded] .release-fold-panel { padding-top: var(--basalt-space-2); }
+  /* Only an open panel takes its room: a closed one is hidden until found, which skips its content but would keep its padding. */
+  .release-section[data-folded] .release-fold-panel:not([hidden]) { padding-top: var(--basalt-space-2); }
   /* Build details: at the release's foot, quieter than the fold above it (14/20, 400). */
   .release-build { margin-top: var(--basalt-space-2); }
   .release-build .release-fold { min-height: var(--basalt-size-control-xs); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-base-tracking); }
   .release-build-list { margin-block: var(--basalt-space-3); }
+  /* An open fold's panel holds its first child's margin (space-2 under a product's fold, space-3 in Build details), so the panel's height is all
+     that an opening moves. Nothing moves at rest. */
+  .release-fold-panel { display: flow-root; }
+  /* A fold that ends a release hangs the lower spare half of its button, (its row − its line) / 2, into the release's padding, open and closed: the
+     open panel gives it back. So the release's last line is space-10 above its divider (DECISIONS 331). On a fine pointer only Build details' button
+     (24) is taller than its line (20); on touch see the rows below. */
+  .release > .release-build:last-child { margin-bottom: calc((var(--basalt-text-base-line-height) - var(--basalt-size-control-xs)) / 2); }
+  .release > .release-build:last-child > .release-fold-panel:not([hidden]) { padding-bottom: calc((var(--basalt-size-control-xs) - var(--basalt-text-base-line-height)) / 2); }
 
   /* The list is a grid and each entry a subgrid of it: column one the words, at most the measure; column two the source lines, as wide as the
      list's widest, space-6 away, starting on one edge. So the words keep one measure down a list. */
@@ -96,9 +103,16 @@
     grid-template-columns: subgrid;
     grid-column: 1 / -1;
     align-items: baseline;
-    padding-block: var(--basalt-space-1-5);
+    --_release-entry-pad: var(--basalt-space-1-5);
+    padding-block: var(--_release-entry-pad);
     scroll-margin-top: calc(var(--basalt-sticky-offset, var(--basalt-space-0)) + var(--basalt-space-8));
   }
+  /* Where nothing follows a change inside its box, the change has no padding under it (DECISIONS 326 and 331): the last change in Action needed, and
+     the last change before a release's end, in an open list or inside a fold that ends the release. Its tap box reaches into that box's padding. */
+  :where(.release-action .release-list,
+    .release > .release-section:not([data-folded]):last-child > .release-list,
+    .release > .release-all:last-child > .release-fold-panel > .release-section:last-child > .release-list,
+    .release > .release-section[data-folded]:last-child > .release-fold-panel > .release-list) > .release-entry:last-child { padding-bottom: 0; }
   .release-word { grid-column: 1 / -1; }
   .release-entry-words { grid-column: 1; display: grid; justify-items: start; gap: var(--basalt-space-1); min-width: 0; }
   .release-entry-text { margin: 0; color: var(--basalt-text-primary); font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); letter-spacing: var(--basalt-text-base-tracking); text-wrap: pretty; overflow-wrap: break-word; }
@@ -125,19 +139,26 @@
   /* size-breakpoint-container-lg: a container query cannot read a token, so the build writes its value here */
   @container (width < %bp-container-lg%) {
     .release-list, .release-action .release-list { grid-template-columns: minmax(0, 1fr); }
-    .release-entry { row-gap: var(--basalt-space-0-5); padding-block: var(--basalt-space-2); }
+    .release-entry { row-gap: var(--basalt-space-0-5); --_release-entry-pad: var(--basalt-space-2); }
     .release-source-cell { grid-column: 1; }
     .release-source { padding-block: calc((var(--basalt-size-control-xs) - var(--basalt-text-sm-line-height)) / 2); margin-block: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-control-xs)) / 2); line-height: var(--basalt-text-sm-line-height); white-space: normal; }
   }
-  /* On touch every 44px box lies inside its own entry: an entry is space-3 above and below (a one-line entry is 44 tall), the source line keeps
-     the entry's 20px line, and "4 need action" and the migration link take the box too, with no change to layout. */
+  /* On touch no 44px box reaches another target's box or crosses a rim, a divider or a clipping edge: an entry is space-3 above and below (a
+     one-line entry is 44 tall), the source line keeps the entry's 20px line, and "4 need action" and the migration link take the box too, with no
+     change to layout. The last change in Action needed or in a release has no padding under it, and its box reaches into the callout's or the
+     release's own padding. A release's last line is space-10 above its divider, whatever ends it. A change that has arrived keeps its padding. */
   @media (pointer: coarse) {
-    .release-entry { padding-block: var(--basalt-space-3); }
+    .release-entry { --_release-entry-pad: var(--basalt-space-3); }
     .release-source { line-height: var(--basalt-text-base-line-height); }
     .release-source::before,
     .release-action-link::after,
     .release-migrate::after { content: ""; position: absolute; top: 50%; left: 50%; /* physical: it is centred, in either direction */ width: max(100%, var(--basalt-size-tap-min)); height: var(--basalt-size-tap-min); transform: translate(-50%, -50%); }
-    .release-fold { min-height: var(--basalt-size-tap-min); }
+    .release-fold, .release-build .release-fold { min-height: var(--basalt-size-tap-min); }
+    /* A fold's 44px row on a 24px line hangs 10; Build details' on its 20px line, 12. */
+    .release > :is(.release-all, .release-section[data-folded]):last-child { margin-bottom: calc((var(--basalt-text-md-line-height) - var(--basalt-size-tap-min)) / 2); }
+    .release > :is(.release-all, .release-section[data-folded]):last-child > .release-fold-panel:not([hidden]) { padding-bottom: calc((var(--basalt-size-tap-min) - var(--basalt-text-md-line-height)) / 2); }
+    .release > .release-build:last-child { margin-bottom: calc((var(--basalt-text-base-line-height) - var(--basalt-size-tap-min)) / 2); }
+    .release > .release-build:last-child > .release-fold-panel:not([hidden]) { padding-bottom: calc((var(--basalt-size-tap-min) - var(--basalt-text-base-line-height)) / 2); }
     /* In the Sources panel each linked value is a row of its own, 44 tall, so no link's box reaches another's. */
     .release-sources dd:has(a) { display: flex; align-items: center; min-height: var(--basalt-size-tap-min); margin-top: 0; }
     .release-sources dd a { position: relative; }
@@ -154,6 +175,9 @@
   /* The entry, or the release, a link opened: the stream's arrival (the plate and the word "Linked"). An entry takes the plate itself, a release
      on its header. Tertiary words on the plate step to secondary; in forced colours the plate goes and the word stays. */
   .release-entry[data-arrival] { isolation: isolate; }
+  /* A change that has arrived keeps its padding in every place, for as long as its "Linked" line is held: the plate is a drawn box, equal above its
+     first line and under its last (DECISIONS 331). */
+  .release .release-entry[data-arrival] { padding-bottom: var(--_release-entry-pad); }
   .release[data-arrival] > .release-head::before { grid-column: 1 / -1; grid-row: 1 / -1; }
   :is(.release-entry[data-arrival], .release[data-arrival] > .release-head)::before {
     content: ""; position: absolute; z-index: -1; inset: calc(-1 * var(--basalt-space-1)) calc(-1 * var(--basalt-space-2)); border-radius: var(--basalt-radius-md); pointer-events: none;
@@ -192,7 +216,8 @@
   /* Print and no script: every fold is open (the parts draw them open until script runs); Copy buttons are not printed, and a source line prints as text. */
   @media print {
     :is(.release-notes, .release-index) .release-fold-panel { content-visibility: visible; }
-    :is(.release-notes, .release-index) .release-fold-panel[hidden] { display: block !important; content-visibility: visible; }
+    :is(.release-notes, .release-index) .release-fold-panel[hidden] { display: flow-root !important; content-visibility: visible; }
+    .release-section[data-folded] .release-fold-panel[hidden] { padding-top: var(--basalt-space-2); }
     .release-copy, .release-notes [data-copy-text], .release-sources, .release-build .btn { display: none; }
     .release-id { text-decoration: none; }
   }

@@ -6,7 +6,7 @@ import fs from "node:fs";
 import { after, before, describe, test } from "node:test";
 
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
-import { HARBOR, SLATE, SWEEP } from "../../../packages/react/test/release-fixture.mjs";
+import { ENDS, HARBOR, SLATE, SWEEP } from "../../../packages/react/test/release-fixture.mjs";
 import { pageBody, releaseNotesHtml, versionLink } from "../../changelog/skill-body.mjs";
 import { launch } from "./support.mjs";
 
@@ -234,4 +234,82 @@ describe("the spacing sweep (DECISIONS 326, round 68)", () => {
       }
     });
   }
+});
+
+describe("where a release ends (DECISIONS 331)", () => {
+  const pressEndingFolds = (page) => page.evaluate(() => { for (const r of document.querySelectorAll(".release")) r.lastElementChild.querySelector(".release-fold")?.click(); });
+  for (const [width, touch] of [[390, true], [820, true], [1440, false]]) {
+    test(`every release's last line is space-10 above its divider, its folds open and closed (${width}${touch ? ", touch" : ""})`, async () => {
+      for (const [name, body] of [["Slate", SLATE_BODY], ["Harbor", HARBOR_BODY]]) {
+        const { page, context, errors } = await open(body, { width, hasTouch: touch, reducedMotion: "reduce" });
+        const kinds = new Set();
+        for (const state of ["closed", "open", "closed again"]) {
+          if (state !== "closed") { await pressEndingFolds(page); await page.waitForTimeout(50); }
+          const m = await page.evaluate(`(${ENDS})("")`);
+          for (const e of m.ends) kinds.add(`${e.ends}${e.open === null ? "" : e.open ? " open" : " closed"}`);
+          assert.ok(m.ends.length >= 3, name);
+          assert.deepEqual(m.ends.filter((e) => Math.abs(e.gap - 40) > 0.5), [], `${name}, folds ${state}`);
+        }
+        if (name === "Slate") for (const kind of ["release-section", "release-section[data-folded] closed", "release-section[data-folded] open"]) assert.ok(kinds.has(kind), `${name}: ${kind} in ${[...kinds]}`);
+        if (name === "Harbor") for (const kind of ["release-section", "release-all closed", "release-all open", "release-build closed", "release-build open"]) assert.ok(kinds.has(kind), `${name}: ${kind} in ${[...kinds]}`);
+        assert.deepEqual(errors, []);
+        await context.close();
+      }
+    });
+  }
+
+  test("on touch at 390: no tap box meets another target or crosses a rim or a divider, and a last change's lowest row is its own", async () => {
+    for (const [name, body] of [["Slate", SLATE_BODY], ["Harbor", HARBOR_BODY]]) {
+      const { page, context } = await open(body, { width: 390, hasTouch: true, javaScriptEnabled: false });
+      const m = await page.evaluate(`(${ENDS})("")`);
+      assert.ok(m.taps.length > 10, name);
+      assert.deepEqual(m.taps.filter((t) => t.meets.length).map((t) => `${t.name} meets ${t.meets}`), [], name);
+      assert.deepEqual(m.taps.filter((t) => t.insideRim < -0.5).map((t) => `${t.name}: ${t.insideRim}`), [], `${name}: past a callout's rim`);
+      assert.deepEqual(m.taps.filter((t) => t.insideDivider < -0.5).map((t) => `${t.name}: ${t.insideDivider}`), [], `${name}: past a divider`);
+      assert.deepEqual(m.taps.filter((t) => t.last && t.lowestRow !== "itself").map((t) => `${t.name}: ${t.lowestRow}`), [], name);
+      await context.close();
+    }
+  });
+
+  test("Build details' button is 44 tall on touch, as every fold's is", async () => {
+    const { page, context } = await open(HARBOR_BODY, { width: 390, hasTouch: true });
+    assert.equal(await page.locator(".release-build .release-fold").evaluate((el) => el.getBoundingClientRect().height), 44);
+    await context.close();
+  });
+
+  for (const [width, touch] of [[390, true], [1440, false]]) {
+    test(`a change that has arrived keeps its padding: its plate is equal above and under (${width}${touch ? ", touch" : ""})`, async () => {
+      for (const [body, id] of [[SLATE_BODY, "pr43-1"], [SLATE_BODY, "pr52-1"], [HARBOR_BODY, "pr140-1"], [HARBOR_BODY, "pr143-1"]]) {
+        const { page, context } = await open(body, { width, hasTouch: touch, fragment: `#${id}`, reducedMotion: "reduce" });
+        const m = await page.evaluate(`(${ENDS})("")`);
+        const plate = m.plates.find((p) => p.id === id);
+        assert.ok(plate?.last, `${id} arrived, last in its list`);
+        assert.ok(Math.abs(plate.above - plate.under) <= 0.5, `${id}: the plate is ${plate.above} above and ${plate.under} under`);
+        await context.close();
+      }
+    });
+  }
+
+  test("an open fold's panel holds its first child's margin, so it moves what is under it by its own height alone", async () => {
+    for (const width of [390, 1440]) {
+      const { page, context } = await open(HARBOR_BODY, { width, hasTouch: width < 720, reducedMotion: "reduce" });
+      const buttons = page.locator(".release .release-fold");
+      const n = await buttons.count();
+      assert.ok(n >= 2);
+      for (let i = 0; i < n; i++) {
+        const read = () => buttons.nth(i).evaluate((el) => {
+          const release = el.closest(".release");
+          const next = release.nextElementSibling;
+          const panel = document.getElementById(el.getAttribute("aria-controls"));
+          return { below: (next ?? release).getBoundingClientRect()[next ? "top" : "bottom"], panel: panel.hasAttribute("hidden") ? 0 : panel.getBoundingClientRect().height };
+        });
+        const before = await read();
+        await buttons.nth(i).evaluate((el) => el.click());
+        const after = await read();
+        assert.ok(Math.abs(after.below - before.below - (after.panel - before.panel)) <= 0.5, `fold ${i} at ${width}: moved ${after.below - before.below} for ${after.panel - before.panel}`);
+        await buttons.nth(i).evaluate((el) => el.click());
+      }
+      await context.close();
+    }
+  });
 });

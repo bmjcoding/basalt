@@ -6,7 +6,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { after, before, describe, test } from "node:test";
 
-import { HARBOR, RUNNING_BUILD, SLATE, SWEEP, harborShell } from "./release-fixture.mjs";
+import { ENDS, HARBOR, RUNNING_BUILD, SLATE, SWEEP, harborShell } from "./release-fixture.mjs";
 import { bundleFixture, fixturePage, launch, pkg, settle } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
@@ -330,10 +330,11 @@ describe("the header, the lazy panel and long sources", () => {
   });
 });
 
+/** Slate's changelog on a site page with its footer: the page's own room under the last release is half the section gap, the footer's the other half. */
+const SLATE_SITE_PAGE = (more = "") => `return <B.SitePage><main style={{ boxSizing: "border-box", width: "100%", maxWidth: 1200, margin: "0 auto", padding: "48px 16px calc(var(--basalt-section-gap) / 2)" }}>
+  <B.PaneLayout pane={<B.ReleaseIndex releases={SLATE} />} paneLabel="Versions"><B.ReleaseIndex releases={SLATE} form="fold" /><B.ReleaseNotes releases={SLATE} form="reference" product="Slate" ${more} /></B.PaneLayout></main><B.SiteFooter id="slate-footer" brand="Slate" legal="© 2026 Example" /></B.SitePage>;`;
 describe("the spacing sweep (DECISIONS 326, round 68)", () => {
-  /** Slate's changelog on a site page with its footer: the page's own room under the last release is half the section gap, the footer's the other half. */
-  const SLATE_SITE = `return <B.SitePage><main style={{ boxSizing: "border-box", width: "100%", maxWidth: 1200, margin: "0 auto", padding: "48px 16px calc(var(--basalt-section-gap) / 2)" }}>
-  <B.PaneLayout pane={<B.ReleaseIndex releases={SLATE} />} paneLabel="Versions"><B.ReleaseIndex releases={SLATE} form="fold" /><B.ReleaseNotes releases={SLATE} form="reference" product="Slate" /></B.PaneLayout></main><B.SiteFooter id="slate-footer" brand="Slate" legal="© 2026 Example" /></B.SitePage>;`;
+  const SLATE_SITE = SLATE_SITE_PAGE();
   for (const [width, touch] of [[1440, false], [390, false], [390, true]]) {
     test(`each box hugs what it shows (${width}${touch ? ", touch" : ""})`, async () => {
       for (const [name, jsx] of [["Slate", SLATE_SITE], ["Harbor", harborShell()]]) {
@@ -364,6 +365,104 @@ describe("the spacing sweep (DECISIONS 326, round 68)", () => {
       }
     });
   }
+});
+
+describe("where a release ends (DECISIONS 331)", () => {
+  const PAGES = () => [["Slate", SLATE_SITE_PAGE()], ["Harbor", harborShell()]];
+  /** Press the button of every fold that ends a release, and wait for the panels. */
+  const pressEndingFolds = async (page) => {
+    await page.evaluate(() => { for (const r of document.querySelectorAll(".basalt-release")) r.lastElementChild.querySelector(".basalt-accordion-trigger")?.click(); });
+    await settle(page);
+  };
+  for (const [width, touch] of [[390, true], [820, true], [1440, false]]) {
+    test(`every release's last line is space-10 above its divider, whatever ends it, and pressing a fold that ends one moves nothing else (${width}${touch ? ", touch" : ""})`, async () => {
+      for (const [name, jsx] of PAGES()) {
+        const page = await open(jsx, { width, height: 900, hasTouch: touch, reducedMotion: "reduce" });
+        const rounds = [];
+        for (const state of ["closed", "open", "closed again"]) {
+          if (state !== "closed") await pressEndingFolds(page);
+          const m = await page.evaluate(`(${ENDS})("basalt-")`);
+          rounds.push([state, m.ends]);
+          assert.ok(m.ends.length >= 3, name);
+          assert.deepEqual(m.ends.filter((e) => Math.abs(e.gap - 40) > 0.5), [], `${name}, folds ${state}`);
+        }
+        // Each way a release ends is met: an open list, and a fold (Slate's Fixed, Harbor's Other changes, Harbor's Build details), open and closed.
+        const kinds = new Set(rounds.flatMap(([, ends]) => ends.map((e) => `${e.ends}${e.open === null ? "" : e.open ? " open" : " closed"}`)));
+        if (name === "Slate") for (const kind of ["basalt-release-section", "basalt-release-section[data-folded] closed", "basalt-release-section[data-folded] open"]) assert.ok(kinds.has(kind), `${name}: ${kind} in ${[...kinds]}`);
+        if (name === "Harbor") for (const kind of ["basalt-release-section", "basalt-release-all closed", "basalt-release-all open", "basalt-release-build closed", "basalt-release-build open"]) assert.ok(kinds.has(kind), `${name}: ${kind} in ${[...kinds]}`);
+        assert.deepEqual(page.errors, []);
+      }
+    });
+  }
+
+  for (const width of [390, 820]) {
+    test(`on touch at ${width}: no tap box meets another target or crosses a rim or a divider, and a last change's lowest row is its own`, async () => {
+      for (const [name, jsx] of PAGES()) {
+        const page = await open(jsx, { width, height: 900, hasTouch: true, reducedMotion: "reduce" });
+        await openAll(page);
+        const m = await page.evaluate(`(${ENDS})("basalt-")`);
+        assert.ok(m.taps.length > 10, name);
+        assert.deepEqual(m.taps.filter((t) => t.meets.length).map((t) => `${t.name} meets ${t.meets}`), [], name);
+        assert.deepEqual(m.taps.filter((t) => t.insideRim < -0.5).map((t) => `${t.name}: ${t.insideRim}`), [], `${name}: past a callout's rim`);
+        assert.deepEqual(m.taps.filter((t) => t.insideDivider < -0.5).map((t) => `${t.name}: ${t.insideDivider}`), [], `${name}: past a divider`);
+        const last = m.taps.filter((t) => t.last);
+        assert.ok(last.length >= 3, name);
+        assert.deepEqual(last.filter((t) => t.lowestRow !== "itself").map((t) => `${t.name}: ${t.lowestRow}`), [], name);
+        // The last change in Action needed reaches the rim's inner edge and no further (space-3, all of it).
+        assert.ok(m.taps.some((t) => t.last && t.insideRim !== undefined && Math.abs(t.insideRim) <= 0.5), `${name}: ${m.taps.filter((t) => t.insideRim !== undefined).map((t) => t.insideRim)}`);
+      }
+    });
+  }
+
+  for (const [width, touch] of [[390, true], [1440, false]]) {
+    test(`a change that has arrived keeps its padding: its plate is equal above and under, last in Action needed and at a release's end (${width}${touch ? ", touch" : ""})`, async () => {
+      for (const [name, id, jsx] of [
+        ["Slate, Action needed", "pr43-1", SLATE_SITE_PAGE('arrived="pr43-1"')],
+        ["Slate, an open list", "pr52-1", SLATE_SITE_PAGE('arrived="pr52-1"')],
+        ["Harbor, Action needed", "pr140-1", harborShell({ extra: 'arrived="pr140-1"' })],
+        ["Harbor, a fold", "pr143-1", harborShell({ extra: 'arrived="pr143-1"' })],
+      ]) {
+        const page = await open(jsx, { width, height: 900, hasTouch: touch, reducedMotion: "reduce" });
+        const m = await page.evaluate(`(${ENDS})("basalt-")`);
+        const plate = m.plates.find((p) => p.id === id);
+        assert.ok(plate, `${name}: ${id} arrived`);
+        assert.ok(plate.last, `${name}: ${id} is the last change in its list`);
+        assert.ok(Math.abs(plate.above - plate.under) <= 0.5, `${name}: the plate is ${plate.above} above and ${plate.under} under`);
+      }
+    });
+  }
+
+  test("what follows a release list stands at least space-3 below it, so a last change's box reaches no further than the page's gap", async () => {
+    for (const [name, jsx, width, touch] of [["Slate", SLATE_SITE_PAGE(), 390, true], ["Slate", SLATE_SITE_PAGE(), 1440, false], ["Harbor", harborShell(), 390, true]]) {
+      const page = await open(jsx, { width, height: 900, hasTouch: touch, reducedMotion: "reduce" });
+      const m = await page.evaluate(`(${ENDS})("basalt-")`);
+      assert.ok(m.under !== null && m.under >= 12 - 0.5, `${name} at ${width}: ${m.under}`);
+    }
+  });
+
+  test("an opening fold moves what is under it by its panel's height alone: no margin passes through the panel", async () => {
+    for (const [name, jsx, width] of [["Harbor", harborShell(), 390], ["Harbor", harborShell(), 1440], ["Slate", SLATE_SITE_PAGE(), 390]]) {
+      const page = await open(jsx, { width, height: 900, hasTouch: width < 720, reducedMotion: "reduce" });
+      const folds = await page.locator(".basalt-release .basalt-release-fold .basalt-accordion-trigger").count();
+      assert.ok(folds >= 1, name);
+      for (let i = 0; i < folds; i++) {
+        const trigger = page.locator(".basalt-release .basalt-release-fold .basalt-accordion-trigger").nth(i);
+        const read = () => trigger.evaluate((el) => {
+          const release = el.closest(".basalt-release");
+          const next = release.nextElementSibling;
+          const panel = el.closest(".basalt-accordion-item").querySelector(".basalt-accordion-panel");
+          return { below: (next ?? release).getBoundingClientRect()[next ? "top" : "bottom"], panel: panel.hidden ? 0 : panel.getBoundingClientRect().height };
+        });
+        const closed = await read();
+        await trigger.evaluate((el) => el.click());
+        await settle(page);
+        const opened = await read();
+        assert.ok(Math.abs(opened.below - closed.below - (opened.panel - closed.panel)) <= 0.5, `${name} at ${width}, fold ${i}: moved ${opened.below - closed.below} for a ${opened.panel}px panel`);
+        await trigger.evaluate((el) => el.click());
+        await settle(page);
+      }
+    }
+  });
 });
 
 describe("Build details", () => {
