@@ -230,9 +230,14 @@ export function CommandListPanel({ groups, label, placeholder, noun, level, band
       if (searchRef.current) return;
       const style = getComputedStyle(host);
       const padding = Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
-      box.style.setProperty("--_held", `${sizer.getBoundingClientRect().height + padding}px`);
+      const listHeight = sizer.getBoundingClientRect().height + padding;
+      box.style.setProperty("--_held", `${listHeight}px`);
       const page = root.current;
-      if (page) wrap.current?.style.setProperty("--_held-page", `${page.getBoundingClientRect().height}px`);
+      // The page keeps the taller of the panel's two heights, the unfiltered list's and "Nothing matches"', so a short list filtered to nothing
+      // never moves what follows (the code review's finding 6). The sentence's height is read from an unseen copy of it.
+      const none = box.querySelector<HTMLElement>(".basalt-command-none-sizer");
+      const empty = none ? padding + none.getBoundingClientRect().height : 0;
+      if (page) wrap.current?.style.setProperty("--_held-page", `${page.getBoundingClientRect().height - listHeight + Math.max(listHeight, empty)}px`);
     };
     measure();
     const resizes = new ResizeObserver(measure);
@@ -397,6 +402,11 @@ export function CommandListPanel({ groups, label, placeholder, noun, level, band
           ))}
         </Command.List>
         <NoMatch query={search} onClear={clear} />
+        {/* An unseen copy of "Nothing matches", measured with the list, so the page can keep room for it. */}
+        <div className="basalt-command-none basalt-command-none-sizer" aria-hidden="true" inert>
+          <p>Nothing matches.</p>
+          <Button variant="ghost" size="sm" tabIndex={-1}>Clear search</Button>
+        </div>
       </div>
       <Foot total={total} noun={noun} hintId={ids.hint} preview={Boolean(detail)} query={search} />
     </Command>

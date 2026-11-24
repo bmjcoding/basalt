@@ -26,6 +26,7 @@
 
   /* No match: one centred sentence and a ghost button, in the panel's flow with its own padding, outside the listbox. */
   .command-split[data-mode] .command-none { position: absolute; inset: 0; }
+  .command-none[data-measure] { position: absolute; inset-inline: 0; top: 0; visibility: hidden; }
   .command-none { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--basalt-space-3); padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; font: var(--basalt-font-weight-regular) var(--bh-sm); color: var(--basalt-text-secondary); }
   .command-none p { margin: 0; overflow-wrap: anywhere; }
 

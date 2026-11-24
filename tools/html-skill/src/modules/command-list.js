@@ -106,8 +106,22 @@
     function hold() {
       if (query) return;
       var cs = getComputedStyle(results);
-      body.style.setProperty('--held', sizer.getBoundingClientRect().height + parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + 'px');
-      if (!detail) host.style.setProperty('--held-page', page.getBoundingClientRect().height + 'px');
+      var pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+      var list = sizer.getBoundingClientRect().height + pad;
+      body.style.setProperty('--held', list + 'px');
+      if (detail) return;
+      // The page keeps the taller of the panel's two heights, the unfiltered list's and "Nothing matches"', so a short list filtered to nothing never
+      // moves what follows (the code review's finding 6): the sentence is measured unseen, out of the flow.
+      var wasHidden = none.hidden;
+      var said = none.firstChild.textContent;
+      if (!said) none.firstChild.textContent = 'Nothing matches.';
+      none.hidden = false;
+      none.setAttribute('data-measure', '');
+      var empty = pad + none.getBoundingClientRect().height;
+      none.removeAttribute('data-measure');
+      none.hidden = wasHidden;
+      none.firstChild.textContent = said;
+      host.style.setProperty('--held-page', page.getBoundingClientRect().height - list + Math.max(list, empty) + 'px');
     }
 
     /** The pane is a region named by its first heading, which also takes focus when it is pushed. */

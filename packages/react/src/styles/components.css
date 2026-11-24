@@ -3553,6 +3553,7 @@
   .basalt-command-host[data-reserve] > .basalt-command-split:not([data-mode]) { min-block-size: var(--_held-page, auto); align-content: start; }
   /* No match: one centred sentence and a ghost button, in the panel's flow with its own padding, outside the listbox. */
   .basalt-command-split[data-mode] .basalt-command-none { position: absolute; inset: 0; }
+  .basalt-command-none.basalt-command-none-sizer { position: absolute; inset-inline: 0; top: 0; visibility: hidden; pointer-events: none; }
   .basalt-command-none {
     display: flex;
     flex-direction: column;
