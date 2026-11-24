@@ -428,8 +428,8 @@
  },
  "subpaths": {
   "diagram-interop": {
-   "bytes": 138213,
-   "gzip": 39380
+   "bytes": 138715,
+   "gzip": 39659
   }
  },
  "package": {

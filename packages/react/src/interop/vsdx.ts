@@ -70,6 +70,9 @@ function connectionPagePt(shape: PlacedShape, conn: ConnEntry): Pt {
 export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"): Uint8Array {
   const singleTheme: "light" | "dark" = theme === "dark" ? "dark" : "light";
   const P = paletteFor(singleTheme);
+  // A light export has no page shape, so it sits on the importer's own canvas, white in Lucidchart and Visio: a backdrop
+  // in Basalt's #fafafa page colour shows there as a grey box. Dark exports paint their page, so backdrops match it.
+  const labelBg = singleTheme === "light" ? "#ffffff" : P.page;
   const pad = scene.pad;
   const canvasW = scene.width + pad * 2;
   const canvasH = scene.height + pad * 2;
@@ -130,6 +133,19 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     return ix;
   };
 
+  // Lucidchart keeps a glued end exactly at a side's midpoint and at any point down a left or right side, but an end
+  // glued to a top or bottom side away from its midpoint lands about 1px left of its Connection row, and Lucid then
+  // draws a sideways step a quarter inch out from the box to rejoin the route (measured on the owner's round-3
+  // imports: "HTTP + SSE" and "inference" in architecture-auto at 0.25, RunTask in architecture; every midpoint and
+  // every left or right port was within 0.1px). Such an end is left unglued, at its exact page coordinate, which
+  // Lucid has nothing to re-snap to; every other end stays glued to its own Connection row.
+  const lucidKeepsGlue = (key: string, side: "top" | "right" | "bottom" | "left", fx: number): boolean =>
+    !key.startsWith("node:") || side === "left" || side === "right" || Math.abs(fx - 0.5) < 1e-4;
+  const boxPortPagePt = (g: { pinX: number; pinY: number; wIn: number; hIn: number }, fx: number, fy: number): Pt => ({
+    x: n6(g.pinX - n6(g.wIn / 2) + n6(round6(Math.max(0, Math.min(1, fx))) * g.wIn)),
+    y: n6(g.pinY - n6(g.hIn / 2) + n6((1 - round6(Math.max(0, Math.min(1, fy)))) * g.hIn)),
+  });
+
   const edgeConns = scene.edges.map((e) => {
     const fromKey = e.sequence
       ? (e.fromBarId && geomByKey.has(`bar:${e.fromBarId}`) ? `bar:${e.fromBarId}` : `life:${e.from}`)
@@ -141,28 +157,40 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     const toG = geomByKey.get(toKey);
     const fromFx = e.sequence && !fromKey.startsWith("bar:") ? 0.5 : e.fromPort.x;
     const toFx = e.sequence && !toKey.startsWith("bar:") ? 0.5 : e.toPort.x;
-    const fromIx = allocConnIndex(fromKey, fromFx, e.fromPort.y, e.fromPort.side);
-    let toIx: number;
+    const fromFree = Boolean(fromG) && !lucidKeepsGlue(fromKey, e.fromPort.side, fromFx);
+    const toFree = Boolean(toG) && !lucidKeepsGlue(toKey, e.toPort.side, toFx);
+    const fromIx = fromFree ? -1 : allocConnIndex(fromKey, fromFx, e.fromPort.y, e.fromPort.side);
+    const fromPt = fromFree ? boxPortPagePt(fromG!, fromFx, e.fromPort.y) : undefined;
+    let toIx = -1;
+    let toPt: Pt | undefined;
     if (e.pts.length === 2 && fromG && toG) {
-      const fc = connsByKey.get(fromKey)![fromIx]!;
-      const startPageX = n6(fromG.pinX - n6(fromG.wIn / 2) + fc.cx);
-      const startPageY = n6(fromG.pinY - n6(fromG.hIn / 2) + fc.cy);
+      // A straight line keeps its two ends on one axis to 0.000001 in, glued or free.
+      let startPage = fromPt;
+      if (!startPage) {
+        const fc = connsByKey.get(fromKey)![fromIx]!;
+        startPage = { x: n6(fromG.pinX - n6(fromG.wIn / 2) + fc.cx), y: n6(fromG.pinY - n6(fromG.hIn / 2) + fc.cy) };
+      }
       const horiz = Math.abs(e.pts[0]!.y - e.pts[1]!.y) <= Math.abs(e.pts[0]!.x - e.pts[1]!.x);
-      if (horiz) {
+      if (toFree) {
+        const edgePt = boxPortPagePt(toG, toFx, e.toPort.y);
+        toPt = horiz ? { x: edgePt.x, y: startPage.y } : { x: startPage.x, y: edgePt.y };
+      } else if (horiz) {
         const toBottom = toG.pinY - n6(toG.hIn / 2);
-        const exactCy = n6(startPageY - toBottom);
+        const exactCy = n6(startPage.y - toBottom);
         const alignedFy = toG.hIn > 0 ? round6(1 - exactCy / toG.hIn) : e.toPort.y;
         toIx = allocConnIndex(toKey, toFx, alignedFy, e.toPort.side, undefined, exactCy);
       } else {
         const toLeft = toG.pinX - n6(toG.wIn / 2);
-        const exactCx = n6(startPageX - toLeft);
+        const exactCx = n6(startPage.x - toLeft);
         const alignedFx = toG.wIn > 0 ? round6(exactCx / toG.wIn) : toFx;
         toIx = allocConnIndex(toKey, alignedFx, e.toPort.y, e.toPort.side, exactCx, undefined);
       }
+    } else if (toFree) {
+      toPt = boxPortPagePt(toG!, toFx, e.toPort.y);
     } else {
       toIx = allocConnIndex(toKey, toFx, e.toPort.y, e.toPort.side);
     }
-    return { fromKey, toKey, fromIx, toIx };
+    return { fromKey, toKey, fromIx, toIx, fromPt, toPt };
   });
 
   let nextId = 1;
@@ -429,7 +457,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
       `      <Cell N="LocPinX" V="${f6(n6(blwIn / 2))}" F="Width*0.5"/>\n` +
       `      <Cell N="LocPinY" V="${f6(n6(blhIn / 2))}" F="Height*0.5"/>\n` +
       `      <Cell N="Angle" V="0"/>\n` +
-      `      <Cell N="FillForegnd" V="${P.page}"/>\n` +
+      `      <Cell N="FillForegnd" V="${labelBg}"/>\n` +
       `      <Cell N="FillPattern" V="1"/>\n` +
       `      <Cell N="LinePattern" V="0"/>\n` +
       `      <Cell N="VerticalAlign" V="1"/>\n` +
@@ -523,7 +551,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
       `      <Cell N="LocPinX" V="${f6(n6(twIn / 2))}" F="Width*0.5"/>\n` +
       `      <Cell N="LocPinY" V="${f6(n6(thIn / 2))}" F="Height*0.5"/>\n` +
       `      <Cell N="Angle" V="0"/>\n` +
-      `      <Cell N="FillForegnd" V="${P.page}"/>\n` +
+      `      <Cell N="FillForegnd" V="${labelBg}"/>\n` +
       `      <Cell N="FillPattern" V="1"/>\n` +
       `      <Cell N="LineColor" V="${P.structure}"/>\n` +
       `      <Cell N="LineWeight" V="${ptToIn(0.75)}"/>\n` +
@@ -569,7 +597,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
         `      <Cell N="LocPinX" V="${f6(n6(lwIn / 2))}" F="Width*0.5"/>\n` +
         `      <Cell N="LocPinY" V="${f6(n6(lhIn / 2))}" F="Height*0.5"/>\n` +
         `      <Cell N="Angle" V="0"/>\n` +
-        `      <Cell N="FillForegnd" V="${P.page}"/>\n` +
+        `      <Cell N="FillForegnd" V="${labelBg}"/>\n` +
         `      <Cell N="FillPattern" V="1"/>\n` +
         `      <Cell N="LinePattern" V="0"/>\n` +
         `      <Cell N="VerticalAlign" V="1"/>\n` +
@@ -652,7 +680,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
           `      <Cell N="LocPinX" V="${f6(n6(ewIn / 2))}" F="Width*0.5"/>\n` +
           `      <Cell N="LocPinY" V="${f6(n6(ehIn / 2))}" F="Height*0.5"/>\n` +
           `      <Cell N="Angle" V="0"/>\n` +
-          `      <Cell N="FillForegnd" V="${P.page}"/>\n` +
+          `      <Cell N="FillForegnd" V="${labelBg}"/>\n` +
           `      <Cell N="FillPattern" V="1"/>\n` +
           `      <Cell N="LinePattern" V="0"/>\n` +
           `      <Cell N="VerticalAlign" V="1"/>\n` +
@@ -1002,12 +1030,12 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     const fromPlaced = placed.get(ec.fromKey);
     const toPlaced = placed.get(ec.toKey);
     if (!fromPlaced || !toPlaced) continue;
-    const fromConn = fromPlaced.conns[ec.fromIx]!;
-    const toConn = toPlaced.conns[ec.toIx]!;
+    const fromConn = ec.fromIx >= 0 ? fromPlaced.conns[ec.fromIx] : undefined;
+    const toConn = ec.toIx >= 0 ? toPlaced.conns[ec.toIx] : undefined;
 
-    // Exact start and end in Visio inches from the placed shape's Connection rows
-    const p0 = connectionPagePt(fromPlaced, fromConn);
-    const pN = connectionPagePt(toPlaced, toConn);
+    // Exact start and end in Visio inches: the placed shape's Connection row, or the free end's own page point
+    const p0: Pt = fromConn ? connectionPagePt(fromPlaced, fromConn) : ec.fromPt!;
+    const pN: Pt = toConn ? connectionPagePt(toPlaced, toConn) : ec.toPt!;
     const rawVisioPts: Pt[] = e.pts.map((pt) => ({ x: toVisioX(pt.x), y: toVisioY(pt.y) }));
     const vPts = snapRouteToPorts(rawVisioPts, p0, pN, e.fromPort.side, e.toPort.side);
 
@@ -1070,14 +1098,17 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     const fromOneBased = ec.fromIx + 1;
     const toOneBased = ec.toIx + 1;
 
-    // Emit every edge label as a dedicated word-sized opaque page-colour shape in the top label layer
-    // (Lucidchart ignores TextBkgnd on connectors, so inline connector text gets struck through by lines/lifelines).
+    // Every edge label is its own shape in the top label layer, on a backdrop of the page's colour sized as Basalt
+    // sizes its plate (Lucid draws no backdrop under a connector's own text, so a line under it would strike the words):
+    // a label on a line is its words plus space-1 a side, already in its scene box; a sequence message's words carry
+    // space-1-5 a side (`.basalt-diagram-said`); a label beside a line is its words alone. One line is 16px tall.
     if (e.label) {
       const lblId = nextId++;
       const lPinX = toVisioX(e.label.box.x + e.label.box.w / 2);
       const lPinY = toVisioY(e.label.box.y + e.label.box.h / 2);
-      const lwIn = n6((e.label.box.w + 8) / DPI);
-      const lhIn = n6(((e.label.note ? 32 : Math.max(18, e.label.box.h)) + 4) / DPI);
+      const platePadX = e.sequence ? 6 : 0;
+      const lwIn = n6((e.label.box.w + 2 * platePadX) / DPI);
+      const lhIn = n6(e.label.box.h / DPI);
       const noteChar = e.label.note
         ? `\n        <Row IX="1"><Cell N="Font" V="0"/><Cell N="Color" V="${P.textTertiary}"/><Cell N="Style" V="0"/><Cell N="Size" V="${ptToIn(8.5)}"/></Row>`
         : "";
@@ -1093,7 +1124,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
         `      <Cell N="LocPinX" V="${f6(n6(lwIn / 2))}" F="Width*0.5"/>\n` +
         `      <Cell N="LocPinY" V="${f6(n6(lhIn / 2))}" F="Height*0.5"/>\n` +
         `      <Cell N="Angle" V="0"/>\n` +
-        `      <Cell N="FillForegnd" V="${P.page}"/>\n` +
+        `      <Cell N="FillForegnd" V="${labelBg}"/>\n` +
         `      <Cell N="FillPattern" V="1"/>\n` +
         `      <Cell N="LinePattern" V="0"/>\n` +
         `      <Cell N="VerticalAlign" V="1"/>\n` +
@@ -1123,6 +1154,13 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
       );
     }
 
+    const beginF = fromConn
+      ? ` F="PAR(PNT(Sheet.${fromPlaced.sheetId}!Connections.X${fromOneBased},Sheet.${fromPlaced.sheetId}!Connections.Y${fromOneBased}))"`
+      : "";
+    const endF = toConn
+      ? ` F="PAR(PNT(Sheet.${toPlaced.sheetId}!Connections.X${toOneBased},Sheet.${toPlaced.sheetId}!Connections.Y${toOneBased}))"`
+      : "";
+
     shapeXml.push(
       `    <Shape ID="${id}" NameU="Connector_${e.index}" Name="Dynamic connector.${e.index}" Type="Shape">\n` +
       `      <Cell N="PinX" V="${f6(pinX)}" F="GUARD((BeginX+EndX)/2)"/>\n` +
@@ -1134,10 +1172,10 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
       `      <Cell N="Angle" V="0"/>\n` +
       `      <Cell N="FlipX" V="0"/>\n` +
       `      <Cell N="FlipY" V="0"/>\n` +
-      `      <Cell N="BeginX" V="${f6(p0.x)}" F="PAR(PNT(Sheet.${fromPlaced.sheetId}!Connections.X${fromOneBased},Sheet.${fromPlaced.sheetId}!Connections.Y${fromOneBased}))"/>\n` +
-      `      <Cell N="BeginY" V="${f6(p0.y)}" F="PAR(PNT(Sheet.${fromPlaced.sheetId}!Connections.X${fromOneBased},Sheet.${fromPlaced.sheetId}!Connections.Y${fromOneBased}))"/>\n` +
-      `      <Cell N="EndX" V="${f6(pN.x)}" F="PAR(PNT(Sheet.${toPlaced.sheetId}!Connections.X${toOneBased},Sheet.${toPlaced.sheetId}!Connections.Y${toOneBased}))"/>\n` +
-      `      <Cell N="EndY" V="${f6(pN.y)}" F="PAR(PNT(Sheet.${toPlaced.sheetId}!Connections.X${toOneBased},Sheet.${toPlaced.sheetId}!Connections.Y${toOneBased}))"/>\n` +
+      `      <Cell N="BeginX" V="${f6(p0.x)}"${beginF}/>\n` +
+      `      <Cell N="BeginY" V="${f6(p0.y)}"${beginF}/>\n` +
+      `      <Cell N="EndX" V="${f6(pN.x)}"${endF}/>\n` +
+      `      <Cell N="EndY" V="${f6(pN.y)}"${endF}/>\n` +
       `      <Cell N="ObjType" V="2"/>\n` +
       `      <Cell N="ShapeRouteStyle" V="1"/>\n` +
       `      <Cell N="ConFixedCode" V="2"/>\n` +
@@ -1160,10 +1198,16 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
       `    </Shape>`,
     );
 
-    connectXml.push(
-      `    <Connect FromSheet="${id}" FromCell="BeginX" FromPart="9" ToSheet="${fromPlaced.sheetId}" ToCell="Connections.X${fromOneBased}" ToPart="${100 + ec.fromIx}"/>`,
-      `    <Connect FromSheet="${id}" FromCell="EndX" FromPart="12" ToSheet="${toPlaced.sheetId}" ToCell="Connections.X${toOneBased}" ToPart="${100 + ec.toIx}"/>`,
-    );
+    if (fromConn) {
+      connectXml.push(
+        `    <Connect FromSheet="${id}" FromCell="BeginX" FromPart="9" ToSheet="${fromPlaced.sheetId}" ToCell="Connections.X${fromOneBased}" ToPart="${100 + ec.fromIx}"/>`,
+      );
+    }
+    if (toConn) {
+      connectXml.push(
+        `    <Connect FromSheet="${id}" FromCell="EndX" FromPart="12" ToSheet="${toPlaced.sheetId}" ToCell="Connections.X${toOneBased}" ToPart="${100 + ec.toIx}"/>`,
+      );
+    }
   }
 
   const svgDefaultType = mediaFiles.length
