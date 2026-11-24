@@ -176,15 +176,18 @@ describe("the command list in the page", () => {
       for (const query of ["dup", "zzz", "a", "", "bill", "zz", ""]) {
         await page.fill(FIELD, query);
         await settle(page);
-        assert.deepEqual(await probe(page), rest, `nothing moved for "${query}" (0px)`);
+        // DECISIONS 336, Q6: the panel hugs its rows; on the open page the room under it is page, so what follows never moves.
+        const now = await probe(page);
+        assert.equal(now.below, rest.below, `nothing below moved for "${query}" (0px)`);
+        assert.ok(now.panel <= Math.max(rest.panel, now.band + now.foot + 200) + 0.5, `the panel hugs for "${query}"`);
       }
       // a short list holds its own height, and measures it again when it changes
       const short = await open({ scheme: theme, body: PAGE({ groups: [GROUPS[0]] }) });
       await ready(short.page);
       const few = await probe(short.page);
-      assert.ok(few.body < 360, `four rows are held at their own height (${few.body})`);
+      assert.ok(few.body < 360, `four rows are at their own height (${few.body})`);
       await short.page.focus(FIELD);
-      for (const query of ["rename", "zzz", ""]) { await short.page.fill(FIELD, query); await settle(short.page); assert.deepEqual(await probe(short.page), few, `a short list holds too, for "${query}"`); }
+      for (const query of ["rename", "zzz", ""]) { await short.page.fill(FIELD, query); await settle(short.page); assert.equal((await probe(short.page)).below, few.below, `nothing below a short list moves, for "${query}" (the code review's finding 6)`); }
       await short.context.close();
       await context.close();
     });

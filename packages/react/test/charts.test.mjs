@@ -539,14 +539,16 @@ describe("Chart missing data", () => {
     await page.close();
   });
 
-  test("the reason is also in the readout ('Not observed · why'), the day's name and the table, in the words 'Not observed'", async () => {
+  // DECISIONS 336, Q2 and the pixel review's finding 1: the legend says "Not observed" alone, and the date line says why.
+  test("the reason is in the date line ('… · why'), the day's name and the table; the readout's value says 'Not observed' alone", async () => {
     const { page } = await chartPage({ cfg: { chart: "sleep", data: "sleep" } });
     const missingDay = await page.evaluate(() => window.D.sleep.series[1].values.findIndex((v) => v == null));
     const days = await dayBoxes(page);
     await page.mouse.move(days[missingDay].x + days[missingDay].width / 2, days[missingDay].y + 20);
     await frames(page);
     const values = await valueTexts(page);
-    assert.ok(values.includes("Not observed · not worn, travel"), `the readout says why the day was not observed: ${values}`);
+    assert.ok(values.includes("Not observed") && !values.some((v) => v.includes("·")), `the legend says Not observed alone: ${values}`);
+    assert.match(await page.locator(".basalt-chart-date > span:not(.basalt-chart-reserve)").innerText(), / · not worn, travel$/, "the date line says why");
     assert.equal(await page.locator('.basalt-chart-value [data-missing]').first().evaluate((el) => getComputedStyle(el).color), await token(page, "text-tertiary"));
     const sentence = await page.locator(".basalt-chart-day").nth(missingDay).getAttribute("aria-label");
     assert.match(sentence, /Watch not observed, not worn, travel/);

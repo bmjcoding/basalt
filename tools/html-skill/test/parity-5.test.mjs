@@ -140,7 +140,8 @@ describe("the chart", () => {
       await page.keyboard.press("ArrowLeft");
       assert.equal(await activeIndex(page), 8);
       assert.equal(await readoutDate(page, "lines"), "Mon, Nov 9");
-      assert.deepEqual(await readoutValues(page, "lines"), ["455 min".replace("455 min", "7 h 35 m"), "Not observed · not worn, travel", "7 h–9 h"], "the readout says why a day was not observed");
+      // DECISIONS 336, Q2: the legend says "Not observed" alone; the date line says why (the pixel review's finding 1).
+      assert.deepEqual(await readoutValues(page, "lines"), ["455 min".replace("455 min", "7 h 35 m"), "Not observed", "7 h–9 h"], "the legend says Not observed alone");
       await page.keyboard.press("PageUp");
       assert.equal(await activeIndex(page), 1, "a week earlier");
       await page.keyboard.press("PageDown");
@@ -424,10 +425,12 @@ describe("the terminal", () => {
     await page.locator("#static .terminal-copy").click();
     await clock.advance(50);
     assert.equal(await page.evaluate(() => navigator.clipboard.readText()), "npm run build\ngit push");
-    assert.equal(await page.locator("#static .terminal-copy .terminal-swap > [data-on]").innerText(), "Copied");
+    // DECISIONS 336, Q5: the words hold; the check shows (the copy and the close glyphs drawn once, off), and the status says Copied.
+    assert.equal(await page.locator("#static .terminal-copy").innerText(), "Copy commands");
+    assert.deepEqual(await page.locator("#static .terminal-copy > svg").evaluateAll((g) => g.map((x) => x.hasAttribute("data-off"))), [true, false, true], "the check shows");
     assert.equal(await page.locator("#static [role=status]").innerText(), "Copied");
     await clock.advance(1600);
-    assert.equal(await page.locator("#static .terminal-copy .terminal-swap > [data-on]").innerText(), "Copy commands", "back after a moment");
+    assert.deepEqual(await page.locator("#static .terminal-copy > svg").evaluateAll((g) => g.map((x) => x.hasAttribute("data-off"))), [false, true, true], "back to the copy glyph after a moment");
     assert.equal(await page.locator("#static [role=status]").innerText(), "");
     await clock.thaw();
     assert.equal(await page.locator("#static .terminal-copy-compact").isHidden(), true);

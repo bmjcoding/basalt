@@ -447,7 +447,8 @@ for (const theme of ["dark", "light"]) {
       await page.close();
     });
 
-    test("nothing moves as you type: the field, the count and the results area keep their place and size with no results, two, and a full result", async () => {
+    // DECISIONS 336, Q3: the top is held where a full result has it and the box ends under what it shows; the field and the count never move.
+    test("nothing moves as you type: the field and the count keep their place, and the box ends under its rows, up to a full result", async () => {
       const { page } = await open(SEARCH(""), { theme, viewport: { width: 1440, height: 900 } });
       await settle(page);
       const measure = async () => ({
@@ -457,11 +458,13 @@ for (const theme of ["dark", "light"]) {
         results: await box(page.locator(".basalt-search-results")),
       });
       const rest = await measure();
-      assert.equal(rest.results.height, 14 + 3 * 60 + 5 * 72 + 48, "the height of a full result: padding, 3 logo rows, 5 picture rows, a See all row");
       for (const query of ["none", "one", "whey", "many"]) {
         await page.locator(".basalt-search-input").fill(query);
+        await settle(page);
         const now = await measure();
-        assert.deepEqual(now, rest, `after typing "${query}": 0px of movement or resize`);
+        assert.deepEqual([now.dialog.y, now.form.y, now.count.y], [rest.dialog.y, rest.form.y, rest.count.y], `after typing "${query}": the top, the field and the count hold`);
+        assert.ok(now.results.height <= 14 + 3 * 60 + 5 * 72 + 48, "never taller than a full result");
+        assert.ok(Math.abs(now.dialog.y + now.dialog.height - (now.results.y + now.results.height) - 1) <= 0.5, "the box ends under the results (its rim)");
       }
       await page.close();
     });
