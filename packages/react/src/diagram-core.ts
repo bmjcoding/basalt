@@ -1105,8 +1105,12 @@ function inlineArrow(P: string, kind: DiagramLineKind): VElement {
 // ---- Nodes ----
 
 /** A card's name; a link card's last word is held with its cue (the stylesheet's arrow after it), so the arrow never leaves the name's last word (1.4). */
+/** An author's string as a first-strong isolate (`<bdi>`, the diagrams-rtl ruling): it keeps its own order in a figure set right to left, so a closing quote,
+ *  bracket or full stop stays at its end. Nothing changes left to right. */
+const iso = (text: string): VElement => h("bdi", null, text);
 function linkName(P: string, n: MNode): VChild {
-  if (!n.href) return n.name;
+  // A linked name is not isolated: its cue is drawn after its last word and must stay at the line's end in the figure's direction.
+  if (!n.href) return iso(n.name);
   const at = n.name.trimEnd().lastIndexOf(" ");
   return [at < 0 ? "" : n.name.slice(0, at + 1), h("span", { class: `${P}-name-end` }, at < 0 ? n.name : n.name.slice(at + 1))];
 }
@@ -1114,12 +1118,12 @@ function linkName(P: string, n: MNode): VChild {
 function nodeText(P: string, m: Model, n: MNode): VChild[] {
   if (n.shape === "decision") return [h("span", { class: `${P}-words` }, h("span", { class: `${P}-name` }, linkName(P, n)))];
   const kids: VNode[] = [];
-  if (m.type === "data-flow") kids.push(h("span", { class: `${P}-kind` }, n.kind!, h("span", { class: `${P}-lane-word` }, ` · ${n.laneLabel}`)));
-  else if (n.kind) kids.push(h("span", { class: `${P}-kind` }, n.kind));
+  if (m.type === "data-flow") kids.push(h("span", { class: `${P}-kind` }, iso(n.kind!), h("span", { class: `${P}-lane-word` }, " · ", iso(n.laneLabel ?? ""))));
+  else if (n.kind) kids.push(h("span", { class: `${P}-kind` }, iso(n.kind)));
   kids.push(h("span", { class: `${P}-name` }, linkName(P, n)));
   // An identifier breaks only at its spaces: each run between them is kept whole (an ordinary hyphen stays, so a copy is exact).
   // The runs are held in one span, a single left-to-right run right to left (1.7).
-  if (n.detail) kids.push(h("span", { class: `${P}-detail`, "data-mono": n.mono ? "" : undefined }, n.mono ? h("span", { class: `${P}-runs` }, words(n.detail).flatMap((w, j) => [j ? " " : "", h("span", { class: `${P}-run` }, w)])) : n.detail));
+  if (n.detail) kids.push(h("span", { class: `${P}-detail`, "data-mono": n.mono ? "" : undefined }, n.mono ? h("span", { class: `${P}-runs` }, words(n.detail).flatMap((w, j) => [j ? " " : "", h("span", { class: `${P}-run` }, w)])) : iso(n.detail)));
   return kids;
 }
 
@@ -1129,7 +1133,7 @@ function tableText(P: string, n: MNode, m: Model): VChild[] {
     h("span", { class: `${P}-rows` }, (n.columns ?? []).map((c, k) => h("span", { class: `${P}-row`, "data-row": k, "data-key": c.key },
       h("span", { class: `${P}-keyseat` }, c.key ?? ""),
       h("span", { class: `${P}-cname` }, c.name),
-      c.ref ? h("span", { class: `${P}-ctype`, "data-ref": "" }, `${m.rtl ? "←" : "→"} ${c.ref.table}`) : c.type ? h("span", { class: `${P}-ctype` }, c.type) : null))),
+      c.ref ? h("span", { class: `${P}-ctype`, "data-ref": "" }, `${m.rtl ? "←" : "→"} `, iso(c.ref.table)) : c.type ? h("span", { class: `${P}-ctype` }, iso(c.type)) : null))),
     n.more ? h("span", { class: `${P}-more` }, `+ ${n.more} more`) : null,
   ];
 }
@@ -1200,7 +1204,7 @@ function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
       if (!c) continue;
       // A box grown past its cells by one level on each side, and by two where a child group reaches that side of it (1.3).
       const lv = [0, 1, 2, 3].map((k) => groupLevels(m, g, k));
-      out.push(h("div", { class: `${P}-gbox`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, style: `--_c:${c.c1};--_c2:${c.c2 + 1};--_r:${c.r1};--_r2:${c.r2 + 1}${lv[0]! > 1 ? ";--_gt:2" : ""}${lv[1]! > 1 ? ";--_ge:2" : ""}${lv[2]! > 1 ? ";--_gb:2" : ""}${lv[3]! > 1 ? ";--_gs:2" : ""}`, "aria-hidden": "true" }, h("span", { class: `${P}-glabel` }, g.label)));
+      out.push(h("div", { class: `${P}-gbox`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, style: `--_c:${c.c1};--_c2:${c.c2 + 1};--_r:${c.r1};--_r2:${c.r2 + 1}${lv[0]! > 1 ? ";--_gt:2" : ""}${lv[1]! > 1 ? ";--_ge:2" : ""}${lv[2]! > 1 ? ";--_gb:2" : ""}${lv[3]! > 1 ? ";--_gs:2" : ""}`, "aria-hidden": "true" }, h("span", { class: `${P}-glabel` }, iso(g.label))));
     }
   }
   // The text variant (1.2): one code block, aria-hidden (the title, the summary and the list carry the figure). Before script it holds the transcript;
@@ -1226,7 +1230,7 @@ function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
     // line of the longest such label, so nothing grows above the group for it.
     const lines = Math.max(0, ...turns.map((e) => (e.label ? labelLines(e.label) : 0)));
     const style = [grow ? `--_ggrow:${grow}` : "", lines ? `--_tl:${lines}` : ""].filter(Boolean).join(";");
-    return h("div", { class: `${P}-group`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, "data-turn": turns.length ? "" : undefined, style: style || undefined }, h("span", { class: `${P}-glabel`, "aria-hidden": "true" }, g.label), kids);
+    return h("div", { class: `${P}-group`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, "data-turn": turns.length ? "" : undefined, style: style || undefined }, h("span", { class: `${P}-glabel`, "aria-hidden": "true" }, iso(g.label)), kids);
   };
   let k = 0;
   while (k < m.nodes.length) {
@@ -1539,7 +1543,9 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   if (oneColumnTurnBacks(m)) {
     // Where marks are drawn the first lane is space-6 out, so the padding is space-6 plus space-1 (1.1).
     const first = m.marks ? "var(--basalt-space-6) + var(--basalt-space-1)" : "var(--basalt-space-5)";
-    style.push(`--_gpad:0px ${turnBackLanes(m).lanes > 1 ? `calc(${first} + var(--basalt-space-3))` : m.marks ? `calc(${first})` : first} 0px 0px`);
+    const room = turnBackLanes(m).lanes > 1 ? `calc(${first} + var(--basalt-space-3))` : m.marks ? `calc(${first})` : first;
+    // On the end side: the left, right to left (1.7).
+    style.push(m.rtl ? `--_gpad:0px 0px 0px ${room}` : `--_gpad:0px ${room} 0px 0px`);
   }
   if (m.type === "schema" && dyn.track) style.push(`--_track:${dyn.track}px`);
   return h("figure", {
@@ -1560,7 +1566,7 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
     "data-viewer": o.viewer ? "" : undefined,
     style: style.join(";"),
   },
-  h("div", { class: `${P}-head` }, h(Head, { id: ids.title, class: `${P}-title` }, m.title), o.hasSource ? h("p", { class: `${P}-source` }, { slot: "source" }) : null),
+  h("div", { class: `${P}-head` }, h(Head, { id: ids.title, class: `${P}-title` }, iso(m.title)), o.hasSource ? h("p", { class: `${P}-source` }, h("bdi", null, { slot: "source" })) : null),
   h("div", {
     class: `${P}-drawing`,
     // A schema's far keys run in corridors (1.1): its rows are spacer tracks round the author's, and the grid's own row gap is none.
@@ -1639,6 +1645,8 @@ export interface Geo {
   oy: number;
   /** A schema's far keys (1.1): the rows their corridors need, and each far line's corridor, chosen once on the grid without them. */
   corridors?: { rows: string; pick: Record<number, string> };
+  /** Stacked groups whose label found no clear place on the group's top edge and keeps its start seat on its plate (the last resort), by label. */
+  seatless?: string[];
 }
 
 export interface Tokens {
@@ -1793,9 +1801,11 @@ function minimums(m: Model, tk: Tokens, measure: ReturnType<typeof ruler>) {
 
 // ---- Snapping: a 1px line on half pixels, a 2px line on whole ones, in the page's own pixel grid ----
 
-function snapper(ox: number, oy: number) {
+function snapper(ox: number, oy: number, mirrored = false) {
+  // Mirrored (a stacked figure right to left), a place halfway between two takes the left one, so the snap mirrors the left-to-right snap exactly.
+  const rx = mirrored ? (v: number) => -Math.round(-v) : Math.round;
   return {
-    x: (v: number, w: number) => (w % 2 === 1 ? Math.round(v + ox - 0.5) + 0.5 - ox : Math.round(v + ox) - ox),
+    x: (v: number, w: number) => (w % 2 === 1 ? rx(v + ox - 0.5) + 0.5 - ox : rx(v + ox) - ox),
     y: (v: number, w: number) => (w % 2 === 1 ? Math.round(v + oy - 0.5) + 0.5 - oy : Math.round(v + oy) - oy),
   };
 }
@@ -1992,9 +2002,11 @@ const segRect = (a: Pt, b: Pt, w: number): Rect => ({ l: Math.min(a.x, b.x) - w 
  * nearest such place that `clear` accepts, which is the test the seat itself passed. Where none is, the seat stays as it was found. The seat is chosen
  * before this, against the line's own centre, so whether a label seats never turns on where the pixel grid falls.
  */
-function wholePixels(box: Rect, ox: number, oy: number, clear: (b: Rect) => boolean): Rect {
+function wholePixels(box: Rect, ox: number, oy: number, clear: (b: Rect) => boolean, mirrored = false): Rect {
   const moves = (v: number, o: number) => { const f = v + o - Math.floor(v + o); return f < 0.005 || f > 0.995 ? [0] : f <= 0.5 ? [-f, 1 - f] : [1 - f, -f]; };
-  for (const dy of moves(box.t, oy)) for (const dx of moves(box.l, ox)) {
+  // Mirrored (a stacked figure right to left), the box's right edge goes onto the whole pixel, as the left does left to right.
+  const across = mirrored ? moves(-box.r, -ox).map((d) => -d) : moves(box.l, ox);
+  for (const dy of moves(box.t, oy)) for (const dx of across) {
     if (!dx && !dy) return box;
     const moved = { l: box.l + dx, r: box.r + dx, t: box.t + dy, b: box.b + dy };
     if (clear(moved)) return moved;
@@ -2117,8 +2129,14 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     sides = m.edges.map((e) => {
       const a = m.byId.get(e.from)!, b = m.byId.get(e.to)!;
       // One column: a turn-back on the end side (the start side in the last column, where the end is the drawing's edge). A schema of one column has no
-      // gutter on either side, so its turn-backs take the end side and the drawing keeps room for them there (figureTree).
-      if (a.col === b.col) { const side: DiagramSide = a.col === m.cols && m.cols > 1 ? "left" : "right"; return [side, side]; }
+      // gutter on either side, so its turn-backs take the end side and the drawing keeps room for them there (figureTree). Right to left the model's
+      // columns are mirrored, so the end side is the left and the last column is column 1 (1.7).
+      if (a.col === b.col) {
+        const last = m.rtl ? a.col === 1 : a.col === m.cols;
+        const atEnd = !(last && m.cols > 1);
+        const side: DiagramSide = atEnd === !m.rtl ? "right" : "left";
+        return [side, side];
+      }
       return b.col > a.col ? ["right", "left"] : ["left", "right"];
     });
   } else {
@@ -2391,7 +2409,9 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
   }
   // Lanes in a marked gutter (1.1): none nearer a table than the zone plus radius-xs (18), centred and evenly spaced at the merged pitch or the pitch
   // that puts the outer lanes 18 from the tables, whichever is less: one at 30, two at 20 and 40, three at 18, 30 and 42 in the 60 gap.
-  const laneAt = (span: [number, number], j: number, count: number) => {
+  // Right to left a column gutter's lanes are counted from its right, so the lanes chosen mirror the left-to-right ones (1.7: the gutter is logical).
+  const laneAt = (span: [number, number], at: number, count: number, vertical = false) => {
+    const j = m.rtl && vertical ? count - 1 - at : at;
     const width = span[1] - span[0];
     if (!m.marks) return span[0] + (width / (count + 1)) * (j + 1);
     const room = tk.foot + tk.radiusXs;
@@ -2421,7 +2441,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
         // least kept (the first-fit one wins a tie).
         const need = needOf(cluster), beside = besideIn(cluster), n = cluster.length;
         const inGutter = new Set(groupsOf.flat().map(edgeOf));
-        const set = (slots: number[]) => slots.forEach((l, i) => groupsOf[i]!.forEach((k) => lanes.set(k, laneAt(g.span, l, need))));
+        const set = (slots: number[]) => slots.forEach((l, i) => groupsOf[i]!.forEach((k) => lanes.set(k, laneAt(g.span, l, need, g.vertical))));
         let best = firstFit(cluster), bestScore = Infinity, bestLines: GLine[] | null = null;
         const tries: number[][] = [best];
         if (need ** n <= 729) for (let code = 0; code < need ** n; code++) {
@@ -2442,11 +2462,11 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
       const inGutter = new Set(groupsOf.flat().map(edgeOf));
       let best: number[][] = groupsOf, bestScore = Infinity, bestLines: GLine[] | null = null;
       for (const perm of permutations(groupsOf)) {
-        perm.forEach((members, j) => members.forEach((k) => lanes.set(k, laneAt(g.span, j, count))));
+        perm.forEach((members, j) => members.forEach((k) => lanes.set(k, laneAt(g.span, j, count, g.vertical))));
         const tried = score(inGutter);
         if (tried.score < bestScore) { bestScore = tried.score; best = perm; bestLines = tried.lines; }
       }
-      best.forEach((members, j) => members.forEach((k) => lanes.set(k, laneAt(g.span, j, count))));
+      best.forEach((members, j) => members.forEach((k) => lanes.set(k, laneAt(g.span, j, count, g.vertical))));
       current = bestLines;
     }
   }
@@ -2630,19 +2650,64 @@ function sequenceGeometry(input: DrawnInput, geo: Geo, sn: ReturnType<typeof sna
 
 // ---- The stacked drawing (1.13) ----
 
+/** A stacked group's label gives way to the lines at its top edge (the diagrams-rtl ruling, 3 to 5): if a line runs through its band, it takes the first
+ *  place along the edge, from its start seat toward the end, whose words are space-2-5 from the stroke of every line through the band, on both sides,
+ *  and end at least space-3 before the group's inner end edge. It is moved by `--_gx` (the stylesheet adds it to the seat's inset). No such place: it
+ *  keeps its start seat on its plate, and its words are returned for the development warning. Right to left it slides toward the left. */
+function slideGroupLabels(glabels: Map<HTMLElement, HTMLElement>, lines: GLine[], origin: DOMRect, rtl: boolean, s: Tokens["space"]): string[] {
+  const seatless: string[] = [];
+  for (const [g, el] of glabels) {
+    if (!el.getClientRects().length) continue;
+    const plate = rectOf(el, origin), gr = rectOf(g, origin);
+    const ls = getComputedStyle(el), gs = getComputedStyle(g);
+    const words = { l: plate.l + (parseFloat(ls.paddingLeft) || 0), r: plate.r - (parseFloat(ls.paddingRight) || 0) };
+    const lw = words.r - words.l;
+    // The group's inner edges (inside its border), and where its inner end edge stops the words.
+    const inL = gr.l + (parseFloat(gs.borderLeftWidth) || 0), inR = gr.r - (parseFloat(gs.borderRightWidth) || 0);
+    // Every stroke that runs through the label's band, as its extent across.
+    const blocked: Array<{ l: number; r: number }> = [];
+    for (const l of lines) for (const [a, b] of segmentsOf(l.pts)) {
+      const sr = segRect(a, b, l.width);
+      if (sr.t < plate.b && sr.b > plate.t) blocked.push({ l: sr.l, r: sr.r });
+    }
+    const gap = s("2-5");
+    const clear = (wl: number) => blocked.every((c) => c.r <= wl - gap + 0.01 || c.l >= wl + lw + gap - 0.01);
+    if (clear(words.l)) continue;
+    // The places to try, by how far each moves the words from the start seat toward the end: just past each stroke.
+    const moves = blocked.map((c) => (rtl ? words.r - (c.l - gap) : c.r + gap - words.l)).filter((d) => d > 0).sort((a, b) => a - b);
+    const at = (d: number) => (rtl ? words.l - d : words.l + d);
+    const fits = (d: number) => (rtl ? at(d) >= inL + s("3") - 0.01 : at(d) + lw <= inR - s("3") + 0.01);
+    const d = moves.find((v) => fits(v) && clear(at(v)));
+    if (d === undefined) { seatless.push(el.textContent ?? ""); continue; }
+    el.style.setProperty("--_gx", `${Math.round(d * 100) / 100}px`);
+  }
+  return seatless;
+}
+
 function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, plan: StackPlan, grown: Record<string, number> = record()): { geo: Geo; grow: Record<string, number> } {
   const { m, tk, P, drawing, origin } = input;
   const s = tk.space;
   const map = gNodes(m, drawing, origin, P);
   const nodes = [...map.values()];
   const ox = origin.left - Math.floor(origin.left), oy = origin.top - Math.floor(origin.top);
-  const sn = snapper(ox, oy);
+  const sn = snapper(ox, oy, Boolean(m.rtl));
   const W = drawing.clientWidth, H = drawing.clientHeight;
   const geo: Geo = { w: W, h: H, nodes, lines: [], lifelines: [], labels: [], crossings: [], through: [], unseated: [], outside: [], ox, oy };
   const growBy = record<number>();
   if (m.type === "sequence" || m.type === "schema") return { geo, grow: growBy };
+  // Right to left the stack mirrors (1.7): the rail and the trunk run down the start side, which is the right, and the end lines and the gutter are
+  // on the left. Every place across is written from the start edge (`st`) or the end edge (`en`) and stepped toward the end (`fw`).
+  const rtl = Boolean(m.rtl), fw = rtl ? -1 : 1;
+  const st = (r: Rect) => (rtl ? r.r : r.l), en = (r: Rect) => (rtl ? r.l : r.r);
+  const endSide: DiagramSide = rtl ? "left" : "right";
+  /** A box `width` wide that starts `gap` toward the end from `x` (`toward` 1), or ends `gap` toward the start of it (`toward` -1). */
+  const across = (x: number, gap: number, width: number, toward: 1 | -1): { l: number; r: number } => {
+    const a = x + toward * fw * gap, b = a + toward * fw * width;
+    return { l: Math.min(a, b), r: Math.max(a, b) };
+  };
   // The end gutter is outside the spine cards, from the drawing's end less its padding (where a group's box ends too), never from a card inside a group.
-  const spineEnd = W - (parseFloat(getComputedStyle(drawing).paddingRight) || 0);
+  const dcs = getComputedStyle(drawing);
+  const spineEnd = rtl ? parseFloat(dcs.paddingLeft) || 0 : W - (parseFloat(dcs.paddingRight) || 0);
   // A fixed seat that does not fit takes a line of its own (1.13): each line of 16 the gap above its card has grown gives the seat one more
   // place, a line further from the card, into the room the growth made (up for a seat above a card, down for one under the card above).
   const lineSeats = (box: Rect, id: string, dir: 1 | -1): Rect[] => {
@@ -2650,17 +2715,23 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
     for (let j = 1; j <= (own(grown, id) ?? 0); j++) out.push({ ...box, t: box.t + dir * s("4") * j, b: box.b + dir * s("4") * j });
     return out;
   };
-  // The right edge a spine card has where each card sits (the group's inside, or the drawing's less the gutter).
-  const columnRight = new Map<string, number>();
+  // The end edge a spine card has where each card sits (the group's inside, or the drawing's less the gutter).
+  const columnEnd = new Map<string, number>();
   drawing.querySelectorAll<HTMLElement>(`.${P}-node`).forEach((el) => {
     const parent = el.parentElement!;
     const pr = rectOf(parent, origin);
     const cs = getComputedStyle(parent);
-    columnRight.set(el.dataset.node!, pr.r - (parseFloat(cs.paddingRight) || 0) - (parseFloat(cs.borderRightWidth) || 0));
+    columnEnd.set(el.dataset.node!, rtl ? pr.l + (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.borderLeftWidth) || 0) : pr.r - (parseFloat(cs.paddingRight) || 0) - (parseFloat(cs.borderRightWidth) || 0));
   });
   const order = m.nodes;
   const card = (i: number) => map.get(order[i]!.id)!;
-  // The first card of a group entered by a turn (ruling 4 on the re-check): its turn's label takes the first seat beside the turn that clears the card, a
+  // A stacked group's label (the diagrams-rtl ruling): measured on its start seat, so the stem that enters the group gives way to the seat, never to a
+  // place the label slid to on an earlier measure.
+  const glabels = new Map<HTMLElement, HTMLElement>();
+  drawing.querySelectorAll<HTMLElement>(`.${P}-group > .${P}-glabel`).forEach((el) => { el.style.removeProperty("--_gx"); glabels.set(el.parentElement!, el); });
+  const seatOf = new Map<HTMLElement, Rect>();
+  for (const [g, el] of glabels) if (el.getClientRects().length) seatOf.set(g, rectOf(el, origin));
+  // The first card of a group (ruling 4 on the re-check): its turn's label takes the first seat beside the turn that clears the card, a
   // line at a time up into the room the group keeps for it, never above the group's edge (the group's edge and label are obstacles).
   const turnInto = (id: string) => { const el = drawing.querySelector<HTMLElement>(`.${P}-node[data-node="${CSS.escape(id)}"]`); const g = el?.parentElement; return Boolean(g?.matches(`.${P}-group[data-turn]`) && g.querySelector(`:scope > .${P}-node`) === el); };
   const beside = (box: Rect, id: string, lh: number) => (turnInto(id) ? Array.from({ length: Math.round(lh / 16) + 1 }, (_, j) => ({ ...box, t: box.t - j * s("4"), b: box.b - j * s("4") })) : [box]);
@@ -2684,7 +2755,21 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
       const pair = m.edges.map((o, j) => ({ o, j })).filter(({ o, j }) => (plan.routes[j] === "down" || plan.routes[j] === "up") && ((o.from === e.from && o.to === e.to) || (o.from === e.to && o.to === e.from)));
       const at = pair.findIndex((p) => p.j === k);
       const slot = pair.length < 2 ? 0.5 : pair.length === 2 ? (at === 0 ? 0.25 : 0.75) : (at + 1) / (pair.length + 1);
-      const x = sn.x(lo + (hi - lo) * slot, w);
+      let x = sn.x(lo + (hi - lo) * slot, w);
+      // A stem into a group's first card from a card outside the group gives way to the group's label (the diagrams-rtl ruling, 2): toward the end
+      // until its stroke is space-2-5 past the label's plate, only while it stays space-6 inside the end edge of both cards. Its label goes with it.
+      if (r === "down") {
+        const el = drawing.querySelector<HTMLElement>(`.${P}-node[data-node="${CSS.escape(e.to)}"]`);
+        const g = el?.parentElement;
+        const seat = g && g.matches(`.${P}-group`) && g.querySelector(`:scope > .${P}-node`) === el ? seatOf.get(g) : undefined;
+        if (seat && g && !g.contains(drawing.querySelector(`.${P}-node[data-node="${CSS.escape(e.from)}"]`))) {
+          const clear = s("2-5") + w / 2;
+          if (x > seat.l - clear && x < seat.r + clear) {
+            const past = rtl ? seat.l - clear : seat.r + clear;
+            if (rtl ? past >= lo + s("6") : past <= hi - s("6")) x = sn.x(past, w);
+          }
+        }
+      }
       pts = r === "down" ? [contour(a, "bottom", x), contour(b, "top", x)] : [contour(a, "top", x), contour(b, "bottom", x)];
       if (label) {
         // Centred on the stem's clear shaft, with a plate; a stem split by a group's boundary takes its outside part.
@@ -2703,37 +2788,44 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
         labelSeats.push({ k, cands, on: true, card: r === "down" ? e.to : e.from });
       }
     } else if (r === "trunk" || r === "rail") {
-      const x = sn.x(Math.max(a.rect.l, r === "rail" ? b.rect.l : a.rect.l) + (r === "trunk" ? s("8") : s("3")), w);
+      // The inner of the two cards' start edges (the later one going toward the end), then space-8 (a trunk) or space-3 (a rail) toward the end.
+      const inner = r === "rail" ? (rtl ? Math.min(a.rect.r, b.rect.r) : Math.max(a.rect.l, b.rect.l)) : st(a.rect);
+      const x = sn.x(inner + fw * (r === "trunk" ? s("8") : s("3")), w);
       const start = contour(a, "bottom", x);
       if (r === "rail") {
         pts = [start, contour(b, "top", x)];
-        if (label) { const cy = b.rect.t - s("6"); labelSeats.push({ k, cands: lineSeats({ l: x + s("2-5"), r: x + s("2-5") + lw, t: cy - lh / 2, b: cy + lh / 2 }, e.to, -1), on: false, card: e.to }); }
+        if (label) { const cy = b.rect.t - s("6"); labelSeats.push({ k, cands: lineSeats({ ...across(x, s("2-5"), lw, 1), t: cy - lh / 2, b: cy + lh / 2 }, e.to, -1), on: false, card: e.to }); }
       } else {
-        const ex = sn.x(b.rect.l + s("6"), w);
+        const ex = sn.x(st(b.rect) + fw * s("6"), w);
         const ty = sn.y(b.rect.t - turn, w);
         pts = [start, { x, y: ty }, { x: ex, y: ty }, contour(b, "top", ex)];
-        if (label) labelSeats.push({ k, cands: [...beside({ l: ex + s("2-5"), r: ex + s("2-5") + lw, t: ty - lh / 2, b: ty + lh / 2 }, e.to, lh), ...lineSeats({ l: ex + s("2-5"), r: ex + s("2-5") + lw, t: ty - lh / 2, b: ty + lh / 2 }, e.to, -1).slice(1)], on: false, card: e.to });
+        const seat = { ...across(ex, s("2-5"), lw, 1), t: ty - lh / 2, b: ty + lh / 2 };
+        if (label) labelSeats.push({ k, cands: [...beside(seat, e.to, lh), ...lineSeats(seat, e.to, -1).slice(1)], on: false, card: e.to });
       }
     } else {
       // An end line: out the end side, along the end lane or the gutter, into the card's top (down) or bottom (up), space-6 in from its end edge.
-      const right = Math.min(columnRight.get(e.from) ?? W, columnRight.get(e.to) ?? W);
+      // The nearer of the two columns' end edges.
+      const ce = (id: string) => columnEnd.get(id) ?? (rtl ? 0 : W);
+      const colEnd = rtl ? Math.max(ce(e.from), ce(e.to)) : Math.min(ce(e.from), ce(e.to));
       // Lanes space-3-5 apart, one pitch (DECISIONS 306, 1.3).
-      const laneX = sn.x(plan.gutter ? spineEnd + (plan.lanes[k]! + 1) * s("3-5") : right - s("2-5"), w);
+      const laneX = sn.x(plan.gutter ? spineEnd + fw * (plan.lanes[k]! + 1) * s("3-5") : colEnd - fw * s("2-5"), w);
       const yExit = sn.y(a.rect.t + (a.rect.b - a.rect.t) * plan.exits[k]!, w);
-      const exit = contour(a, "right", yExit);
+      const exit = contour(a, endSide, yExit);
       const down = r === "end-down";
       // Several end lines into one card nest (1.3): the line from the outermost lane turns lowest (the merged turn) and enters nearest the end edge
       // (space-6 in); each from a lane further in turns space-5 higher and enters space-3 further in. Their labels are seated space-2-5 clear of the
       // innermost entry, each centred on its own turn's height, taken before the half-pixel snap.
       const mates = m.edges.map((o, j) => ({ o, j })).filter(({ o, j }) => (plan.routes[j] === r) && o.to === e.to).sort((x, y) => plan.lanes[y.j]! - plan.lanes[x.j]! || x.j - y.j);
       const at = Math.max(0, mates.findIndex(({ j }) => j === k));
-      const exRaw = b.rect.r - s("6") - at * s("3"), innerEx = b.rect.r - s("6") - (mates.length - 1) * s("3");
+      const exRaw = en(b.rect) - fw * (s("6") + at * s("3")), innerEx = en(b.rect) - fw * (s("6") + (mates.length - 1) * s("3"));
       const ex = sn.x(exRaw, w);
       const tyRaw = down ? b.rect.t - turn - at * s("5") : b.rect.b + turn + at * s("5");
       const ty = sn.y(tyRaw, w);
       pts = [exit, { x: laneX, y: exit.y }, { x: laneX, y: ty }, { x: ex, y: ty }, contour(b, down ? "top" : "bottom", ex)];
       const into = down ? e.to : order[b.i + 1]?.id ?? e.to;
-      if (label) labelSeats.push({ k, cands: [...(down ? beside({ l: innerEx - s("2-5") - lw, r: innerEx - s("2-5"), t: tyRaw - lh / 2, b: tyRaw + lh / 2 }, into, lh) : [{ l: innerEx - s("2-5") - lw, r: innerEx - s("2-5"), t: tyRaw - lh / 2, b: tyRaw + lh / 2 }]), ...lineSeats({ l: innerEx - s("2-5") - lw, r: innerEx - s("2-5"), t: tyRaw - lh / 2, b: tyRaw + lh / 2 }, into, down ? -1 : 1).slice(1)], on: false, card: into });
+      // Its label is on the start side of the innermost entry.
+      const seat = { ...across(innerEx, s("2-5"), lw, -1), t: tyRaw - lh / 2, b: tyRaw + lh / 2 };
+      if (label) labelSeats.push({ k, cands: [...(down ? beside(seat, into, lh) : [seat]), ...lineSeats(seat, into, down ? -1 : 1).slice(1)], on: false, card: into });
     }
     const snapped = snapRoute(pts, w, sn);
     geo.lines.push({ i: k, from: e.from, to: e.to, kind: e.kind, pts: snapped, tip: snapped[snapped.length - 1]!, dir: finish(snapped), width: w });
@@ -2743,6 +2835,7 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
   geo.outside = outsideOf(geo.lines, W, H, tk);
   // Seats, checked by 1.8's rule (a head counts, its own line's included): a label whose every seat fails grows the gap above its card by 16,
   // and the figure is measured again; measureFigure draws no lines at all if any label is still without a clean seat after the last try.
+  geo.seatless = slideGroupLabels(glabels, geo.lines, origin, rtl, s);
   const { obstacles } = obstaclesOf(drawing, origin, P, 0);
   obstacles.heads = geo.lines.map((l) => headBox(l, tk));
   const placed: Rect[] = [];
@@ -2759,7 +2852,7 @@ function stackedGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>, p
     };
     const box = seat.cands.find((c) => !bad(c));
     if (!box) { growBy[seat.card] = (growBy[seat.card] ?? 0) + 1; geo.unseated.push(seat.k); }
-    const use = box ? wholePixels(box, ox, oy, (b) => !bad(b)) : seat.cands[0]!;
+    const use = box ? wholePixels(box, ox, oy, (b) => !bad(b), rtl) : seat.cands[0]!;
     placed.push(use);
     geo.labels.push({ i: seat.k, text: m.edges[seat.k]!.label!, box: use, on: seat.on });
   }
@@ -2992,12 +3085,15 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     if (dev && plan.third) warn?.("the stacked drawing would need a fifth end lane, so its lines are not drawn", "error");
     // Dressed as where scripting is off (1.13): no line in the key, no key hint, no stops, and the list open when the figure becomes bare.
     const bare: Geo = { ...geo, lines: [], labels: [], crossings: [] };
+    // With no lines, every group's label is on its start seat.
+    drawing.querySelectorAll<HTMLElement>(`.${P}-group > .${P}-glabel`).forEach((el) => el.style.removeProperty("--_gx"));
     const dyn = stopOf({ ...d, grow: record(), bare: true, open: current.bare ? current.open : true, autoOpen: current.bare ? current.autoOpen : current.open ? undefined : true });
     // Written as it is returned: the tries above wrote a state that is not bare, and a host that sees the same state as before renders nothing, so the
     // figure would keep their markup (a stack with no lines, not dressed bare, its list closed: P-R3 of the code re-check).
     apply(dyn);
     return { dyn, geo: bare, ink: "", tokens: tk, least: mins.least };
   }
+  if (geo.seatless?.length) dev && warn?.(`a stacked group's label has no clear seat on its top edge: ${geo.seatless.map((t) => `"${t}"`).join(", ")}`);
   if (geo.crossings.length) dev && warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the stacked drawing (each is cut): ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
   return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk, least: mins.least };
 }

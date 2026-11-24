@@ -90,7 +90,7 @@ export interface LinkTabProps extends Omit<React.ComponentProps<"a">, "aria-curr
   render?: React.ReactElement<Record<string, unknown>>;
 }
 
-/** One link of a `LinkTabs`. The first one has no padding at its start, so its label sits on the content's edge. */
+/** One link of a `LinkTabs`. Every link keeps its padding; the row hangs into the box's padding by it, so each line's first label sits on the content's edge (DECISIONS 358). */
 export function LinkTab({ current = false, render, className, children, ...props }: LinkTabProps) {
   const content = (
     <>

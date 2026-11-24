@@ -120,8 +120,8 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   shadow. In forced colours the chosen segment, vertical tab and current page are `Highlight` with `HighlightText`, and the
   horizontal tab keeps its `Highlight` underline. **No state is ever marked by an outline** (selected, active, current and
   pressed never draw one), and **there is no vertical bar anywhere.** Focus is a 2px ring at +2 outside the control, drawn
-  inside at −2 only where +2 would be cut or would cross a neighbour: a field or band flush with a clipping edge, a row of
-  tabs that scrolls, a sortable header cell (a header band that is itself a button), a phone tab bar cell, a ghost control hung at an edge with less than 4 of room left, and a cut cell of a still table (a focus stop, which shows its own ring after Esc has closed its plate). These structural
+  inside at −2 only where +2 would be cut or would cross a neighbour: a field or band flush with a clipping edge,
+  a sortable header cell (a header band that is itself a button), a phone tab bar cell, a ghost control hung at an edge with less than 4 of room left, and a cut cell of a still table (a focus stop, which shows its own ring after Esc has closed its plate). These structural
   vertical lines are allowed, each named and never a selection, sort, active or status mark: the 1px divider at a pinned table
   column's edge while the table is scrolled, the app sidebar's 1px edge, a meter's labelled target tick, the vertical
   `Separator` between groups of controls, the edges between a `NumberField`'s value and its steppers, a diagram's connector, a sequence diagram's lifeline with its activation bar, a frame's sides, and a stage list's or run timeline's connector (1px between two marks, never
@@ -129,7 +129,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   (radius 8, one solid fill per level) plus a lift from secondary ink to primary, with no
   weight change: it is the row the keyboard is on, and it changes with every arrow key (WCAG 1.4.1). A selected table row is the wash band, and its checked box
   carries the state. A wash over an opaque fill (a pinned cell) is one colour from `color-mix`, never a gradient, an image or a
-  pseudo-element layer, and a hovered or selected row's wash is on every cell of the row, pinned or not, in React and the skill. Horizontal tabs keep their underline: it is horizontal. In a segmented
+  pseudo-element layer, and a hovered or selected row's wash is on every cell of the row, pinned or not, in React and the skill. Horizontal tabs keep their underline: it is horizontal. It is as wide as the tab's content, and the row hangs its first label on the line (DECISIONS 358). In a segmented
   control and in vertical tabs one pill slides to the chosen item (`duration-slow`, `ease-out`);
   under reduced motion and in forced colours each item paints its own.
 - **Reserved room is page, not paint:** a box hugs what it shows; a seat's spare room lies outside it, on the open side; a seat

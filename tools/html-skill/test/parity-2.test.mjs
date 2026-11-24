@@ -351,7 +351,8 @@ describe("a tab's icon", () => {
     assert.deepEqual([out.display, out.gap], ["flex", "6px"], "a flex item of the bar, so its computed display is flex");
     assert.ok(Math.abs(out.centre[0] - out.centre[1]) < 0.6 && Math.abs(out.centre[2] - out.centre[1]) < 1.6, `centred: ${out.centre}`);
     assert.ok(Math.abs(out.gapPx - 6) < 0.6, `6px before the label: ${out.gapPx}`);
-    assert.ok(out.under[0] === "2px" && Math.abs(parseFloat(out.under[1]) - out.under[2]) < 0.6, `a 2px underline across the tab: ${out.under}`);
+    // The underline is as wide as the tab's content (the icon and the label), never its padding: the box less 8 on each side (DECISIONS 358).
+    assert.ok(out.under[0] === "2px" && Math.abs(parseFloat(out.under[1]) - (out.under[2] - 16)) < 0.6, `a 2px underline across the tab's content: ${out.under}`);
     await context.close();
   });
 });
