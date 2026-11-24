@@ -211,6 +211,7 @@ export const ROUND_66: Round = {
       widths: W,
       scales: [2],
       height: 2000,
+      heights: { "viewer@390": 844 },
       touch: true,
       demo: ({ state }) => <Diagram k="textSequence" state={state} />,
     },

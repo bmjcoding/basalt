@@ -150,6 +150,8 @@ export interface Step {
   scales?: number[];
   /** The viewport height. Default 400, or 640 for an open state. */
   height?: number;
+  /** The viewport's height for one state at one width, keyed "state@width" (a dialog shot at a phone's own height): it wins over `height`. */
+  heights?: Record<string, number>;
   /** Shot edge to edge, with none of the page's own padding, so a page specimen is the width the shot is named for (a layout round's row is then the real row). */
   bleed?: boolean;
   /** Shoot widths under 720 as a phone: touch and mobile emulation (a coarse pointer, the 44px targets, focus by touch). */
