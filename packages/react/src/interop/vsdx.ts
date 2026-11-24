@@ -130,19 +130,81 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
   });
 
   let nextId = 1;
+  const bgId = singleTheme === "dark" ? nextId++ : 0;
+  const groupSheetId = new Map<string, number>();
+  for (const g of scene.groups) groupSheetId.set(g.id, nextId++);
+  const laneSheetIds = scene.lanes.map(() => nextId++);
+  const lifeSheetIds = scene.lifelines.map(() => nextId++);
+  const bandSheetIds = scene.bands.map(() => nextId++);
+  const nodeSheetId = new Map<string, number>();
+  for (const n of scene.nodes) nodeSheetId.set(n.id, nextId++);
+
   const shapeXml: string[] = [];
   const connectXml: string[] = [];
   const placed = new Map<string, PlacedShape>();
   const mediaFiles: Array<{ rId: string; fileName: string; svg: string }> = [];
+  const attributions: string[] = [];
 
-  // 1. Architecture groups (behind nodes)
+  // 0. Dark-theme locked full-page surface-page background (Visio pages default to white)
+  if (bgId) {
+    shapeXml.push(
+      `    <Shape ID="${bgId}" NameU="PageBackground" Name="Page background" Type="Shape">\n` +
+      `      <Cell N="PinX" V="${f6(n6(pageWIn / 2))}"/>\n` +
+      `      <Cell N="PinY" V="${f6(n6(pageHIn / 2))}"/>\n` +
+      `      <Cell N="Width" V="${f6(pageWIn)}"/>\n` +
+      `      <Cell N="Height" V="${f6(pageHIn)}"/>\n` +
+      `      <Cell N="LocPinX" V="${f6(n6(pageWIn / 2))}" F="Width*0.5"/>\n` +
+      `      <Cell N="LocPinY" V="${f6(n6(pageHIn / 2))}" F="Height*0.5"/>\n` +
+      `      <Cell N="Angle" V="0"/>\n` +
+      `      <Cell N="FlipX" V="0"/>\n` +
+      `      <Cell N="FlipY" V="0"/>\n` +
+      `      <Cell N="FillForegnd" V="${P.page}"/>\n` +
+      `      <Cell N="FillPattern" V="1"/>\n` +
+      `      <Cell N="LinePattern" V="0"/>\n` +
+      `      <Cell N="LockWidth" V="1"/>\n` +
+      `      <Cell N="LockHeight" V="1"/>\n` +
+      `      <Cell N="LockMoveX" V="1"/>\n` +
+      `      <Cell N="LockMoveY" V="1"/>\n` +
+      `      <Cell N="LockAspect" V="1"/>\n` +
+      `      <Cell N="LockDelete" V="1"/>\n` +
+      `      <Cell N="LockBegin" V="1"/>\n` +
+      `      <Cell N="LockEnd" V="1"/>\n` +
+      `      <Cell N="LockRotate" V="1"/>\n` +
+      `      <Cell N="LockCrop" V="1"/>\n` +
+      `      <Cell N="LockVtxEdit" V="1"/>\n` +
+      `      <Cell N="LockTextEdit" V="1"/>\n` +
+      `      <Cell N="LockFormat" V="1"/>\n` +
+      `      <Cell N="LockGroup" V="1"/>\n` +
+      `      <Cell N="LockCalcWH" V="1"/>\n` +
+      `      <Cell N="LockSelect" V="1"/>\n` +
+      `      <Cell N="LockCustProp" V="1"/>\n` +
+      `      <Cell N="ObjType" V="4"/>\n` +
+      `      <Section N="Geometry" IX="0">\n` +
+      `        <Cell N="NoFill" V="0"/>\n` +
+      `        <Cell N="NoLine" V="1"/>\n` +
+      `        <Cell N="NoShow" V="0"/>\n` +
+      `        <Row T="MoveTo" IX="1"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row>\n` +
+      `        <Row T="LineTo" IX="2"><Cell N="X" V="${f6(pageWIn)}" F="Width*1"/><Cell N="Y" V="0"/></Row>\n` +
+      `        <Row T="LineTo" IX="3"><Cell N="X" V="${f6(pageWIn)}" F="Width*1"/><Cell N="Y" V="${f6(pageHIn)}" F="Height*1"/></Row>\n` +
+      `        <Row T="LineTo" IX="4"><Cell N="X" V="0"/><Cell N="Y" V="${f6(pageHIn)}" F="Height*1"/></Row>\n` +
+      `        <Row T="LineTo" IX="5"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row>\n` +
+      `      </Section>\n` +
+      `    </Shape>`,
+    );
+  }
+
+  // 1. Architecture groups as real Visio Containers (User.msvStructureType="Container" + Relationships)
   for (const g of scene.groups) {
-    const id = nextId++;
+    const id = groupSheetId.get(g.id)!;
     const wIn = n6(g.box.w / DPI);
     const hIn = n6(g.box.h / DPI);
     const pinX = toVisioX(g.box.x + g.box.w / 2);
     const pinY = toVisioY(g.box.y + g.box.h / 2);
     const radIn = n6(12 / DPI);
+    const memberIds = g.members.map((mid) => nodeSheetId.get(mid)).filter((x): x is number => x !== undefined);
+    const relCell = memberIds.length
+      ? `      <Cell N="Relationships" V="0" F="SUM(DEPENDSON(1,${memberIds.map((mid) => `Sheet.${mid}!SheetRef()`).join(",")}))"/>\n`
+      : "";
     shapeXml.push(
       `    <Shape ID="${id}" NameU="Group_${escXml(g.id)}" Name="${escXml(g.label)}" Type="Shape">\n` +
       `      <Cell N="PinX" V="${f6(pinX)}"/>\n` +
@@ -163,6 +225,13 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
       `      <Cell N="LeftMargin" V="${pxToIn(12)}"/>\n` +
       `      <Cell N="TopMargin" V="${pxToIn(8)}"/>\n` +
       `      <Cell N="ObjType" V="4"/>\n` +
+      relCell +
+      `      <Section N="User">\n` +
+      `        <Row N="msvStructureType"><Cell N="Value" V="Container" U="STR"/></Row>\n` +
+      `        <Row N="msvSDContainerMargin"><Cell N="Value" V="${pxToIn(16)}"/></Row>\n` +
+      `        <Row N="msvSDContainerResize"><Cell N="Value" V="0"/></Row>\n` +
+      `        <Row N="msvSDContainerLocked"><Cell N="Value" V="0"/></Row>\n` +
+      `      </Section>\n` +
       `      <Section N="Character">\n` +
       `        <Row IX="0"><Cell N="Font" V="1"/><Cell N="Color" V="${P.textSecondary}"/><Cell N="Style" V="0"/><Cell N="Size" V="${ptToIn(9)}"/></Row>\n` +
       `      </Section>\n` +
@@ -187,7 +256,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
   // 2. Data-flow lanes (behind step cards)
   for (let k = 0; k < scene.lanes.length; k++) {
     const lane = scene.lanes[k]!;
-    const id = nextId++;
+    const id = laneSheetIds[k]!;
     const wIn = n6(lane.box.w / DPI);
     const hIn = n6(lane.box.h / DPI);
     const pinX = toVisioX(lane.box.x + lane.box.w / 2);
@@ -229,8 +298,9 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
   }
 
   // 3. Sequence lifelines & phase bands
-  for (const lf of scene.lifelines) {
-    const id = nextId++;
+  for (let lfIdx = 0; lfIdx < scene.lifelines.length; lfIdx++) {
+    const lf = scene.lifelines[lfIdx]!;
+    const id = lifeSheetIds[lfIdx]!;
     const wIn = n6(2 / DPI);
     const hIn = n6(Math.max(1, lf.y2 - lf.y1) / DPI);
     const pinX = toVisioX(lf.x);
@@ -268,7 +338,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
 
   for (let bIdx = 0; bIdx < scene.bands.length; bIdx++) {
     const band = scene.bands[bIdx]!;
-    const id = nextId++;
+    const id = bandSheetIds[bIdx]!;
     const wIn = n6(band.w / DPI);
     const hIn = n6(band.h / DPI);
     const pinX = toVisioX(band.w / 2);
@@ -309,7 +379,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
 
   // 4. Node shapes
   for (const n of scene.nodes) {
-    const id = nextId++;
+    const id = nodeSheetId.get(n.id)!;
     const wIn = n6(n.box.w / DPI);
     const hIn = n6(n.box.h / DPI);
     const pinX = toVisioX(n.box.x + n.box.w / 2);
@@ -505,6 +575,10 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     const { charRows, textRuns } = buildNodeTextRuns(n, P);
     const connRowsXml = renderConnectionRows(conns, wIn, hIn);
     const geomXml = buildNodeGeometryXml(n, wIn, hIn);
+    const parentGroupId = n.group ? groupSheetId.get(n.group) : undefined;
+    const memberRelCell = parentGroupId
+      ? `      <Cell N="Relationships" V="0" F="SUM(DEPENDSON(4,Sheet.${parentGroupId}!SheetRef()))"/>\n`
+      : "";
 
     shapeXml.push(
       `    <Shape ID="${id}" NameU="Node_${escXml(n.id)}" Name="${escXml(n.name)}" Type="Shape">\n` +
@@ -529,6 +603,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
       `      <Cell N="TopMargin" V="${pxToIn(8)}"/>\n` +
       `      <Cell N="BottomMargin" V="${pxToIn(8)}"/>\n` +
       `      <Cell N="ObjType" V="1"/>\n` +
+      memberRelCell +
       `      <Section N="Character">\n` +
       `${charRows.join("\n")}\n` +
       `      </Section>\n` +
@@ -542,6 +617,7 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     );
 
     if (n.mark) {
+      if (n.mark.attribution && !attributions.includes(n.mark.attribution)) attributions.push(n.mark.attribution);
       const markId = nextId++;
       const rId = `rId${mediaFiles.length + 1}`;
       const fileName = `mark_${mediaFiles.length + 1}.svg`;
@@ -710,12 +786,16 @@ export function sceneToVsdx(scene: InteropScene, theme: InteropTheme = "light"):
     `  <Relationship Id="rId1" Type="http://schemas.microsoft.com/visio/2010/relationships/document" Target="visio/document.xml"/>\n` +
     `</Relationships>\n`;
 
+  const descLine = attributions.length
+    ? `    <Description>${escXml(attributions.join(" "))}</Description>\n`
+    : "";
   const docXml =
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n` +
     `<VisioDocument xmlns="http://schemas.microsoft.com/office/visio/2012/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xml:space="preserve">\n` +
     `  <DocumentProperties>\n` +
     `    <Title>${escXml(scene.title || scene.id)}</Title>\n` +
     `    <Creator>Basalt Diagram Exporter</Creator>\n` +
+    descLine +
     `  </DocumentProperties>\n` +
     `  <FaceNames>\n` +
     `    <FaceName ID="0" NameU="Geist" Name="Geist" UnicodeRanges="0 0 0 0" CharSets="0 0" Panos="0 0 0 0 0 0 0 0 0 0" Flags="325"/>\n` +

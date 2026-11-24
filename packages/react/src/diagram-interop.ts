@@ -5,7 +5,7 @@
 import type { DiagramSpec, Geo } from "./diagram-core";
 import { sceneToDrawio } from "./interop/drawio";
 import { sceneToLucid, sceneToLucidJson } from "./interop/lucid";
-import { isBundledMarkEmbeddable, layoutHeadless, readMeasuredExtras, sceneFromMeasured } from "./interop/scene";
+import { bundledMarkAttribution, isBundledMarkEmbeddable, layoutHeadless, readMeasuredExtras, sceneFromMeasured } from "./interop/scene";
 import { sceneToVsdx } from "./interop/vsdx";
 import type {
   InteropFormat,
@@ -87,7 +87,7 @@ export function exportMeasuredDiagram(spec: DiagramSpec, geo: Geo, format: Inter
   throw new Error(`diagram-interop: unknown format "${String(format)}" (expected drawio, vsdx, lucid or lucid-json)`);
 }
 
-export { isBundledMarkEmbeddable, layoutHeadless as measureDiagramHeadless, readMeasuredExtras };
+export { bundledMarkAttribution, isBundledMarkEmbeddable, layoutHeadless as measureDiagramHeadless, readMeasuredExtras };
 
 export type {
   DiagramSpec,

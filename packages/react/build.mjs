@@ -97,6 +97,17 @@ await esbuild.build({
 
 // Diagram interop (DECISIONS 311, 314): a subpath outside the index (@srasyndicate/basalt/diagram-interop) built as one
 // standalone ESM module so it shares no chunk with still diagrams or any root export (0 bytes added to every root import).
+// Embeddable marks and attributions are derived directly from marks/manifest.json's terms at build time, and NODE_ENV is
+// defined to "production" so native browser ESM (without a bundler) never hits `process is not defined`.
+const marksManifest = JSON.parse(fs.readFileSync(path.join(here, "marks", "manifest.json"), "utf8"));
+const embeddableMarks = marksManifest.marks
+  .filter((m) => !m.unofficial && (m.terms?.quotes ?? []).some((q) => /architectur\w* diagrams?|for your diagrams|Apache-2\.0/i.test(q)))
+  .map((m) => m.id);
+const markAttributions = Object.fromEntries(
+  marksManifest.marks
+    .filter((m) => embeddableMarks.includes(m.id) && m.attribution)
+    .map((m) => [m.id, m.attribution]),
+);
 await esbuild.build({
   bundle: true,
   format: "esm",
@@ -106,6 +117,11 @@ await esbuild.build({
   entryPoints: [path.join(here, "src/diagram-interop.ts")],
   outdir: dist,
   external,
+  define: {
+    "process.env.NODE_ENV": '"production"',
+    __BASALT_EMBEDDABLE_MARKS__: JSON.stringify(JSON.stringify(embeddableMarks)),
+    __BASALT_MARK_ATTRIBUTIONS__: JSON.stringify(JSON.stringify(markAttributions)),
+  },
 });
 
 // The root's map for the imports plugin (src/tooling/imports.ts): every name the root exports at run time, and the module that holds it, read from the barrel's source.

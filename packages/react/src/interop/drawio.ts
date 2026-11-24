@@ -23,17 +23,19 @@ function cellStyle(parts: string[]): string {
 function pointAtArcFraction(pts: readonly Pt[], t: number): Pt {
   if (pts.length === 0) return { x: 0, y: 0 };
   if (pts.length === 1) return pts[0]!;
+  const segLen = (a: Pt, b: Pt): number => {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    return Math.abs(dx) < 1e-9 || Math.abs(dy) < 1e-9 ? Math.abs(dx) + Math.abs(dy) : Math.sqrt(dx * dx + dy * dy);
+  };
   let total = 0;
-  for (let i = 0; i < pts.length - 1; i++) {
-    total += Math.hypot(pts[i + 1]!.x - pts[i]!.x, pts[i + 1]!.y - pts[i]!.y);
-  }
+  for (let i = 0; i < pts.length - 1; i++) total += segLen(pts[i]!, pts[i + 1]!);
   if (total <= 0) return pts[0]!;
   const target = Math.max(0, Math.min(1, t)) * total;
   let acc = 0;
   for (let i = 0; i < pts.length - 1; i++) {
     const a = pts[i]!;
     const b = pts[i + 1]!;
-    const seg = Math.hypot(b.x - a.x, b.y - a.y);
+    const seg = segLen(a, b);
     if (acc + seg >= target && seg > 0) {
       const f = (target - acc) / seg;
       return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
@@ -41,6 +43,18 @@ function pointAtArcFraction(pts: readonly Pt[], t: number): Pt {
     acc += seg;
   }
   return pts[pts.length - 1]!;
+}
+
+/** Wraps two distinct light/dark ground SVG forms into one SVG switching on prefers-color-scheme. */
+function adaptiveMarkSvg(lightModeSvg: string, darkModeSvg: string): string {
+  const inner = (raw: string) => raw.replace(/^<svg\b/, '<svg width="16" height="16"');
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">` +
+    `<style>.d{display:none}@media(prefers-color-scheme:dark){.l{display:none}.d{display:inline}}</style>` +
+    `<g class="l">${inner(lightModeSvg)}</g>` +
+    `<g class="d">${inner(darkModeSvg)}</g>` +
+    `</svg>`
+  );
 }
 
 export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"): string {
@@ -376,8 +390,13 @@ export function sceneToDrawio(scene: InteropScene, theme: InteropTheme = "light"
     // Embedded service mark (only when marks: "embed" and allowed by manifest terms)
     if (n.mark) {
       // Focal card uses the opposite theme's mark form because its fill is inverted.
-      const useDarkForm = isFocal ? singleTheme === "light" : singleTheme === "dark";
-      const svg = useDarkForm ? n.mark.svgDark : n.mark.svgLight;
+      const lightModeSvg = isFocal ? n.mark.svgDark : n.mark.svgLight;
+      const darkModeSvg = isFocal ? n.mark.svgLight : n.mark.svgDark;
+      const svg = adaptive && lightModeSvg !== darkModeSvg
+        ? adaptiveMarkSvg(lightModeSvg, darkModeSvg)
+        : singleTheme === "dark"
+          ? darkModeSvg
+          : lightModeSvg;
       const uri = encodeSvgDataUri(svg);
       const mx = round2(Math.max(4, worldBox.w - 12 - 16));
       const markStyle = cellStyle([

@@ -32,6 +32,8 @@ export interface MeasuredGroup {
 
 export interface MeasuredLane {
   id: string;
+  /** 0-based lane index matching the DOM order of `.diagram-lane` elements. */
+  index?: number;
   label: string;
   rect: Rect;
 }
@@ -75,6 +77,8 @@ export interface SceneMark {
   svgLight: string;
   /** Raw SVG markup for dark ground. */
   svgDark: string;
+  /** Licence/trademark attribution from marks/manifest.json, when the mark carries one. */
+  attribution?: string;
 }
 
 export interface SceneTableRow {

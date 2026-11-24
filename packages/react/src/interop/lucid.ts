@@ -142,7 +142,11 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
       const rowCount = 1 + rows.length + (n.more ? 1 : 0);
       const colCount = 3;
       const cells: LucidTableCell[] = [];
-      const rowSizes: Array<{ index: number; size: number }> = [{ index: 0, size: n.headerH ?? 37 }];
+      // Size header, column, and optional "+ N more" rows from the scene's actual row positions so
+      // userSpecifiedRows sums to exact boundingBox.h and every FK endpoint sits on its row's center.
+      const headerSize = round2(rows.length > 0 ? Math.max(20, rows[0]!.y) : box.h);
+      const rowSizes: Array<{ index: number; size: number }> = [{ index: 0, size: headerSize }];
+      let usedH = headerSize;
       // Header row merged across all 3 columns
       cells.push({
         xPosition: 0,
@@ -154,7 +158,13 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
       for (let r = 0; r < rows.length; r++) {
         const row = rows[r]!;
         const yPos = r + 1;
-        rowSizes.push({ index: yPos, size: round2(row.h) });
+        const size = r < rows.length - 1
+          ? round2(Math.max(16, rows[r + 1]!.y - row.y))
+          : n.more
+            ? round2(Math.max(16, row.h))
+            : round2(Math.max(16, box.h - usedH));
+        rowSizes.push({ index: yPos, size });
+        usedH = round2(usedH + size);
         const rightWord = row.refTable ? `→ ${row.refTable}` : row.type ?? "";
         cells.push(
           {
@@ -181,7 +191,9 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
       }
       if (n.more) {
         const moreIdx = rows.length + 1;
-        rowSizes.push({ index: moreIdx, size: 24 });
+        const moreSize = round2(Math.max(16, box.h - usedH));
+        rowSizes.push({ index: moreIdx, size: moreSize });
+        usedH = round2(usedH + moreSize);
         cells.push({
           xPosition: 0,
           yPosition: moreIdx,
@@ -189,6 +201,12 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
           style: { fill: { type: "color", color: fill } },
           text: `<p style="text-align: left; font-family: 'Geist', 'Liberation Sans', sans-serif; font-size: 8.5pt; color: ${kindColor};">${escHtml(`+ ${n.more} more`)}</p>`,
         });
+      }
+      // Absorb any residual rounding delta on the final row so sum(userSpecifiedRows) === box.h strictly.
+      const deltaH = round2(box.h - usedH);
+      if (deltaH !== 0 && rowSizes.length > 0) {
+        const last = rowSizes[rowSizes.length - 1]!;
+        last.size = round2(Math.max(16, last.size + deltaH));
       }
       const keyColW = 36;
       const typeColW = Math.max(64, round2(box.w * 0.36));
@@ -269,6 +287,7 @@ export function buildLucidPayload(scene: InteropScene, theme: InteropTheme = "li
           fill: { type: "image", ref: fileName, imageScale: "fit" },
           stroke: { color: transparentFill, width: 0 },
         },
+        ...(n.mark.attribution ? { customData: [{ key: "attribution", value: n.mark.attribution }] } : {}),
         zIndex: 15,
       });
     }

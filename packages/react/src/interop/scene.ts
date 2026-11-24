@@ -84,28 +84,43 @@ export function paletteFor(theme: "light" | "dark"): ThemePalette {
   };
 }
 
-// ---- Mark terms allowlist (matches packages/react/marks/manifest.json) ----
-// Official AWS, Azure, Google Cloud and Kubernetes (Apache-2.0) marks explicitly allow use in architecture diagrams.
-// Unofficial edits (the 8 tile-removed AWS icons and third-party community drawings) and marks without diagram-use terms are excluded.
+// ---- Mark terms allowlist (derived from packages/react/marks/manifest.json at build time) ----
+// Build-time constants injected by packages/react/build.mjs from manifest.json's `unofficial` and `terms.quotes`
+// fields; parsed lazily on first call so loading the module allocates nothing at top level.
 
-const AWS_UNOFFICIAL_MARKS = [
-  "aws-bedrock",
-  "aws-step-functions",
-  "aws-kinesis",
-  "aws-fargate",
-  "aws-secrets-manager",
-  "aws-cognito",
-  "aws-eks",
-  "aws-kms",
-];
+declare const __BASALT_EMBEDDABLE_MARKS__: string | undefined;
+declare const __BASALT_MARK_ATTRIBUTIONS__: string | undefined;
 
-/** Whether a bundled Basalt mark id is permitted for embedding in exported diagrams by its manifest terms. */
+let embeddableMarksCache: Set<string> | undefined;
+let markAttributionsCache: Record<string, string> | undefined;
+
+function getEmbeddableMarks(): Set<string> | null {
+  if (embeddableMarksCache) return embeddableMarksCache;
+  if (typeof __BASALT_EMBEDDABLE_MARKS__ !== "string") return null;
+  embeddableMarksCache = new Set(JSON.parse(__BASALT_EMBEDDABLE_MARKS__) as string[]);
+  return embeddableMarksCache;
+}
+
+function getMarkAttributions(): Record<string, string> {
+  if (markAttributionsCache) return markAttributionsCache;
+  markAttributionsCache = typeof __BASALT_MARK_ATTRIBUTIONS__ === "string"
+    ? (JSON.parse(__BASALT_MARK_ATTRIBUTIONS__) as Record<string, string>)
+    : {};
+  return markAttributionsCache;
+}
+
+/** Whether a bundled Basalt mark id is permitted for embedding in exported diagrams by marks/manifest.json terms. */
 export function isBundledMarkEmbeddable(id: string): boolean {
   if (!id) return false;
-  if (id === "kubernetes") return true;
-  if (id.startsWith("azure-") || id.startsWith("gcp-")) return true;
-  if (id.startsWith("aws-")) return !AWS_UNOFFICIAL_MARKS.includes(id);
-  return false;
+  const set = getEmbeddableMarks();
+  return set ? set.has(id) : false;
+}
+
+/** Returns the manifest licence/trademark attribution string for an embeddable bundled mark, if any. */
+export function bundledMarkAttribution(id: string): string | undefined {
+  if (!id) return undefined;
+  const attrs = getMarkAttributions();
+  return Object.prototype.hasOwnProperty.call(attrs, id) ? attrs[id] : undefined;
 }
 
 /** Extracts raw `<svg ...>...</svg>` markup from either raw SVG text or a `data:image/svg+xml,...` URI. */
@@ -138,11 +153,14 @@ function resolveNodeMark(n: MNode, mode: "omit" | "embed", resolver?: InteropMar
     const svgLight = rawLight ? decodeSvgMarkup(rawLight) : undefined;
     const svgDark = rawDark ? decodeSvgMarkup(rawDark) : svgLight;
     if (!svgLight || !svgDark) return undefined;
-    return { id: n.mark.id, svgLight, svgDark };
+    return { id: n.mark.id, svgLight, svgDark, attribution: bundledMarkAttribution(n.mark.id) };
   }
   if (n.mark.onLight) {
-    const svgLight = decodeSvgMarkup(n.mark.onLight);
-    const svgDark = n.mark.onDark ? decodeSvgMarkup(n.mark.onDark) : svgLight;
+    const rawLight = decodeSvgMarkup(n.mark.onLight) ?? (resolver ? resolver(n.mark.onLight, "light") : undefined);
+    const svgLight = rawLight ? decodeSvgMarkup(rawLight) : undefined;
+    const darkSrc = n.mark.onDark ?? n.mark.onLight;
+    const rawDark = decodeSvgMarkup(darkSrc) ?? (resolver ? resolver(darkSrc, "dark") : undefined);
+    const svgDark = rawDark ? decodeSvgMarkup(rawDark) : svgLight;
     if (!svgLight || !svgDark) return undefined;
     return { id: `custom-${n.id}`, svgLight, svgDark };
   }
@@ -251,7 +269,8 @@ function insideShape(p: Pt, n: GNode, pad: number): boolean {
   if (n.shape === "terminal") {
     const rr = Math.min(hw, hh);
     const ex = Math.min(Math.max(p.x, l + rr), r - rr);
-    return Math.hypot(p.x - ex, p.y - cy) < rr - pad;
+    const dx = p.x - ex, dy = p.y - cy;
+    return Math.sqrt(dx * dx + dy * dy) < rr - pad;
   }
   return p.x > l + pad && p.x < r - pad && p.y > t + pad && p.y < b - pad;
 }
@@ -269,18 +288,20 @@ function boxHitsShape(box: Rect, n: GNode): boolean {
   if (hit(box, { l: l + rr, r: r - rr, t, b })) return true;
   for (const ex of [l + rr, r - rr]) {
     const px = Math.max(box.l, Math.min(ex, box.r)), py = Math.max(box.t, Math.min(cy, box.b));
-    if (Math.hypot(px - ex, py - cy) < rr - 0.01) return true;
+    const dx = px - ex, dy = py - cy;
+    if (Math.sqrt(dx * dx + dy * dy) < rr - 0.01) return true;
   }
   return false;
 }
 
 function segmentThrough(a: Pt, b: Pt, n: GNode): boolean {
-  const len = Math.hypot(b.x - a.x, b.y - a.y);
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len = Math.sqrt(dx * dx + dy * dy);
   const steps = Math.max(2, Math.ceil(len / 2));
   for (let k = 1; k < steps; k++) {
     const f = k / steps;
     if (f * len < 1.5 || (1 - f) * len < 1.5) continue;
-    if (insideShape({ x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f }, n, 1)) return true;
+    if (insideShape({ x: a.x + dx * f, y: a.y + dy * f }, n, 1)) return true;
   }
   return false;
 }
@@ -418,12 +439,14 @@ function labelArcFraction(pts: readonly Pt[], box: SceneBox): number {
   let total = 0;
   const segLens: number[] = [];
   for (let i = 1; i < pts.length; i++) {
-    const len = Math.hypot(pts[i]!.x - pts[i - 1]!.x, pts[i]!.y - pts[i - 1]!.y);
+    const dx = pts[i]!.x - pts[i - 1]!.x;
+    const dy = pts[i]!.y - pts[i - 1]!.y;
+    const len = Math.abs(dx) < 1e-9 || Math.abs(dy) < 1e-9 ? Math.abs(dx) + Math.abs(dy) : Math.sqrt(dx * dx + dy * dy);
     segLens.push(len);
     total += len;
   }
   if (total <= 1e-6) return 0.5;
-  let bestDist = Infinity;
+  let bestDist2 = Infinity;
   let bestAlong = total / 2;
   let acc = 0;
   for (let i = 1; i < pts.length; i++) {
@@ -432,9 +455,10 @@ function labelArcFraction(pts: readonly Pt[], box: SceneBox): number {
     const len2 = dx * dx + dy * dy;
     const u = len2 > 0 ? Math.max(0, Math.min(1, ((cx - a.x) * dx + (cy - a.y) * dy) / len2)) : 0;
     const px = a.x + u * dx, py = a.y + u * dy;
-    const d = Math.hypot(cx - px, cy - py);
-    if (d < bestDist) {
-      bestDist = d;
+    const ex = cx - px, ey = cy - py;
+    const d2 = ex * ex + ey * ey;
+    if (d2 < bestDist2) {
+      bestDist2 = d2;
       bestAlong = acc + u * segLens[i - 1]!;
     }
     acc += segLens[i - 1]!;
@@ -1306,9 +1330,12 @@ export function sceneFromMeasured(
   // Lanes
   const sceneLanes: SceneLane[] = [];
   if (m.type === "data-flow") {
-    const extraById = new Map((extras.lanes ?? []).map((l) => [l.id, l]));
+    const extraLanes = extras.lanes ?? [];
+    const extraById = new Map(extraLanes.map((l) => [l.id, l]));
+    const extraByIndex = new Map<number, MeasuredLane>();
+    extraLanes.forEach((l, k) => extraByIndex.set(l.index ?? k, l));
     const rowBounds: Array<[number, number]> = m.lanes.map((lane, idx) => {
-      const el = extraById.get(lane.id);
+      const el = extraById.get(lane.id) ?? extraByIndex.get(idx);
       if (el) return [el.rect.t, el.rect.b];
       const members = sceneNodes.filter((n) => n.laneIndex === idx);
       if (members.length) return [Math.min(...members.map((x) => x.box.y)), Math.max(...members.map((x) => x.box.y + x.box.h))];
@@ -1518,7 +1545,7 @@ export function readMeasuredExtras(fig: Element, prefix = "basalt-diagram"): Mea
   drawing.querySelectorAll(`.${prefix}-lane`).forEach((el, idx) => {
     if (!el.getClientRects().length) return;
     const label = el.querySelector(`.${prefix}-lane-name`)?.textContent ?? "";
-    lanes.push({ id: `lane-${idx}`, label, rect: rectOf(el) });
+    lanes.push({ id: `lane-${idx}`, index: idx, label, rect: rectOf(el) });
   });
 
   const bands: MeasuredBand[] = [];
