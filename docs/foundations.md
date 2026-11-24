@@ -1736,7 +1736,8 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   flowchart are a spine with indented branches: a rail and a trunk at the start, one lane at the end, every route taken from the order.
   A line that leaves or passes a spine card runs in an end gutter outside the cards (lanes `space-3-5` apart, four at most; the gutter is
   its lanes and `space-3`), down into a card's top or up into its bottom. A data flow is its steps in order with bypasses in that gutter. A sequence is a strip of participants and a numbered list that names each message's sender,
-  receiver and kind. A schema is its cards in an auto-fit grid with no lines, because every foreign-key row writes its target.
+  receiver and kind. A schema is its cards in an auto-fit grid with no lines, because every foreign-key row writes its target. A stacked
+  group whose first card is entered by a turn has `space-12` above; its label stays in the first `space-8`.
 - **Several end lines into one card nest:** the line from the outermost lane turns lowest and enters nearest the end edge; each
   line from a lane further in turns `space-5` higher and enters `space-3` further in. Their labels are seated `space-2-5` clear of
   the innermost entry, each on its own turn's height, taken before the half-pixel snap.
@@ -1776,8 +1777,9 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   plain line from a dot on its row to a head on the referenced row. It comes from the column's own record. Where the author states
   how many (`cardinality`, on every foreign key or none), the dot and the head give way to crow's-foot marks in the line's ink, inside
   `size-diagram-foot` at each end, and the column gap is `space-12` plus `space-3`: three lanes at most, none nearer a table than the
-  zone plus `radius-xs`. A key two or more columns away is drawn along a corridor: a row gap clear of the tables between, or the margin
-  above or below. A line that cannot be drawn clean is left out alone, and its row still writes the target.
+  zone plus `radius-xs`. A lane is shared by runs that are never beside each other (their spans overlap or come within `space-8`). A
+  bar's ink is the pixel that ends at its distance. A key two or more columns away is drawn along a corridor: a row gap clear of the
+  tables between, or the margin above or below. A line that cannot be drawn clean is left out alone, and its row still writes the target.
 
 ### The key, the summary and the list
 
@@ -1814,12 +1816,14 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
 ### The viewer
 
 "Expand", in the figure's foot beside "View as list", opens the figure in a dialog: the window less `space-4` from 720, the whole
-window under it, in the form dialog's box with the sheet's head, body and foot. Decided by the council's decider alone as part 9
-of DECISIONS 301 (DECISIONS 310, the owner's ask); no draft and no check. **Status:** the implementation has not been reviewed. Built
-words only (no glyph) and on a native modal `<dialog>`, deviations the PR records.
+window under it, in the form dialog's box, on a native modal `<dialog>` in the viewer's own chunk, drawing and behaving as `Dialog` does, the
+rim included, with the sheet's head, body and foot. "Expand" is words only. Decided by the council's decider alone as part 9 of DECISIONS 301
+(DECISIONS 310, the owner's ask), revised after the pixel review; no draft and no check. **Status:** the implementation has not been reviewed.
 
 - **What it holds** is the drawn layout, drawn again from the same data at the stage's inner width, never under the figure's least
-  drawn width and never over the page row unless that is more. The stack is held only when nothing is drawn.
+  drawn width and never over the page row unless that is more. The least drawn width is the first width the engine draws the figure
+  at, found once for its data. The stack is held only when nothing is drawn. A text sequence holds the art at its own width, never the
+  transcript. A linked card is followed on a click, a tap or Enter, and a link that stays in this tab closes the viewer first.
 - **Laid out at 100%, zoomed by the reader.** The layout is made in real CSS pixels and never measured while zoomed. The zoom is
   one `transform: scale()` on that layer: never a `viewBox`, CSS `zoom`, a canvas or a picture, and no layer is held at an old
   size. Under `scale(3)` the figure is the pixels a 3x screen draws.
@@ -1925,8 +1929,10 @@ over its lifeline; a stacked chip draws the mark before the name.
 - Forced colours: cardinality marks follow their line; an activation's edge is `CanvasText`; a frame's edges are `GrayText`; a
   linked name is `LinkText`, underlined.
 - Print: a figure prints untraced, in its resting ink, and in the light theme whatever the screen shows.
-- Right to left: the figure mirrors and its words do not. Identifiers are isolated left to right as runs; named sides swap; the
-  arrow keys stay physical; the text art stays left to right.
+- Right to left: drawn, the figure mirrors and its words do not; stacked, not yet (the rail, the trunk and the end gutter stay on their
+  left-to-right sides: a named gap, on the backlog). Identifiers are isolated left to right as runs; named sides swap; the arrow keys
+  stay physical; the text art stays left to right.
+- Export: a linked card's arrow is not drawn in a file.
 
 ### Diagram tokens
 
@@ -2314,8 +2320,7 @@ A product's own logo is its own; the social marks are Phosphor's (below). A diag
 
 - **Which set draws a glyph.** Wherever a component draws check, close, the chevrons, copy, plus, minus or search, it draws the core
   set's glyph; Phosphor Bold draws what the core set lacks (the status marks, the sort caret, the social
-  marks, a diagram's "Expand", `ArrowsOutSimple`, until the core set draws one; built with words only for now, a deviation the
-  diagrams PR records), and the key glyphs ⌘ ⌥ ⌃ stay Phosphor's. A component never draws Phosphor's version of a core glyph. **Status:** decided by the
+  marks), and the key glyphs ⌘ ⌥ ⌃ stay Phosphor's. A component never draws Phosphor's version of a core glyph. **Status:** decided by the
   council (DECISIONS 138) and approved by the owner (DECISIONS 139); the implementation has not been reviewed.
 - **Drawing.** Actions are exactly three straight lines (copy, edit, trash and download are the
   agreed exceptions, drawn richer). Every other glyph is eight cubic slots on the 24 grid, and an
