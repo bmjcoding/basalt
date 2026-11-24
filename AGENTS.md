@@ -261,7 +261,7 @@ skill folder.
 |---|---|---|
 | `npm run lint` | Token-only CSS (Stylelint), type-aware JS/TS/JSX correctness (Oxlint), the dependency allowlist, and the public-surface vocabulary. Takes seconds. | Before every commit. The pre-commit hook runs it for you. |
 | `npm test` | The tokens' tests (contrast and the generated outputs), the React package's typecheck, build and browser tests (behaviour, accessibility with axe in both themes, bundle size and the size table, the browser floor), then the HTML skill's, the brand's and the sites' tests | Before every push |
-| `npm run check` | Everything CI runs on Linux: lint, tests, reference previews, packed-package consumer | Before opening a PR |
+| `npm run check` | Everything CI runs on Linux but the generated-Swift drift check (it compares with the commit, so `ci:local` runs it): lint, tests, reference previews, packed-package consumer | Before opening a PR |
 | `npm run ci:local` | Both CI jobs, from `ci.yml`'s own steps: the Linux job above plus the generated-Swift drift check, then `swift build` and `swift test` | Before every merge while CI can't run (GitHub Actions minutes run out), on the PR's exact head and again after resolving conflicts. Post the result on the PR. |
 | `npm run ci:local -- --fresh` | The same steps, from a new `git worktree` of the head with `npm ci`, removed afterwards | When a stale `node_modules` or an ignored folder in your checkout could be deciding the result. It checks the commit, not uncommitted changes. |
 

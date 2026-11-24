@@ -22,7 +22,16 @@ import { CopyIcon, PlayIcon } from "@phosphor-icons/react";
 </Menu>
 ```
 
-Styles sit in `@layer basalt`, so an app's own CSS overrides them without `!important`.
+Styles sit in `@layer basalt`, so an app's own unlayered CSS overrides them without `!important`.
+An app whose own CSS is layered (Tailwind v4's `theme`, `base`, `components` and `utilities`, for one)
+names Basalt's layer first, before any sheet is imported, so the app's layers come after it and win:
+
+```css
+@layer basalt, theme, base, components, utilities;
+```
+
+Without that line the order is the order the sheets arrive in, and Basalt imported after Tailwind
+would beat its utilities on Basalt's components.
 Every component takes `className`; Base UI parts also accept a function of their state.
 Every module that draws a component or holds state declares `"use client"` for React Server
 Component consumers, and the package entry itself does not: what is neither a component nor a hook
