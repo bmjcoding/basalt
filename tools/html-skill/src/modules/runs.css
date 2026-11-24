@@ -35,8 +35,8 @@
   /* A stage list: the mark, space-3, the name and its word (space-2 apart, one line), the meta and the time, at 13/18 with space-2 above and below.
      A passed stage's word is said, not drawn. The meta hides under 480px of the list's own width. A still 1px connector joins each mark to the next,
      beside a detail too, and never fills or changes with a state. */
-  /* The connector's place, once: from space-1 under one mark to space-1 above the next, on the marks' centre line. */
-  .run-stages, .run-rail, .run-steps { --_cx: round(down, calc(var(--basalt-size-icon-sm) / 2 - var(--basalt-size-hairline) / 2), var(--basalt-size-hairline)); --_ct: calc(var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-1)); --_cb: calc(var(--basalt-size-icon-sm) / 2 + var(--basalt-space-1) - var(--basalt-space-2) - var(--basalt-text-sm-line-height) / 2); margin: 0; padding: 0; list-style: none; font: var(--basalt-font-weight-regular) var(--bh-sm); color: var(--basalt-text-primary); container-type: inline-size; }
+  /* The connector's place, once: from space-1 under one mark to space-1 above the next, its end edge on the marks' centre line. */
+  .run-stages, .run-rail, .run-steps { --_cx: calc(var(--basalt-size-icon-sm) / 2 - var(--basalt-size-hairline)); --_ct: calc(var(--basalt-space-2) + var(--basalt-text-sm-line-height) / 2 + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-1)); --_cb: calc(var(--basalt-size-icon-sm) / 2 + var(--basalt-space-1) - var(--basalt-space-2) - var(--basalt-text-sm-line-height) / 2); margin: 0; padding: 0; list-style: none; font: var(--basalt-font-weight-regular) var(--bh-sm); color: var(--basalt-text-primary); container-type: inline-size; }
   .run-stages { display: grid; align-content: start; }
   .run-stages > .run-stage { position: relative; display: grid; grid-template-columns: var(--basalt-size-icon-sm) auto minmax(0, 1fr) auto auto; align-items: center; column-gap: var(--basalt-space-3); padding-block: var(--basalt-space-2); }
   .run-stage-name { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }

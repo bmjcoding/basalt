@@ -24,7 +24,7 @@
     "html-skill:shots": "node tools/html-skill/shoot.mjs"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "devDependencies": {
     "esbuild": "0.28.2",

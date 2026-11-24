@@ -55,14 +55,29 @@ test("composition.d.ts does not write out every HTML attribute for Text and Head
 
 // ---- A1-15: a consumer's build prints no warning, and the package loses nothing ----
 
-test("an app built with esbuild, importing one component from dist, gets no warning", async () => {
+// The one warning a consumer's build may print (DECISIONS 350): elkjs's own code, shipped unmodified (DECISIONS 306, 1.8 item 8.9); `x == -0` is
+// `x == 0`; hidden for an installed package (esbuild does not print it for a file under node_modules). Only this id, from this file, at most once a build.
+const ELK_WARNING = { id: "equals-negative-zero", file: "dist/diagram-elk.js" };
+const isElkWarning = (warning) => warning.id === ELK_WARNING.id && (warning.location?.file ?? "").replaceAll("\\", "/").endsWith(ELK_WARNING.file);
+
+test("an app built with esbuild, importing one component from dist, gets no warning but elkjs's one", async () => {
   for (const name of ["Button", "Menu", "TimeChart", "CommandMenu"]) {
     const result = await esbuild.build({
       stdin: { contents: `import { ${name} } from "./dist/index.js"; console.log(${name});`, resolveDir: pkg, loader: "js" },
       bundle: true, minify: true, format: "esm", splitting: true, outdir: path.join(pkg, ".bundle-check"), write: false, external: ["react", "react-dom", "react/jsx-runtime"], logLevel: "silent",
     });
-    assert.deepEqual(result.warnings.map((warning) => `${warning.id}: ${warning.text}`), [], `${name}: a consumer's build warns`);
+    const elk = result.warnings.filter(isElkWarning);
+    assert.ok(elk.length <= 1, `${name}: elkjs's file warns ${elk.length} times, and only one is allowed`);
+    assert.deepEqual(result.warnings.filter((warning) => !isElkWarning(warning)).map((warning) => `${warning.id}: ${warning.text}`), [], `${name}: a consumer's build warns`);
   }
+});
+
+test("the elkjs allowance is still needed: dist/diagram-elk.js bundled alone gives exactly that one warning (else remove the allowance)", async () => {
+  const result = await esbuild.build({
+    entryPoints: [path.join(dist, "diagram-elk.js")],
+    bundle: true, minify: true, format: "esm", write: false, logLevel: "silent",
+  });
+  assert.deepEqual(result.warnings.map((warning) => ({ id: warning.id, elk: isElkWarning(warning) })), [{ id: ELK_WARNING.id, elk: true }], "elkjs's file no longer warns as it did: take the allowance out of the test above");
 });
 
 test("dist has no bare import of one of its own chunks, every chunk is still imported by name, and every relative import resolves", () => {
