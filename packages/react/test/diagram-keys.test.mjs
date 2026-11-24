@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { after, before, describe, test } from "node:test";
+import { pathToFileURL } from "node:url";
 
 import { fixturePage, launch, pkg } from "./support.mjs";
 
@@ -65,13 +66,20 @@ describe("drawn: the four-direction table", () => {
     const { page } = await keysPage();
     const warnings = [];
     page.on("console", (m) => { if (m.type() === "warning") warnings.push(m.text()); });
-    // b sits two columns right of a and two rows down: no arrow from a reaches it along a shared track, and c is only reached from b.
-    await page.evaluate(() => window.__set([{ key: "strand", type: "architecture", props: { title: "Stranded", summary: "A card no arrow reaches.",
-      nodes: [{ id: "a", name: "A", col: 1, row: 1 }, { id: "b", name: "B", col: 2, row: 2 }, { id: "c", name: "C", col: 3, row: 1 }], edges: [] } }]));
+    // Five cards in an X: the middle one is reached from no corner by the rule (each corner's nearest card along an arrow is another corner), so the figure keeps
+    // the author's order (Neon's B12: the earlier fixture stranded nothing, and the test accepted either answer).
+    const X = [[1, 1], [1, 3], [2, 2], [3, 1], [3, 3]];
+    const spec = { title: "Stranded", summary: "A card no arrow reaches.", nodes: X.map(([col, row], k) => ({ id: `n${k}`, name: `N${k}`, col, row })), edges: [] };
+    const core = await import(pathToFileURL(path.join(pkg, "dist", "diagram-core.js")).href);
+    const m = core.buildModel({ type: "architecture", ...spec });
+    assert.equal(core.spatialTable(m), null, "the X strands a card");
+    assert.ok(m.warnings.some((w) => /cannot be reached from another by the arrow keys/.test(w)), "and a development build says so");
+    await page.evaluate((spec) => window.__set([{ key: "strand", type: "architecture", props: spec }]), spec);
     await frames(page, 4);
-    // Whether the rule strands this layout or not, the arrows either move spatially or keep the author's order: right from a is the next card.
-    const right = await press(page, "strand", "a", "ArrowRight");
-    assert.ok(["b", "c"].includes(right));
+    assert.equal(await page.locator("#fig-strand").getAttribute("data-layout"), "drawn");
+    // n0 is at column 1, row 1: spatially → would go to n3 (column 3, row 1); in the author's order it goes to n1.
+    assert.equal(await press(page, "strand", "n0", "ArrowRight"), "n1");
+    assert.equal(await press(page, "strand", "n1", "ArrowRight"), "n2");
     await page.close();
   });
 });

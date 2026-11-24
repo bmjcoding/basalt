@@ -1,10 +1,14 @@
 // Nested groups, link cards and two-line labels (DECISIONS 306, 1.3 and 1.4; part of section 8's list for diagram-parts.test.mjs), on the extended CIMIP
-// architecture (test/fixtures/cimip-diagrams-b.json). In Chromium against the built package, both themes. End lanes and marks on steps are not built yet.
+// architecture (test/fixtures/cimip-diagrams-b.json), end lanes and several entries into one card, and marks on steps and participants. In Chromium against
+// the built package, both themes.
 // The implementation hasn't been reviewed.
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
-import { fixturePage, launch } from "./support.mjs";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+
+import { fixturePage, launch, pkg } from "./support.mjs";
 
 const P = "basalt-diagram";
 let browser;
@@ -102,5 +106,61 @@ describe("two-line labels", () => {
     const list = await page.locator(`#fig-architecture .${P}-list`).evaluate((e) => e.textContent);
     assert.match(list, /SQL · NOTIFY one transaction/);
     await page.close();
+  });
+});
+
+// A stacked spine of eight cards with end lines out of the first: n lines that overlap need n lanes (DECISIONS 306, 1.3).
+const SPINE = (lines) => ({ title: "Lanes", summary: "End lines.", legend: { plain: "Call" }, nodes: Array.from({ length: 8 }, (_, k) => ({ id: `n${k}`, name: `N${k}`, col: 1, row: k + 1 })), edges: lines.map(([a, b]) => ({ from: `n${a}`, to: `n${b}` })) });
+const SET_HOST = `
+function Host() {
+  const [spec, setSpec] = React.useState(null);
+  window.__set = (next) => flushSync(() => setSpec(next));
+  return spec ? <B.ArchitectureDiagram id="fig-lanes" {...spec} /> : null;
+}
+createRoot(document.getElementById("root")).render(<Host />);`;
+
+describe("end lanes and several entries into one card (1.3; Neon's B12)", () => {
+  test("three and four lanes at a space-3-5 pitch, the gutter its lanes and space-3; a fifth draws no lines and opens the list; several entries into one card turn space-5 apart, outermost lowest", async () => {
+    const { page } = await fixturePage(browser, SET_HOST, { standards: true, viewport: { width: 390, height: 1400 } });
+    await page.evaluate(() => document.fonts.ready);
+    const lanes = async (lines) => {
+      await page.evaluate((spec) => window.__set(spec), SPINE(lines));
+      await frames(page, 5);
+      return page.evaluate(() => {
+        const fig = document.querySelector("#fig-lanes");
+        const d = fig.querySelector(".basalt-diagram-drawing").getBoundingClientRect();
+        const cardsR = Math.max(...[...fig.querySelectorAll(".basalt-diagram-node")].map((n) => n.getBoundingClientRect().right)) - d.left;
+        const xs = [...new Set([...fig.querySelectorAll(".basalt-diagram-svg .basalt-diagram-line")].map((p) => Math.max(...p.getAttribute("d").match(/-?[\d.]+/g).map(Number).filter((_, k) => k % 2 === 0))))].map((x) => Math.round((x - cardsR) * 2) / 2).sort((a, b) => a - b);
+        return { bare: fig.hasAttribute("data-bare"), open: !fig.querySelector(".basalt-diagram-list").hidden, gutter: d.right - d.left - cardsR, xs };
+      });
+    };
+    // Lines that all pass n1..n2 overlap: three of them, then four.
+    const three = await lanes([[0, 3], [0, 4], [0, 5]]);
+    assert.ok(!three.bare && Math.abs(three.gutter - 54) <= 0.5, JSON.stringify(three));
+    assert.deepEqual(three.xs.map((x, k) => (k ? x - three.xs[k - 1] : 0)).slice(1), [14, 14]);
+    const four = await lanes([[0, 3], [0, 4], [0, 5], [0, 6]]);
+    assert.ok(!four.bare && Math.abs(four.gutter - 68) <= 0.5, JSON.stringify(four));
+    const five = await lanes([[0, 3], [0, 4], [0, 5], [0, 6], [0, 7]]);
+    assert.ok(five.bare && five.open, JSON.stringify(five));
+    // Two end lines into one card (n5, from n0 and n1): the outer line turns lowest, the inner space-5 higher.
+    await page.evaluate((spec) => window.__set(spec), SPINE([[0, 5], [1, 5]]));
+    await frames(page, 5);
+    const turns = await page.evaluate(() => [...document.querySelectorAll("#fig-lanes .basalt-diagram-edge")].filter((g) => g.dataset.to === "n5").map((g) => { const n = g.querySelector(".basalt-diagram-line").getAttribute("d").match(/-?[\d.]+/g).map(Number); const pts = []; for (let k = 0; k + 1 < n.length; k += 2) pts.push([n[k], n[k + 1]]); let turn = null; for (let k = 1; k < pts.length; k++) if (Math.abs(pts[k][1] - pts[k - 1][1]) < 0.01 && Math.abs(pts[k][0] - pts[k - 1][0]) > 2) turn = pts[k][1]; return { lane: Math.max(...pts.map((p) => p[0])), turn }; }).sort((a, b) => b.lane - a.lane));
+    assert.equal(turns.length, 2);
+    assert.ok(turns[0].turn > turns[1].turn, `the outermost lane turns lowest ${JSON.stringify(turns)}`);
+    assert.ok(Math.abs(turns[0].turn - turns[1].turn - 20) <= 1, `space-5 apart ${JSON.stringify(turns)}`);
+    await page.close();
+  });
+});
+
+describe("marks on steps and participants (1.6; Neon's B10 and B12)", () => {
+  test("a data flow step's mark counts its lane's label as its words; a participant may carry a mark and a person never needs one", async () => {
+    const core = await import(pathToFileURL(path.join(pkg, "dist", "diagram-core.js")).href);
+    const flow = (lane) => core.buildModel({ type: "data-flow", title: "t", summary: "s", lanes: [{ id: "s3", label: lane }], nodes: [{ id: "seg", lane: "s3", col: 1, name: "Sealed segment", mark: { onLight: "a.svg", says: ["S3"] } }], edges: [] });
+    assert.deepEqual(flow("S3").warnings, [], "the lane's label says S3");
+    assert.ok(flow("Storage").warnings.some((w) => /stands for S3/.test(w)), "and without it the mark carries a fact alone");
+    const seq = core.buildModel({ type: "sequence", title: "t", summary: "s", participants: [{ id: "a", name: "Amazon S3", mark: { onLight: "a.svg", says: ["S3"] } }, { id: "p", name: "Marcus" }], steps: [{ from: "p", to: "a", label: "put" }] });
+    assert.deepEqual(seq.warnings, []);
+    assert.ok(seq.nodes[0].mark && !seq.nodes[1].mark);
   });
 });

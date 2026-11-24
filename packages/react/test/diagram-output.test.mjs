@@ -36,7 +36,8 @@ describe("print", () => {
     await page.emulateMedia({ media: "print" });
     const got = await page.evaluate((P) => {
       const fig = document.querySelector("#fig-architecture");
-      const lit = fig.querySelector(`.${P}-edge[data-lit] .${P}-line, .${P}-edge[data-dim] .${P}-line`);
+      // A traced plain line (ALB's line to the service is plain): read as it prints. (Neon's B12: the check was skipped when a main line was found first.)
+      const lit = fig.querySelector(`.${P}-edge[data-lit] .${P}-line[data-kind="plain"], .${P}-edge[data-dim] .${P}-line[data-kind="plain"]`);
       const rest = fig.querySelector(`.${P}-edge:not([data-lit]):not([data-dim]) .${P}-line[data-kind="plain"]`) ?? fig.querySelector(`.${P}-line[data-kind="plain"]`);
       return { primary: getComputedStyle(document.documentElement).getPropertyValue("--basalt-text-primary").trim(), scheme: getComputedStyle(document.documentElement).colorScheme,
         hint: getComputedStyle(fig.querySelector(`.${P}-hint`)).display, expand: getComputedStyle(fig.querySelector(`.${P}-expand`)).display,
@@ -46,7 +47,8 @@ describe("print", () => {
     assert.equal(got.scheme, "light");
     assert.equal(got.hint, "none");
     assert.equal(got.expand, "none");
-    if (got.traced && got.traced[1] === "plain") assert.equal(got.traced[0], got.plain, "a traced line prints in its resting ink");
+    assert.ok(got.traced, "a traced plain line is there to read");
+    assert.equal(got.traced[0], got.plain, "a traced line prints in its resting ink");
     await page.close();
   });
 });

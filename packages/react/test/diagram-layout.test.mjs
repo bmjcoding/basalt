@@ -76,7 +76,10 @@ describe("placeDiagram", () => {
 
   test("the graph handed to elk: network simplex, straightness 10 on main lines only, no partitioning; at most two layouts a direction", async () => {
     const layout = await import(pathToFileURL(path.join(pkg, "dist", "diagram-layout.js")).href);
-    const g = layout.elkGraph(FIG.autoArchitecture, "down");
+    // The graph's helpers are internal (diagram-layout-graph, in no public declaration: Neon's B11); the module is read straight from dist.
+    const graph = await import(pathToFileURL(path.join(pkg, "dist", "diagram-layout-graph.js")).href);
+    assert.ok(!("elkGraph" in layout) && !("mainInTheMiddle" in layout), "the public module exports placeDiagram and no helper");
+    const g = graph.elkGraph(FIG.autoArchitecture, "down");
     assert.equal(g.layoutOptions["elk.layered.nodePlacement.strategy"], "NETWORK_SIMPLEX");
     assert.ok(!JSON.stringify(g).includes("partitioning"), "no elk.partitioning option anywhere");
     const main = new Set(FIG.autoArchitecture.edges.map((e, k) => (e.kind === "main" ? `${e.from}>${e.to}` : null)).filter(Boolean));
@@ -85,7 +88,7 @@ describe("placeDiagram", () => {
       assert.equal(e.layoutOptions?.["elk.layered.priority.straightness"], isMain ? "10" : undefined, `${e.sources[0]} to ${e.targets[0]}`);
     }
     // The main line in the middle: a card with three or more leaving lines, one of them main.
-    const order = layout.mainInTheMiddle([{ from: "a", main: false, n: 1 }, { from: "a", main: false, n: 2 }, { from: "a", main: true, n: 3 }, { from: "b", main: false, n: 4 }]);
+    const order = graph.mainInTheMiddle([{ from: "a", main: false, n: 1 }, { from: "a", main: false, n: 2 }, { from: "a", main: true, n: 3 }, { from: "b", main: false, n: 4 }]);
     assert.deepEqual(order.map((e) => e.n), [1, 3, 2, 4]);
     // Count elk's layouts: the class diagram-layout imports is this module's default.
     const ELK = (await import(pathToFileURL(path.join(pkg, "dist", "diagram-elk.js")).href)).default;
@@ -118,6 +121,15 @@ describe("placeDiagram", () => {
       assert.deepEqual(strip(got), L.cells[key][d], `${key} laid ${d} in the browser`);
     }
     await page.close();
+  });
+});
+
+describe("the package (Neon B11)", () => {
+  test("no declaration names elkjs or the graph's helpers, and elkjs's licence ships beside its copy", () => {
+    const read = (f) => fs.readFileSync(path.join(pkg, "dist", f), "utf8");
+    for (const f of ["diagram-elk.d.ts", "diagram-layout.d.ts"]) assert.doesNotMatch(read(f), /["']elkjs|ElkNode|elkGraph|mainInTheMiddle/, f);
+    assert.match(read("elkjs/LICENSE.md"), /Eclipse Public License/);
+    assert.match(fs.readFileSync(path.join(pkg, "THIRD-PARTY-NOTICES.md"), "utf8"), /copied unchanged into this package/);
   });
 });
 

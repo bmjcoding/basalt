@@ -175,15 +175,19 @@ describe("the layout width and Fit", () => {
   }
   test("a figure with no drawn layout holds its stack, and a stack with no lines has its list open", async () => {
     const { page } = await viewerPage({ width: 1440, height: 900 });
-    // Two cards whose one line would pass through a third: every drawn layout is refused, and the stack draws no lines.
+    // Seven cards in a row and five lines out of the first: every line passes through a card, so no drawn layout is used, and its stack would need a fifth
+    // end lane, so it draws no lines (Neon's B12: the earlier fixture was drawn, and the test passed either way).
     await page.evaluate(() => window.__set([{ key: "bad", type: "architecture", props: { title: "Refused", summary: "A figure with no drawn layout.", legend: { plain: "Call" },
-      nodes: [{ id: "a", name: "A", col: 1, row: 1 }, { id: "b", name: "B", col: 2, row: 1 }, { id: "c", name: "C", col: 3, row: 1 }],
-      edges: [{ from: "a", to: "c", fromSide: "right", toSide: "left", kind: "plain" }] } }]));
-    await frames(page);
-    const pageLayout = await page.locator("#fig-bad").getAttribute("data-layout");
+      nodes: Array.from({ length: 7 }, (_, k) => ({ id: `n${k}`, name: `N${k}`, col: k + 1, row: 1 })),
+      edges: [2, 3, 4, 5, 6].map((k) => ({ from: "n0", to: `n${k}`, kind: "plain" })) } }]));
+    await frames(page, 4);
+    assert.equal(await page.locator("#fig-bad").getAttribute("data-layout"), "stacked");
+    assert.equal(await page.locator("#fig-bad").getAttribute("data-bare"), "", "the page's stack is bare");
     await open(page, "bad");
     const s = await state(page);
-    assert.equal(s.layout, pageLayout === "drawn" ? "drawn" : "stacked");
+    assert.equal(s.layout, "stacked", "the viewer holds the stack");
+    const list = await page.evaluate((P) => { const d = document.querySelector(`dialog.${P}-viewer`); const l = d.querySelector(`.${P}-viewer-list`); return { list: Boolean(l && !l.hidden && l.getClientRects().length), sizer: d.querySelector(`.${P}-sizer`).hidden }; }, P);
+    assert.deepEqual(list, { list: true, sizer: true }, "and a stack with no lines has its list open");
     await page.close();
   });
 });

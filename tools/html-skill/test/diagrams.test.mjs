@@ -218,3 +218,21 @@ describe("behaviour", () => {
     assert.match(js, /diagramMarkup/);
   });
 });
+
+describe("batch B's fix round in the skill (Neon B8, B10)", () => {
+  const B = JSON.parse(fs.readFileSync(path.join(pkg, "test", "fixtures", "cimip-diagrams-b.json"), "utf8"));
+  test("an automatic figure's words are written on its placement before script: no two cards in one cell, and the columns are the placement's", () => {
+    const html = compose(`<title>D</title><main><figure class="diagram" id="fig-a"><script type="application/json" data-diagram>${JSON.stringify(B.autoArchitecture)}</script></figure></main>`).html;
+    const fig = /<figure[^>]*id="fig-a"[^>]*>/.exec(html)[0];
+    assert.match(fig, /data-cols="(\d+)"/);
+    assert.notEqual(/data-cols="(\d+)"/.exec(fig)[1], "1");
+    const cells = [...html.matchAll(/data-node="([^"]+)"[^>]*style="--_c:(\d+);--_r:(\d+)/g)].map((m) => `${m[2]},${m[3]}`);
+    assert.ok(cells.length >= 10, `${cells.length} cards`);
+    assert.equal(new Set(cells).size, cells.length, "no two cards in one cell");
+  });
+  test("a data flow step's mark counts its lane's label as its words, as React's check does", () => {
+    const spec = { type: "data-flow", title: "t", summary: "s", lanes: [{ id: "s3", label: "Amazon S3" }], nodes: [{ id: "n1", lane: "s3", col: 1, name: "Store logs", mark: "aws-s3-bucket" }], edges: [] };
+    const out = compose(`<title>D</title><main><figure class="diagram"><script type="application/json" data-diagram>${JSON.stringify(spec)}</script></figure></main>`);
+    assert.ok(!JSON.stringify(out.diagrams ?? []).includes("none of its words say so"), JSON.stringify(out.diagrams));
+  });
+});

@@ -1,10 +1,11 @@
 // A sequence's activations and frames (DECISIONS 306, 1.2; section 8's list for diagram-sequence.test.mjs), on the extended CIMIP sequence
-// (test/fixtures/cimip-diagrams-b.json). In Chromium against the built package, both themes. The text variant is not built yet, so its tests are not here.
+// (test/fixtures/cimip-diagrams-b.json), and the text variant. In Chromium against the built package, both themes.
 // The implementation hasn't been reviewed.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { after, before, describe, test } from "node:test";
+import { pathToFileURL } from "node:url";
 
 import { fixturePage, launch, pkg } from "./support.mjs";
 
@@ -106,5 +107,57 @@ describe("frames", () => {
     await frames(page, 4);
     assert.equal((await read(page)).layout, "stacked");
     await page.close();
+  });
+});
+
+describe("the text variant (1.2; section 8)", () => {
+  test("the art is byte-stable for fixed data, every frame has its four corners, and no lifeline glyph is inside a word", async () => {
+    const core = await import(pathToFileURL(path.join(pkg, "dist", "diagram-core.js")).href);
+    const text = await import(pathToFileURL(path.join(pkg, "dist", "diagram-text.js")).href);
+    const m = () => core.buildModel(B.textSequence);
+    const a = text.textArt(m()).html, b = text.textArt(m()).html;
+    assert.equal(a, b, "the same data writes the same art");
+    const rows = a.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").split("\n");
+    const count = (c) => rows.join("").split(c).length - 1;
+    assert.equal(count("┌"), count("└"), "every frame that opens closes");
+    assert.equal(count("┐"), count("┘"));
+    // A word (a label) is never cut by a lifeline glyph: each label is found whole on one row.
+    for (const st of B.textSequence.steps.flatMap(function flat(s) { return s.steps ? s.steps.flatMap(flat) : s.branches ? s.branches.flatMap((x) => x.steps.flatMap(flat)) : [s]; })) {
+      if (st.label) assert.ok(rows.some((r) => r.includes(st.label)), `"${st.label}" is whole`);
+    }
+  });
+
+  for (const width of [1440, 390, 360]) test(`at ${width} the block never scrolls sideways; the pre is aria-hidden; the key's swatches are glyphs`, async () => {
+    const { page } = await fixturePage(browser, `
+import data from "./test/fixtures/cimip-diagrams-b.json";
+const { type, ...props } = data.textSequence;
+createRoot(document.getElementById("root")).render(<B.SequenceDiagram id="text" {...props} />);`, { standards: true, viewport: { width, height: 1200 } });
+    await page.addStyleTag({ content: "body{margin:0;padding:16px} #root{max-width:1104px;margin:0 auto}" });
+    await page.evaluate(() => document.fonts.ready);
+    await frames(page, 6);
+    const got = await page.evaluate((P) => {
+      const pre = document.querySelector(`#text .${P}-text`);
+      const names = [...pre.querySelectorAll(`.${P}-tx-name`)].map((n) => n.getClientRects().length);
+      return { scroll: pre.scrollWidth - pre.clientWidth, hidden: pre.getAttribute("aria-hidden"), art: pre.hasAttribute("data-art"), broken: names.filter((n) => n > 1).length, swatches: document.querySelectorAll(`#text .${P}-swatch`).length, glyphs: document.querySelectorAll(`#text .${P}-key-glyph`).length };
+    }, P);
+    assert.ok(got.scroll <= 1, JSON.stringify(got));
+    assert.equal(got.hidden, "true");
+    assert.equal(got.broken, 0, "no name breaks across lines");
+    assert.equal(got.swatches, 0);
+    assert.ok(got.glyphs > 0);
+    if (width === 1440) assert.ok(got.art, "at 1440 the art fits");
+    else assert.ok(!got.art, "on a phone, the transcript");
+    await page.close();
+  });
+
+  test("the bars: a bar left open closes at its participant's last message; development errors for a deactivate with no bar, a fourth bar and frames", async () => {
+    const core = await import(pathToFileURL(path.join(pkg, "dist", "diagram-core.js")).href);
+    const seq = (steps) => core.buildModel({ type: "sequence", title: "t", summary: "s", participants: [{ id: "a", name: "A" }, { id: "b", name: "B" }], steps });
+    const open = seq([{ from: "a", to: "b", label: "1", activate: true }, { from: "a", to: "b", label: "2" }, { from: "b", to: "a", label: "3" }]);
+    assert.deepEqual(open.bars.map((x) => [x.who, x.from, x.to]), [["b", 1, 3]]);
+    assert.ok(seq([{ from: "a", to: "b", label: "1", deactivate: true }]).warnings.some((w) => /closes a bar on a, which has none open/.test(w)));
+    assert.ok(seq([1, 2, 3, 4].map((n) => ({ from: "a", to: "b", label: String(n), activate: true }))).warnings.some((w) => /fourth bar/.test(w)));
+    assert.ok(seq([{ frame: "alt", branches: [{ label: "one", steps: [{ from: "a", to: "b", label: "x" }] }] }]).warnings.some((w) => /alt frame has one branch/.test(w)));
+    assert.ok(seq([{ frame: "opt", label: "o", steps: [{ frame: "opt", label: "p", steps: [{ frame: "opt", label: "q", steps: [{ from: "a", to: "b", label: "x" }] }] }] }]).warnings.some((w) => /third level/.test(w)));
   });
 });
