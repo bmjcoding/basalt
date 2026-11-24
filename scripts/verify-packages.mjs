@@ -1,7 +1,7 @@
 // Build first. Test the packed artifacts in a fresh consumer outside the monorepo, so missing
 // exports, declarations, assets and accidental reliance on workspace resolution are caught.
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -34,8 +34,16 @@ try {
   packages[""] = { name: manifest.name, version: manifest.version, dependencies: manifest.dependencies };
   for (let index = 0; index < packedPackages.length; index++) {
     const { packed, manifest: pkg } = packedPackages[index];
-    // `bin` is in the lock entry as npm writes it, so `npm ci` links node_modules/.bin as a real install does (B1: the CLI run through that link).
-    packages[`node_modules/${pkg.name}`] = { version: pkg.version, resolved: `file:${archives[index]}`, integrity: packed.integrity, dependencies: pkg.dependencies, peerDependencies: pkg.peerDependencies, ...(pkg.bin ? { bin: pkg.bin } : {}) };
+    // `bin` and `peerDependenciesMeta` are copied as npm writes them, so `npm ci` links node_modules/.bin and keeps optional peers optional.
+    packages[`node_modules/${pkg.name}`] = {
+      version: pkg.version,
+      resolved: `file:${archives[index]}`,
+      integrity: packed.integrity,
+      dependencies: pkg.dependencies,
+      peerDependencies: pkg.peerDependencies,
+      ...(pkg.peerDependenciesMeta ? { peerDependenciesMeta: pkg.peerDependenciesMeta } : {}),
+      ...(pkg.bin ? { bin: pkg.bin } : {}),
+    };
   }
   fs.writeFileSync(path.join(consumer, "package-lock.json"), JSON.stringify({ name: manifest.name, version: manifest.version, lockfileVersion: 3, requires: true, packages }));
   run("npm", ["ci", "--offline", "--ignore-scripts", "--no-audit", "--no-fund"], consumer);
@@ -97,6 +105,12 @@ const phosphor = await import('@srasyndicate/basalt/phosphor'); assert.deepEqual
 const interop = await import('@srasyndicate/basalt/diagram-interop'); assert.equal('diagramToDrawio' in await import('@srasyndicate/basalt'), false, 'diagram-interop stays outside the root export'); assert.match(interop.diagramToDrawio({ type: 'architecture', title: 'T', summary: 'S', nodes: [{ id: 'a', name: 'A', col: 1, row: 1 }], edges: [] }), /<mxfile compressed="false">/); assert.ok(interop.diagramToVsdx({ type: 'architecture', title: 'T', summary: 'S', nodes: [{ id: 'a', name: 'A', col: 1, row: 1 }], edges: [] }).length > 0);
 console.log('Packed consumer: runtime, server rendering, exact token types, exports, fonts and RSC boundary pass.');`);
   process.stdout.write(run(process.execPath, ["smoke.mjs"], consumer));
+  // Remove Playwright and elkjs from the consumer so we test the packed CLI's no-Playwright fallback,
+  // strict --browser error, and bundled dist/diagram-elk.js auto-layout without launching Chromium.
+  fs.rmSync(path.join(consumer, "node_modules", "playwright"), { recursive: true, force: true });
+  fs.rmSync(path.join(consumer, "node_modules", "playwright-core"), { recursive: true, force: true });
+  fs.rmSync(path.join(consumer, "node_modules", "elkjs"), { recursive: true, force: true });
+
   // Run the installed CLI through its node_modules/.bin symlink (guards B1: symlinked bin must execute and write files).
   const binPath = path.join(consumer, "node_modules", ".bin", "basalt-diagram-export");
   assert.ok(fs.existsSync(binPath), "packed install is missing node_modules/.bin/basalt-diagram-export");
@@ -113,14 +127,23 @@ console.log('Packed consumer: runtime, server rendering, exact token types, expo
   const cliIn = path.join(consumer, "sample.json");
   const cliOut = path.join(consumer, "cli-out");
   fs.writeFileSync(cliIn, JSON.stringify(sampleSpec));
-  run(process.execPath, [binPath, cliIn, "--to", "drawio,vsdx,lucid", "--theme", "dark", "--marks", "embed", "--out", cliOut], consumer);
+  // Default mode without Playwright installed falls back to headless layout and warns on stderr that geometry is approximate.
+  const fallbackRun = spawnSync(
+    process.execPath,
+    [binPath, cliIn, "--to", "drawio,vsdx,lucid", "--theme", "dark", "--marks", "embed", "--out", cliOut],
+    { cwd: consumer, encoding: "utf8" },
+  );
+  assert.equal(fallbackRun.status, 0, `packed default fallback failed: ${fallbackRun.stderr}`);
+  assert.match(fallbackRun.stderr, /approximate/i, "default CLI fallback without Playwright must warn that geometry is approximate");
   for (const ext of [".drawio", ".vsdx", ".lucid"]) {
     const f = path.join(cliOut, `sample${ext}`);
     assert.ok(fs.existsSync(f) && fs.statSync(f).size > 0, `installed bin did not write ${f}`);
   }
-  assert.match(fs.readFileSync(path.join(cliOut, "sample.drawio"), "utf8"), /background="#000000"/, "dark drawio background");
+  const drawioOut = fs.readFileSync(path.join(cliOut, "sample.drawio"), "utf8");
+  assert.match(drawioOut, /background="#000000"/, "dark drawio background");
+  assert.match(drawioOut, /Basalt headless \(approximate\)/, "drawio records approximate engine metadata");
   assert.match(fs.readFileSync(path.join(cliOut, "sample.vsdx")).toString("latin1"), /PageBackground/, "dark vsdx PageBackground");
-  // Without Playwright installed in the consumer, --browser fails cleanly with an actionable install message.
+  // Without Playwright installed in the consumer, strict --browser fails cleanly with an actionable install message.
   let browserErr = "";
   try {
     run(process.execPath, [binPath, cliIn, "--browser", "--to", "drawio", "--out", cliOut], consumer);
@@ -128,9 +151,21 @@ console.log('Packed consumer: runtime, server rendering, exact token types, expo
     browserErr = `${err.stdout || ""}${err.stderr || ""}`;
   }
   assert.match(browserErr, /playwright/i, "packed --browser without Playwright must name playwright in its error");
+  // Automatic layout via the packed CLI with no elkjs installed (uses packaged dist/diagram-elk.js).
+  const autoSpec = {
+    type: "architecture",
+    layout: "auto",
+    title: "Packed auto CLI check",
+    summary: "Verifies automatic layout through the installed bin.",
+    nodes: [{ id: "a", name: "Alpha" }, { id: "b", name: "Beta" }, { id: "c", name: "Gamma" }],
+    edges: [{ from: "a", to: "b", kind: "main" }, { from: "b", to: "c" }],
+  };
+  const autoIn = path.join(consumer, "auto.json");
+  fs.writeFileSync(autoIn, JSON.stringify(autoSpec));
+  run(process.execPath, [binPath, autoIn, "--headless", "--to", "drawio", "--out", cliOut], consumer);
+  assert.ok(fs.existsSync(path.join(cliOut, "auto.drawio")) && fs.statSync(path.join(cliOut, "auto.drawio")).size > 0, "packed CLI exported auto layout without elkjs");
   // elkjs is a build input of the package, not a dependency (the decider's ruling 2 on the batch B re-check): the package ships its one copy,
   // dist/diagram-elk.js, so a consumer with no elkjs installed places an automatic figure.
-  fs.rmSync(path.join(consumer, "node_modules", "elkjs"), { recursive: true, force: true });
   fs.writeFileSync(path.join(consumer, "place.mjs"), `import assert from 'node:assert/strict'; import fs from 'node:fs';
 assert.ok(!fs.existsSync(new URL('./node_modules/elkjs', import.meta.url)), 'no elkjs in the consumer');
 const { placeDiagram } = await import('@srasyndicate/basalt/diagram-layout');

@@ -1,13 +1,16 @@
 #!/usr/bin/env node
-// basalt-diagram-export (DECISIONS 311, 314)
+// basalt-diagram-export (DECISIONS 311, 314, 324, 327)
 // Deterministically exports Basalt diagram JSON (or `<script type="application/json" data-diagram>` blocks in HTML)
 // to draw.io (.drawio), Microsoft Visio (.vsdx), and Lucid Standard Import (.lucid / .lucid.json).
+// By default, measures boxes and routes through headless Chromium + Basalt's real layout engine using the
+// optional `playwright` peer dependency; when Playwright or Chromium is unavailable, falls back to Basalt's
+// pure-JS headless layout and warns on stderr that geometry is approximate.
 // Usage:
-//   basalt-diagram-export <input.json|page.html> [--to drawio,vsdx,lucid] [--theme light|dark|adaptive] [--marks omit|embed] [--out <dir|file>] [--width <px>] [--browser]
+//   basalt-diagram-export <input.json|page.html> [--to drawio,vsdx,lucid] [--theme light|dark|adaptive] [--marks omit|embed] [--out <dir|file>] [--width <px>] [--browser|--headless]
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 import {
   diagramToDrawio,
@@ -16,14 +19,19 @@ import {
   diagramToVsdx,
   exportMeasuredDiagram,
   isBundledMarkEmbeddable,
+  placeAutoDiagram,
 } from "../dist/diagram-interop.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pkgRoot = path.resolve(here, "..");
-const repoRoot = path.resolve(pkgRoot, "..", "..");
 const VALID_FORMATS = ["drawio", "vsdx", "lucid", "lucid-json"];
 const VALID_THEMES = ["light", "dark", "adaptive"];
 const VALID_MARKS = ["omit", "embed"];
+const HEADLESS_ENGINE = "Basalt headless (approximate)";
+const CHROMIUM_LAUNCH_OPTS = {
+  headless: true,
+  args: ["--blink-settings=forceAndroidOverlayScrollbar=true", "--disable-partial-raster"],
+};
 
 function usage() {
   return [
@@ -35,7 +43,8 @@ function usage() {
     "  --marks <mode>   omit or embed (default: omit; embed includes only marks whose manifest terms allow diagram use)",
     "  --out <path>     Output directory (or exact file path for one diagram and one format)",
     "  --width <px>     Target drawing width in CSS pixels (default: 1104)",
-    "  --browser        Measure boxes through headless Chromium + Basalt's engine (requires playwright)",
+    "  --browser        Require headless Chromium + Basalt's engine (fail if Playwright/Chromium is unavailable)",
+    "  --headless       Use pure-JS approximate headless layout without launching Chromium",
     "  -h, --help       Show this help",
     "",
   ].join("\n");
@@ -194,6 +203,12 @@ function createMarkResolver(inputDir) {
   };
 }
 
+function browserUnavailableError(message) {
+  const err = new Error(message);
+  err.basaltBrowserUnavailable = true;
+  return err;
+}
+
 /** Loads Playwright from the caller's project, this package's ancestors, or Node's global/ESM resolution. */
 async function loadPlaywright() {
   const roots = [path.join(process.cwd(), "package.json"), path.join(pkgRoot, "package.json")];
@@ -212,16 +227,17 @@ async function loadPlaywright() {
   } catch {
     // not installed
   }
-  throw new Error(
-    "basalt-diagram-export: --browser requires Playwright. Install it with: npm install -D playwright && npx playwright install chromium",
+  throw browserUnavailableError(
+    "basalt-diagram-export: exact browser measurement requires Playwright (install with: npm install -D playwright && npx playwright install chromium)",
   );
 }
 
 /**
  * Packaged, self-contained headless Chromium measurement harness.
  * Uses only files shipped inside `@srasyndicate/basalt/dist` (styles.css, Geist WOFF2 fonts,
- * diagram-core.js, and diagram-interop.js) so `--browser` works identically from a packed install
- * outside the monorepo as well as inside the repo.
+ * diagram-core.js, and diagram-interop.js) so browser measurement works identically from a packed
+ * install outside the monorepo as well as inside the repo.
+ * Each figure is measured alone at (0, 0) so multi-figure files match single-figure exports byte-for-byte.
  */
 async function measureInBrowser(items, width) {
   const distDir = path.join(pkgRoot, "dist");
@@ -230,65 +246,84 @@ async function measureInBrowser(items, width) {
   const monoFontPath = path.join(distDir, "fonts", "GeistMono-Variable.woff2");
   const corePath = path.join(distDir, "diagram-core.js");
   if (!fs.existsSync(stylesPath) || !fs.existsSync(corePath)) {
-    throw new Error("basalt-diagram-export: --browser requires built dist assets (styles.css and diagram-core.js)");
+    throw new Error("basalt-diagram-export: browser measurement requires built dist assets (styles.css and diagram-core.js)");
   }
 
   const { chromium } = await loadPlaywright();
-  const launchPath = path.join(repoRoot, "scripts", "chromium-launch.mjs");
-  const launchOpts = fs.existsSync(launchPath)
-    ? (await import(pathToFileURL(launchPath).href)).chromiumLaunchOptions()
-    : { headless: true };
 
   let browser;
   try {
-    browser = await chromium.launch(launchOpts);
+    browser = await chromium.launch(CHROMIUM_LAUNCH_OPTS);
   } catch (err) {
-    throw new Error(
-      `basalt-diagram-export: --browser could not launch Chromium (${err.message}). If browsers are not installed, run: npx playwright install chromium`,
+    throw browserUnavailableError(
+      `basalt-diagram-export: could not launch Chromium (${err.message}). If browsers are not installed, run: npx playwright install chromium`,
     );
   }
 
   try {
+    const measuredBy = `Chromium ${browser.version()}`;
     const stylesCss = fs.readFileSync(stylesPath, "utf8");
     const fontCss = fs.existsSync(sansFontPath) && fs.existsSync(monoFontPath)
       ? `@font-face{font-family:"Geist";src:url("data:font/woff2;base64,${fs.readFileSync(sansFontPath).toString("base64")}") format("woff2");font-weight:100 900;font-style:normal}` +
         `@font-face{font-family:"Geist Mono";src:url("data:font/woff2;base64,${fs.readFileSync(monoFontPath).toString("base64")}") format("woff2");font-weight:100 900;font-style:normal}`
       : "";
 
-    const specsJson = JSON.stringify(items.map((it) => it.spec)).replace(/</g, "\\u003c");
+    const entriesJson = JSON.stringify(
+      items.map((it) => ({ spec: it.spec, placements: it.placements ?? null })),
+    ).replace(/</g, "\\u003c");
     const harnessHtml =
       `<!doctype html><html lang="en" data-theme="light"><head><meta charset="utf-8">` +
-      `<style>${fontCss}\n${stylesCss}\nbody{margin:0;background:var(--basalt-surface-page);color:var(--basalt-text-primary);font-family:var(--basalt-font-family-sans)}</style>` +
+      `<style>${fontCss}\n${stylesCss}\nhtml,body{margin:0;padding:0;background:var(--basalt-surface-page);color:var(--basalt-text-primary);font-family:var(--basalt-font-family-sans)}</style>` +
       `<script>window.process={env:{NODE_ENV:"production"}};</script>` +
-      `</head><body><main id="host" style="width:${width}px;margin:0 auto;display:grid;gap:64px"></main>` +
+      `</head><body><main id="host" style="margin:0;padding:0;width:${width}px"></main>` +
       `<script type="module">\n` +
       `import { buildModel, figureTree, measureFigure, syncAttributes, toHtml } from "https://basalt.local/diagram-core.js";\n` +
       `import { readMeasuredExtras } from "https://basalt.local/diagram-interop.js";\n` +
-      `const specs = ${specsJson};\n` +
+      `const entries = ${entriesJson};\n` +
+      `const targetWidth = ${width};\n` +
       `const host = document.getElementById("host");\n` +
-      `const entries = specs.map((spec, idx) => {\n` +
-      `  const model = buildModel(spec, { checks: false });\n` +
-      `  const base = "exp-" + idx;\n` +
-      `  const opts = { prefix: "basalt-diagram", base, hasSource: Boolean(spec.source), hiddenClass: "basalt-visually-hidden" };\n` +
-      `  const wrap = document.createElement("div");\n` +
-      `  wrap.innerHTML = toHtml(figureTree(model, {}, opts), { summary: spec.summary || "", source: spec.source || "" });\n` +
-      `  const fig = wrap.firstElementChild;\n` +
-      `  fig.id = base;\n` +
-      `  host.appendChild(fig);\n` +
-      `  return { fig, model, base, opts };\n` +
-      `});\n` +
       `window.__measureAll = async () => {\n` +
       `  await document.fonts.ready;\n` +
-      `  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));\n` +
-      `  return entries.map(({ fig, model, base, opts }) => {\n` +
-      `    const res = measureFigure(fig, model, "basalt-diagram", base, { layout: "drawn" }, (d) => syncAttributes(fig, figureTree(model, d, opts)));\n` +
-      `    return { geo: res.geo, extras: readMeasuredExtras(fig, "basalt-diagram") };\n` +
-      `  });\n` +
+      `  const out = [];\n` +
+      `  for (let idx = 0; idx < entries.length; idx++) {\n` +
+      `    const { spec, placements } = entries[idx];\n` +
+      `    const base = "exp-" + idx;\n` +
+      `    const opts = { prefix: "basalt-diagram", base, hasSource: Boolean(spec.source), hiddenClass: "basalt-visually-hidden" };\n` +
+      `    const candidates = spec.layout === "auto" && Array.isArray(placements) && placements.length ? placements : [undefined];\n` +
+      `    const tryMeasure = async (placement, allowWiden) => {\n` +
+      `      const model = buildModel(spec, { checks: false, placement });\n` +
+      `      if (model.unplaced) return null;\n` +
+      `      host.replaceChildren();\n` +
+      `      host.style.width = targetWidth + "px";\n` +
+      `      const wrap = document.createElement("div");\n` +
+      `      wrap.innerHTML = toHtml(figureTree(model, {}, opts), { summary: spec.summary || "", source: spec.source || "" });\n` +
+      `      const fig = wrap.firstElementChild;\n` +
+      `      fig.id = base;\n` +
+      `      host.appendChild(fig);\n` +
+      `      await new Promise((r) => requestAnimationFrame(r));\n` +
+      `      const sizeTo = allowWiden ? (least) => { if (least > targetWidth) host.style.width = Math.ceil(least) + "px"; } : undefined;\n` +
+      `      const res = measureFigure(fig, model, "basalt-diagram", base, { layout: "drawn" }, (d) => syncAttributes(fig, figureTree(model, d, opts)), undefined, sizeTo);\n` +
+      `      return { res, extras: readMeasuredExtras(fig, "basalt-diagram"), placement };\n` +
+      `    };\n` +
+      `    let chosen = null;\n` +
+      `    for (const placement of candidates) {\n` +
+      `      const attempt = await tryMeasure(placement, false);\n` +
+      `      if (attempt?.res?.dyn?.layout === "drawn" && attempt.res.geo) { chosen = attempt; break; }\n` +
+      `    }\n` +
+      `    if (!chosen) {\n` +
+      `      for (const placement of candidates) {\n` +
+      `        const attempt = await tryMeasure(placement, true);\n` +
+      `        if (attempt?.res?.dyn?.layout === "drawn" && attempt.res.geo) { chosen = attempt; break; }\n` +
+      `      }\n` +
+      `    }\n` +
+      `    out.push(chosen ? { geo: chosen.res.geo, extras: chosen.extras, placement: chosen.placement } : { geo: null, extras: {}, placement: candidates[0] });\n` +
+      `  }\n` +
+      `  return out;\n` +
       `};\n` +
       `window.__ready = true;\n` +
       `</script></body></html>`;
 
-    const context = await browser.newContext({ viewport: { width: Math.max(width + 128, 1280), height: 1200 }, deviceScaleFactor: 2 });
+    const context = await browser.newContext({ viewport: { width: Math.max(width + 128, 1280), height: 1200 }, deviceScaleFactor: 1 });
     const page = await context.newPage();
     await page.route("https://basalt.local/**", async (route) => {
       const url = new URL(route.request().url());
@@ -315,11 +350,11 @@ async function measureInBrowser(items, width) {
     page.on("pageerror", (e) => pageErrors.push(e.message));
     await page.goto("https://basalt.local/index.html", { waitUntil: "load" });
     await page.waitForFunction(() => window.__ready === true, null, { timeout: 30000 });
-    const measured = await page.evaluate(() => window.__measureAll());
+    const results = await page.evaluate(() => window.__measureAll());
     if (pageErrors.length) {
-      throw new Error(`basalt-diagram-export: --browser page error: ${pageErrors.join("; ")}`);
+      throw new Error(`basalt-diagram-export: browser page error: ${pageErrors.join("; ")}`);
     }
-    return measured;
+    return { measuredBy, results };
   } finally {
     await browser.close();
   }
@@ -333,12 +368,14 @@ function parseArgs(argv) {
   let out = null;
   let width = 1104;
   let browser = false;
+  let headless = false;
   let help = false;
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "-h" || arg === "--help") { help = true; continue; }
     if (arg === "--browser") { browser = true; continue; }
+    if (arg === "--headless") { headless = true; continue; }
     if (arg === "--to") {
       const val = argv[++i];
       if (!val) throw new Error("basalt-diagram-export: --to expects a comma-separated list of formats");
@@ -370,7 +407,28 @@ function parseArgs(argv) {
     if (!input) input = arg;
     else throw new Error(`basalt-diagram-export: unexpected argument "${arg}"`);
   }
-  return { input, to, theme, marks, out, width, browser, help };
+  if (browser && headless) {
+    throw new Error("basalt-diagram-export: --browser and --headless cannot be used together");
+  }
+  const mode = browser ? "browser" : headless ? "headless" : "auto";
+  return { input, to, theme, marks, out, width, mode, help };
+}
+
+async function prepareItems(items) {
+  const prepared = [];
+  for (const item of items) {
+    const { spec } = item;
+    if (spec.layout === "auto") {
+      const placed = spec.placement ? spec : await placeAutoDiagram(spec);
+      const placements = placed.placement
+        ? (Array.isArray(placed.placement) ? placed.placement : [placed.placement])
+        : undefined;
+      prepared.push({ ...item, spec: placed, placements });
+    } else {
+      prepared.push({ ...item, placements: undefined });
+    }
+  }
+  return prepared;
 }
 
 async function main() {
@@ -418,8 +476,25 @@ async function main() {
   }
   const singleFileOut = looksLikeFileOut;
 
+  items = await prepareItems(items);
+
   const resolveMark = opts.marks === "embed" ? createMarkResolver(path.dirname(inputPath)) : undefined;
-  const measuredList = opts.browser ? await measureInBrowser(items, opts.width) : null;
+  let measuredList = null;
+  let measuredBy = HEADLESS_ENGINE;
+  if (opts.mode === "headless") {
+    process.stderr.write("basalt-diagram-export: using approximate headless geometry (--headless)\n");
+  } else {
+    try {
+      const m = await measureInBrowser(items, opts.width);
+      measuredList = m.results;
+      measuredBy = m.measuredBy;
+    } catch (err) {
+      if (opts.mode === "browser" || !err?.basaltBrowserUnavailable) throw err;
+      process.stderr.write(
+        `basalt-diagram-export: warning: ${err.message}; falling back to approximate headless geometry\n`,
+      );
+    }
+  }
 
   const outDir = singleFileOut
     ? path.dirname(path.resolve(opts.out))
@@ -428,13 +503,28 @@ async function main() {
 
   const written = [];
   for (let idx = 0; idx < items.length; idx++) {
-    const { name, spec } = items[idx];
+    const { name, spec, placements } = items[idx];
     const measured = measuredList ? measuredList[idx] : null;
-    const baseOpts = { theme: opts.theme, marks: opts.marks, resolveMark, width: opts.width, diagramId: name };
+    const useMeasured = Boolean(measured?.geo);
+    const engineLabel = useMeasured ? measuredBy : HEADLESS_ENGINE;
+    if (measuredList && !useMeasured) {
+      process.stderr.write(
+        `basalt-diagram-export: warning: "${name}" did not fit drawn in Chromium; falling back to approximate headless geometry\n`,
+      );
+    }
+    const baseOpts = {
+      theme: opts.theme,
+      marks: opts.marks,
+      resolveMark,
+      width: opts.width,
+      diagramId: name,
+      placement: measured?.placement ?? placements,
+      measuredBy: engineLabel,
+    };
 
     for (const format of opts.to) {
       let data;
-      if (measured?.geo) {
+      if (useMeasured) {
         const res = exportMeasuredDiagram(spec, measured.geo, format, { ...baseOpts, extras: measured.extras });
         data = format === "lucid-json" ? `${JSON.stringify(res, null, 2)}\n` : res;
       } else if (format === "drawio") {
