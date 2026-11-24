@@ -133,7 +133,7 @@ fold's heading ("All changes", or "Other changes") over the summary and the sect
 | `node tools/changelog/build.mjs` | Regenerates `CHANGELOG.md` from the records and the pending files (the Unreleased section is what no pre-release holds) |
 | `node tools/changelog/build.mjs --json <file>` | Writes the page's data |
 | `node tools/changelog/build.mjs --github <version>` | Prints a GitHub Release's body |
-| `node tools/changelog/build.mjs --check` | Fails when `CHANGELOG.md` is not what the records give, a tagged record differs from its tag's copy, or a release tag in this branch's history has lost its record |
+| `node tools/changelog/build.mjs --check` | Fails when `CHANGELOG.md` is not what the records give, a tagged record differs from its tag's copy, or a release this branch has published is gone: one whose tag is in its history, or one whose record its history added (a maintained line's, brought over by a pull request) |
 | `node tools/changelog/audit.mjs` | Runs the lines of the release-words audit marked (m). It flags and a person decides. For R18 it flags a sentence of a headline, summary or paragraph when most of what it names is in none of the entries it covers (an instruction, "In Settings, open …", is not a claim) |
 | `node tools/changelog/fixtures/make.mjs` | Rebuilds the two made-up fixtures by running the tool over their histories |
 | `node tools/changelog/skill-body.mjs --form <reference\|notes>` | Writes a body for the HTML skill's `release` module from the records |

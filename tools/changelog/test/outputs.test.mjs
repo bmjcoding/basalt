@@ -168,6 +168,30 @@ test("a tagged record that is deleted is found, as an edited one is", () => {
   assert.deepEqual(taggedDifferences(repo.dir), []);
 });
 
+test("a maintained line's record, once a pull request has added it to the default branch, cannot be deleted there (recheck 3)", () => {
+  const repo = repository();
+  writeRecord(repo.dir, { version: "2.0.0", date: "2026-11-20", entries: [] });
+  repo.commitAll("Release 2.0.0");
+  repo.git("tag", "v2.0.0");
+  repo.git("checkout", "-q", "-b", "release/1.x", "HEAD~1");
+  writeRecord(repo.dir, { version: "1.4.1", date: "2026-11-22", entries: [] });
+  repo.commitAll("Release 1.4.1");
+  repo.git("tag", "v1.4.1");
+  repo.git("checkout", "-q", "main");
+  assert.deepEqual(taggedDifferences(repo.dir), [], "before it is brought over, the default branch does not answer for it");
+  repo.git("checkout", "v1.4.1", "--", "changelog/releases/1.4.1.json");
+  repo.commitAll("Add the 1.4.1 record (#77)");
+  assert.deepEqual(taggedDifferences(repo.dir), []);
+  fs.rmSync(path.join(repo.dir, "changelog", "releases", "1.4.1.json"));
+  const gone = ["changelog/releases/1.4.1.json is gone, and this branch's history published it; a published version is never deleted"];
+  assert.deepEqual(taggedDifferences(repo.dir), gone, "deleted in the working tree");
+  repo.commitAll("Remove the 1.4.1 record");
+  assert.deepEqual(taggedDifferences(repo.dir), gone, "and once the deletion is committed");
+  // A record deleted from the default branch with its own tag merged is reported once, by its tag.
+  fs.rmSync(path.join(repo.dir, "changelog", "releases", "2.0.0.json"));
+  assert.deepEqual(taggedDifferences(repo.dir), ["changelog/releases/2.0.0.json is gone, and v2.0.0 released it; a published version is never deleted", ...gone]);
+});
+
 test("a pending file whose id a shipped release holds stops the build; a candidate's pending copy does not", () => {
   const copy = path.join(tempDir(), "slate");
   fs.cpSync(path.join(FIXTURES, "slate"), copy, { recursive: true });

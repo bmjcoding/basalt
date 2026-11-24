@@ -36,8 +36,9 @@ export function outputs(root) {
 
 /**
  * A published version is never edited (S 3.2.10), and never deleted: every record whose tag exists must equal the tag's copy, byte for byte, and every
- * release tag this branch's history holds must still have its record. A maintained line's tags are not in the default branch's history, so a branch
- * answers only for the releases it was cut from (the default branch for its own, release/1.x for 1.x). Returns the differences, each a sentence.
+ * release tag this branch's history holds, and every record its history added, must still be there. A maintained line's tags are not in the default
+ * branch's history, so its record is answered for on the default branch from the commit that added it there (the pull request that brought it).
+ * Returns the differences, each a sentence.
  */
 export function taggedDifferences(root) {
   const differences = [];
@@ -73,7 +74,23 @@ export function taggedDifferences(root) {
     const version = tag.slice(1);
     if (have.has(version) || !parse(version)) continue;
     // A tag with a record in its own tree is a release; one with none (a tag from before the changelog) is not this tool's.
-    if (tagged(tag, recordFile(version)) !== null) differences.push(`${recordFile(version)} is gone, and ${tag} released it; a published version is never deleted`);
+    if (tagged(tag, recordFile(version)) !== null) {
+      differences.push(`${recordFile(version)} is gone, and ${tag} released it; a published version is never deleted`);
+      have.add(version);
+    }
+  }
+  // A record this branch's history added is published here, tagged here or not (a maintained line's release, added to the default branch by a
+  // pull request, is tagged on its own branch): one that is gone was deleted.
+  let added = [];
+  try {
+    added = execFileSync("git", ["log", "--diff-filter=A", "--name-only", "--format=", "HEAD", "--", recordFile("").replace(/\/\.json$/, "/")], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).split("\n").filter(Boolean);
+  } catch {
+    added = [];
+  }
+  for (const file of new Set(added)) {
+    const version = path.posix.basename(file, ".json");
+    if (have.has(version) || !parse(version) || file !== recordFile(version)) continue;
+    differences.push(`${file} is gone, and this branch's history published it; a published version is never deleted`);
   }
   return differences;
 }
