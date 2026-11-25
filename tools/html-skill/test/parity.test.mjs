@@ -246,7 +246,10 @@ const PALETTE_PAIRS = [
   ["two-line row", ".basalt-menu-item[data-described]", ".row[data-described]", [...GEOMETRY, ...TYPE, "color", "backgroundColor", "boxHeight", "boxWidth", "display", "gridTemplateColumns", "gridTemplateRows", "rowGap", "columnGap"]],
   ["row description", ".basalt-menu-item-description", ".row-description", [...TYPE, "color", "boxHeight", "boxWidth", "overflowX", "textOverflow", "whiteSpace", "gridColumnStart", "gridRowStart"]],
   ["row description's label", ".basalt-menu-item[data-described] .basalt-menu-item-label", ".row[data-described] .row-label", ["boxHeight", "boxWidth", "gridColumnStart", "gridRowStart"]],
-  ["footer", ".basalt-command-footer", ".palette-footer", [...TYPE, "color", "paddingTop", "paddingLeft", "gap", "borderTopWidth"]],
+  // cimip-gaps-3 t6: the modal's foot is the list's foot band, in React and in the palette; its legend is the list's legend.
+  ["foot", ".basalt-dialog .basalt-command-foot", ".palette .command-foot", ["color", "paddingTop", "paddingLeft", "rowGap", "columnGap", "borderTopWidth", "boxHeight"]],
+  ["foot's count", ".basalt-dialog .basalt-command-count", ".palette .command-count", [...TYPE, "color"]],
+  ["foot's legend", ".basalt-dialog .basalt-command-hints", ".palette .command-hints", [...TYPE, "color", "columnGap"]],
 ];
 
 const PALETTE_REACT = `

@@ -256,7 +256,7 @@ for (const theme of ["light", "dark"]) {
       assert.equal(await page.getByTestId("ran").textContent(), "Delete sandbox");
       await openMenu();
       await page.keyboard.type("zzz");
-      await page.getByText("No commands match.").waitFor();
+      await page.getByText("Nothing matches “zzz”.").waitFor();
       await page.keyboard.press("Escape");
       await page.getByRole("dialog", { name: "Command menu" }).waitFor({ state: "hidden" });
       await page.close();
