@@ -9,7 +9,11 @@ import type { Card, ElkNode, Line } from "./diagram-layout-graph";
 
 /** What a figure is placed from: its type and the component's own props (cards, lines, groups). */
 export interface DiagramPlacementInput {
-  type: "architecture" | "flowchart" | "schema";
+  type: "architecture" | "flowchart" | "schema" | "state" | "deployment" | "schedule";
+  /** A dependency figure (DECISIONS 359): layered by longest path from the sources. */
+  dependents?: unknown;
+  /** A schedule's tasks: its lines are their `after`. */
+  tasks?: Array<{ id: string; after?: string[] }>;
   nodes?: Array<{ id: string; group?: string }>;
   tables?: SchemaTable[];
   edges?: DiagramEdge[];
@@ -80,7 +84,9 @@ function unusable(cards: Card[], groups: DiagramGroup[], cells: Cells): boolean 
 export async function placeDiagram(input: DiagramPlacementInput, direction: "right" | "down"): Promise<DiagramPlacement> {
   const { cards, lines: authored, groups } = partsOf(input);
   const lines = mainInTheMiddle(authored);
-  const first = await cellsOf(graphOf(cards, lines, groups, direction));
+  const longest = Boolean(input.dependents);
+  const inOrder = input.type === "state" || input.type === "deployment";
+  const first = await cellsOf(graphOf(cards, lines, groups, direction, longest, inOrder));
   const layer = (id: string) => (direction === "down" ? first[id]!.row : first[id]!.col);
   // A group's chain, outermost last; a parent named twice (a cycle) ends it (Neon's P2 of the code review).
   const chain = (id?: string) => { const out: string[] = []; for (let g = id; g && !out.includes(g); g = groups.find((x) => x.id === g)?.parent) out.push(g); return out; };
@@ -111,7 +117,7 @@ export async function placeDiagram(input: DiagramPlacementInput, direction: "rig
   }
   const span = (c: Cells) => ({ cols: Math.max(1, ...Object.values(c).map((x) => x.col)), rows: Math.max(1, ...Object.values(c).map((x) => x.row)) });
   if (!ways) return { direction, ...span(first), cells: first };
-  const second = await cellsOf(graphOf(all, chained, groups, direction));
+  const second = await cellsOf(graphOf(all, chained, groups, direction, longest, inOrder));
   const cells: Cells = {};
   for (const c of cards) cells[c.id] = second[c.id]!;
   // The second run stands only if it can be used and has no more layers than the first: a way fills layers that exist and never adds one.

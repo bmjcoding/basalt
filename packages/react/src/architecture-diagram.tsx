@@ -18,6 +18,12 @@ interface ArchitectureDiagramBase extends DiagramFigureProps {
   pulse?: string[];
   /** Animated only: a dot carries one message along `path`, sending itself (`repeat`) or once for each new `send` value. One of pulse and packet. */
   packet?: DiagramPacket;
+  /**
+   * A dependency figure (DECISIONS 359): the lines read "depends on". The engine writes each card's count of dependents in these words ("3 dependents"),
+   * dashes every line inside a cycle in the direction it was written, and under `layout: "auto"` ranks by longest path from the sources. Write no count by
+   * hand, in the key or the summary either.
+   */
+  dependents?: { one: string; other: string };
 }
 
 /**
@@ -41,7 +47,7 @@ export type ArchitectureDiagramProps = Omit<ArchitectureDiagramBase, "nodes"> & 
 );
 
 /** An architecture diagram (DECISIONS 281): nodes with a kind, a name and a detail, groups, and three kinds of line. */
-export function ArchitectureDiagram({ nodes, groups, edges, pulse, packet, motion, entrance, layout, direction, placement, title, heading, legend, ...props }: ArchitectureDiagramProps) {
-  const spec = React.useMemo(() => ({ type: "architecture" as const, title, heading, legend, nodes: nodes as ArchitectureNode[], groups, edges, motion, entrance, layout, direction, placement, pulse, packet }), [title, heading, legend, nodes, groups, edges, motion, entrance, layout, direction, placement, pulse, packet]);
+export function ArchitectureDiagram({ nodes, groups, edges, pulse, packet, dependents, motion, entrance, layout, direction, placement, title, heading, legend, ...props }: ArchitectureDiagramProps) {
+  const spec = React.useMemo(() => ({ type: "architecture" as const, title, heading, legend, nodes: nodes as ArchitectureNode[], groups, edges, motion, entrance, layout, direction, placement, pulse, packet, dependents }), [title, heading, legend, nodes, groups, edges, motion, entrance, layout, direction, placement, pulse, packet, dependents]);
   return <DiagramFigure {...props} entrance={entrance} title={title} heading={heading} legend={legend} spec={spec} component="ArchitectureDiagram" />;
 }

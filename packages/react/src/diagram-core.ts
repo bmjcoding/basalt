@@ -17,12 +17,14 @@ declare const process: { env: { NODE_ENV?: string } };
 // Public shapes (the components re-export these types; no third-party type appears in them)
 // ============================================================================================================================================
 
-export type DiagramType = "architecture" | "flowchart" | "data-flow" | "sequence" | "schema";
+export type DiagramType = "architecture" | "flowchart" | "data-flow" | "sequence" | "schema" | "state" | "deployment" | DiagramExtType;
+/** The types a module of their own draws (DECISIONS 359): the engine knows them only through the `DiagramTypeExt` their component hands it. */
+export type DiagramExtType = "gantt" | "kanban" | "journey" | "service-blueprint" | "story-map" | "schedule" | "timeline" | "state" | "deployment";
 export type DiagramSide = "top" | "right" | "bottom" | "left";
 export type DiagramLineKind = "main" | "plain" | "dashed";
 
 /** The words for the marks. The key is built from what is drawn; `main`, `dashed` and the focal node must have words when drawn. */
-export interface DiagramLegend { main?: string; plain?: string; dashed?: string; focal?: string; group?: string; activation?: string }
+export interface DiagramLegend { main?: string; plain?: string; dashed?: string; focal?: string; group?: string; activation?: string; line?: string }
 
 export interface DiagramNode {
   id: string;
@@ -82,8 +84,17 @@ export interface DiagramPacket {
 }
 export type DiagramMotion = "still" | "animated";
 export type FlowchartNode = DiagramNode & { shape?: "step" | "decision" | "terminal" };
+/** A state (DECISIONS 359, Ops 1): the architecture's node; `initial` takes the start mark, `final` the end mark; entry and exit actions sit under a rule. */
+export type StateNode = DiagramNode & { group?: string; initial?: boolean; final?: boolean; entry?: string; exit?: string };
+/** A transition: the engine writes its label from `event`, then `[guard] / action` on a second line. It has no `label`. */
+export interface StateTransition { from: string; to: string; event?: string; guard?: string; action?: string; kind?: DiagramLineKind; fromSide?: DiagramSide; toSide?: DiagramSide }
+/** A row of a deployment host (DECISIONS 359, Ops 3): what runs on it. A line may name it. */
+export interface DeploymentArtifact { id: string; name: string; detail?: string }
+/** A deployment's host: the architecture's node, with how many copies run (`replicas`) and its artifacts as rows. */
+export type DeploymentNode = DiagramNode & { group?: string; mark?: DiagramMark; replicas?: number; artifacts?: DeploymentArtifact[] };
 export interface DataFlowLane { id: string; label: string }
-export type DataFlowNode = Omit<DiagramNode, "row" | "kind" | "branch"> & { lane: string; mark?: DiagramMark };
+/** A data flow's step. `shape: "decision"` (DECISIONS 359) is the flowchart's diamond with its step line inside; every line leaving it is labelled. */
+export type DataFlowNode = Omit<DiagramNode, "row" | "kind" | "branch"> & { lane: string; mark?: DiagramMark; shape?: "decision" };
 /** A participant may carry its service's mark (DECISIONS 306, 1.6), never a person. */
 export interface SequenceParticipant { id: string; name: string; kind?: string; short?: string; focal?: boolean; mark?: DiagramMark }
 /** A message. `activate` starts its receiver working; `deactivate` stops its sender after it (DECISIONS 306, 1.2). */
@@ -131,6 +142,15 @@ export interface DiagramSpec {
   layout?: "authored" | "auto";
   direction?: "right" | "down";
   placement?: DiagramPlacement | DiagramPlacement[];
+  /** A dependency figure (DECISIONS 359, Ops 4): an architecture whose lines read "depends on". The engine writes each card's count of dependents in
+   *  these words, dashes every line inside a cycle and, under `layout: "auto"`, ranks by longest path from the sources. */
+  dependents?: { one: string; other: string };
+  /** A deployment's one environment (DECISIONS 359, Ops 3): required, the first words of the source line ("Production · us-east-1"). */
+  environment?: string;
+  /** Internal: the module that draws a type the engine does not hold (DECISIONS 359). The component sets it; the HTML skill sets it from its registry. */
+  ext?: DiagramTypeExt;
+  /** Every other key is a type module's own data (a gantt's `tasks`, a kanban's `columns`), read by that module. */
+  [key: string]: unknown;
 }
 
 /** A card of an automatic figure (1.8): its `col` and `row` may be left out (and are not read). */
@@ -177,6 +197,14 @@ export interface MNode {
   /** A link card (1.4). */
   href?: string;
   blank?: boolean;
+  /** A state's marks and actions (DECISIONS 359, Ops 1). */
+  initial?: boolean;
+  final?: boolean;
+  entry?: string;
+  exit?: string;
+  /** A deployment host's copies and rows (Ops 3). */
+  replicas?: number;
+  artifacts?: Array<{ id: string; name: string; detail?: string }>;
 }
 export interface MEdge {
   i: number;
@@ -194,6 +222,14 @@ export interface MEdge {
   card?: { from: DiagramCardinality; to: "one" | "zero-or-one" };
   /** A live stream (DECISIONS 292, 1.6); on a dashed line its own dashes march (DECISIONS 306, 1.5). */
   flow?: boolean;
+  /** A line to a deployment host's artifact (Ops 3): the row it names. */
+  toArtifact?: string;
+  fromArtifact?: string;
+  /** A state's transition, as written (Ops 1): the list says it as a sentence. */
+  event?: string;
+  guard?: string;
+  action?: string;
+  order?: number;
 }
 export type MStep = { band: string } | { n: number; from: string; to: string; label: string; note?: string; kind: DiagramLineKind; activate?: boolean; deactivate?: boolean }
   /** A frame opens (its operator, label and depth, and the participants' columns it spans), an alt's later branch starts, or a frame closes (1.2). */
@@ -237,6 +273,11 @@ export interface Model {
   marks?: boolean;
   /** 5.1's first list, in a development build: reported as errors (console.error), the figure drawn as production draws it. */
   errors: string[];
+  /** The module that draws a type of its own (DECISIONS 359), and what it read from the data. */
+  ext?: DiagramTypeExt;
+  /** The way the figure reads: laid right (the default) or down (an automatic figure's placement, or the author's `direction`). */
+  dir?: "right" | "down";
+  plan?: unknown;
 }
 
 const SIDES: DiagramSide[] = ["top", "right", "bottom", "left"];
@@ -246,12 +287,18 @@ const CARDS: DiagramCardinality[] = ["one", "zero-or-one", "one-or-many", "zero-
 const CARD_WORDS: Record<DiagramCardinality, string> = { one: "Exactly one", "zero-or-one": "Zero or one", "one-or-many": "One or many", "zero-or-many": "Zero or many" };
 const HEADINGS = [2, 3, 4, 5, 6];
 
+/** The types automatic layout places (DECISIONS 306, 1.8; a state, a deployment and a schedule, DECISIONS 359). */
+/** The types whose cards are grouped (an architecture's groups; a state's composite states; a deployment's boundaries). */
+/** The types whose row a box starts on stands space-4 lower (the run-edge ruling). */
+const lowers = (m: Model) => m.type === "architecture" || m.type === "deployment";
+export const grouped = (type: string): boolean => type === "architecture" || type === "state" || type === "deployment";
+export const autoType = (type: string): boolean => type === "architecture" || type === "flowchart" || type === "schema" || type === "state" || type === "deployment" || type === "schedule";
 /** Text from the author's data: always a string (or nothing), so a value that is not one can never be read as markup. */
-const txt = (v: unknown): string | undefined => (v === undefined || v === null || v === "" ? undefined : String(v));
+export const txt = (v: unknown): string | undefined => (v === undefined || v === null || v === "" ? undefined : String(v));
 /** A record keyed by the author's ids, with no prototype, so an id such as "toString" or "constructor" is only ever its own key. */
-const record = <T>(from?: Record<string, T>): Record<string, T> => Object.assign(Object.create(null) as Record<string, T>, from);
+export const record = <T>(from?: Record<string, T>): Record<string, T> => Object.assign(Object.create(null) as Record<string, T>, from);
 /** A value an id keys in a record, never one the record inherits. */
-const own = <T>(r: Record<string, T> | undefined, id: string): T | undefined => (r && Object.prototype.hasOwnProperty.call(r, id) ? r[id] : undefined);
+export const own = <T>(r: Record<string, T> | undefined, id: string): T | undefined => (r && Object.prototype.hasOwnProperty.call(r, id) ? r[id] : undefined);
 
 export interface BuildOptions {
   /** The placement an automatic figure is drawn from (1.8), chosen by the figure from those it has. */
@@ -261,6 +308,97 @@ export interface BuildOptions {
   rtl?: boolean;
   /** Run the checks a development build reports (placement, groups, the key's words). Off, the model is read the same and nothing is checked. */
   checks?: boolean;
+}
+/** The fonts the ruler measures in: a card's name (600 and 500), Mono, Geist at xs (400; 400, 500 and 600 with tabular figures), a table's name, a label, and Geist at sm. */
+export type RulerFont = "name" | "name-500" | "mono" | "sans" | "table" | "label" | "tab" | "xs-500" | "xs-600" | "sm";
+
+/** What a type module is handed to read the author's data: the checks' sinks and the figure's direction. */
+export interface ExtBuildKit {
+  dev: boolean;
+  warn: (message: string) => void;
+  error: (message: string) => void;
+  rtl: boolean;
+  legend: DiagramLegend;
+}
+/** What a type module returns from the data: the stops (`nodes`), any lines, its own model, and the grid's size. */
+export interface ExtBuilt { nodes: MNode[]; edges: MEdge[]; plan: unknown; cols: number; rows: number }
+/** What a type module is handed to lay a figure out (script only). */
+export interface ExtMeasureKit {
+  fig: HTMLElement;
+  drawing: HTMLElement;
+  P: string;
+  tk: Tokens;
+  /** The figure's width. */
+  W: number;
+  least: number;
+  /** Writes a state into the DOM, so it can be measured as it would be drawn. */
+  apply: (d: Dyn) => void;
+  /** The state with its roving stop settled. */
+  stopOf: (d: Dyn) => Dyn;
+  current: Dyn;
+  measure: (text: string, font: RulerFont) => number;
+  warn?: (s: string, level?: "error") => void;
+}
+
+/**
+ * A type the engine does not hold (DECISIONS 359): gantt, kanban, journey, service blueprint, story map, schedule and timeline are each drawn by a module of
+ * their own, which its component hands the engine on the spec (`spec.ext`), so a figure that draws an architecture bundles none of them. A type that is
+ * `routed` (the schedule) is laid out, routed and stacked by the engine as an architecture is, and changes only its words and its cards; any other draws
+ * its own drawing and its own ink, and the engine gives it the figure, the key, the list, the keys and the viewer.
+ */
+export interface DiagramTypeExt {
+  type: DiagramExtType;
+  /** A type read as an architecture (state, deployment): `prepare` hands the engine the data it reads that way, and `adopt` adds what is the type's own. */
+  as?: "architecture";
+  prepare?: (spec: DiagramSpec, kit: ExtBuildKit) => DiagramSpec;
+  adopt?: (m: Model, spec: DiagramSpec, kit: ExtBuildKit) => void;
+  build?: (spec: DiagramSpec, kit: ExtBuildKit) => ExtBuilt;
+  /** The engine's router lays it out (schedule). */
+  routed?: boolean;
+  /** The noun the hint and the keys sentence use for one stop ("a task"). */
+  stop: string;
+  sentence?: (m: Model, n: MNode) => string;
+  /** An architecture-read type's own sentences, after a card's detail. */
+  sentenceMore?: (m: Model, n: MNode) => string[];
+  key?: (P: string, m: Model) => VElement | null;
+  /** An architecture-read type's own key entries, before the focal and group entries. */
+  keyMore?: (P: string, m: Model) => VElement[];
+  list?: (P: string, m: Model) => VNode[];
+  /** An architecture-read type's list: its parts' heading, what a part adds, and its connections in place of the architecture's. */
+  listParts?: string;
+  listPart?: (P: string, m: Model, n: MNode) => VChild[];
+  listLines?: (P: string, m: Model, H: (text: string) => VElement) => VNode[];
+  /** An architecture-read type's card attributes and the room its marks take: a group's box (`groupMark`) and the drawing's start or top (`room`). */
+  nodeAttrs?: (m: Model, n: MNode) => VAttrs;
+  groupMark?: (m: Model, g: Model["groups"][number], cells: { c1: number; c2: number; r1: number; r2: number } | null) => { style?: string; start?: string } | undefined;
+  room?: (m: Model) => { start?: boolean; top?: boolean } | undefined;
+  /** Ink of the type's own over the routed lines (a state's start marks), written into the drawing's SVG. */
+  /** False refuses the drawn layout (a state's start mark with no place clear of the lines): the figure is stacked, and the module says why. */
+  inkMore?: (P: string, m: Model, geo: Geo, tk: Tokens, drawn: boolean, warn?: (s: string) => void) => string | false;
+  /** The first words of the source line (a deployment's environment). */
+  sourceLead?: (m: Model) => string | undefined;
+  /** A line of facts about the whole figure, under its source. */
+  meta?: (P: string, m: Model) => VElement | null;
+  hint?: (m: Model, drawn: boolean) => Array<{ keys: string[]; words: string }>;
+  keys?: (m: Model, drawn: boolean) => string;
+  /** Whether a part traces (only where lines are drawn). */
+  traces?: (m: Model, drawn: boolean) => boolean;
+  hasStops?: (m: Model, dyn: Dyn) => boolean;
+  keyTarget?: (m: Model, from: string, key: string, drawn: boolean, rtl: boolean) => string | null;
+  /** A routed type's card: what goes inside the node in place of its kind, name and detail. */
+  card?: (P: string, m: Model, n: MNode, dyn: Dyn) => VChild[];
+  /** A routed type's stack has no lines (DECISIONS 359, the schedule's stack). */
+  stackBare?: boolean;
+  /** An unrouted type's drawing. */
+  drawing?: (P: string, m: Model, dyn: Dyn, level?: number) => VNode[];
+  /** An unrouted type's least drawn width, measured (script only). */
+  least?: (m: Model, tk: Tokens, measure: (text: string, font: RulerFont) => number) => number;
+  /** An unrouted type's layout (script only): the state to draw, its geometry and its ink. */
+  layout?: (m: Model, kit: ExtMeasureKit) => Measured;
+  /** The figure's state's own attributes on the root: written and cleared with the layout. */
+  rootStyle?: (m: Model, dyn: Dyn) => string[];
+  /** The form before script runs (a gantt's stack "tracks" or "words"), written as `data-form` until the layout writes its own. */
+  form?: (m: Model) => string | undefined;
 }
 
 /**
@@ -279,7 +417,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   const error = (message: string) => { errors.push(message); };
   const legendIn = (spec.legend ?? {}) as Record<string, unknown>;
   const legend: DiagramLegend = {};
-  for (const k of ["main", "plain", "dashed", "focal", "group", "activation"] as const) { const w = txt(legendIn[k]); if (w) legend[k] = w; }
+  for (const k of ["main", "plain", "dashed", "focal", "group", "activation", "line"] as const) { const w = txt(legendIn[k]); if (w) legend[k] = w; }
   const stepLabel = spec.stepLabel;
   const stepWord = typeof stepLabel === "function" ? (n: number) => String(stepLabel(n)) : typeof stepLabel === "string" ? ((n: number) => stepLabel.replace("{n}", String(n))) : (n: number) => `Step ${n}`;
   const shapeIn = (spec.shapeLabels ?? {}) as Record<string, unknown>;
@@ -310,20 +448,30 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   const groups: Model["groups"] = [];
   const steps: MStep[] = [];
   const type = spec.type;
-  if (dev && !(["architecture", "flowchart", "data-flow", "sequence", "schema"] as unknown[]).includes(type)) warn(`"${String(type)}" is not a type of diagram (architecture, flowchart, data-flow, sequence or schema)`);
+  // A type of its own (DECISIONS 359) is read by its module, which its component handed over on the spec.
+  const ext = spec.ext && spec.ext.type === type ? spec.ext : undefined;
+  const asArch = ext?.as === "architecture";
+  const kit: ExtBuildKit = { dev, warn, error, rtl: Boolean(options.rtl), legend };
+  if (ext?.prepare) spec = ext.prepare(spec, kit);
+  let built: ExtBuilt | undefined;
+  if (dev && !ext && !(["architecture", "flowchart", "data-flow", "sequence", "schema", "state", "deployment"] as unknown[]).includes(type)) warn(`"${String(type)}" is not a type of diagram (architecture, flowchart, data-flow, sequence, schema, state or deployment), or its module is not loaded`);
 
-  if (type === "architecture" || type === "flowchart") {
+  if (ext?.build) {
+    built = ext.build(spec, kit);
+    nodes.push(...built.nodes);
+    edges.push(...built.edges);
+  } else if (type === "architecture" || type === "flowchart" || asArch) {
     for (const raw of (spec.nodes ?? []) as Array<ArchitectureNode & FlowchartNode>) {
       const shape: Shape = type === "flowchart" && raw.shape === "decision" ? "decision" : type === "flowchart" && raw.shape === "terminal" ? "terminal" : "box";
       const id = String(raw.id ?? "");
       const row = trackOf(raw.row, `the row of ${id}`);
       nodes.push({
         id, i: nodes.length, name: String(raw.name ?? ""), kind: shape === "decision" ? undefined : txt(raw.kind), detail: shape === "decision" ? undefined : txt(raw.detail), mono: Boolean(raw.detailMono),
-        focal: Boolean(raw.focal), col: trackOf(raw.col, `the column of ${id}`), row, row2: row, branch: Boolean(raw.branch), shape, group: type === "architecture" ? txt(raw.group) : undefined,
-        mark: type === "architecture" ? markOf((raw as { mark?: unknown }).mark, dev ? warn : undefined) : undefined,
+        focal: Boolean(raw.focal), col: trackOf(raw.col, `the column of ${id}`), row, row2: row, branch: Boolean(raw.branch), shape, group: type !== "flowchart" ? txt(raw.group) : undefined,
+        mark: type !== "flowchart" ? markOf((raw as { mark?: unknown }).mark, dev ? warn : undefined) : undefined,
       });
     }
-    if (type === "architecture") {
+    if (type !== "flowchart") {
       const raw = (spec.groups ?? []).map((g) => ({ id: String(g.id ?? ""), label: String(g.label ?? ""), parent: txt(g.parent) }));
       const byGroup = new Map(raw.map((g) => [g.id, g]));
       // Depth by the parent chain: an unknown parent or a cycle is an error, and the group is drawn at the top level.
@@ -351,7 +499,8 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       const n = nodes.length + 1;
       nodes.push({
         id, i: nodes.length, name: String(raw.name ?? ""), kind: stepWord(n), detail: txt(raw.detail), mono: Boolean(raw.detailMono), focal: Boolean(raw.focal),
-        col: trackOf(raw.col, `the column of ${id}`), row: lane ?? 1, row2: lane ?? 1, branch: false, shape: "box", lane: lane ?? 1, laneLabel: lanes[(lane ?? 1) - 1]?.label ?? laneId, step: n,
+        // A step may be a decision (DECISIONS 359, Ops 5): the flowchart's diamond, with its step line inside it.
+        col: trackOf(raw.col, `the column of ${id}`), row: lane ?? 1, row2: lane ?? 1, branch: false, shape: (raw as { shape?: unknown }).shape === "decision" ? "decision" : "box", lane: lane ?? 1, laneLabel: lanes[(lane ?? 1) - 1]?.label ?? laneId, step: n,
         mark: markOf((raw as { mark?: unknown }).mark),
       });
     }
@@ -421,8 +570,8 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
 
   // Automatic layout (1.8): each card's column and row are the placement's; a card's own are not read (a development build says so once).
   let unplaced = false;
-  if (spec.layout === "auto" && (type === "architecture" || type === "flowchart" || type === "schema")) {
-    const raw = (type === "schema" ? spec.tables : spec.nodes) as Array<{ col?: unknown; row?: unknown }> | undefined;
+  if (spec.layout === "auto" && autoType(type)) {
+    const raw = (type === "schema" ? spec.tables : type === "schedule" ? spec.tasks : spec.nodes) as Array<{ col?: unknown; row?: unknown }> | undefined;
     if (checks && (raw ?? []).some((n) => n && (n.col !== undefined || n.row !== undefined))) warn('a card under layout="auto" has a col or row, which is not read: there are no hints');
     const cells = options.placement?.cells;
     if (!cells) unplaced = true;
@@ -446,7 +595,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       const inside = nodes.filter((n) => !g.all.includes(n.id) && n.col >= c1 && n.col <= c2 && n.row >= r1 && n.row <= r2);
       if (inside.length) { unplaced = true; dev && warn(`the placement puts ${inside.map((n) => n.id).join(", ")} inside the box of the group "${g.label}", so it is not used`); }
     }
-  } else if (spec.layout === "auto") dev && error(`layout="auto" is for an architecture, a flowchart or a schema, not a ${type}`);
+  } else if (spec.layout === "auto") dev && error(`layout="auto" is for an architecture, a flowchart, a schema, a state, a deployment or a schedule, not a ${type}`);
   // Link cards (1.4): any card but a sequence's participant (its stacked chip has no room for a 44px target).
   const rawCards = (type === "schema" ? spec.tables : type === "sequence" ? spec.participants : spec.nodes) as Array<{ href?: unknown; target?: unknown }> | undefined;
   (rawCards ?? []).forEach((raw, k) => {
@@ -494,7 +643,7 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     // All of a figure's foreign keys state how many, or none (1.1). In production an unstated line draws as today, and the key shows both.
     const stated = edges.filter((e) => e.card).length;
     if (stated && stated < edges.length) dev && error(`cardinality is stated on ${stated} of ${edges.length} foreign keys: state it on every one or none (${edges.filter((e) => !e.card).map((e) => `${e.from}.${byId.get(e.from)!.columns![e.fromRow!]!.name}`).join(", ")} ${edges.length - stated === 1 ? "has" : "have"} none)`);
-  } else if (type !== "sequence") {
+  } else if (type !== "sequence" && (!ext || asArch)) {
     for (const e of spec.edges ?? []) {
       const from = String(e.from ?? ""), to = String(e.to ?? "");
       if (!byId.has(from) || !byId.has(to)) { dev && warn(`a line names ${!byId.has(from) ? from : to}, which is not a node`); continue; }
@@ -504,14 +653,23 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
       if (lines.some((l) => l.length > MAX_LABEL)) dev && error(`a line of the label "${said(label!)}" is over ${MAX_LABEL} characters: longer words belong in the node or the summary`);
       edges.push({ i: edges.length, from, to, kind: kindOf(e.kind, `the line from ${from} to ${to}`), label, fromSide: sideOf(e.fromSide), toSide: sideOf(e.toSide), flow: type !== "flowchart" && (e as DiagramFlowEdge).flow === true ? true : undefined });
     }
+    // A data flow's decision (DECISIONS 359, Ops 5): every line that leaves it has a label, and there are two or more.
+    if (dev && type === "data-flow") for (const n of nodes) if (n.shape === "decision") {
+      const out = edges.filter((e) => e.from === n.id);
+      if (out.length < 2) error(`the decision ${n.id} has ${out.length} line${out.length === 1 ? "" : "s"} leaving it: a decision has two or more`);
+      if (out.some((e) => !e.label)) error(`a line leaving the decision ${n.id} has no label: every line out of a decision says which way it is`);
+    }
+    if (type === "architecture" && spec.dependents) dependencyFold(spec, nodes, edges, legend, Boolean(spec.layout === "auto"), dev, error, warn);
   } else if (dev) {
     for (const s of steps) if ("n" in s) {
       if (!byId.has(s.from) || !byId.has(s.to)) warn(`message ${s.n} names ${!byId.has(s.from) ? s.from : s.to}, which is not a participant`);
     }
   }
 
-  // Placement checks (development only): two nodes in one cell, a non-member inside a group's box, more than one focal node.
-  if (checks && type !== "sequence" && !unplaced) {
+  // Placement checks (development only): two nodes in one cell, a non-member inside a group's box, more than one focal node. A type of its own places its
+  // parts itself, and only a routed one is on the author's grid.
+  const gridded = !ext || ext.routed;
+  if (checks && type !== "sequence" && !unplaced && gridded) {
     const cells = new Map<string, string>();
     for (const n of nodes) for (let r = n.row; r <= n.row2; r++) {
       const key = `${n.col}:${r}`;
@@ -530,8 +688,8 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     }
     for (const n of nodes) if (n.group && !groups.some((g) => g.id === n.group)) warn(`${n.id} names the group "${n.group}", which is not in groups`);
     if (nodes.filter((n) => n.focal).length > 1) warn("more than one node is focal: a diagram has one at most");
-    // The key's words: main, dashed and the focal node must have them when drawn.
-    const kinds = new Set<DiagramLineKind>(type === "sequence" ? steps.flatMap((s) => ("n" in s ? [s.kind] : [])) : edges.map((e) => e.kind));
+    // The key's words: main, dashed and the focal node must have them when drawn. A type of its own checks its own (its key's notation is built in).
+    const kinds = ext ? new Set<DiagramLineKind>() : new Set<DiagramLineKind>(type === "sequence" ? steps.flatMap((s) => ("n" in s ? [s.kind] : [])) : edges.map((e) => e.kind));
     if (kinds.has("main") && !legend.main) warn("main lines are drawn but the legend has no words for them (legend.main)");
     if (kinds.has("dashed") && !legend.dashed) warn("dashed lines are drawn but the legend has no words for them (legend.dashed)");
     if (nodes.some((n) => n.focal) && !legend.focal) warn("a focal node is drawn but the legend has no words for what it marks (legend.focal)");
@@ -584,9 +742,12 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
   const frameWords = { opt: txt(fl.opt) ?? "Only if", loop: txt(fl.loop) ?? "Repeats", alt: txt(fl.alt) ?? "One of these", else: txt(fl.else) ?? "Otherwise" };
   // An automatic figure's tracks include those that hold only a main line's way (DECISIONS 322, rule 1).
   const placed = spec.layout === "auto" && !unplaced ? options.placement : undefined;
-  let cols = Math.max(1, placed?.cols ?? 1, ...nodes.map((n) => n.col));
-  // Right to left (1.7): column 1 at the right. Columns are mirrored, a frame's span with them, and a named left or right side swaps.
-  if (options.rtl) {
+  // A routed type of its own (the schedule) is on the author's grid or the placement's, as an architecture is: its tracks are its cards'.
+  const ownGrid = built && !ext!.routed;
+  let cols = ownGrid ? Math.max(1, built!.cols) : Math.max(1, placed?.cols ?? 1, ...nodes.map((n) => n.col));
+  // Right to left (1.7): column 1 at the right. Columns are mirrored, a frame's span with them, and a named left or right side swaps. A type of its own
+  // that is not routed mirrors by logical properties, so its model is not mirrored.
+  if (options.rtl && gridded) {
     for (const n of nodes) n.col = cols - n.col + 1;
     const swap = (side?: DiagramSide) => (side === "left" ? "right" : side === "right" ? "left" : side);
     for (const e of edges) { e.fromSide = swap(e.fromSide); e.toSide = swap(e.toSide); }
@@ -594,14 +755,64 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     // A way-only track (DECISIONS 322) is a track right to left too (Neon's P3 of the code review).
     cols = Math.max(1, placed?.cols ?? 1, ...nodes.map((n) => n.col));
   }
-  const rows = type === "data-flow" ? Math.max(1, lanes.length) : Math.max(1, placed?.rows ?? 1, ...nodes.map((n) => n.row2));
-  const model: Model = { type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, bars, frameWords, cols, rows, shapeLabels, stepWord, warnings, errors, motion, memo: new Map(), rtl: options.rtl || undefined, unplaced: unplaced || undefined, text: (type === "sequence" && spec.variant === "text") || undefined, marks: edges.some((e) => e.card) || undefined };
+  const rows = ownGrid ? Math.max(1, built!.rows) : type === "data-flow" ? Math.max(1, lanes.length) : Math.max(1, placed?.rows ?? 1, ...nodes.map((n) => n.row2));
+  const model: Model = { ext, plan: built?.plan, dir: placed?.direction ?? (spec.direction === "down" ? "down" : undefined), type, title: String(spec.title ?? ""), heading: heading as Model["heading"], legend, nodes, byId, edges, groups, lanes, steps, bars, frameWords, cols, rows, shapeLabels, stepWord, warnings, errors, motion, memo: new Map(), rtl: options.rtl || undefined, unplaced: unplaced || undefined, text: (type === "sequence" && spec.variant === "text") || undefined, marks: edges.some((e) => e.card) || undefined };
+  ext?.adopt?.(model, spec, kit);
   if (spec.layout === "auto" && !unplaced && type !== "schema") chooseSides(model);
   if (checks) for (const [id, h0] of Object.entries(portFloors(model))) if (h0 >= 48) warn(`${id} grows to ${h0}px to hold the lines on one side: use another side`);
   // A figure with no cells yet (an automatic one before its placement) has no spatial keys to check.
   if (checks && nodes.length > 100) warn(`the figure has ${nodes.length} cards: more than 100, which automatic layout places on the main thread`);
-  if (checks && nodes.length > 1 && !unplaced && !spatialTable(model)) warn("some part cannot be reached from another by the arrow keys where the figure is drawn, so its arrows keep the author's order");
+  if (checks && gridded && nodes.length > 1 && !unplaced && !spatialTable(model)) warn("some part cannot be reached from another by the arrow keys where the figure is drawn, so its arrows keep the author's order");
   return model;
+}
+
+/**
+ * A dependency figure (DECISIONS 359, Ops 4), an architecture with `dependents`: the engine owns three things. The count: each card's detail starts with
+ * the number of cards that have a line to it, in the author's words. The cycle: every line with both ends in one strongly connected set is dashed, in the
+ * direction it was written. The ranks are automatic layout's (longest path from the sources, diagram-layout). In an authored figure a line outside a cycle
+ * that does not end in a later column draws a development warning.
+ */
+function dependencyFold(spec: DiagramSpec, nodes: MNode[], edges: MEdge[], legend: DiagramLegend, auto: boolean, dev: boolean, error: (s: string) => void, warn: (s: string) => void) {
+  const words = spec.dependents!;
+  const one = String(words.one ?? "dependent"), other = String(words.other ?? "dependents");
+  for (const n of nodes) {
+    const count = new Set(edges.filter((e) => e.to === n.id && e.from !== n.id).map((e) => e.from)).size;
+    if (dev && n.detail && /\b\d+\s+(dependents?|depend)/i.test(n.detail)) warn(`${n.id}'s detail writes a count: the engine writes each card's count of dependents, so write none by hand`);
+    n.detail = `${count} ${count === 1 ? one : other}${n.detail ? ` · ${n.detail}` : ""}`;
+  }
+  // The strongly connected sets (Tarjan's, without recursion): a line inside one is in a cycle.
+  const index = new Map<string, number>(), low = new Map<string, number>(), comp = new Map<string, number>();
+  const stack: string[] = [], on = new Set<string>();
+  let next = 0, comps = 0;
+  const out = (id: string) => edges.filter((e) => e.from === id).map((e) => e.to);
+  for (const root of nodes.map((n) => n.id)) {
+    if (index.has(root)) continue;
+    const work: Array<{ id: string; k: number }> = [{ id: root, k: 0 }];
+    index.set(root, next); low.set(root, next++); stack.push(root); on.add(root);
+    while (work.length) {
+      const top = work[work.length - 1]!;
+      const kids = out(top.id);
+      if (top.k < kids.length) {
+        const w = kids[top.k++]!;
+        if (!index.has(w)) { index.set(w, next); low.set(w, next++); stack.push(w); on.add(w); work.push({ id: w, k: 0 }); }
+        else if (on.has(w)) low.set(top.id, Math.min(low.get(top.id)!, index.get(w)!));
+        continue;
+      }
+      work.pop();
+      if (work.length) low.set(work[work.length - 1]!.id, Math.min(low.get(work[work.length - 1]!.id)!, low.get(top.id)!));
+      if (low.get(top.id) === index.get(top.id)) { let w: string; do { w = stack.pop()!; on.delete(w); comp.set(w, comps); } while (w !== top.id); comps++; }
+    }
+  }
+  const size = new Map<number, number>();
+  for (const c of comp.values()) size.set(c, (size.get(c) ?? 0) + 1);
+  const inCycle = (e: MEdge) => e.from === e.to || (comp.get(e.from) === comp.get(e.to) && (size.get(comp.get(e.from)!) ?? 0) > 1);
+  const cycles: string[] = [];
+  for (const e of edges) {
+    if (inCycle(e)) { e.kind = "dashed"; cycles.push(`${e.from} to ${e.to}`); continue; }
+    if (e.kind === "dashed") { dev && error(`the line from ${e.from} to ${e.to} is dashed and in no cycle: in a dependency figure dashed means a cycle, so it is drawn plain`); e.kind = "plain"; }
+    if (dev && !auto) { const a = nodes.find((n) => n.id === e.from)!, b = nodes.find((n) => n.id === e.to)!; if (b.col <= a.col) warn(`the line from ${e.from} to ${e.to} is in no cycle and does not end in a later column`); }
+  }
+  if (dev && cycles.length && !legend.dashed) error(`a cycle is drawn (${cycles.join(", ")}) but the key's dashed line has no words (legend.dashed)`);
 }
 
 /**
@@ -686,7 +897,7 @@ function markUrl(u: string | undefined, warn?: (message: string) => void): strin
 const cssUrl = (u: string) => `url("${u.replace(/[\\"\n\r\f;]/g, (c) => (c === "\n" ? "\\a " : c === "\r" ? "\\d " : c === "\f" ? "\\c " : c === ";" ? "\\3b " : `\\${c}`))}")`;
 
 /** A value worked out once a model (the stack's plan, the sentences, the key and the list), kept on the model so a state change does not redo it. */
-function memo<T>(m: Model, key: string, make: () => T): T {
+export function memo<T>(m: Model, key: string, make: () => T): T {
   if (!m.memo.has(key)) m.memo.set(key, make());
   return m.memo.get(key) as T;
 }
@@ -701,7 +912,7 @@ const said = (text: string) => text.replace(/\n/g, " ");
 // Words: sentences, the key, the list
 // ============================================================================================================================================
 
-const sentence = (s: string) => { const t = s.trim(); return !t ? "" : /[.!?]$/.test(t) ? t : `${t}.`; };
+export const sentence = (s: string) => { const t = s.trim(); return !t ? "" : /[.!?]$/.test(t) ? t : `${t}.`; };
 
 /** A kind's word, from the key (none when the author gave none: an unkeyed plain line says "goes to"). */
 export function kindWord(m: Model, kind: DiagramLineKind): string | undefined { return m.legend[kind]; }
@@ -718,6 +929,7 @@ export function nodeSentence(m: Model, n: MNode): string {
   return memo(m, `sentence:${n.i}`, () => writeSentence(m, n));
 }
 function writeSentence(m: Model, n: MNode): string {
+  if (m.ext?.sentence) return m.ext.sentence(m, n);
   const parts: string[] = [];
   if (m.type === "schema") {
     parts.push(`${n.name}, table.`);
@@ -734,9 +946,10 @@ function writeSentence(m: Model, n: MNode): string {
     const w = working(m, n);
     if (w) parts.push(w.trim());
   } else {
-    const what = m.type === "data-flow" ? `${m.stepWord(n.step!)} of ${m.nodes.length}, ${n.laneLabel}` : m.type === "flowchart" ? shapeWord(m, n) : n.kind;
+    const what = m.type === "data-flow" ? `${m.stepWord(n.step!)} of ${m.nodes.length}, ${n.laneLabel}${n.shape === "decision" ? `, ${m.shapeLabels.decision.toLowerCase()}` : ""}` : m.type === "flowchart" ? shapeWord(m, n) : n.kind;
     parts.push(sentence(what ? `${n.name}, ${what}` : n.name));
     if (n.detail) parts.push(sentence(n.detail));
+    if (m.ext?.sentenceMore) parts.push(...m.ext.sentenceMore(m, n));
     // The chain, innermost first: "In Data & logs, in AWS · your account." (1.3)
     if (n.group) { const g = m.groups.find((x) => x.id === n.group); const outer = g?.parent ? m.groups.find((x) => x.id === g.parent) : undefined; if (g) parts.push(outer ? `In ${g.label}, in ${outer.label}.` : `In ${g.label}.`); }
     const from = m.edges.filter((e) => e.to === n.id).map((e) => `${m.byId.get(e.from)!.name}${e.label ? ` (${said(e.label)})` : ""}`);
@@ -780,6 +993,7 @@ export function tapTrace(fig: HTMLElement, P: string, event: MouseEvent, current
 
 /** The noun the key hint and the keys sentence use for one stop. */
 function stopNoun(m: Model): string {
+  if (m.ext) return m.ext.stop;
   return m.type === "architecture" ? "a part" : m.type === "sequence" ? "a participant" : m.type === "schema" ? "a table" : "a step";
 }
 
@@ -792,8 +1006,9 @@ export interface VElement { t: string; a: VAttrs; c: VNode[] }
 export interface VSlot { slot: "source" | "summary" | "hint" | "toggle" }
 export type VNode = string | VElement | VSlot;
 
-type VChild = VNode | null | undefined | false | VChild[];
-function h(t: string, a: VAttrs | null, ...c: VChild[]): VElement {
+export type VChild = VNode | null | undefined | false | VChild[];
+/** A tree element. The type modules (DECISIONS 359) build their drawings with it. */
+export function h(t: string, a: VAttrs | null, ...c: VChild[]): VElement {
   const kids: VNode[] = [];
   for (const k of c.flat(Infinity as 1) as VChild[]) if (k !== null && k !== undefined && k !== false && !Array.isArray(k)) kids.push(k);
   return { t, a: a ?? {}, c: kids };
@@ -848,6 +1063,10 @@ export interface Dyn {
   pad?: boolean;
   /** A schema's rows with its corridors (DECISIONS 306, 1.1): a grid-template-rows of spacer tracks round the author's rows, set only where a far key is drawn. */
   rows?: string;
+  /** A type of its own's form inside a layout (DECISIONS 359): a gantt's stack "tracks" or "words". Written as `data-form`. */
+  form?: string;
+  /** A type of its own's measured places (DECISIONS 359): by part id, the style its part takes; "" keys the drawing's own. */
+  place?: Record<string, string>;
   /** A drawn layout of one column (the one-column ruling, diagrams-cimip): its column's least width, in px. The stylesheet caps the drawing at
    *  size-breakpoint-container, or at this where it is more, so the cap never takes the track under its minimum. */
   one?: number;
@@ -858,12 +1077,14 @@ const idsOf = (base: string) => ({ title: `${base}-title`, summary: `${base}-sum
 
 /** Whether the figure's nodes are stops (a roving tab index) in this state. */
 export function hasStops(m: Model, dyn: Dyn): boolean {
+  if (m.ext?.hasStops) return m.ext.hasStops(m, dyn);
   if (!dyn.layout || dyn.bare) return false;
   if (dyn.layout === "drawn") return true;
   return m.type !== "sequence" && m.type !== "schema";
 }
 /** Whether the nodes are images named by a sentence in this state (before script, the types whose stack has lines). */
 function nodesAreImages(m: Model, dyn: Dyn): boolean {
+  if (m.ext) return true;
   if (m.type === "sequence" || m.type === "schema") return dyn.layout === "drawn";
   return true;
 }
@@ -999,10 +1220,10 @@ function planStack(m: Model): StackPlan {
 
 // ---- Swatches: each drawn exactly as its mark ----
 
-const svgA = (w: number, hgt: number): VAttrs => ({ width: w, height: hgt, viewBox: `0 0 ${w} ${hgt}`, "aria-hidden": "true", focusable: "false" });
+export const svgA = (w: number, hgt: number): VAttrs => ({ width: w, height: hgt, viewBox: `0 0 ${w} ${hgt}`, "aria-hidden": "true", focusable: "false" });
 
 /** A line swatch, 24 wide and 16 tall: the same stroke, dash and head as the line. */
-function lineSwatch(P: string, kind: DiagramLineKind | "fk"): VElement {
+export function lineSwatch(P: string, kind: DiagramLineKind | "fk"): VElement {
   const k = kind === "fk" ? "plain" : kind;
   const y = k === "main" ? 8 : 8.5;
   const end = 24;
@@ -1039,7 +1260,7 @@ export function cardMarks(form: DiagramCardinality, edge: number, y: number, out
   if (!zero) crow += bar(many ? 11 : 8);
   return { crow, ring: zero ? { x: Math.round(at(10.5) * 100) / 100, y, r: dot / 2 } : undefined };
 }
-function boxSwatch(P: string, shape: "box" | "terminal" | "decision" | "focal" | "group"): VElement {
+export function boxSwatch(P: string, shape: "box" | "terminal" | "decision" | "focal" | "group"): VElement {
   if (shape === "decision") return h("svg", { class: `${P}-swatch`, "data-shape": shape, ...svgA(16, 16) }, h("path", { class: `${P}-swatch-shape`, d: "M8 2.5L14.5 8L8 13.5L1.5 8Z" }));
   if (shape === "terminal") return h("svg", { class: `${P}-swatch`, "data-shape": shape, ...svgA(16, 16) }, h("rect", { class: `${P}-swatch-shape`, x: 0.5, y: 3.5, width: 15, height: 9, rx: 4.5 }));
   return h("svg", { class: `${P}-swatch`, "data-shape": shape, ...svgA(16, 16) }, h("rect", { class: `${P}-swatch-shape`, x: 0.5, y: 2.5, width: 15, height: 11, rx: 2 }));
@@ -1052,14 +1273,20 @@ function keyTree(P: string, m: Model): VElement | null {
 /** The key alone, for the viewer's foot (DECISIONS 310, 9.2): the same entries the figure draws under its drawing. */
 export const figureKey = keyTree;
 function buildKey(P: string, m: Model): VElement | null {
+  if (m.ext?.key) return m.ext.key(P, m);
   const entries: VElement[] = [];
-  const entry = (swatch: VElement, words: string, attrs: VAttrs = {}) => entries.push(h("li", { class: `${P}-entry`, ...attrs }, swatch, h("span", null, words)));
+  const entry = (swatch: VElement, words: string, attrs: VAttrs = {}) => entries.push(h("li", { class: `${P}-entry`, ...attrs }, swatch, h("span", null, iso(words))));
   if (m.type === "schema") {
     // The key seats' letters first, each where a seat holds it, set as the seat sets them, then their words.
     const keys = new Set(m.nodes.flatMap((n) => (n.columns ?? []).map((c) => c.key)));
     for (const [k, words] of [["PK", "Primary key"], ["FK", "Foreign key"]] as const) {
       if (keys.has(k)) entries.push(h("li", { class: `${P}-entry` }, h("span", { class: `${P}-key-letters`, "aria-hidden": "true" }, k), h("span", null, words)));
     }
+  }
+  if (m.type === "data-flow" && m.nodes.some((n) => n.shape === "decision")) {
+    // Where a data flow draws a decision, shape carries type: the key shows "Step" and "Decision", as a flowchart's does (DECISIONS 359, Ops 5).
+    entry(boxSwatch(P, "box"), m.shapeLabels.step);
+    entry(boxSwatch(P, "decision"), m.shapeLabels.decision);
   }
   if (m.type === "flowchart") {
     const used = new Set(m.nodes.map((n) => n.shape));
@@ -1088,6 +1315,7 @@ function buildKey(P: string, m: Model): VElement | null {
     const ops = new Set(m.steps.flatMap((st) => ("open" in st ? [st.open] : [])));
     for (const op of ["opt", "loop", "alt"] as const) if (ops.has(op)) entries.push(h("li", { class: `${P}-entry` }, h("span", { class: `${P}-key-letters`, "data-op": "" , "aria-hidden": "true" }, op), h("span", null, m.frameWords[op])));
   }
+  if (m.ext?.keyMore) entries.push(...m.ext.keyMore(P, m));
   // The text art draws the focal participant in a double-line box: its key shows that glyph (P4 of the pixel review).
   if (m.nodes.some((n) => n.focal) && m.legend.focal) entry(m.text ? glyph("╔═╗", "focal") : boxSwatch(P, "focal"), m.legend.focal, { "data-focal": "" });
   if (m.groups.length && m.legend.group) entry(boxSwatch(P, "group"), m.legend.group);
@@ -1110,16 +1338,17 @@ function inlineArrow(P: string, kind: DiagramLineKind): VElement {
 /** A card's name; a link card's last word is held with its cue (the stylesheet's arrow after it), so the arrow never leaves the name's last word (1.4). */
 /** An author's string as a first-strong isolate (`<bdi>`, the diagrams-rtl ruling): it keeps its own order in a figure set right to left, so a closing quote,
  *  bracket or full stop stays at its end. Nothing changes left to right. */
-const iso = (text: string): VElement => h("bdi", null, text);
-function linkName(P: string, n: MNode): VChild {
+export const iso = (text: string): VElement => h("bdi", null, text);
+export function linkName(P: string, n: MNode): VChild {
   // A linked name is not isolated: its cue is drawn after its last word and must stay at the line's end in the figure's direction.
   if (!n.href) return iso(n.name);
   const at = n.name.trimEnd().lastIndexOf(" ");
   return [at < 0 ? "" : n.name.slice(0, at + 1), h("span", { class: `${P}-name-end` }, at < 0 ? n.name : n.name.slice(at + 1))];
 }
 
-function nodeText(P: string, m: Model, n: MNode): VChild[] {
-  if (n.shape === "decision") return [h("span", { class: `${P}-words` }, h("span", { class: `${P}-name` }, linkName(P, n)))];
+export function nodeText(P: string, m: Model, n: MNode): VChild[] {
+  // A data flow's decision (DECISIONS 359, Ops 5) writes its step line inside the diamond, above its name.
+  if (n.shape === "decision") return [h("span", { class: `${P}-words` }, m.type === "data-flow" && n.kind ? h("span", { class: `${P}-kind` }, iso(n.kind)) : null, h("span", { class: `${P}-name` }, linkName(P, n)))];
   const kids: VNode[] = [];
   if (m.type === "data-flow") kids.push(h("span", { class: `${P}-kind` }, iso(n.kind!), h("span", { class: `${P}-lane-word` }, " · ", iso(n.laneLabel ?? ""))));
   else if (n.kind) kids.push(h("span", { class: `${P}-kind` }, iso(n.kind)));
@@ -1129,13 +1358,12 @@ function nodeText(P: string, m: Model, n: MNode): VChild[] {
   if (n.detail) kids.push(h("span", { class: `${P}-detail`, "data-mono": n.mono ? "" : undefined }, n.mono ? h("span", { class: `${P}-runs` }, words(n.detail).flatMap((w, j) => [j ? " " : "", h("span", { class: `${P}-run` }, w)])) : iso(n.detail)));
   return kids;
 }
-
 function tableText(P: string, n: MNode, m: Model): VChild[] {
   return [
     h("span", { class: `${P}-th` }, h("span", { class: `${P}-tname` }, linkName(P, n))),
     h("span", { class: `${P}-rows` }, (n.columns ?? []).map((c, k) => h("span", { class: `${P}-row`, "data-row": k, "data-key": c.key },
       h("span", { class: `${P}-keyseat` }, c.key ?? ""),
-      h("span", { class: `${P}-cname` }, c.name),
+      h("span", { class: `${P}-cname` }, iso(c.name)),
       c.ref ? h("span", { class: `${P}-ctype`, "data-ref": "" }, `${m.rtl ? "←" : "→"} `, iso(c.ref.table)) : c.type ? h("span", { class: `${P}-ctype` }, iso(c.type)) : null))),
     n.more ? h("span", { class: `${P}-more` }, `+ ${n.more} more`) : null,
   ];
@@ -1155,6 +1383,9 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
   // Where a schema's corridors are spacer tracks (1.1), the author's row r is track 2r.
   const spaced = dyn.layout === "drawn" && dyn.rows;
   const style: string[] = [`--_c:${n.col}`, `--_r:${spaced ? 2 * n.row : n.row}`, `--_r2:${spaced ? 2 * n.row2 + 1 : n.row2 + 1}`];
+  // The row a box starts on stands space-4 lower (the run-edge ruling): the gap above it is space-16, and space-8 of it is clear above the box. An
+  // architecture's alone (a deployment's too, read as one); a state's row gap already holds the band. Written 0 or 1, so a new placement never keeps a stale 1.
+  if (lowers(m)) style.push(`--_lo:${n.row > 1 && m.groups.some((g) => groupCells(m, g)?.r1 === n.row) ? 1 : 0}`);
   if (m.type === "data-flow") style.push(`--_lc:${n.col + 1}`);
   if (m.type === "sequence") style.push(`--_c2:${n.col + 1}`);
   const plan = ctx.plan;
@@ -1182,6 +1413,7 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
     "data-shape": n.shape,
     "data-focal": n.focal ? "" : undefined,
     "data-branch": n.branch ? "" : undefined,
+    ...m.ext?.nodeAttrs?.(m, n),
     "data-mark": n.mark ? n.mark.id ?? "" : undefined,
     "data-level": ctx.level,
     style: style.join(";"),
@@ -1192,22 +1424,24 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
   n.shape === "decision" ? h("svg", { class: `${P}-diamond`, viewBox: "0 0 100 100", preserveAspectRatio: "none", "aria-hidden": "true", focusable: "false" }, h("path", { d: "M50 0L100 50L50 100L0 50Z" })) : null,
   // A mark (DECISIONS 292, 2.6): an empty span, the form a background image, so its colours cannot be restyled and nothing of the file reaches the page.
   n.mark ? h("span", { class: `${P}-mark`, "aria-hidden": "true", style: n.mark.onLight ? `--_ml:${cssUrl(n.mark.onLight)};--_md:${cssUrl(n.mark.onDark ?? n.mark.onLight)}` : undefined }) : null,
-  n.shape === "table" ? tableText(P, n, m) : nodeText(P, m, n));
+  n.shape === "table" ? tableText(P, n, m) : m.ext?.card ? m.ext.card(P, m, n, dyn) : nodeText(P, m, n));
 }
 
 function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
   const { P } = ctx;
+  if (m.ext?.drawing) return m.ext.drawing(P, m, dyn, ctx.level);
   const out: VNode[] = [];
   if (m.type === "data-flow") {
-    out.push(...m.lanes.map((l, k) => h("div", { class: `${P}-lane`, style: `--_r:${k + 1}`, "aria-hidden": "true" }, h("span", { class: `${P}-lane-name` }, l.label))));
+    out.push(...m.lanes.map((l, k) => h("div", { class: `${P}-lane`, style: `--_r:${k + 1}`, "aria-hidden": "true" }, h("span", { class: `${P}-lane-name` }, iso(l.label)))));
   }
-  if (m.type === "architecture") {
+  if (grouped(m.type)) {
     for (const g of m.groups) {
       const c = groupCells(m, g);
       if (!c) continue;
+      const mark = m.ext?.groupMark?.(m, g, c);
       // A box grown past its cells by one level on each side, and by two where a child group reaches that side of it (1.3).
       const lv = [0, 1, 2, 3].map((k) => groupLevels(m, g, k));
-      out.push(h("div", { class: `${P}-gbox`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, style: `--_c:${c.c1};--_c2:${c.c2 + 1};--_r:${c.r1};--_r2:${c.r2 + 1}${lv[0]! > 1 ? ";--_gt:2" : ""}${lv[1]! > 1 ? ";--_ge:2" : ""}${lv[2]! > 1 ? ";--_gb:2" : ""}${lv[3]! > 1 ? ";--_gs:2" : ""}`, "aria-hidden": "true" }, h("span", { class: `${P}-glabel` }, iso(g.label))));
+      out.push(h("div", { class: `${P}-gbox`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, style: `--_c:${c.c1};--_c2:${c.c2 + 1};--_r:${c.r1};--_r2:${c.r2 + 1}${lowers(m) ? `;--_lo:${c.r1 > 1 ? 1 : 0}` : ""}${lv[0]! > 1 ? ";--_gt:2" : ""}${lv[1]! > 1 ? ";--_ge:2" : ""}${lv[2]! > 1 ? ";--_gb:2" : ""}${lv[3]! > 1 ? ";--_gs:2" : ""}${mark?.style ?? ""}`, "data-start": mark?.start, "aria-hidden": "true" }, h("span", { class: `${P}-glabel` }, iso(g.label))));
     }
   }
   // The text variant (1.2): one code block, aria-hidden (the title, the summary and the list carry the figure). Before script it holds the transcript;
@@ -1233,7 +1467,7 @@ function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
     // line of the longest such label, so nothing grows above the group for it.
     const lines = Math.max(0, ...turns.map((e) => (e.label ? labelLines(e.label) : 0)));
     const style = [grow ? `--_ggrow:${grow}` : "", lines ? `--_tl:${lines}` : ""].filter(Boolean).join(";");
-    return h("div", { class: `${P}-group`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, "data-turn": turns.length ? "" : undefined, style: style || undefined }, h("span", { class: `${P}-glabel`, "aria-hidden": "true" }, iso(g.label)), kids);
+    return h("div", { class: `${P}-group`, "data-group": g.id, "data-depth": g.depth > 1 ? g.depth : undefined, "data-turn": turns.length ? "" : undefined, "data-start": ctx.plan ? m.ext?.groupMark?.(m, g, null)?.start : undefined, style: style || undefined }, h("span", { class: `${P}-glabel`, "aria-hidden": "true" }, iso(g.label)), kids);
   };
   let k = 0;
   while (k < m.nodes.length) {
@@ -1294,7 +1528,7 @@ function sequenceSteps(ctx: TreeContext, m: Model): VElement {
   const into = () => (stack.length ? stack[stack.length - 1]!.el.c : root);
   let list: VElement | null = null;
   for (const s of m.steps) {
-    if ("band" in s) { list = null; into().push(h("p", { class: `${P}-band` }, h("span", null, s.band))); continue; }
+    if ("band" in s) { list = null; into().push(h("p", { class: `${P}-band` }, h("span", null, iso(s.band)))); continue; }
     if ("open" in s) {
       list = null;
       const parent = stack[stack.length - 1];
@@ -1302,14 +1536,14 @@ function sequenceSteps(ctx: TreeContext, m: Model): VElement {
       const inset = parent ? `;--_fis:${s.a === parent.a ? 1 : 0};--_fie:${s.b === parent.b ? 1 : 0}` : "";
       const el = h("div", { class: `${P}-frame`, "data-op": s.open, "data-depth": s.depth, style: `--_a:${s.a};--_b:${s.b + 1}${inset}` },
         h("span", { class: `${P}-fbox`, "aria-hidden": "true" }),
-        h("p", { class: `${P}-fhead` }, h("span", { class: `${P}-ftab`, "aria-hidden": "true" }, s.open), h("span", { class: `${P}-flabel` }, h("span", { class: ctx.hidden }, `${m.frameWords[s.open]}: `), s.label)));
+        h("p", { class: `${P}-fhead` }, h("span", { class: `${P}-ftab`, "aria-hidden": "true" }, s.open), h("span", { class: `${P}-flabel` }, h("span", { class: ctx.hidden }, `${m.frameWords[s.open]}: `), iso(s.label))));
       into().push(el);
       stack.push({ el, a: s.a, b: s.b });
       continue;
     }
     if ("otherwise" in s) {
       list = null;
-      into().push(h("p", { class: `${P}-felse` }, h("span", { class: `${P}-fword`, "aria-hidden": "true" }, "else"), h("span", { class: `${P}-flabel` }, h("span", { class: ctx.hidden }, `${m.frameWords.else}: `), s.otherwise)));
+      into().push(h("p", { class: `${P}-felse` }, h("span", { class: `${P}-fword`, "aria-hidden": "true" }, "else"), h("span", { class: `${P}-flabel` }, h("span", { class: ctx.hidden }, `${m.frameWords.else}: `), iso(s.otherwise))));
       continue;
     }
     if ("close" in s) { list = null; stack.pop(); continue; }
@@ -1321,9 +1555,9 @@ function sequenceSteps(ctx: TreeContext, m: Model): VElement {
     const last = self && (m.rtl ? ca !== 1 : ca === m.nodes.length);
     const word = kindWord(m, s.kind);
     list.c.push(h("li", { class: `${P}-msg`, "data-kind": s.kind, "data-from": s.from, "data-to": s.to, "data-self": self ? (last ? "start" : "end") : undefined, style: `--_a:${Math.min(ca, cb)};--_b:${Math.max(ca, cb) + 1}` },
-      h("span", { class: `${P}-said` }, h("span", { class: `${P}-num` }, String(s.n)), h("span", { class: `${P}-mlabel` }, s.label)),
-      h("span", { class: `${P}-route` }, a?.short ?? s.from, " ", h("span", { class: `${P}-to` }, inlineArrow(P, s.kind), h("span", { class: ctx.hidden }, " to "), " ", b?.short ?? s.to, word ? ` · ${word}` : "")),
-      s.note ? h("span", { class: `${P}-note` }, s.note) : null));
+      h("span", { class: `${P}-said` }, h("span", { class: `${P}-num` }, String(s.n)), h("span", { class: `${P}-mlabel` }, iso(s.label))),
+      h("span", { class: `${P}-route` }, iso(a?.short ?? s.from), " ", h("span", { class: `${P}-to` }, inlineArrow(P, s.kind), h("span", { class: ctx.hidden }, " to "), " ", iso(b?.short ?? s.to), word ? [" · ", iso(word)] : "")),
+      s.note ? h("span", { class: `${P}-note` }, iso(s.note)) : null));
   }
   return h("div", { class: `${P}-steps` }, root);
 }
@@ -1336,29 +1570,33 @@ function listTree(P: string, m: Model): VNode[] {
 /** The list alone, for the viewer's stage (DECISIONS 310, 9.9): the page's own list, in place of the drawing. */
 export const figureList = listTree;
 function buildList(P: string, m: Model): VNode[] {
+  if (m.ext?.list) return m.ext.list(P, m);
   const sub = Math.min(6, m.heading + 1);
+  // Every string an author writes is a first-strong isolate in the list too (DECISIONS 359, Ops 6).
   const H = (text: string) => h(`h${sub}`, { class: `${P}-list-head` }, text);
-  const strong = (s: string) => h("strong", null, s);
+  const strong = (s: string) => h("strong", null, iso(s));
   // A link card's name in the list is the same link (1.4).
   const named = (n: MNode) => (n.href ? h("a", { href: n.href, target: n.blank ? "_blank" : undefined, rel: n.blank ? "noopener noreferrer" : undefined }, strong(n.name)) : strong(n.name));
-  const code = (s: string) => h("code", { class: `${P}-code` }, s);
+  const code = (s: string) => h("code", { class: `${P}-code` }, iso(s));
   const name = (id: string) => m.byId.get(id)?.name ?? id;
   const kw = (k: DiagramLineKind) => { const w = kindWord(m, k); return w ? ` (${w})` : ""; };
   const focal = (n: MNode) => (n.focal && m.legend.focal ? ` ${sentence(m.legend.focal)}` : "");
-  if (m.type === "architecture") {
-    const part = (n: MNode) => h("li", null, named(n), n.kind ? `, ${n.kind}` : "", n.detail ? [". ", n.mono ? code(n.detail) : n.detail, /[.!?]$/.test(n.detail) ? "" : "."] : /[.!?]$/.test(n.kind ?? n.name) ? "" : ".", focal(n));
-    const out: VNode[] = [H("Parts")];
+  if (grouped(m.type)) {
+    const extra = (n: MNode): VChild[] => m.ext?.listPart?.(P, m, n) ?? [];
+    const part = (n: MNode) => h("li", null, named(n), n.kind ? [", ", iso(n.kind)] : "", n.detail ? [". ", n.mono ? code(n.detail) : iso(n.detail), /[.!?]$/.test(n.detail) ? "" : "."] : /[.!?]$/.test(n.kind ?? n.name) ? "" : ".", extra(n), focal(n));
+    const out: VNode[] = [H(m.ext?.listParts ?? "Parts")];
     const loose = m.nodes.filter((n) => !n.group);
     if (loose.length) out.push(h("ul", { class: `${P}-list-items` }, loose.map(part)));
     // Direct members, then each child group under its label (1.3).
     for (const g of m.groups.filter((x) => x.depth === 1)) {
-      out.push(h("p", { class: `${P}-list-group` }, g.label));
+      out.push(h("p", { class: `${P}-list-group` }, iso(g.label)));
       if (g.members.length) out.push(h("ul", { class: `${P}-list-items` }, g.members.map((id) => part(m.byId.get(id)!))));
       for (const c of m.groups.filter((x) => x.parent === g.id)) {
-        out.push(h("p", { class: `${P}-list-group`, "data-depth": 2 }, c.label));
+        out.push(h("p", { class: `${P}-list-group`, "data-depth": 2 }, iso(c.label)));
         out.push(h("ul", { class: `${P}-list-items`, "data-depth": 2 }, c.members.map((id) => part(m.byId.get(id)!))));
       }
     }
+    if (m.ext?.listLines) { out.push(...m.ext.listLines(P, m, H)); return out; }
     out.push(H("Connections"));
     out.push(h("ol", { class: `${P}-list-items` }, m.edges.map((e) => h("li", null, strong(name(e.from)), " to ", strong(name(e.to)), e.label ? [": ", code(said(e.label))] : "", `${kw(e.kind)}.`))));
     return out;
@@ -1369,14 +1607,14 @@ function buildList(P: string, m: Model): VNode[] {
       const exits = m.edges.filter((e) => e.from === n.id);
       const what = n.shape === "decision" ? "Decision" : n.shape === "terminal" ? (exits.length ? "Start" : "End") : "Step";
       const stop = !n.detail && /[.!?]$/.test(n.name) ? " " : ". ";
-      return h("li", null, named(n), n.detail ? [", ", n.mono ? code(n.detail) : n.detail] : "", `${stop}${what}.`, focal(n),
+      return h("li", null, named(n), n.detail ? [", ", n.mono ? code(n.detail) : iso(n.detail)] : "", `${stop}${what}.`, focal(n),
         exits.length ? h("ul", { class: `${P}-list-exits` }, exits.map((e) => h("li", null, e.label ? `If ${said(e.label)}: go to ${num(e.to)}, ` : `Then: go to ${num(e.to)}, `, strong(name(e.to)), kw(e.kind)))) : null);
     }))];
   }
   if (m.type === "data-flow") {
     return [h("ol", { class: `${P}-list-items` }, m.nodes.map((n) => {
       const exits = m.edges.filter((e) => e.from === n.id);
-      return h("li", null, `${n.laneLabel}: `, named(n), n.detail ? [", ", n.mono ? code(n.detail) : n.detail] : "", ".", focal(n),
+      return h("li", null, iso(n.laneLabel ?? ""), ": ", named(n), n.detail ? [", ", n.mono ? code(n.detail) : iso(n.detail)] : "", ".", focal(n),
         exits.length ? [" Then ", ...exits.flatMap((e, j) => [j ? "; " : "", `to step ${m.byId.get(e.to)!.step}, `, strong(name(e.to)), e.label ? [": ", code(said(e.label))] : "", kw(e.kind)]), "."] : "");
     }))];
   }
@@ -1411,7 +1649,8 @@ function buildList(P: string, m: Model): VNode[] {
 
 /** The keys sentence (hidden), which describes the drawing to a screen reader. Drawn, the arrows are spatial (DECISIONS 306, 1.5), unless they fall back. */
 function keysSentence(m: Model, drawn = false): string {
-  const noun = m.type === "architecture" ? "part" : m.type === "sequence" ? "participant" : m.type === "schema" ? "table" : "step";
+  if (m.ext?.keys) return m.ext.keys(m, drawn);
+  const noun = m.ext ? m.ext.stop.replace(/^an? /, "") : m.type === "architecture" ? "part" : m.type === "sequence" ? "participant" : m.type === "schema" ? "table" : "step";
   const arrows = drawn && spatialTable(m) ? `Arrow keys move to the nearest ${noun} in that direction` : `Arrow keys move to the next or the previous ${noun}, in the author's order`;
   // Where a card is a link (1.4), Enter follows it.
   return `${arrows}; Home and End go to the ends; Escape clears the trace.${m.nodes.some((n) => n.href) ? " Enter opens a part that is a link." : ""}`;
@@ -1419,6 +1658,7 @@ function keysSentence(m: Model, drawn = false): string {
 
 /** The key hint's entries: the keys and their words. Four arrows where a drawn figure has more than one row and more than one column (1.5). */
 export function hintEntries(m: Model, drawn = false): Array<{ keys: string[]; words: string }> {
+  if (m.ext?.hint) return m.ext.hint(m, drawn);
   const four = drawn && m.type !== "sequence" && spatialTable(m) && m.cols > 1 && m.rows > 1;
   const open = m.nodes.some((n) => n.href) ? [{ keys: ["Enter"], words: "open" }] : [];
   return [{ keys: four ? ["←", "↑", "↓", "→"] : ["←", "→"], words: stopNoun(m) }, { keys: ["Home", "End"], words: "the ends" }, ...open, { keys: ["Esc"], words: "clear" }];
@@ -1522,21 +1762,26 @@ const oneColumnTurnBacks = (m: Model) => m.type === "schema" && m.cols === 1 && 
 export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   const P = o.prefix;
   const ids = idsOf(o.base);
-  const plan = m.type === "sequence" || m.type === "schema" ? null : stackPlan(m);
+  const plan = m.type === "sequence" || m.type === "schema" || (m.ext && !m.ext.routed) ? null : stackPlan(m);
   const ctx: TreeContext = { P, ids, level: o.level, plan, hidden: o.hiddenClass };
   const drawn = dyn.layout === "drawn";
   const stops = hasStops(m, dyn);
   const group = m.type === "sequence" || m.type === "schema" ? drawn : true;
   const Head = `h${m.heading}`;
   const style: string[] = [`--_cols:${columnCount(m)}`];
-  if ((m.type === "architecture" && m.groups.length) || (drawn && dyn.pad)) {
+  // A state's start mark on the drawing's start column takes space-10 more on that side (DECISIONS 359, Ops 1), whether or not its group does.
+  // A type's own marks on the drawing's edge take room there (a state's start mark: space-10 at the start, or above when laid down).
+  const roomAt = m.ext?.room?.(m);
+  const startRoom = roomAt?.start, topRoom = roomAt?.top;
+  if ((grouped(m.type) && m.groups.length) || (drawn && dyn.pad) || startRoom || topRoom) {
     // The drawn layout keeps room for a group's box where it reaches an edge: space-8 above, space-4 at a side and below. A padded layout
     // (Dyn.pad) keeps at least space-3 above and below, for the seats beside a line in the first or the last row.
     // Each group level that reaches an edge takes its room again (1.3): space-8 above, space-4 at a side and below.
-    const e: [number, number, number, number] = m.type === "architecture" ? groupEdges(m) : [0, 0, 0, 0];
+    const e: [number, number, number, number] = grouped(m.type) ? groupEdges(m) : [0, 0, 0, 0];
     const pad = (levels: number, step: string, least?: string) => (levels ? (levels > 1 ? `calc(${levels} * var(--basalt-space-${step}))` : `var(--basalt-space-${step})`) : least ? `var(--basalt-space-${least})` : "0px");
     const block = drawn && dyn.pad ? "3" : undefined;
-    style.push(`--_gpad:${pad(e[0], "8", block)} ${pad(e[1], "4")} ${pad(e[2], "4", block)} ${pad(e[3], "4")}`);
+    const room = (side: string) => (startRoom ? `calc(${side} + var(--basalt-space-10))` : side);
+    style.push(`--_gpad:${topRoom ? `calc(${pad(e[0], "8", block)} + var(--basalt-space-10))` : pad(e[0], "8", block)} ${m.rtl ? room(pad(e[1], "4")) : pad(e[1], "4")} ${pad(e[2], "4", block)} ${m.rtl ? pad(e[3], "4") : room(pad(e[3], "4"))}`);
   }
   // A schema of one column with a foreign key: its turn-backs run space-4 out on the end side, past the cards, so the drawn layout keeps space-5 there
   // (the turn-back and its stroke on the pixel grid); the fit rule counts it (minimums).
@@ -1552,25 +1797,29 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   }
   if (m.type === "schema" && dyn.track) style.push(`--_track:${dyn.track}px`);
   if (drawn && dyn.one) style.push(`--_one:${dyn.one}px`);
+  if (m.ext?.rootStyle) style.push(...m.ext.rootStyle(m, dyn));
   return h("figure", {
     class: o.className ? `${P} ${o.className}` : P,
     "aria-labelledby": ids.title,
     "data-type": m.type,
     "data-cols": columnCount(m),
-    "data-reach": m.type === "architecture" ? groupReach(m) : undefined,
+    "data-reach": grouped(m.type) ? groupReach(m) : undefined,
     "data-gutter": plan?.gutter ? "" : undefined,
     "data-marks": m.marks ? "" : undefined,
+    // A data flow that draws a decision gives every step the contour (DECISIONS 359, Ops 5).
+    "data-contour": m.type === "data-flow" && m.nodes.some((n) => n.shape === "decision") ? "" : undefined,
     // An automatic figure with no placement is stacked before script too: its cards have no cells yet.
     "data-layout": dyn.layout ?? (m.unplaced ? "stacked" : undefined),
     "data-measured": dyn.layout ? "" : undefined,
     "data-bare": dyn.bare ? "" : undefined,
+    "data-form": dyn.form ?? (dyn.layout ? undefined : m.ext?.form?.(m)),
     "data-motion": m.motion.animated ? "animated" : undefined,
     "data-first-visit": m.motion.animated && m.motion.firstVisit ? "" : undefined,
     "data-rtl": m.rtl ? "" : undefined,
     "data-viewer": o.viewer ? "" : undefined,
     style: style.join(";"),
   },
-  h("div", { class: `${P}-head` }, h(Head, { id: ids.title, class: `${P}-title` }, iso(m.title)), o.hasSource ? h("p", { class: `${P}-source` }, h("bdi", null, { slot: "source" })) : null),
+  h("div", { class: `${P}-head` }, h(Head, { id: ids.title, class: `${P}-title` }, iso(m.title)), (() => { const lead = m.ext?.sourceLead?.(m); return o.hasSource || lead ? h("p", { class: `${P}-source` }, lead ? [h("bdi", null, lead), o.hasSource ? " · " : ""] : null, o.hasSource ? h("bdi", null, { slot: "source" }) : null) : null; })(), m.ext?.meta?.(P, m) ?? null),
   h("div", {
     class: `${P}-drawing`,
     // A schema's far keys run in corridors (1.1): its rows are spacer tracks round the author's, and the grid's own row gap is none.
@@ -1585,7 +1834,7 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   keyTree(P, m),
   h("p", { class: `${P}-hint`, "data-kbd-hint": "", "aria-hidden": "true" }, { slot: "hint" }),
   // On touch, where lines are drawn, a line in the hint's seat and type says how to trace (DECISIONS 306, 1.5); the stylesheet shows it only then.
-  hasStops(m, dyn) && m.type !== "sequence" || (drawn && m.type === "sequence") ? h("p", { class: `${P}-tap-hint`, "aria-hidden": "true" }, `Tap ${stopNoun(m)} to highlight its lines. Tap it again to clear.`) : null,
+  (m.ext ? m.ext.traces?.(m, drawn) : hasStops(m, dyn) && m.type !== "sequence" || (drawn && m.type === "sequence")) ? h("p", { class: `${P}-tap-hint`, "aria-hidden": "true" }, `Tap ${stopNoun(m)} to highlight its lines. Tap it again to clear.`) : null,
   h("div", { class: `${P}-foot` }, { slot: "toggle" }),
   h("div", { id: ids.list, class: `${P}-list`, hidden: !dyn.open }, listTree(P, m)),
   h("span", { id: ids.keys, class: o.hiddenClass }, o.viewer ? `${keysSentence(m, drawn)} ${o.viewer}` : keysSentence(m, drawn)),
@@ -1677,7 +1926,7 @@ export function readTokens(el: Element): Tokens {
 }
 
 const strokeOf = (kind: DiagramLineKind, tk: Tokens) => (kind === "main" ? tk.line : tk.hair);
-const rectOf = (el: Element, origin: DOMRect): Rect => { const r = el.getBoundingClientRect(); return { l: r.left - origin.left, t: r.top - origin.top, r: r.right - origin.left, b: r.bottom - origin.top }; };
+export const rectOf = (el: Element, origin: DOMRect): Rect => { const r = el.getBoundingClientRect(); return { l: r.left - origin.left, t: r.top - origin.top, r: r.right - origin.left, b: r.bottom - origin.top }; };
 const hit = (a: Rect, b: Rect, eps = 0.01) => a.l < b.r - eps && a.r > b.l + eps && a.t < b.b - eps && a.b > b.t + eps;
 const grow = (a: Rect, p: number): Rect => ({ l: a.l - p, r: a.r + p, t: a.t - p, b: a.b + p });
 
@@ -1755,16 +2004,17 @@ const forced = () => matchMedia("(forced-colors: active)").matches;
 function ruler(drawing: Element, P: string) {
   const el = drawing.querySelector<HTMLElement>(`.${P}-ruler`)!;
   const known = new Map<string, number>();
-  return (text: string, font: "name" | "name-500" | "mono" | "sans" | "table" | "label") => {
+  return (text: string, font: RulerFont) => {
     const key = `${font}|${text}`;
     if (!known.has(key)) { el.setAttribute("data-f", font); el.textContent = text; known.set(key, el.getBoundingClientRect().width); el.textContent = ""; }
     return known.get(key)!;
   };
 }
-const words = (s?: string) => (s ? s.split(/\s+/).filter(Boolean) : []);
+export const words = (s?: string) => (s ? s.split(/\s+/).filter(Boolean) : []);
 
 /** The figure's measured minimums (1.11, rule 2): the widest unbreakable word of any node, a table's widest row, on top of the tokens. */
 function minimums(m: Model, tk: Tokens, measure: ReturnType<typeof ruler>) {
+  if (m.ext?.least && !m.ext.routed) { const least = Math.max(tk.wide, m.ext.least(m, tk, measure)); return { track: tk.node, table: tk.table, least, own: least }; }
   const s = tk.space;
   let track = tk.node;
   let table = tk.table;
@@ -1944,7 +2194,7 @@ function assignSlots(m: Model, sides: Array<[DiagramSide, DiagramSide]>, warn: (
 export function portFloors(m: Model, radius = 8, head = 8): Record<string, number> {
   return memo(m, `port-floors:${radius}:${head}`, () => {
     const out: Record<string, number> = record();
-    if (m.type !== "architecture" && m.type !== "flowchart" && m.type !== "data-flow") return out;
+    if (m.type !== "architecture" && m.type !== "flowchart" && m.type !== "data-flow" && m.type !== "schedule" && m.type !== "state" && m.type !== "deployment") return out;
     const sides = m.edges.map((e) => { const a = m.byId.get(e.from)!, b = m.byId.get(e.to)!; const [d1, d2] = defaultSides(a, b); return [e.fromSide ?? d1, e.toSide ?? d2] as [DiagramSide, DiagramSide]; });
     const bySide = new Map<string, number[]>();
     for (const p of assignSlots(m, sides, () => {})) {
@@ -2258,6 +2508,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
   };
   nestCorridors();
 
+  const { obstacles, groups } = obstaclesOf(drawing, origin, P, rowGap);
   // Jogs: which gutter each two-elbow line turns in, and which lines share a lane (lines to one port, a foreign key's bus). A turn-back (out and
   // back in on one side) runs in the gutter beside that side too, so it is given a lane with the jogs it runs beside.
   const jogs = new Map<string, { span: [number, number]; vertical: boolean; members: Map<string, number[]> }>();
@@ -2423,6 +2674,23 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
     const step = count > 1 ? Math.min(width / (count + 1), (width - 2 * room) / (count - 1)) : 0;
     return (span[0] + span[1]) / 2 + (j - (count - 1) / 2) * step;
   };
+  // The clear band (the run-edge ruling): a box's edge is a line. A gap's lanes keep its middle while each is space-3 clear of every box edge beside them; where one is
+  // not, they are laid in the part of the gap outside those boxes. A band with no room for them (space-2 a lane) is not drawn in.
+  const tight: number[] = [];
+  const bandOf = (g: { span: [number, number]; vertical: boolean }, cluster: Cluster, count: number): [number, number] => {
+    const [p, q] = g.span, to = Math.max(...cluster.map((c) => c.run[1])), step = (q - p) / (count + 1);
+    let a = p, b = q;
+    for (const r of groups) {
+      const [lo, hi, r1, r2] = g.vertical ? [r.l, r.r, r.t, r.b] : [r.t, r.b, r.l, r.r];
+      if (r2 <= cluster[0]!.run[0] || r1 >= to) continue;
+      if (lo > a && lo < b) b = lo;
+      if (hi > a && hi < b) a = hi;
+    }
+    // The gap's own lanes stand: the first and the last are space-3 clear of the edges.
+    if (!(a > p && p + step < a + s("3")) && !(b < q && q - step > b - s("3"))) return g.span;
+    if ((b - a) / (count + 1) < s("2")) tight.push(...cluster.flatMap((c) => c.members.map(edgeOf)));
+    return [a, b];
+  };
   // An interior corridor's two lanes: the order that crosses least.
   nestCorridors();
   for (const [key, groups] of corridorGroups) {
@@ -2446,7 +2714,8 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
         // least kept (the first-fit one wins a tie).
         const need = needOf(cluster), beside = besideIn(cluster), n = cluster.length;
         const inGutter = new Set(groupsOf.flat().map(edgeOf));
-        const set = (slots: number[]) => slots.forEach((l, i) => groupsOf[i]!.forEach((k) => lanes.set(k, laneAt(g.span, l, need, g.vertical))));
+        const span = bandOf(g, cluster, need);
+        const set = (slots: number[]) => slots.forEach((l, i) => groupsOf[i]!.forEach((k) => lanes.set(k, laneAt(span, l, need, g.vertical))));
         let best = firstFit(cluster), bestScore = Infinity, bestLines: GLine[] | null = null;
         const tries: number[][] = [best];
         if (need ** n <= 729) for (let code = 0; code < need ** n; code++) {
@@ -2463,15 +2732,16 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
         continue;
       }
       const count = groupsOf.length;
-      if (dev && !m.marks && (g.span[1] - g.span[0]) / (count + 1) < s("3")) warn?.(`a gutter holds ${count} lanes side by side, closer than space-3`);
+      const span = bandOf(g, cluster, count);
+      if (dev && !m.marks && (span[1] - span[0]) / (count + 1) < s("3")) warn?.(`${[...new Set(groupsOf.flat().map(edgeOf))].map((k) => { const e = m.edges[k]; return e ? `${m.byId.get(e.from)?.name} to ${m.byId.get(e.to)?.name}` : ""; }).join(", ")} ${count > 1 ? "run" : "runs"} closer than space-3 a lane${span !== g.span ? " beside a box's edge" : ""}`);
       const inGutter = new Set(groupsOf.flat().map(edgeOf));
       let best: number[][] = groupsOf, bestScore = Infinity, bestLines: GLine[] | null = null;
       for (const perm of permutations(groupsOf)) {
-        perm.forEach((members, j) => members.forEach((k) => lanes.set(k, laneAt(g.span, j, count, g.vertical))));
+        perm.forEach((members, j) => members.forEach((k) => lanes.set(k, laneAt(span, j, count, g.vertical))));
         const tried = score(inGutter);
         if (tried.score < bestScore) { bestScore = tried.score; best = perm; bestLines = tried.lines; }
       }
-      best.forEach((members, j) => members.forEach((k) => lanes.set(k, laneAt(g.span, j, count, g.vertical))));
+      best.forEach((members, j) => members.forEach((k) => lanes.set(k, laneAt(span, j, count, g.vertical))));
       current = bestLines;
     }
   }
@@ -2497,7 +2767,6 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
   geo.crossings = findCrossings(geo.lines);
   geo.through = throughOf(geo.lines, nodes, m);
   geo.outside = outsideOf(geo.lines, W, H, tk);
-  const { obstacles, groups } = obstaclesOf(drawing, origin, P, rowGap);
   obstacles.heads = geo.lines.map((l) => headBox(l, tk));
   const seats = seatLabels(m, geo.lines, nodes, obstacles, groups, { l: 0, t: 0, r: W, b: H }, tk, measure, { ox, oy });
   geo.labels = seats.labels;
@@ -2505,7 +2774,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
   geo.bounded = seats.bounded;
   // Two lines on one another that are not a bus (a one-column schema's turn-backs to different keys, with no gutter to give each a lane) read as
   // one line: the drawn layout is refused, as a line through a node is.
-  geo.overlaps = [...new Set(overlapPairs(geo.lines, null).flat())];
+  geo.overlaps = [...new Set([...overlapPairs(geo.lines, null).flat(), ...tight])];
   return geo;
 }
 
@@ -2939,7 +3208,7 @@ function masksMarkup(P: string, geo: Geo, tk: Tokens, base: string): { defs: str
 }
 
 /** The drawing's ink: the SVG (lines, heads, dots, lifelines, cuts) and the labels, as one string. */
-export function inkHtml(P: string, geo: Geo, tk: Tokens, base: string): string {
+export function inkHtml(P: string, geo: Geo, tk: Tokens, base: string, more = ""): string {
   const { defs, ids } = masksMarkup(P, geo, tk, base);
   // A sequence's lifelines are their own layer, under its frames; the bars, lines and heads are over them (1.2's order: lifelines, frames, bars, lines,
   // plates and labels; Neon's P8 of the code review).
@@ -2947,10 +3216,10 @@ export function inkHtml(P: string, geo: Geo, tk: Tokens, base: string): string {
   const bars = (geo.bars ?? []).map((b) => `<rect class="${P}-bar" x="${b.l}" y="${b.t}" width="${Math.round((b.r - b.l) * 100) / 100}" height="${Math.round((b.b - b.t) * 100) / 100}"/>`).join("");
   const lines = geo.lines.map((l, k) => lineMarkup(P, l, tk, ids.get(k) ?? null, l.from === l.to ? tk.radiusXs : tk.radius)).join("");
   const under = lifelines ? `<svg class="${P}-lifes" width="${geo.w}" height="${geo.h}" viewBox="0 0 ${geo.w} ${geo.h}" focusable="false">${lifelines}</svg>` : "";
-  const svg = `${under}<svg class="${P}-svg" width="${geo.w}" height="${geo.h}" viewBox="0 0 ${geo.w} ${geo.h}" focusable="false">${defs ? `<defs>${defs}</defs>` : ""}${bars}<g class="${P}-edges">${lines}</g></svg>`;
+  const svg = `${under}<svg class="${P}-svg" width="${geo.w}" height="${geo.h}" viewBox="0 0 ${geo.w} ${geo.h}" focusable="false">${defs ? `<defs>${defs}</defs>` : ""}${bars}<g class="${P}-edges">${lines}</g>${more}</svg>`;
   // A label's place is not in the string: a style attribute in markup written as HTML is refused under a strict `style-src` (no 'unsafe-inline'), so
   // placeLabels sets it through the CSSOM once the ink is in the page.
-  const labels = geo.labels.map((l) => `<span class="${P}-label" data-edge="${l.i}"${l.on ? ' data-on=""' : ""}${labelLines(l.text) > 1 ? ' data-lines="2"' : ""}>${l.text.split("\n").map(escapeHtml).join("<br>")}</span>`).join("");
+  const labels = geo.labels.map((l) => `<span class="${P}-label" data-edge="${l.i}"${l.on ? ' data-on=""' : ""}${labelLines(l.text) > 1 ? ' data-lines="2"' : ""}><bdi>${l.text.split("\n").map(escapeHtml).join("<br>")}</bdi></span>`).join("");
   return svg + labels;
 }
 
@@ -3002,7 +3271,7 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   let tall = false;
   const heightsFor = (d: Dyn): Dyn => {
     tall = false;
-    if (m.type !== "flowchart") return d;
+    if (m.type !== "flowchart" && !(m.type === "data-flow" && m.nodes.some((n) => n.shape === "decision"))) return d;
     apply({ ...d, heights: undefined, words: undefined });
     const heights = record<number>();
     const widened = record<number>();
@@ -3050,6 +3319,8 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   const names = (geo: Geo, list: number[]) => list.map((k) => lineName(m, geo.lines.find((l) => l.i === k)!)).join(", ");
   // The text variant is one code block: no drawn layout and no lines; the art module chooses art or transcript by width (1.2).
   if (m.text) return { dyn: { ...current, layout: "stacked", bare: undefined }, geo: null, ink: "", tokens: tk, least: mins.least };
+  // A type of its own that is not routed (DECISIONS 359) lays itself out: the engine gives it the figure, the state and the ruler.
+  if (m.ext?.layout && !m.ext.routed) return m.ext.layout(m, { fig, drawing, P, tk, W, least: mins.least, apply, stopOf, current: { ...current, ...closed }, measure, warn });
   if (W >= mins.least && !m.unplaced) {
     const drawnTry = (pad: boolean) => {
       // One column (not a sequence's participants) is capped before it is measured (the one-column ruling): its least width is written with the layout.
@@ -3073,9 +3344,10 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
       const padded = drawnTry(true);
       if (!refused(padded.g) && !padded.g.unseated.length) ({ dd: d, g: geo } = padded);
     }
-    if (!refused(geo) && !geo.unseated.length) {
+    const more = !refused(geo) && !geo.unseated.length ? m.ext?.inkMore?.(P, m, geo, tk, true, warn) : false;
+    if (more !== false) {
       if (geo.crossings.length) dev && warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the drawn layout: ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
-      return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk, least: mins.least };
+      return { dyn: d, geo, ink: inkHtml(P, geo, tk, base, more), tokens: tk, least: mins.least };
     }
     // At a width the figure should fit by its tokens and words, a failure is the author's to fix.
     if (tall) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: a decision would be taller than it is wide`);
@@ -3088,7 +3360,7 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   let d = stopOf({ ...current, ...closed, layout: "stacked", heights: undefined, grow: record(), track: m.type === "schema" ? mins.table : undefined, bare: undefined, pad: undefined, rows: undefined, one: undefined });
   d = heightsFor(d);
   apply(d);
-  if (m.type === "sequence" || m.type === "schema") return { dyn: d, geo: null, ink: "", tokens: tk, least: mins.least };
+  if (m.type === "sequence" || m.type === "schema" || m.ext?.stackBare) return { dyn: d, geo: null, ink: "", tokens: tk, least: mins.least };
   const plan = stackPlan(m);
   let out = stackedGeometry(input(), measure, plan, d.grow);
   for (let tries = 0; tries < 6 && Object.keys(out.grow).length; tries++) {
@@ -3121,7 +3393,7 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   }
   if (geo.seatless?.length) dev && warn?.(`a stacked group's label has no clear seat on its top edge: ${geo.seatless.map((t) => `"${t}"`).join(", ")}`);
   if (geo.crossings.length) dev && warn?.(`${geo.crossings.length} crossing${geo.crossings.length === 1 ? "" : "s"} in the stacked drawing (each is cut): ${geo.crossings.map((c) => `${lineName(m, geo.lines[c.top]!)} over ${lineName(m, geo.lines[c.under]!)}`).join("; ")}`);
-  return { dyn: d, geo, ink: inkHtml(P, geo, tk, base), tokens: tk, least: mins.least };
+  return { dyn: d, geo, ink: inkHtml(P, geo, tk, base, m.ext?.inkMore?.(P, m, geo, tk, false) || ""), tokens: tk, least: mins.least };
 }
 
 function lineName(m: Model, l: GLine): string {
@@ -3145,6 +3417,8 @@ export function applyTrace(fig: HTMLElement, P: string, geo: Geo | null, tokens:
   }
   fig.toggleAttribute("data-tracing", Boolean(id));
   fig.querySelectorAll<HTMLElement>(`.${P}-node`).forEach((el) => el.toggleAttribute("data-near", near.has(el.dataset.node!)));
+  // A mark in the ink that belongs to one part (a timeline's stem and dot, DECISIONS 359) lifts with it; nothing else dims.
+  fig.querySelectorAll<SVGElement>(`.${P}-ink [data-for]`).forEach((el) => el.toggleAttribute("data-lit", Boolean(id) && el.getAttribute("data-for") === id));
   if (!geo || !tokens) return;
   const lit = (l: GLine) => Boolean(id) && (l.from === id || l.to === id);
   const edges = fig.querySelector(`.${P}-edges`);
@@ -3214,6 +3488,7 @@ export function settleEntrance(fig: HTMLElement): void {
 
 /** The node a key moves to (1.14): → ↓ the next, ← ↑ the one before, in the author's order, stopping at the ends; Home and End the ends. */
 export function keyTarget(m: Model, from: string, key: string, drawn = false, rtl = false): string | null {
+  if (m.ext?.keyTarget) return m.ext.keyTarget(m, from, key, drawn, rtl);
   // Drawn, the arrows are spatial and physical: in a right-to-left figure column 1 is at the right (1.5).
   const table = drawn ? spatialTable(m) : null;
   if (table && key.startsWith("Arrow")) {
@@ -3242,8 +3517,10 @@ export function keyTarget(m: Model, from: string, key: string, drawn = false, rt
  */
 const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "tabindex", "data-stops", "hidden", "data-art"];
 // The figure's grid attributes follow the model too: an automatic figure's direction can change its columns after script (Neon's B8 of the code review).
-const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-motion", "data-first-visit", "data-rtl", "data-cols", "data-reach", "data-gutter", "data-marks"];
-const MANAGED_STYLE = ["--_track", "--_h", "--_ww", "--_gap", "--_ggrow", "--_tl", "--_gpad", "--_gw", "--_mh", "--_rows", "--_row-gap", "--_one"];
+const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-form", "data-contour", "data-motion", "data-first-visit", "data-rtl", "data-cols", "data-reach", "data-gutter", "data-marks"];
+// A type of its own (DECISIONS 359) writes its measured places as these: a timeline's card (--_tx, --_ty), its drawing's height (--_th), a gantt's or a
+// matrix's measured columns (--_name, --_track).
+const MANAGED_STYLE = ["--_lo", "--_track", "--_h", "--_ww", "--_gap", "--_ggrow", "--_tl", "--_gpad", "--_gw", "--_mh", "--_rows", "--_row-gap", "--_one", "--_tx", "--_ty", "--_th", "--_tw", "--_tdw", "--_name", "--_lab"];
 const absent = (value: VAttrs[string]) => value === undefined || value === null || value === false;
 function pairs(el: Element, v: VElement): boolean {
   if (el.tagName.toLowerCase() !== v.t) return false;

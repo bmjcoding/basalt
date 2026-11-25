@@ -4,7 +4,7 @@ import { Kbd } from "./kbd";
 import { useShortcutsVisible } from "./keyboard";
 import { inLevel, usePanelLevel } from "./layers";
 import {
-  applyTrace, buildModel, placeLabels, tapTrace, transcript, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml,
+  applyTrace, autoType, buildModel, placeLabels, tapTrace, transcript, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml,
 } from "./diagram-core";
 import type { DiagramLegend, DiagramMotion, DiagramPlacement, DiagramSpec, Dyn, Geo, Measured, Model, VNode } from "./diagram-core";
 import type { MotionController } from "./diagram-motion-core";
@@ -195,12 +195,12 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
   // Right to left (DECISIONS 306, 1.7): no prop; the figure follows its computed direction, read as it is measured, and the model is mirrored.
   const [rtl, setRtl] = React.useState(false);
   // Automatic layout (1.8): the placements given or loaded, and the direction tried (the type's own, then the other, unless the author named one).
-  const auto = spec.layout === "auto" && (spec.type === "architecture" || spec.type === "flowchart" || spec.type === "schema");
+  const auto = spec.layout === "auto" && autoType(spec.type);
   const given = React.useMemo(() => (spec.placement ? (Array.isArray(spec.placement) ? spec.placement : [spec.placement]) : []), [spec.placement]);
   const [loaded, setLoaded] = React.useState<DiagramPlacement[] | null>(null);
   // What placement reads (the cards, their groups and the lines, by id): new cards are placed afresh. The answer for the old ones, loaded or still in
   // flight, is dropped (P-R1 of the code re-check), so a card added while elk runs is never left without a cell. Other props (words, a legend) do not count.
-  const placedFrom = React.useMemo(() => (auto ? JSON.stringify([spec.type, (spec.type === "schema" ? spec.tables?.map((t) => [t.name, t.columns?.map((c) => c.references ?? "")]) : spec.nodes?.map((n) => [n.id, (n as { group?: string }).group])), spec.edges?.map((e) => [e.from, e.to, e.kind]), spec.groups?.map((g) => [g.id, g.parent])]) : ""), [auto, spec.type, spec.tables, spec.nodes, spec.edges, spec.groups]);
+  const placedFrom = React.useMemo(() => (auto ? JSON.stringify([spec.type, (spec.type === "schema" ? spec.tables?.map((t) => [t.name, t.columns?.map((c) => c.references ?? "")]) : spec.nodes?.map((n) => [n.id, (n as { group?: string }).group])), spec.edges?.map((e) => [e.from, e.to, e.kind]), spec.groups?.map((g) => [g.id, g.parent]), (spec.tasks as Array<{ id: string; after?: string[] }> | undefined)?.map((t) => [t.id, t.after]), Boolean(spec.dependents)]) : ""), [auto, spec.type, spec.tables, spec.nodes, spec.edges, spec.groups, spec.tasks, spec.dependents]);
   const placing = React.useRef<string | null>(null);
   const placedFor = React.useRef(placedFrom);
   if (placedFor.current !== placedFrom) { placedFor.current = placedFrom; placing.current = null; if (loaded) setLoaded(null); }
@@ -292,7 +292,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
     // One placement in flight a figure (P5 of the code review): a resize or the faces arriving while it runs do not start another, and an answer for a figure
     // that has gone is dropped.
     if (auto && !given.length && !loaded && !placing.current && (viewer || fig.clientWidth >= 640)) {
-      const input = { type: spec.type as "architecture" | "flowchart" | "schema", nodes: spec.nodes as Array<{ id: string; group?: string }>, tables: spec.tables, edges: spec.edges, groups: spec.groups };
+      const input = { type: spec.type as "architecture" | "flowchart" | "schema" | "state" | "deployment" | "schedule", nodes: spec.nodes as Array<{ id: string; group?: string }>, tables: spec.tables, edges: spec.edges, groups: spec.groups, dependents: spec.dependents, tasks: spec.tasks as Array<{ id: string; after?: string[] }> | undefined };
       const ask = placedFrom;
       placing.current = ask;
       loadLayout().then((mod) => Promise.all(order.map((d) => mod.placeDiagram(input, d)))).then((all) => { if (placing.current === ask) { placing.current = null; setLoaded(all); } }, (error: unknown) => {
