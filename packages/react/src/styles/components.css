@@ -8499,7 +8499,16 @@
   /* V3: a focusable row takes the control ring at +2, outside the line; no wash on focus. The list keeps space-1-5 from its own edge. */
   .basalt-event-line:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
-  @media (pointer: coarse), (width < 720px) { .basalt-event-line { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
+  @media (pointer: coarse), (width < 720px) { .basalt-event-line:not([data-plain]) { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
+  /* A plain line (cimip-gaps-3 T2, item 7): the same grid, time column, inks and dot, with no tab stop, no hover wash and no pointer cursor. Focused by a
+     feed's release (tabindex -1), it draws no ring. */
+  .basalt-event-line[data-plain] { cursor: auto; }
+  .basalt-event-line[data-plain]::before { content: none; }
+  .basalt-event-line[data-plain]:focus { outline: none; }
+  /* The newest-first feed (item 9): the release control is Back to top's, in its zero-height sticky dock at the log's head (it floats over the lines and takes
+     no room). The head's sentinel is a zero-height line the page scrolls to. */
+  .basalt-event-feed { position: relative; min-width: 0; }
+  .basalt-event-feed-head { display: block; block-size: 0; scroll-margin-block-start: calc(var(--basalt-sticky-offset, var(--basalt-space-0)) + var(--basalt-space-2)); }
   /* V4: the dot's seat is always there; it is filled only while the line is new, and the line's ink steps to primary. No weight change. */
   .basalt-event-dot { width: var(--basalt-size-dot); height: var(--basalt-size-dot); margin-top: calc((var(--basalt-size-code-line-height) - var(--basalt-size-dot)) / 2 + var(--basalt-space-0-5)); border-radius: var(--basalt-radius-full); }
   .basalt-event-line[data-unread] .basalt-event-dot { background: var(--basalt-text-primary); }
