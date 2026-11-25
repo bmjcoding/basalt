@@ -4990,7 +4990,7 @@
   /* The figure sets its own display, so the attribute's own rule is written out for it. */
   .basalt-diagram[hidden] { display: none; }
   .basalt-diagram-head { display: flex; flex-direction: column; gap: var(--basalt-space-0-5); min-width: 0; }
-  .basalt-diagram-title { margin: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-diagram-title { margin: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-base-tracking); }
   .basalt-diagram-source { margin: 0; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
 
   /* The drawing. Stacked: one column in the author's order, at most size-breakpoint-container wide on the start edge (the schema's grid of
