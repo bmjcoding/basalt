@@ -459,8 +459,12 @@ describe("accessibility (1.14)", () => {
     assert.equal(await group.getAttribute("aria-roledescription"), "diagram");
     const [labelled, described] = await Promise.all([group.getAttribute("aria-labelledby"), group.getAttribute("aria-describedby")]);
     assert.equal(await page.locator(`[id="${labelled}"]`).innerText(), DATA.architecture.title);
-    const [summary, keys] = described.split(" ");
+    // The drawing is described by its summary alone; the keys sentence describes the card that holds the tab stop, the figure's entry (cimip-gaps-3, G17).
+    const [summary, ...more] = described.split(" ");
+    assert.deepEqual(more, [], "the drawing is described by its summary alone");
     assert.equal(await page.locator(`[id="${summary}"]`).innerText(), DATA.architecture.summary);
+    const keys = await page.locator(`#fig-architecture .${P}-node[tabindex="0"]`).getAttribute("aria-describedby");
+    assert.ok(keys, "the entry card is described");
     assert.match(await page.locator(`[id="${keys}"]`).textContent(), /Arrow keys/);
     assert.equal(await page.getAttribute(`#fig-architecture .${P}-node[data-node="svc"]`, "aria-label"),
       "cimip service, ECS service. N tasks · stateless. In AWS · your account. From: ALB. To: Aurora PostgreSQL (SQL · NOTIFY), S3 (PUT), ECS (RunTask), Bedrock (scribe), Agent sandbox (HTTP + SSE). The service.");

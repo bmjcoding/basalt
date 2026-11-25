@@ -246,6 +246,9 @@ window.showEvery = (width) => {
   flushSync(() => root.render(<div style={{ display: "grid", gap: 64, width }}>{Object.entries(ALL).map(([k, { type, ...props }]) => { const X = C[type]; return <X key={k} id={"fig-" + k} {...props} />; })}</div>));
   return window.labelSeats();
 };`;
+// The figures laid out by elk once it loads (layout "auto", no placement): their labels move when it answers, so they are left out of the first-box check.
+const AUTO = Object.entries({ ...JSON.parse(fs.readFileSync(path.join(pkg, "test", "fixtures", "cimip-diagrams-b.json"), "utf8")), ...JSON.parse(fs.readFileSync(path.join(pkg, "test", "fixtures", "diagrams-d1.json"), "utf8")) })
+  .filter(([, v]) => v && v.layout === "auto" && !v.placement).map(([k]) => k);
 const NO_MASKS = ".basalt-diagram-felse::before, .basalt-diagram-node[data-link] .basalt-diagram-name-end::after { mask: none; }";
 
 describe("every diagram type under style-src 'self' (G15)", () => {
@@ -267,6 +270,13 @@ describe("every diagram type under style-src 'self' (G15)", () => {
       const pinned = await read(SELF, NO_MASKS);
       assert.deepEqual(open.refused, []);
       assert.ok(open.seats.length > 0 && open.first.length === open.seats.length, `every label is there before the first paint (${open.first.length} of ${open.seats.length})`);
+      // A label drawn at 0,0 and moved a frame later must fail under either policy, so each label's box before the first paint is its own settled box too,
+      // on the figures whose layout is fixed from the first frame: every authored one (a figure with layout "auto" and no placement is stacked until elk's
+      // placement arrives, and is laid out again then; the page loads no web font, so no face arrives later).
+      const settledOnly = (list) => list.filter((l) => !AUTO.some((k) => l.startsWith(`fig-${k} `)));
+      assert.ok(settledOnly(open.first).length > 20, `the fixed figures draw labels (${settledOnly(open.first).length})`);
+      assert.deepEqual(settledOnly(open.first), settledOnly(open.seats), "open: each label's first box is its settled box");
+      assert.deepEqual(settledOnly(strict.first), settledOnly(strict.seats), "strict: each label's first box is its settled box");
       assert.deepEqual(strict.first, open.first, "before the first paint, label for label");
       assert.deepEqual(strict.seats, open.seats, "settled, label for label");
       assert.deepEqual(strict.refused.filter((r) => r.startsWith("style-src")), [], "no style is refused");

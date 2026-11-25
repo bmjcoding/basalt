@@ -148,7 +148,14 @@ describe("the skill: every card's name begins with its visible name (Astra's 4)"
         return { fig: el.closest("figure").id, type: el.closest("figure").dataset.type, name: norm(el.getAttribute("aria-label")), shown: norm(shown?.textContent) };
       }), P);
       const types = new Set(cards.map((c) => c.type));
-      for (const t of ["architecture", "flowchart", "data-flow", "sequence", "schema", "gantt", "kanban", "journey", "service-blueprint", "story-map", "schedule", "timeline", "state", "deployment"]) assert.ok(types.has(t), `${t} at ${width}`);
+      // At 1104 all fourteen types have named cards. At 390 the sequence is stacked, where its participants are not cards with names (its messages are
+      // the list's), so the other thirteen do, and the sequence is asserted stacked with none.
+      const every = ["architecture", "flowchart", "data-flow", "sequence", "schema", "gantt", "kanban", "journey", "service-blueprint", "story-map", "schedule", "timeline", "state", "deployment"];
+      if (width === 390) {
+        assert.equal(await page.locator("#fig-sequence").getAttribute("data-layout"), "stacked", "at 390 the sequence is stacked");
+        assert.equal(cards.filter((c) => c.fig === "fig-sequence").length, 0, "and exposes no named card");
+      }
+      for (const t of every.filter((t) => width === 1104 || t !== "sequence")) assert.ok(types.has(t), `${t} at ${width}`);
       assert.ok(cards.some((c) => c.type === "service-blueprint" && c.shown === "None"), "an empty blueprint cell is among them");
       for (const c of cards) {
         assert.ok(c.shown, `${c.fig}: a card shows its name (${c.name})`);
