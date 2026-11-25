@@ -6,7 +6,7 @@ import { IconButton } from "./button";
 import { CloseGlyph } from "./glyphs/close";
 import { Dialog, DialogActions, DialogClose, DialogContent, DialogDescription, DialogModal, DialogTitle, DialogTrigger } from "./dialog";
 import type { DialogCloseProps, DialogContentProps, DialogProps, DialogTriggerProps } from "./dialog";
-import { inLevel, MODAL_LEVEL, ModalDepth, useModalLayer } from "./layers";
+import { inLevel, MODAL_LEVEL, ModalDepth, ModalHost, useModalLayer } from "./layers";
 import { useModalOutside } from "./modal-outside";
 import { useScrollStop } from "./scroll-stop";
 import type { PartProps } from "./types";
@@ -44,10 +44,12 @@ export function AlertDialogContent({ className, initialFocus, ref, style, childr
   const mergedRef = useModalOutside<HTMLDivElement>(keepRef);
   return (
     <ModalDepth.Provider value={layer.depth}>
+    <ModalHost.Provider value={popup}>
     <BaseAlertDialog.Portal>
       <BaseAlertDialog.Backdrop className="basalt-dialog-backdrop" style={{ zIndex: layer.backdrop }} />
       <BaseAlertDialog.Popup {...props} data-level={MODAL_LEVEL} ref={mergedRef} style={withStyle({ zIndex: layer.popup }, style)} initialFocus={initialFocus ?? (() => popup.current?.querySelector<HTMLElement>("[data-basalt-cancel]") ?? true)} className={withClass("basalt-dialog", className)}>{inLevel(MODAL_LEVEL, children)}</BaseAlertDialog.Popup>
     </BaseAlertDialog.Portal>
+    </ModalHost.Provider>
     </ModalDepth.Provider>
   );
 }
@@ -91,10 +93,12 @@ export function SheetContent({ side = "right", className, style, children, ref, 
   }, [step]);
   return (
     <ModalDepth.Provider value={layer.depth}>
+    <ModalHost.Provider value={popup}>
     <BaseDialog.Portal>
       <BaseDialog.Backdrop data-side={side} className="basalt-dialog-backdrop basalt-sheet-backdrop" style={{ zIndex: layer.backdrop }} />
       <BaseDialog.Popup {...props} ref={popupRef} data-side={side} data-level={MODAL_LEVEL} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-sheet", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
     </BaseDialog.Portal>
+    </ModalHost.Provider>
     </ModalDepth.Provider>
   );
 }

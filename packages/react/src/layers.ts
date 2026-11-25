@@ -6,6 +6,12 @@ import { useScreenKeyboardLayout } from "./screen-keyboard";
 // floating children; a nested modal then covers the entire preceding level.
 export const ModalDepth = /* @__PURE__ */ React.createContext(0);
 
+// The popup of the nearest Basalt modal (Dialog, AlertDialog, Sheet, CommandMenu), or null on the page. While a modal is open, what is outside its popup is
+// inert (Base UI's marks, and useModalOutside's guard over anything added to the page later), so a native modal opened from inside one (the diagram viewer)
+// is written into this popup rather than at the end of the body: inside, it stays operable, a press in it is not a press outside, and the focus trap holds it.
+// A `showModal` dialog draws in the top layer wherever it sits. Context crosses portals, as the depth does.
+export const ModalHost = /* @__PURE__ */ React.createContext<React.RefObject<HTMLElement | null> | null>(null);
+
 export function useModalLayer() {
   const parent = React.useContext(ModalDepth);
   // A modal is fixed to the window: while an on-screen keyboard is up it is laid out on what is still seen.

@@ -1,7 +1,7 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import * as React from "react";
 
-import { inLevel, MODAL_LEVEL, ModalDepth, useModalLayer } from "./layers";
+import { inLevel, MODAL_LEVEL, ModalDepth, ModalHost, useModalLayer } from "./layers";
 import { useModalOutside } from "./modal-outside";
 import type { FocusTarget, OpenChangeDetails, PartProps, PopupActions } from "./types";
 import { withClass, withStyle } from "./utils";
@@ -182,10 +182,12 @@ export function DialogContent({ className, style, children, ref, size = "default
   const first: FocusTarget | undefined = initialFocus ?? (form ? (type: string) => ((state?.opened ?? type) === "touch" ? title() : popup.current?.querySelector<HTMLElement>(FIRST_FIELD) ?? true) : size === "wide" ? title : undefined);
   return (
     <ModalDepth.Provider value={layer.depth}>
+    <ModalHost.Provider value={popup}>
     <BaseDialog.Portal>
       <BaseDialog.Backdrop className="basalt-dialog-backdrop" style={{ zIndex: layer.backdrop }} />
       <BaseDialog.Popup {...props} ref={popupRef} data-level={MODAL_LEVEL} data-size={size === "default" ? undefined : size} data-form={form ? "" : undefined} data-held={top === null ? undefined : ""} initialFocus={first} style={withStyle(top === null ? { zIndex: layer.popup } : { zIndex: layer.popup, "--_dialog-top": `${top}px` } as React.CSSProperties, style)} className={withClass("basalt-dialog", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
     </BaseDialog.Portal>
+    </ModalHost.Provider>
     </ModalDepth.Provider>
   );
 }
