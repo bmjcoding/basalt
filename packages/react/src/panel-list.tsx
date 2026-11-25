@@ -4,6 +4,7 @@
 import * as React from "react";
 
 import { inLevel, usePanelLevel } from "./layers";
+import { useMergedRef } from "./merged-ref";
 import { NewTabGlyph, NewTabWords, opensNewTab } from "./new-tab";
 import { join } from "./utils";
 
@@ -26,14 +27,7 @@ let warnedChild = false;
 export function PanelList({ className, children, ref, ...props }: PanelListProps) {
   const level = usePanelLevel();
   const node = React.useRef<HTMLUListElement | null>(null);
-  const setRef = React.useCallback(
-    (element: HTMLUListElement | null) => {
-      node.current = element;
-      if (typeof ref === "function") ref(element);
-      else if (ref) (ref as React.MutableRefObject<HTMLUListElement | null>).current = element;
-    },
-    [ref],
-  );
+  const setRef = useMergedRef(node, ref);
   React.useEffect(() => {
     if (process.env.NODE_ENV === "production" || warnedChild || !node.current) return;
     const stray = Array.from(node.current.children).find((child) => child.tagName !== "LI");

@@ -193,7 +193,7 @@
   "Pagination": 22574,
   "PairedArt": 462,
   "PaneLayout": 1307,
-  "PanelList": 607,
+  "PanelList": 773,
   "PanelRow": 4668,
   "PauseGlyph": 3210,
   "PeriodStepper": 18018,
@@ -250,7 +250,7 @@
   "SectionActions": 226,
   "SectionIntro": 224,
   "Segment": 15770,
-  "SegmentedControl": 19913,
+  "SegmentedControl": 20944,
   "Select": 140297,
   "SelectableItem": 26617,
   "SelectableList": 821,
@@ -442,8 +442,8 @@
   }
  },
  "package": {
-  "bytes": 1046461,
-  "gzip": 349400
+  "bytes": 1047410,
+  "gzip": 349752
  },
  "styles": {
   "bytes": 511496,

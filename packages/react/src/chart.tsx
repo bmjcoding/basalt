@@ -330,7 +330,7 @@ interface DateFormats { short: Intl.DateTimeFormat; withDay: Intl.DateTimeFormat
 /**
  * A series over time (`TimeChart`; `Chart` is not exported, because it was renamed `Sparkline`): lines or bars, with a plan, missing data, a legend that is also the readout, and a table.
  * It draws at its own measured width, so it is narrow by its own width (under 480px), not the viewport's. Hover, a tap or a
- * key picks a day; the picked day is a full-height plate. The plot is one tab stop with a focusable image per day.
+ * key picks a day; the picked day is a full-height plate. The plot is one tab stop: a grid whose cells are the days, each a focusable cell named by its sentence.
  */
 export function TimeChart({
   title, heading = 3, source, kind, days, series: allSeries, plan, summary, format, spoken, formatTick, unit, step, fromZero = false,

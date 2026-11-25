@@ -50,7 +50,8 @@ export interface ListBandProps extends Omit<React.ComponentProps<"div">, "childr
   /**
    * Under 720 the foot (Previous, the count and Next under the list) is drawn only with more than one page, so a list whose rows arrive after its first frame grows the
    * foot then, and what is under it moves. Set this to hold the foot's room from the first frame, at one page or none as well (its arrows hidden, as `Pagination keepRoom`
-   * holds the band's) (G88). Default `false`: the foot as shipped.
+   * holds the band's) (G88). Opt-in, pending the council's decision on the default (topic T3: DECISIONS 227 removed this empty room at the owner's
+   * objection): left out or `false`, the foot is as shipped.
    */
   keepFootRoom?: boolean;
   /** The current page, from 1. */

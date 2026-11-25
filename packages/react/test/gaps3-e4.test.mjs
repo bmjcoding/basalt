@@ -73,7 +73,7 @@ createRoot(document.getElementById("root")).render(<div style={{ padding: 24, di
 describe("TimeChart's days (G18)", () => {
   for (const theme of THEMES) {
     for (const activate of [false, true]) {
-      test(`each day is a focusable gridcell in a grid's one row, so axe's focus-order-semantics passes, and what is said is unchanged (${theme}${activate ? ", activatable" : ""})`, async () => {
+      test(`each day is a focusable gridcell in a grid's one row, so axe's focus-order-semantics passes, and each day's sentence (its name) is preserved (${theme}${activate ? ", activatable" : ""})`, async () => {
         const page = await open(CHART(activate), { theme });
         for (const id of ["orders", "recipes"]) {
           const grid = page.locator(`#${id} .basalt-chart-days`);
@@ -90,7 +90,7 @@ describe("TimeChart's days (G18)", () => {
           const plot = await box(page.locator(`#${id} .basalt-chart-plot`));
           assert.ok(first.x >= plot.x && first.y >= plot.y && first.height > 40, JSON.stringify({ first, plot }));
         }
-        assert.match(await page.locator("#orders .basalt-chart-day").nth(5).getAttribute("aria-label"), /not observed, store closed/, "a day's sentence, as it was");
+        assert.match(await page.locator("#orders .basalt-chart-day").nth(5).getAttribute("aria-label"), /not observed, store closed/, "the day's sentence is preserved as its name; what a screen reader adds for a grid's cell (its row and column) is not checked here");
         assert.deepEqual(await axe(page, ["focus-order-semantics", "aria-required-children", "aria-required-parent", "aria-allowed-role", "aria-allowed-attr"]), []);
         assert.deepEqual(await axe(page), []);
         // The keys still move a day, Tab leaves, and Enter still activates.
@@ -167,6 +167,36 @@ createRoot(document.getElementById("root")).render(<div style={{ padding: 16 }}>
     const widths = await page.locator(".basalt-panel-list").first().evaluate((el) => [...el.children].map((c) => Math.round(c.getBoundingClientRect().width)));
     assert.equal(new Set(widths).size, 1);
     assert.ok(widths[0] > 300);
+    await page.close();
+  });
+
+  test("PanelList's ref: a React 19 callback ref's cleanup runs on unmount and on a new ref, an object ref is filled and emptied, and a ref that returns nothing is called with null", async () => {
+    const page = await open(`
+const log = []; window.log = log;
+const box = React.createRef(); window.box = box;
+const first = (el) => { log.push(["first", el ? el.tagName : null]); return () => log.push(["first cleanup"]); };
+const second = (el) => { log.push(["second", el ? el.tagName : null]); return () => log.push(["second cleanup"]); };
+const plain = (el) => { log.push(["plain", el ? el.tagName : null]); };
+function App() {
+  const [which, setWhich] = React.useState("first");
+  const [shown, setShown] = React.useState(true);
+  window.use = (w) => flushSync(() => setWhich(w));
+  window.hide = () => flushSync(() => setShown(false));
+  const ref = { first, second, plain, object: box }[which];
+  return shown ? <B.PanelList ref={ref} aria-label="Orders"><B.PanelRow title="Order 1042" /></B.PanelList> : null;
+}
+createRoot(document.getElementById("root")).render(<App />);`);
+    const log = () => page.evaluate(() => window.log.splice(0));
+    assert.deepEqual(await log(), [["first", "UL"]]);
+    await page.evaluate(() => window.use("second"));
+    assert.deepEqual(await log(), [["first cleanup"], ["second", "UL"]], "a new ref: the old one's cleanup, then the new one");
+    await page.evaluate(() => window.use("plain"));
+    assert.deepEqual(await log(), [["second cleanup"], ["plain", "UL"]]);
+    await page.evaluate(() => window.use("object"));
+    assert.deepEqual(await log(), [["plain", null]], "a ref that returned nothing is called with null");
+    assert.equal(await page.evaluate(() => window.box.current?.tagName), "UL");
+    await page.evaluate(() => window.hide());
+    assert.equal(await page.evaluate(() => window.box.current), null, "unmounted: the object ref is emptied");
     await page.close();
   });
 });
@@ -256,12 +286,28 @@ describe("ListBand keepFootRoom (G88)", () => {
     });
   }
 
-  test("without it the foot is as shipped: hidden at one page, drawn from two; from 720 it is never drawn", async () => {
-    const page = await open(BAND("", { rows: 3 }), { width: 390, height: 900 });
-    assert.equal(await page.locator(".basalt-list-band-foot").evaluate((el) => el.hidden), true);
-    await page.evaluate(() => window.answer(40));
-    await settle(page);
+  // keepFootRoom is opt-in, pending the council's decision on the default (topic T3; DECISIONS 227 removed this empty room at the owner's objection).
+  for (const [name, prop] of [["left out", ""], ["false", "keepFootRoom={false}"]]) {
+    test(`opt-in: with the prop ${name}, the foot is as shipped: hidden at one page and at none, drawn from two`, async () => {
+      const page = await open(BAND(prop, { rows: 3 }), { width: 390, height: 900 });
+      const foot = page.locator(".basalt-list-band-foot");
+      assert.equal(await foot.evaluate((el) => el.hidden), true, "one page: no foot");
+      assert.equal(await foot.evaluate((el) => getComputedStyle(el).display), "none");
+      await page.evaluate(() => window.answer(0));
+      await settle(page);
+      assert.equal(await foot.evaluate((el) => el.hidden), true, "no rows: no foot");
+      await page.evaluate(() => window.answer(40));
+      await settle(page);
+      assert.equal(await foot.evaluate((el) => el.hidden), false, "four pages: the foot");
+      assert.equal(await foot.locator("nav").getAttribute("aria-label"), "Order pages, end of list");
+      await page.close();
+    });
+  }
+
+  test("keepFootRoom={true} is the same as the bare prop, and from 720 the foot is never drawn either way", async () => {
+    const page = await open(BAND("keepFootRoom={true}", { rows: 3 }), { width: 390, height: 900 });
     assert.equal(await page.locator(".basalt-list-band-foot").evaluate((el) => el.hidden), false);
+    assert.ok((await box(page.locator(".basalt-list-band-foot"))).height > 40);
     const wide = await open(BAND("keepFootRoom", { rows: 3 }), { width: 1200 });
     assert.equal(await wide.locator(".basalt-list-band-foot").evaluate((el) => getComputedStyle(el).display), "none");
     await page.close();
@@ -272,10 +318,11 @@ describe("ListBand keepFootRoom (G88)", () => {
 // ---- G25: SegmentedControl as a radiogroup ----
 
 const SEGMENTS = `
-function Pair({ radio, id, name, options, required }) {
-  const [value, setValue] = React.useState(options[0]);
+function Pair({ radio, id, name, options, required, wrapped, disabled = [], start }) {
+  const [value, setValue] = React.useState(start ?? options[0]);
+  const segments = options.map((o) => <B.Segment key={o} value={o} disabled={disabled.includes(o)}>{o}</B.Segment>);
   return <div id={id} style={{ padding: 12 }}><B.SegmentedControl radio={radio} aria-label={name} value={value} onValueChange={setValue} required={required}>
-    {options.map((o) => <B.Segment key={o} value={o}>{o}</B.Segment>)}
+    {wrapped ? <>{segments}</> : segments}
   </B.SegmentedControl></div>;
 }
 createRoot(document.getElementById("root")).render(<div style={{ display: "grid", gap: 8, background: "var(--basalt-surface-page)" }}>
@@ -283,6 +330,9 @@ createRoot(document.getElementById("root")).render(<div style={{ display: "grid"
   <Pair id="pressed" name="Order view" options={["Open", "Shipped", "Returned"]} />
   <Pair id="radio" radio name="Order view" options={["Open", "Shipped", "Returned"]} />
   <Pair id="kitchen" radio required name="Recipe course" options={["Starter", "Main", "Dessert", "Drink"]} />
+  <Pair id="skip" radio name="Delivery" options={["Standard", "Express", "Overnight", "Pickup"]} disabled={["Express"]} />
+  <Pair id="wrapped" radio wrapped name="Recipe time" options={["Quick", "Weekday", "Weekend"]} start="Weekday" />
+  <button type="button" id="after">After</button>
 </div>);`;
 
 describe("SegmentedControl radio (G25)", () => {
@@ -331,6 +381,67 @@ describe("SegmentedControl radio (G25)", () => {
     await page.locator("#pressed .basalt-segment[aria-pressed=true]").focus();
     await page.keyboard.press("ArrowRight");
     assert.equal(await page.locator("#pressed .basalt-segment[aria-pressed=true]").textContent(), "Open");
+    await page.close();
+  });
+
+  test("Up and Down move and check as Right and Left do, and every arrow skips a disabled segment", async () => {
+    const page = await open(SEGMENTS);
+    const checked = (id) => page.locator(`#${id} .basalt-segment[aria-checked=true]`).textContent();
+    const focused = () => page.evaluate(() => document.activeElement.textContent);
+    await page.locator("#radio .basalt-segment[aria-checked=true]").focus();
+    await page.keyboard.press("ArrowDown");
+    assert.equal(await focused(), "Shipped");
+    assert.equal(await checked("radio"), "Shipped", "Down checks the next");
+    await page.keyboard.press("ArrowUp");
+    assert.equal(await focused(), "Open");
+    assert.equal(await checked("radio"), "Open", "Up checks the one before");
+    await page.keyboard.press("ArrowUp");
+    assert.equal(await checked("radio"), "Returned", "Up loops from the first");
+    // Delivery: Express is disabled. From Standard, Right and Down both pass it to Overnight; Left and Up from Overnight pass it back.
+    await page.locator("#skip .basalt-segment[aria-checked=true]").focus();
+    await page.keyboard.press("ArrowRight");
+    assert.equal(await focused(), "Overnight");
+    assert.equal(await checked("skip"), "Overnight", "Right skips the disabled segment");
+    await page.keyboard.press("ArrowLeft");
+    assert.equal(await checked("skip"), "Standard", "Left skips it back");
+    await page.keyboard.press("ArrowDown");
+    assert.equal(await checked("skip"), "Overnight", "Down skips it");
+    await page.keyboard.press("ArrowUp");
+    assert.equal(await checked("skip"), "Standard", "Up skips it");
+    assert.equal(await page.locator("#skip .basalt-segment", { hasText: "Express" }).getAttribute("aria-checked"), "false");
+    await page.close();
+  });
+
+  test("segments in a fragment: focus and the check stay together, and Tab comes back to the checked segment", async () => {
+    const page = await open(SEGMENTS);
+    const checked = () => page.locator("#wrapped .basalt-segment[aria-checked=true]").textContent();
+    const focused = () => page.evaluate(() => document.activeElement.textContent);
+    await page.locator("#after").focus();
+    await page.keyboard.press("Shift+Tab");
+    assert.equal(await focused(), "Weekday", "Tab (back) lands on the checked segment, not the first");
+    await page.keyboard.press("ArrowRight");
+    assert.equal(await focused(), "Weekend");
+    assert.equal(await checked(), "Weekend", "the reached segment's own value is checked");
+    assert.equal(await page.locator("#wrapped .basalt-segment[data-pressed]").textContent(), "Weekend", "and the drawn choice follows");
+    await page.keyboard.press("ArrowDown");
+    assert.equal(await checked(), "Quick", "Down loops");
+    // Leave and come back: the one stop is the checked segment.
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement.id), "after");
+    await page.keyboard.press("Shift+Tab");
+    assert.equal(await focused(), "Quick");
+    assert.deepEqual(await page.locator("#wrapped .basalt-segment").evaluateAll((els) => els.map((e) => e.tabIndex)), [0, -1, -1], "one tab stop, on the checked segment");
+    await page.close();
+  });
+
+  test("a group of pressed buttons keeps Base UI's role=group, and a caller's own role is kept", async () => {
+    const page = await open(`
+createRoot(document.getElementById("root")).render(<div>
+  <span id="plain"><B.SegmentedControl aria-label="Order view" defaultValue="a"><B.Segment value="a">Open</B.Segment><B.Segment value="b">Shipped</B.Segment></B.SegmentedControl></span>
+  <span id="own"><B.SegmentedControl role="toolbar" aria-label="Recipe view" defaultValue="a"><B.Segment value="a">Grid</B.Segment><B.Segment value="b">List</B.Segment></B.SegmentedControl></span>
+</div>);`);
+    assert.equal(await page.locator("#plain .basalt-segmented").getAttribute("role"), "group");
+    assert.equal(await page.locator("#own .basalt-segmented").getAttribute("role"), "toolbar");
     await page.close();
   });
 

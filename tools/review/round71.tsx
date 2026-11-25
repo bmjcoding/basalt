@@ -119,7 +119,7 @@ export const ROUND_71: Round = {
       id: "list-band",
       name: "ListBand: rangeTotal and keepFootRoom (G89, G88)",
       intro: "Three bands at once: as shipped, with rangeTotal={false} and with keepFootRoom. Each reserves seats for 999 (seatTotal, G28). The one-page state shows the held foot; the foot is drawn only under 720.",
-      decisions: [NOT_REVIEWED, "Both options are off by default, so a band nobody changes draws what it drew. Whether the held foot should be the default is the owner's (DECISIONS 227 removed an empty seat under the list)."],
+      decisions: [NOT_REVIEWED, "Both options are opt-in, so a band nobody changes draws what it drew. keepFootRoom stays opt-in pending the council's decision on the default (DECISIONS 227 removed an empty seat under the list)."],
       tryIt: ["Page through each band at 390.", "Compare the one-page state: only the third band keeps the foot's room."],
       states: ["one-page"],
       widths: [1440, 390],
