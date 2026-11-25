@@ -219,6 +219,56 @@ describe("a diagram under style-src 'self'", () => {
   });
 });
 
+// Every type under style-src 'self' (G15 of the console's log, cimip-gaps-3): a page of every diagram, the classic five (authored and placed
+// automatically, a text sequence) and the nine of batch D, drawn at 1104 and at 480. The policy refuses nothing, no figure's label waits for a frame to
+// be placed (each is placed as React commits, in the task that rendered it), and every label sits where an unrestricted page puts it. Written while
+// tests are paused (DECISIONS 359): not yet run by the suite; the probe of cimip-gaps-3/diagrams ran the same page.
+const EVERY = `
+import a from "./test/fixtures/cimip-diagrams-b.json";
+import d from "./test/fixtures/diagrams-d1.json";
+const ALL = { ...a, ...d };
+delete ALL.$comment;
+const C = { architecture: B.ArchitectureDiagram, flowchart: B.FlowchartDiagram, "data-flow": B.DataFlowDiagram, sequence: B.SequenceDiagram, schema: B.SchemaDiagram,
+  gantt: B.GanttDiagram, kanban: B.KanbanDiagram, journey: B.JourneyDiagram, "service-blueprint": B.ServiceBlueprintDiagram, "story-map": B.StoryMapDiagram,
+  schedule: B.ScheduleDiagram, timeline: B.TimelineDiagram, state: B.StateDiagram, deployment: B.DeploymentDiagram };
+window.showEvery = (width) => {
+  const root = createRoot(document.getElementById("root"));
+  flushSync(() => root.render(<div style={{ display: "grid", gap: 64, width }}>{Object.entries(ALL).map(([k, { type, ...props }]) => { const X = C[type]; return <X key={k} id={"fig-" + k} {...props} />; })}</div>));
+  // Before any frame has run: each label's place, as the layout effects left it.
+  return [...document.querySelectorAll(".basalt-diagram-ink > .basalt-diagram-label")].map((el) => ({ fig: el.closest("figure").id, left: el.style.left, top: el.style.top }));
+};`;
+const seats = (page) => page.evaluate((P) => [...document.querySelectorAll(`.${P}-ink > .${P}-label`)].map((el) => {
+  const d = el.closest(`.${P}-drawing`).getBoundingClientRect(), r = el.getBoundingClientRect();
+  return `${el.closest("figure").id} ${el.textContent} ${Math.round(r.left - d.left)},${Math.round(r.top - d.top)},${Math.round(r.width)}`;
+}), DP);
+
+describe("every diagram type under style-src 'self' (G15)", () => {
+  for (const width of [1104, 480]) {
+    test(`at ${width}: the policy refuses nothing, every label is placed as React commits, and each sits where an open policy puts it`, async () => {
+      const read = async (policy) => {
+        const { page, context, errors } = await policyPage(policy, { fixture: EVERY, viewport: { width: width + 32, height: 900 } });
+        try {
+          const first = await page.evaluate((w) => window.showEvery(w), width);
+          await frames(page, 6);
+          await page.waitForFunction(() => [...document.querySelectorAll("figure")].every((f) => f.hasAttribute("data-layout")));
+          await frames(page, 4);
+          return { first, seats: await seats(page), refused: await refused(page), errors };
+        } finally {
+          await context.close();
+        }
+      };
+      const strict = await read(SELF);
+      const open = await read("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'");
+      assert.deepEqual(strict.refused, []);
+      assert.deepEqual(strict.errors, []);
+      assert.ok(strict.first.length > 20, `the page draws labels in its first frame (${strict.first.length})`);
+      assert.deepEqual(strict.first.filter((l) => !l.left || !l.top), [], "no label waits for a frame to be placed");
+      assert.ok(strict.seats.length > 20, `${strict.seats.length} labels`);
+      assert.deepEqual(strict.seats, open.seats);
+    });
+  }
+});
+
 // The PNG under a content policy (DECISIONS 365, item 2): a canvas draws the SVG through an image, which `img-src 'self'` refuses as a data: URL and as a
 // blob: URL. Where the policy allows neither, diagramToPng rejects with an error that names the fix, and makes no file; with `blob:` allowed it draws.
 const EXPORT = `${DIAGRAMS}
