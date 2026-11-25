@@ -553,7 +553,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
       const to = keyTarget(model, node.dataset.node!, event.key, dynRef.current.layout === "drawn");
       if (!to) return;
       event.preventDefault();
-      const next = { ...dynRef.current, stop: to };
+      // Moved by an arrow (Dyn.roved): the card it reaches is not described by the keys sentence, which was said as the reader tabbed in.
+      const next = { ...dynRef.current, stop: to, roved: true };
       dynRef.current = next;
       setDyn(next);
       figRef.current?.querySelector<HTMLElement>(`.${P}-node[data-node="${CSS.escape(to)}"]`)?.focus({ preventScroll: false });
@@ -572,7 +573,11 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
       onBlur?.(event);
       const left = nodeOf(event.target);
       if (!left) return;
-      if (!nodeOf(event.relatedTarget)) setFocusTrace(null);
+      // Focus leaving the figure's cards: the trace goes, and the stop is described by the keys sentence again for the next tab in.
+      if (!nodeOf(event.relatedTarget)) {
+        setFocusTrace(null);
+        if (dynRef.current.roved) { const next = { ...dynRef.current, roved: undefined }; dynRef.current = next; setDyn(next); }
+      }
       // A node kept as a stop in a stack with no stops stops being one once focus has left it.
       if (dynRef.current.keep === left.dataset.node) { const next = { ...dynRef.current, keep: undefined }; dynRef.current = next; setDyn(next); }
     },
@@ -597,6 +602,9 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
     },
   };
 
+  // The foot's own buttons name their figure (G17 of the console's log): the words shown, then the title, so a page of figures has one "View as list"
+  // for each by name; the words on screen lead the name (WCAG 2.5.3). An app's actions are described by the title, their names their own.
+  const titleId = `${base}-title`;
   const toggle = (
     <button
       type="button"
@@ -605,9 +613,10 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
       data-size="sm"
       aria-expanded={Boolean(dyn.open)}
       aria-controls={`${base}-list`}
+      aria-labelledby={`${base}-toggle-words ${titleId}`}
       onClick={() => { settle(); const next = { ...dynRef.current, open: !dynRef.current.open, autoOpen: undefined }; dynRef.current = next; setDyn(next); }}
     >
-      <span className="basalt-button-label">{dyn.open ? "Hide the list" : "View as list"}</span>
+      <span id={`${base}-toggle-words`} className="basalt-button-label">{dyn.open ? "Hide the list" : "View as list"}</span>
     </button>
   );
   const hint = hintEntries(model, dyn.layout === "drawn").map((entry) => (
@@ -630,6 +639,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
         data-variant="secondary"
         data-size="sm"
         aria-haspopup="dialog"
+        aria-labelledby={`${base}-expand-words ${titleId}`}
         aria-busy={opening || undefined}
         data-busy={opening ? "" : undefined}
         data-loading={opening ? "" : undefined}
@@ -639,7 +649,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
         onClick={openViewer}
       >
         {/* Words only (a deviation from 9.1, the lead's call): Phosphor's icon cost every still figure 2.2 KB of six weights, and the core set draws no expand glyph. */}
-        <span className="basalt-button-label">Expand</span>
+        <span id={`${base}-expand-words`} className="basalt-button-label">Expand</span>
         {opening ? <span className="basalt-button-spinner" aria-hidden="true"><span className="basalt-spinner" data-variant="ring" style={{ width: 16, height: 16 }}><svg viewBox="0 0 16 16" width={16} height={16} fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeOpacity="0.25" strokeWidth="1.5" /><path d="M8 1.75A6.25 6.25 0 0 1 14.25 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></span></span> : null}
       </button>
       {viewerOpen && viewerModule ? (
@@ -650,12 +660,12 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
   // "Clear highlight" (1.5): last in the foot, mounted whenever the figure is on touch and can be traced, aria-disabled until a trace is up. A text
   // sequence (its art or its transcript) has no lines a tap traces, so it has none, as in the skill, which mounts it only for a figure drawn with lines.
   const clear = !viewer && !model.text && (onTouch || touched) && ink ? (
-    <button type="button" className="basalt-button basalt-diagram-clear" data-variant="secondary" data-size="sm" aria-disabled={touchTrace ? undefined : true} data-disabled={touchTrace ? undefined : ""} onClick={() => { if (touchTrace) setTouchTrace(null); }}>
-      <span className="basalt-button-label">Clear highlight</span>
+    <button type="button" className="basalt-button basalt-diagram-clear" data-variant="secondary" data-size="sm" aria-labelledby={`${base}-clear-words ${titleId}`} aria-disabled={touchTrace ? undefined : true} data-disabled={touchTrace ? undefined : ""} onClick={() => { if (touchTrace) setTouchTrace(null); }}>
+      <span id={`${base}-clear-words`} className="basalt-button-label">Clear highlight</span>
     </button>
   ) : null;
   // An app's actions (the foot decision): after Basalt's own controls and before "Clear highlight". A press settles a running entrance before onSelect.
-  const own = Actions && actions ? <Actions actions={actions} viewer={false} component={component} onPress={settle} context={() => ({ figure: figRef.current!, viewer: false, layout: layoutInfo() })} /> : null;
-  const foot = <>{toggle}{expand}{Foot && controller ? <Foot controller={controller} /> : null}{own}{clear}</>;
+  const own = Actions && actions ? <Actions actions={actions} viewer={false} component={component} describedBy={titleId} onPress={settle} context={() => ({ figure: figRef.current!, viewer: false, layout: layoutInfo() })} /> : null;
+  const foot = <>{toggle}{expand}{Foot && controller ? <Foot controller={controller} base={base} titleId={titleId} /> : null}{own}{clear}</>;
   return toReact(tree, { source, summary, hint, toggle: foot }, inkProp, root) as React.ReactElement;
 }
