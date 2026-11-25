@@ -12,7 +12,7 @@ declare const process: { env: { NODE_ENV?: string } };
 
 // ---- A run's time (DECISIONS 316, 1.9) ----
 // Tabular figures in Geist Mono at text-xs, tertiary, a `time` element with an ISO duration, never a live region. Under a minute it is "12.3 s" and
-// changes every 100ms; to an hour "12 min 34 s", by the second; to a day "12 hr 34 min", by the minute; then "3 days". One shared interval, made by
+// changes every 100ms (at the minutes or hours scale "45 s", by the second: those seats count in whole units); to an hour "12 min 34 s", by the second; to a day "12 hr 34 min", by the minute; then "3 days". One shared interval, made by
 // its first reader and cleared with its last: nothing runs at import. It stands in one `Reserve` cell as wide as the longest form its scale can show,
 // end-aligned, never empty, so a column of times is one width from the first frame.
 
@@ -71,8 +71,14 @@ export interface RunTimerProps {
    */
   whenHeld?: "started" | "hidden";
   locale?: string;
-  /** Writes a length for an app in another language. It must return the same width for a scale's widest form. */
+  /** Writes a length for an app in another language. It must return the same width for a scale's widest form. The seat's width follows it. */
   format?: (ms: number) => string;
+  /**
+   * Says a length, when the drawn form is short for the ear ("3m 4s" spoken "3 minutes 4 seconds"). Given, the drawn figure is hidden from assistive
+   * technology and this is read in its place, once: never a live region. `dateTime` stays the ISO duration. The held, hidden and started-at forms are
+   * unchanged. Left out, the drawn figure is what is read.
+   */
+  spoken?: (ms: number) => string;
   className?: string;
 }
 
@@ -116,7 +122,7 @@ function heldText(since: number, now: number, locale: string | undefined) {
  * How long a run, a stage or a step has taken (DECISIONS 316, 1.9). Counts from `start` while there is no `end`, frozen once there is; `carried` is
  * added. Never a live region: a run's announcer says its time once, at the end.
  */
-export function RunTimer({ start, end, carried = 0, since, scale: own = "seconds", whenHeld = "started", locale, format, className }: RunTimerProps) {
+export function RunTimer({ start, end, carried = 0, since, scale: own = "seconds", whenHeld = "started", locale, format, spoken, className }: RunTimerProps) {
   const list = React.useContext(RunTimeScaleContext);
   const scale = list?.scale ?? own;
   const { held: loopsHeld } = useLoops();
@@ -138,9 +144,9 @@ export function RunTimer({ start, end, carried = 0, since, scale: own = "seconds
 
   const from = start === undefined ? undefined : new Date(start).getTime();
   const ms = from === undefined ? 0 : (end === undefined ? now : new Date(end).getTime()) - from + carried;
-  const length = formatRunTime(ms);
+  const length = formatRunTime(ms, { scale });
   const text = from === undefined ? "\u00a0" : format ? format(ms) : length.text;
-  textAt.current = (t) => { if (from === undefined) return "\u00a0"; const at = (end === undefined ? t : new Date(end).getTime()) - from + carried; return format ? format(at) : formatRunTime(at).text; };
+  textAt.current = (t) => { if (from === undefined) return "\u00a0"; const at = (end === undefined ? t : new Date(end).getTime()) - from + carried; return format ? format(at) : formatRunTime(at, { scale }).text; };
   shown.current = text;
 
   // A time that outgrows its scale is written whole; the list widens every seat together.
@@ -158,6 +164,8 @@ export function RunTimer({ start, end, carried = 0, since, scale: own = "seconds
   const first = since ?? start;
   const heldForm = showHeld && first !== undefined ? heldText(new Date(first).getTime(), now, locale) : null;
 
+  // The spoken form stands for the drawn figure only: never for the held or started-at form, nor for a timer with no start.
+  const said = spoken && !heldForm && from !== undefined ? spoken(ms) : undefined;
   const alternatives: Record<string, React.ReactNode> = { time: text, widest: format ? format(scale === "seconds" ? 59_900 : scale === "minutes" ? 3_599_000 : 86_340_000) : WIDEST[scale] };
   if (startedForm) Object.assign(alternatives, heldSample(locale));
   if (heldForm) alternatives[heldForm.show] = heldForm.text;
@@ -168,7 +176,8 @@ export function RunTimer({ start, end, carried = 0, since, scale: own = "seconds
       data-held={hidden ? "" : undefined}
       suppressHydrationWarning
     >
-      <Reserve live show={heldForm ? heldForm.show : "time"} alternatives={alternatives} />
+      <Reserve live show={heldForm ? heldForm.show : "time"} alternatives={alternatives} aria-hidden={said === undefined ? undefined : true} />
+      {said === undefined ? null : <span className="basalt-visually-hidden" suppressHydrationWarning>{said}</span>}
     </time>
   );
 }

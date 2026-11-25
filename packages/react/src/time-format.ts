@@ -53,6 +53,27 @@ export function formatStamp(time: Date | number, { timeZone, locale = "en-US" }:
   return { text, dateTime: `${p.year}-${p.month}-${p.day}T${hour}:${p.minute}:${p.second}` };
 }
 
+/**
+ * A stamp's machine form as an instant: `formatStamp`'s wall clock with the zone's offset ("2026-11-17T14:49:07-06:00", "Z" at UTC), so it names one moment
+ * wherever it is read. A function of its own, so the parts that write only the wall clock do not carry it.
+ */
+export function stampInstant(time: Date | number, { timeZone }: Pick<TimeOptions, "timeZone"> = {}) {
+  const date = new Date(time);
+  const wall = formatStamp(date, { timeZone }).dateTime;
+  // The offset is the wall clock read as UTC less the moment itself, both to the second.
+  const offset = Math.round((Date.parse(`${wall}Z`) - Math.floor(date.getTime() / 1000) * 1000) / 60_000);
+  const abs = Math.abs(offset);
+  return `${wall}${offset ? `${offset < 0 ? "-" : "+"}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}` : "Z"}`;
+}
+
+/** How a zone's name is written, as `Intl.DateTimeFormat` writes it: "short" is "CST" in `en-US`, "shortOffset" "GMT-6", "long" "Central Standard Time". */
+export type TimeZoneNameStyle = "short" | "long" | "shortOffset" | "longOffset" | "shortGeneric" | "longGeneric";
+
+/** The zone's name at a moment, in the locale and style given ("CST"; "CDT" in summer). */
+export function zoneName(time: Date | number, style: TimeZoneNameStyle, { timeZone, locale = "en-US" }: TimeOptions = {}) {
+  return formatter(locale, { timeZone, timeZoneName: style, hour: "numeric" }).formatToParts(new Date(time)).find((part) => part.type === "timeZoneName")?.value ?? "";
+}
+
 /** A clock to the minute as a person reads it, in the locale's hour ("6:42 PM" in `en-US`, "18:42" in `en-GB`), and its machine form (ISO, 24-hour). */
 export function formatClock(time: Date | number, { timeZone, locale = "en-US" }: TimeOptions = {}) {
   const p = parts(new Date(time), "en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });

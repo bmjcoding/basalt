@@ -372,7 +372,7 @@ describe("SourceStamp (D14b)", () => {
       assert.equal((await page.locator("#asking").innerText()).trim(), "asking github");
       assert.equal((await page.locator("#idle").innerText()).trim(), "github, not asked yet");
       assert.equal((await page.locator("#down").innerText()).trim(), "github unreachable");
-      assert.equal(await page.locator("#ok time").getAttribute("datetime"), "2026-11-17T18:52:07");
+      assert.equal(await page.locator("#ok time").getAttribute("datetime"), "2026-11-17T18:52:07Z", "an instant (cimip-gaps-3 E1)");
       for (const id of ["ok", "stale", "asking", "idle", "down"]) {
         const seat = await box(page, `#${id} .basalt-source-seat`);
         near(seat.w, 8, `${id}: seat width`);

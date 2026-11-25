@@ -199,3 +199,77 @@ test("a head's seat holds today's held form and not the dated one; a run started
   await page.clock.runFor(50);
   assert.match(plain(await text(page, "#head")), /^Started [A-Z][a-z]{2} \d{1,2}, \d{4}, \d{1,2}:\d\d [AP]M$/, "a start in another year says its year");
 });
+
+// ---- cimip-gaps-3 E1: whole units at the minutes scale, and the spoken form beside `format`
+describe("whole units at the minutes and hours scales", () => {
+  test("formatRunTime writes whole seconds under a minute at the minutes or hours scale, and is unchanged from a minute", () => {
+    for (const scale of ["minutes", "hours"]) {
+      assert.deepEqual(formatRunTime(0, { scale }), { text: "0 s", dateTime: "PT0S" });
+      assert.deepEqual(formatRunTime(45_900, { scale }), { text: "45 s", dateTime: "PT45S" }, "cut, never rounded up");
+      assert.deepEqual(formatRunTime(59_999, { scale }), { text: "59 s", dateTime: "PT59S" });
+      assert.deepEqual(formatRunTime(754_000, { scale }), formatRunTime(754_000));
+      assert.deepEqual(formatRunTime(45_240_000, { scale }), formatRunTime(45_240_000));
+    }
+    assert.deepEqual(formatRunTime(45_900, { scale: "seconds" }), { text: "45.9 s", dateTime: "PT45.9S" }, "the seconds scale keeps tenths");
+  });
+
+  test("a running timer at the minutes scale counts whole seconds, by the second", async () => {
+    const page = await open(RUN(`<span id="m"><B.RunTimer start={10_000 - 4_500} scale="minutes" /></span>`));
+    assert.equal(await text(page, "#m"), "4 s");
+    assert.equal(await page.evaluate(() => document.querySelector("#m time").getAttribute("datetime")), "PT4S");
+    await page.clock.runFor(400);
+    assert.equal(await text(page, "#m"), "4 s", "no tenths");
+    await page.clock.runFor(200);
+    assert.equal(await text(page, "#m"), "5 s");
+  });
+});
+
+const CIMIP_LIKE = `
+const short = (ms) => { const s = Math.floor(ms / 1000); return s < 60 ? s + "s" : Math.floor(s / 60) + "m " + (s % 60) + "s"; };
+const long = (ms) => { const s = Math.floor(ms / 1000), m = Math.floor(s / 60), r = s % 60; const u = (n, w) => n + " " + w + (n === 1 ? "" : "s"); return m ? u(m, "minute") + " " + u(r, "second") : u(r, "second"); };
+`;
+
+describe("spoken", () => {
+  test("184,000 ms with a short format and a spoken one: draws \"3m 4s\", says \"3 minutes 4 seconds\" once, never live, the ISO duration kept", async () => {
+    const page = await open(`${CIMIP_LIKE}${RUN(`<span id="t"><B.RunTimer start={0} end={184_000} scale="minutes" format={short} spoken={long} /></span>`)}`);
+    assert.equal(await text(page, "#t"), "3m 4s");
+    const r = await page.evaluate(() => {
+      const t = document.querySelector("#t time");
+      return { iso: t.getAttribute("datetime"), hidden: t.querySelector(".basalt-reserve").getAttribute("aria-hidden"), live: t.querySelectorAll("[aria-live],[role=status],[role=log]").length + (t.closest("[aria-live],[role=status],[role=log]") ? 1 : 0) };
+    });
+    assert.deepEqual(r, { iso: "PT3M4S", hidden: "true", live: 0 });
+    const tree = await page.locator("#t").ariaSnapshot();
+    assert.equal((tree.match(/3 minutes 4 seconds/g) ?? []).length, 1, tree);
+    assert.doesNotMatch(tree, /3m 4s/, "the drawn form is not read beside it");
+  });
+
+  test("the seat follows the drawn formatter, never the spoken one", async () => {
+    const page = await open(`${CIMIP_LIKE}${RUN(`<>
+      <span id="a"><B.RunTimer start={0} end={184_000} scale="minutes" format={short} /></span>
+      <span id="b"><B.RunTimer start={0} end={184_000} scale="minutes" format={short} spoken={long} /></span>
+    </>`)}`);
+    assert.equal(await width(page, "#a time"), await width(page, "#b time"));
+  });
+
+  test("left out, today's timer: the drawn figure is what is read, and nothing is hidden", async () => {
+    const page = await open(RUN(`<span id="t"><B.RunTimer start={0} end={184_000} /></span>`));
+    assert.equal(await page.evaluate(() => document.querySelector("#t .basalt-reserve").hasAttribute("aria-hidden")), false);
+    assert.equal(await page.evaluate(() => document.querySelectorAll("#t time > .basalt-visually-hidden").length), 0);
+    assert.match(await page.locator("#t").ariaSnapshot(), /3 min 4 s/);
+  });
+
+  test("the held, hidden and empty forms are unchanged: no spoken form stands for them", async () => {
+    const page = await open(`${CIMIP_LIKE}${RUN(`<>
+      <span id="started"><B.RunTimer start={4_000} format={short} spoken={long} /></span>
+      <span id="hidden"><B.RunTimer start={4_000} format={short} spoken={long} whenHeld="hidden" /></span>
+      <span id="empty"><B.RunTimer format={short} spoken={long} /></span>
+    </>`)}`);
+    assert.equal(await page.evaluate(() => document.querySelectorAll("#empty time > .basalt-visually-hidden").length), 0, "no start, nothing said");
+    await hold(page, true);
+    await page.clock.runFor(50);
+    assert.match(plain(await text(page, "#started")), /^Started /);
+    assert.equal(await page.evaluate(() => document.querySelectorAll("#started time > .basalt-visually-hidden").length), 0, "the started-at form is read as drawn");
+    assert.equal(await page.evaluate(() => document.querySelector("#started .basalt-reserve").hasAttribute("aria-hidden")), false);
+    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#hidden time")).visibility), "hidden", "the hidden form hides the spoken words with it");
+  });
+});

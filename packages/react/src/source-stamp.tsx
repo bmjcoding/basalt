@@ -4,7 +4,8 @@ import { StatusLine } from "./filter-result";
 import { Reserve } from "./reserve";
 import { Spinner } from "./spinner";
 import { TextButton } from "./text-button";
-import { formatStamp } from "./time-format";
+import { formatStamp, stampInstant, zoneName } from "./time-format";
+import type { TimeZoneNameStyle } from "./time-format";
 import { join } from "./utils";
 
 // ---- Where a figure came from, and what a source says while it has nothing (DECISIONS 162, D14b: V5, V6, R8, B8) ----
@@ -20,6 +21,11 @@ export interface SourceStampProps extends Omit<React.ComponentProps<"span">, "ch
   at?: Date | number;
   /** The zone the time is written in: an IANA name. Defaults to the runtime's. */
   timeZone?: string;
+  /**
+   * Writes the zone's name after the time, inside its `time` and so in the stamp's accessible name ("github 18:52:07 CST"), joined by a no-break
+   * space: "short" ("CST" in `en-US`), "shortOffset" ("GMT-6") or another of `Intl.DateTimeFormat`'s styles. Left out, no zone is written.
+   */
+  timeZoneName?: TimeZoneNameStyle;
   /** The locale the time is written in (digits and separators; the hour stays 24-hour, a stamp to the second). Default `en-US`. */
   locale?: string | string[];
   /** Makes the stamp a button that opens the request: "Source: github 18:52:07. Open the request." */
@@ -44,9 +50,11 @@ function Mark({ state }: { state: SourceStatus }) {
  * word. Stale and unreachable are in secondary ink and the rest tertiary. One 8 by 10 seat holds every mark, so a state that changes moves
  * nothing, and `space-1-5` follows it. With `onOpen` it is a button, 24 tall (44 on a touch screen).
  */
-export function SourceStamp({ source, state, at, timeZone, locale, onOpen, className, ...props }: SourceStampProps) {
-  const stamp = at !== undefined && (state === "answered" || state === "stale") ? formatStamp(at, { timeZone, locale }) : null;
-  const time = stamp ? <time dateTime={stamp.dateTime} className="basalt-time">{stamp.text}</time> : null;
+export function SourceStamp({ source, state, at, timeZone, timeZoneName, locale, onOpen, className, ...props }: SourceStampProps) {
+  const when = at !== undefined && (state === "answered" || state === "stale") ? at : undefined;
+  const zone = when !== undefined && timeZoneName ? zoneName(when, timeZoneName, { timeZone, locale }) : "";
+  // `datetime` is the instant (with its offset), so the stamp names one moment wherever it is read.
+  const time = when !== undefined ? <time dateTime={stampInstant(when, { timeZone })} className="basalt-time">{formatStamp(when, { timeZone, locale }).text}{zone ? `\u00a0${zone}` : null}</time> : null;
   const words =
     state === "asking" ? <>asking {source}</>
     : state === "idle" ? <>{source}, not asked yet</>
@@ -88,8 +96,8 @@ const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
  * skeleton. Both sentences stand in one cell (`Reserve`), so the band keeps its height, and the failure is said once, politely.
  */
 export function SourceStateWords({ what, state, tried, why, timeZone, locale, onRetry, alternative, className, ...props }: SourceStateWordsProps) {
-  const stamp = tried !== undefined ? formatStamp(tried, { timeZone, locale }) : null;
-  const detail = stamp ? <> (tried <time dateTime={stamp.dateTime} className="basalt-time">{stamp.text}</time>{why ? `: ${why}` : ""})</> : why ? <> ({why})</> : null;
+  const stamp = tried !== undefined ? { text: formatStamp(tried, { timeZone, locale }).text, instant: stampInstant(tried, { timeZone }) } : null;
+  const detail = stamp ? <> (tried <time dateTime={stamp.instant} className="basalt-time">{stamp.text}</time>{why ? `: ${why}` : ""})</> : why ? <> ({why})</> : null;
   return (
     <p {...props} className={join("basalt-source-state", className)} data-state={state}>
       <Reserve
