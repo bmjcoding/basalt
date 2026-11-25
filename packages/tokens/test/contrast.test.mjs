@@ -1168,3 +1168,27 @@ test("opacity-recede-2 to -5 are read by a run timeline's tail and nothing else 
   const skill = new URL("../../../tools/html-skill/src/modules/runs.css", import.meta.url);
   if (fs.existsSync(skill)) assert.ok(!/--basalt-opacity-recede-[2-5]\b/.test(fs.readFileSync(skill, "utf8")), "the HTML skill draws no tail");
 });
+
+// cimip-gaps-3 t6 (DECISIONS 385): the pairs its parts draw, each in both themes and under more contrast. Tertiary on a code block's wells (the line
+// numbers and the sideways line under a CodeBlock), tertiary on the popup levels (MenuText), and a command row that cannot run: its reason is tertiary at
+// rest on the command surfaces (the modal at level 1, the list at 1 to 3) and secondary on the lit row's plate.
+for (const theme of THEMES) {
+  test(`${theme}: t6's pairs hold 4.5:1: code numbers and the sideways line on every well, MenuText on every popup level, a reason at rest and lit`, () => {
+    const wells = ["surface-sunken", "surface-well-2", "surface-well-3"].map((n) => [n, color(theme, n)]);
+    const popups = ["surface-1", "surface-2", "surface-3"].map((n) => [n, color(theme, n)]);
+    for (const [mode, read] of [["", (n) => color(theme, n)], [" under more contrast", (n) => more(theme, n)]]) {
+      for (const [name, bg] of [...wells, ...popups]) {
+        const r = ratio(over(read("text-tertiary"), bg), bg);
+        assert.ok(r >= 4.5, `${theme}: tertiary on ${name} is ${fmt(r)}:1${mode}`);
+      }
+      for (const level of [1, 2, 3]) {
+        const plate = plateOf(theme, level);
+        const r = ratio(over(read("text-secondary"), plate), plate);
+        assert.ok(r >= 4.5, `${theme}: a reason (secondary) on the lit plate at level ${level} is ${fmt(r)}:1${mode}`);
+        // A match in a reason is primary at 600, at rest and lit.
+        const m = ratio(over(read("text-primary"), plate), plate);
+        assert.ok(m >= 4.5, `${theme}: a mark (primary) on the lit plate at level ${level} is ${fmt(m)}:1${mode}`);
+      }
+    }
+  });
+}
