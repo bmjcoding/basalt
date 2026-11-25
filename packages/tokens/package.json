@@ -10,6 +10,7 @@
     "./accents.css": "./dist/css/accents.css",
     "./shadcn.css": "./dist/css/shadcn.css",
     "./breakpoints.css": "./dist/css/breakpoints.css",
+    "./base.css": "./dist/css/base.css",
     "./tokens.json": "./dist/json/tokens.json",
     "./breakpoints": {
       "types": "./dist/js/breakpoints.d.ts",

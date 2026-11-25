@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { Reserve } from "./reserve";
 import { STAGE_WORDS } from "./run-format";
-import type { Moment, StageState } from "./run-format";
+import type { Moment, RunTimeGrain, StageState } from "./run-format";
 import { RunTimer } from "./run-timer";
 import { warnRun } from "./run-warn";
 import { StageMark } from "./stage-mark";
@@ -31,9 +31,9 @@ export interface RunStageProps {
   start?: Moment;
   end?: Moment;
   /** Writes the stage's time, in a list and on a rail (see `RunTimer`'s `format`): its seat's width follows it. */
-  format?: (ms: number) => string;
+  format?: (ms: number, grain: RunTimeGrain) => string;
   /** Says the stage's time, when the drawn form is short for the ear (see `RunTimer`'s `spoken`). */
-  spoken?: (ms: number) => string;
+  spoken?: (ms: number, grain: RunTimeGrain) => string;
   /** What opens under a list's stage: a failure's reason, what waits. A `p` is the reason, a `strong` its loud words, a `small` its fact. A rail ignores it. */
   detail?: React.ReactNode;
   /** The detail's one action: a `Button` whose `onClick` returns the app's promise ("Retry", "Approve"). A rail ignores it. */
@@ -42,8 +42,8 @@ export interface RunStageProps {
 }
 
 const DRAWN: Record<"list" | "rail", Record<StageState, boolean>> = {
-  list: { queued: true, running: true, success: false, failed: true, skipped: true, canceled: true, retrying: true },
-  rail: { queued: false, running: false, success: false, failed: true, skipped: true, canceled: true, retrying: true },
+  list: { idle: true, queued: true, running: true, success: false, failed: true, skipped: true, canceled: true, retrying: true },
+  rail: { idle: false, queued: false, running: false, success: false, failed: true, skipped: true, canceled: true, retrying: true },
 };
 
 /** Whether a slot holds something drawn: `null`, `false`, `true` and "" (what `cond && <Button />` leaves) are nothing, as React draws them. */

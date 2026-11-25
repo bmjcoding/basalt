@@ -4,6 +4,7 @@
 //   dist/components.css the component styles, with the tokens package's accent classes, in @layer basalt
 //   dist/styles.css     tokens + components: the one stylesheet most apps import
 //   dist/fonts.css      Geist Sans and Mono @font-face rules, with the variable font files, and the Geist Fallback face (three, one per weight)
+//   dist/base.css       the opt-in page base, the tokens package's base.css as it ships: never part of styles.css
 //   .demo/              a page with every component in both themes, for the browser tests
 
 import { execFileSync } from "node:child_process";
@@ -414,6 +415,8 @@ const tokens = fs.readFileSync(require.resolve("@srasyndicate/basalt-tokens/toke
 // The two style sheets ship without their comments and whitespace (minify-css.mjs); the commented source stays in the repository and in the demo page below.
 fs.writeFileSync(path.join(dist, "components.css"), minifyCss(components));
 fs.writeFileSync(path.join(dist, "styles.css"), minifyCss(`${tokens}\n${components}`));
+// The page base: one source (the tokens package's), two doors. Opt-in, so styles.css never includes it.
+fs.copyFileSync(require.resolve("@srasyndicate/basalt-tokens/base.css"), path.join(dist, "base.css"));
 
 // The demo page: every component, both themes, bundled with React for the browser tests.
 const demo = path.join(here, ".demo");

@@ -45,7 +45,8 @@
     "./head/loops.js": "./dist/head/loops.js",
     "./styles.css": "./dist/styles.css",
     "./components.css": "./dist/components.css",
-    "./fonts.css": "./dist/fonts.css"
+    "./fonts.css": "./dist/fonts.css",
+    "./base.css": "./dist/base.css"
   },
   "bin": {
     "basalt-diagram-export": "./bin/basalt-diagram-export.mjs"

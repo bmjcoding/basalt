@@ -1,5 +1,6 @@
 import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
 import { CircleIcon } from "@phosphor-icons/react/dist/csr/Circle";
+import { CircleDashedIcon } from "@phosphor-icons/react/dist/csr/CircleDashed";
 import { MinusCircleIcon } from "@phosphor-icons/react/dist/csr/MinusCircle";
 import { ProhibitIcon } from "@phosphor-icons/react/dist/csr/Prohibit";
 import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
@@ -11,10 +12,11 @@ import { Spinner, useSharedClock } from "./spinner";
 import type { StageState } from "./run-format";
 import { join } from "./utils";
 
-// ---- Stages and runs (DECISIONS 316): the seven states and their mark ----
+// ---- Stages and runs (DECISIONS 316; idle, cimip-gaps-3 T1): the eight states and their mark ----
 // One mark a state at 16, 20 or 24, aria-hidden, in a seat that never changes size; the state's word carries the state (where it is drawn and where it
 // is only said is foundations' table in "Stages and runs"). Queued is Phosphor Bold Circle in secondary ink, breathing by opacity from opacity-queued
-// to 1 on duration-loop-fade (the one loop a state that is not running has; still under reduced motion, the hold, forced colours and print). Running
+// to 1 on duration-loop-fade (the one loop a state that is not running has; still under reduced motion, the hold, forced colours and print). Idle (not
+// started) is Phosphor Bold CircleDashed in tertiary and never animates, in any mode: its dashed shape is what parts it from queued once motion stops. Running
 // and retrying are the ring. Passed is the outline CheckCircle in secondary, failed the outline XCircle in danger, skipped MinusCircle and canceled
 // Prohibit in tertiary. No filled disc anywhere. A change of state crossfades in the one seat: the old mark fades out as the new fades in, over
 // duration-fast on ease-out, kept under reduced motion (opacity only) and landing at once under the hold.
@@ -38,6 +40,7 @@ function Breath({ children }: { children: React.ReactNode }) {
 
 function Glyph({ state, size }: { state: StageState; size: 16 | 20 | 24 }) {
   switch (state) {
+    case "idle": return <Icon icon={CircleDashedIcon} size={size} />;
     case "queued": return <Breath><Icon icon={CircleIcon} size={size} /></Breath>;
     case "running":
     case "retrying": return <Spinner size={size} />;

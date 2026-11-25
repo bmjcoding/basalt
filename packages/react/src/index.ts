@@ -187,7 +187,7 @@ export { formatAge, formatClock, formatCountdown, formatDay, formatElapsed, form
 export type { TimeOptions, TimeZoneNameStyle } from "./time-format";
 // Stages and runs (DECISIONS 316): the seven states' mark, a run's time, a status that changes in place, a run's one voice.
 export { formatRunTime, STAGE_WORDS } from "./run-format";
-export type { Moment, RunTimeScale, StageState } from "./run-format";
+export type { Moment, RunTimeGrain, RunTimeScale, StageState } from "./run-format";
 export { StageMark } from "./stage-mark";
 export type { StageMarkProps } from "./stage-mark";
 export { RunTimer } from "./run-timer";

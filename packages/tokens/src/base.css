@@ -1,0 +1,17 @@
+/* The page base (cimip-gaps-3 T1): opt-in, never in components.css or styles.css, so importing a component never repaints a page Basalt does not
+   own. Import once, after the tokens, before the app's own CSS:
+     @import "@srasyndicate/basalt-tokens/base.css";   (or "@srasyndicate/basalt/base.css")
+   In @layer basalt, so any unlayered rule of the app's wins and import order does not matter: a site that reads at text-md overrides font-size and
+   line-height in one rule of its own. It sets nothing on html (the rem lengths assume the browser's 16px, and a reader's text setting is theirs) and
+   resets nothing else; margin: 0 is the one reset, because the browser's 8px frame breaks every sticky bar and full-bleed stage. */
+@layer basalt {
+  body {
+    margin: 0;
+    background: var(--basalt-surface-page);
+    color: var(--basalt-text-primary);
+    font-family: var(--basalt-font-family-sans);
+    font-size: var(--basalt-text-base-size);
+    line-height: var(--basalt-text-base-line-height);
+    font-weight: var(--basalt-font-weight-regular);
+  }
+}

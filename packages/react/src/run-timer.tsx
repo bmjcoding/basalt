@@ -3,7 +3,7 @@ import * as React from "react";
 import { useLoops } from "./loops";
 import { Reserve } from "./reserve";
 import { formatRunTime } from "./run-format";
-import type { Moment, RunTimeScale } from "./run-format";
+import type { Moment, RunTimeGrain, RunTimeScale } from "./run-format";
 import { formatClock, formatDay } from "./time-format";
 import { warnRun } from "./run-warn";
 import { join } from "./utils";
@@ -14,7 +14,8 @@ declare const process: { env: { NODE_ENV?: string } };
 // Tabular figures in Geist Mono at text-xs, tertiary, a `time` element with an ISO duration, never a live region. Under a minute it is "12.3 s" and
 // changes every 100ms (on a rail at the minutes scale "45 s", by the second, its `dateTime` still to the tenth); to an hour "12 min 34 s", by the second; to a day "12 hr 34 min", by the minute; then "3 days". One shared interval, made by
 // its first reader and cleared with its last: nothing runs at import. It stands in one `Reserve` cell as wide as the longest form its scale can show,
-// end-aligned, never empty, so a column of times is one width from the first frame.
+// end-aligned, never empty, so a column of times is one width from the first frame. Under reduced motion a running time counts whole minutes ("<1 min",
+// "4 min"), drawn, said and in `dateTime` from one floored length, and changes once a minute; it is exact again at `end` (cimip-gaps-3 T1).
 
 const ORDER: Record<RunTimeScale, number> = { seconds: 0, minutes: 1, hours: 2 };
 /** The widest form each scale can show, in tabular figures. */
@@ -73,14 +74,19 @@ export interface RunTimerProps {
    */
   whenHeld?: "started" | "hidden";
   locale?: string;
-  /** Writes a length for an app in another language. It must return the same width for a scale's widest form. The seat's width follows it. */
-  format?: (ms: number) => string;
+  /**
+   * Writes a length for an app in another language. It must return the same width for a scale's widest form. The seat's width follows it. While the
+   * timer runs under reduced motion it is given the length floored to the whole minute and the grain `"minute"` (so a one-argument formatter writes
+   * "3m 0s" and cannot keep ticking); otherwise the true length and `"exact"`.
+   */
+  format?: (ms: number, grain: RunTimeGrain) => string;
   /**
    * Says a length, when the drawn form is short for the ear ("3m 4s" spoken "3 minutes 4 seconds"). Given, the drawn figure is hidden from assistive
    * technology and this is read in its place, once: never a live region. `dateTime` stays the ISO duration. The held, hidden and started-at forms are
-   * unchanged. Left out, the drawn figure is what is read.
+   * unchanged. Left out, the drawn figure is what is read (and with no `format` either, the under-a-minute "<1 min" is said "less than 1 minute").
+   * It is given the same length and grain as `format`.
    */
-  spoken?: (ms: number) => string;
+  spoken?: (ms: number, grain: RunTimeGrain) => string;
   className?: string;
 }
 
@@ -113,6 +119,22 @@ function subscribePrint(notify: () => void) {
 const printing = () => printingNow || (printQuery?.matches ?? false);
 const usePrinting = () => React.useSyncExternalStore(subscribePrint, printing, () => false);
 
+// ---- reduced motion, read before paint: the server cannot know the setting, so it writes the exact figure; the client reads it in a layout effect, so
+// no exact figure is painted after hydration and the change to minutes lands once. The query is made by the first reader, never at import.
+const REDUCED = "(prefers-reduced-motion: reduce)";
+function useReducedBeforePaint() {
+  const [reduced, setReduced] = React.useState(false);
+  React.useLayoutEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia(REDUCED);
+    const apply = () => setReduced(query.matches);
+    apply();
+    query.addEventListener("change", apply);
+    return () => query.removeEventListener("change", apply);
+  }, []);
+  return reduced;
+}
+
 function heldText(since: number, now: number, locale: string | undefined) {
   const clock = formatClock(since, { locale });
   const sameDay = new Date(since).toDateString() === new Date(now).toDateString();
@@ -130,10 +152,13 @@ export function RunTimer({ start, end, carried = 0, since, scale: own = "seconds
   const { held: loopsHeld } = useLoops();
   const inPrint = usePrinting();
   const held = loopsHeld || inPrint;
+  const reduced = useReducedBeforePaint();
   const running = start !== undefined && end === undefined;
+  // One grain for the drawn figure, the spoken words and `dateTime`: whole minutes while running under reduced motion and not held, else exact.
+  const grain: RunTimeGrain = reduced && running && !held ? "minute" : "exact";
   const [now, setNow] = React.useState(() => Date.now());
   // The shared interval asks every 100ms; the timer draws again only when its written figure or its spoken words change (every 100ms under a
-  // minute, by the second to an hour, by the minute after, or as often as `spoken` changes).
+  // minute, by the second to an hour, by the minute after, or as often as `spoken` changes; once a minute at the minute grain).
   const textAt = React.useRef<(t: number) => string>(() => "");
   const shown = React.useRef("");
   React.useEffect(() => {
@@ -145,14 +170,23 @@ export function RunTimer({ start, end, carried = 0, since, scale: own = "seconds
   if (process.env.NODE_ENV !== "production" && carried && since === undefined) warnRun("RunTimer", "`carried` is given without `since`: the held form would show when this attempt started, not when the work first did.");
 
   const from = start === undefined ? undefined : new Date(start).getTime();
-  const ms = from === undefined ? 0 : (end === undefined ? now : new Date(end).getTime()) - from + carried;
-  const length = formatRunTime(ms);
+  // Clock skew never hands a negative length on; `carried` is added before the floor, so a retry counts on.
+  const lengthAt = (t: number) => { const raw = from === undefined ? 0 : (end === undefined ? t : new Date(end).getTime()) - from + carried; return Number.isFinite(raw) ? Math.max(0, raw) : 0; };
+  const ms = lengthAt(now);
+  // What the app's formatters and the default forms are given: floored to the whole minute at the minute grain (Basalt floors before it calls them).
+  const atGrain = (at: number) => (grain === "minute" ? Math.floor(at / 60_000) * 60_000 : at);
+  const length = formatRunTime(atGrain(ms), grain);
   const whole = list?.whole === true;
-  const draw = (at: number) => (format ? format(at) : whole && at < 60_000 ? `${Math.floor(Math.max(0, at) / 1000)} s` : formatRunTime(at).text);
+  const draw = (at: number) => {
+    const g = atGrain(at);
+    if (format) return format(g, grain);
+    if (grain === "exact" && whole && g < 60_000) return `${Math.floor(g / 1000)} s`;
+    return formatRunTime(g, grain).text;
+  };
   const text = from === undefined ? "\u00a0" : draw(ms);
   // What the tick compares: the drawn figure and, when given, the spoken words, so neither goes stale while the other holds.
-  const spokenKey = (at: number) => (spoken ? `\u0000${spoken(at)}` : "");
-  textAt.current = (t) => { if (from === undefined) return "\u00a0"; const at = (end === undefined ? t : new Date(end).getTime()) - from + carried; return draw(at) + spokenKey(at); };
+  const spokenKey = (at: number) => (spoken ? `\u0000${spoken(atGrain(at), grain)}` : "");
+  textAt.current = (t) => { if (from === undefined) return "\u00a0"; const at = lengthAt(t); return draw(at) + spokenKey(at); };
   shown.current = from === undefined ? text : text + spokenKey(ms);
 
   // A time that outgrows its scale is written whole; the list widens every seat together.
@@ -170,9 +204,13 @@ export function RunTimer({ start, end, carried = 0, since, scale: own = "seconds
   const first = since ?? start;
   const heldForm = showHeld && first !== undefined ? heldText(new Date(first).getTime(), now, locale) : null;
 
-  // The spoken form stands for the drawn figure only: never for the held or started-at form, nor for a timer with no start.
-  const said = spoken && !heldForm && from !== undefined ? spoken(ms) : undefined;
-  const alternatives: Record<string, React.ReactNode> = { time: text, widest: format ? format(scale === "seconds" ? 59_900 : scale === "minutes" ? 3_599_000 : 86_340_000) : WIDEST[scale] };
+  // The spoken form stands for the drawn figure only: never for the held or started-at form, nor for a timer with no start. With no `format` and no
+  // `spoken`, the minute grain's under-a-minute form is said in words ("less than 1 minute"); an app's `format` alone is read as drawn.
+  const said = heldForm || from === undefined ? undefined : spoken ? spoken(atGrain(ms), grain) : format ? undefined : length.spoken;
+  const widestMs = scale === "seconds" ? 59_900 : scale === "minutes" ? 3_599_000 : 86_340_000;
+  const alternatives: Record<string, React.ReactNode> = { time: text, widest: format ? format(widestMs, "exact") : WIDEST[scale] };
+  // The default minute forms fit every scale's seat ("<1 min" is as wide as "00.0 s"); an app's own forms are held too while reduced motion is on.
+  if (format && reduced) Object.assign(alternatives, { minuteFirst: format(0, "minute"), minuteWidest: format(Math.floor(widestMs / 60_000) * 60_000, "minute") });
   if (startedForm) Object.assign(alternatives, heldSample(locale));
   if (heldForm) alternatives[heldForm.show] = heldForm.text;
   return (

@@ -86,7 +86,7 @@
       },
       "chrome": {
         "$value": { "colorSpace": "oklch", "components": [0, 0, 0], "alpha": 0.925 },
-        "$description": "The smoked fill of a sticky header bar (basalt-chrome): the page, #000, at 92.5% (the owner's midpoint between the first smoke and solid, DECISIONS 146 E), over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, in print. Web only: native bars use the platform bar material or stay opaque."
+        "$description": "The smoked fill of a sticky header bar (basalt-chrome): the page, #000, at 92.5% (the owner's midpoint between the first smoke and solid, DECISIONS 146 E), over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, under more contrast, in print. Web only: native bars use the platform bar material or stay opaque."
       },
       "placeholder": {
         "$value": "{color.neutral.9}",
