@@ -1,0 +1,172 @@
+{
+ "$comment": "Backlog four, item 1: a stack whose trunk would pass a card (nestedTrunk: A to B passes C when stacked, so it is replanned into the end gutter) and a stack that needs a fifth end lane (fiveLanes: bare, with its one line where the key sits).",
+ "nestedTrunk": {
+  "type": "architecture",
+  "title": "A trunk out of a nested group",
+  "summary": "s",
+  "legend": {
+   "main": "Request path",
+   "plain": "Call",
+   "dashed": "Async"
+  },
+  "groups": [
+   {
+    "id": "o",
+    "label": "Outer"
+   },
+   {
+    "id": "i",
+    "label": "Inner",
+    "parent": "o"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "top",
+    "name": "TOP",
+    "kind": "part",
+    "detail": "a detail",
+    "col": 1,
+    "row": 1
+   },
+   {
+    "id": "a",
+    "name": "A",
+    "kind": "part",
+    "detail": "a detail",
+    "col": 2,
+    "row": 1,
+    "group": "i"
+   },
+   {
+    "id": "c",
+    "name": "C",
+    "kind": "part",
+    "detail": "a detail",
+    "col": 2,
+    "row": 2,
+    "branch": true
+   },
+   {
+    "id": "b",
+    "name": "B",
+    "kind": "part",
+    "detail": "a detail",
+    "col": 3,
+    "row": 2,
+    "branch": true
+   }
+  ],
+  "edges": [
+   {
+    "from": "top",
+    "to": "a",
+    "kind": "main"
+   },
+   {
+    "from": "a",
+    "to": "c"
+   },
+   {
+    "from": "a",
+    "to": "b",
+    "label": "reads"
+   }
+  ]
+ },
+ "fiveLanes": {
+  "type": "architecture",
+  "title": "Five overlapping end lines",
+  "summary": "s",
+  "legend": {
+   "main": "Request path",
+   "plain": "Call",
+   "dashed": "Async"
+  },
+  "nodes": [
+   {
+    "id": "n0",
+    "name": "N0",
+    "kind": "part",
+    "detail": "a detail",
+    "col": 1,
+    "row": 1
+   },
+   {
+    "id": "n1",
+    "name": "N1",
+    "kind": "part",
+    "detail": "a detail",
+    "col": 2,
+    "row": 1
+   },
+   {
+    "id": "n2",
+    "name": "N2",
+    "kind": "part",
+    "detail": "a detail",
+    "col": 3,
+    "row": 1
+   },
+   {
+    "id": "n3",
+    "name": "N3",
+    "kind": "part",
+    "detail": "a detail",
+    "col": 4,
+    "row": 1
+   },
+   {
+    "id": "n4",
+    "name": "N4",
+    "kind": "part",
+    "detail": "a detail",
+    "col": 5,
+    "row": 1
+   },
+   {
+    "id": "n5",
+    "name": "N5",
+    "kind": "part",
+    "detail": "a detail",
+    "col": 6,
+    "row": 1
+   },
+   {
+    "id": "n6",
+    "name": "N6",
+    "kind": "part",
+    "detail": "a detail",
+    "col": 7,
+    "row": 1
+   }
+  ],
+  "edges": [
+   {
+    "from": "n0",
+    "to": "n1",
+    "kind": "main"
+   },
+   {
+    "from": "n0",
+    "to": "n2"
+   },
+   {
+    "from": "n0",
+    "to": "n3"
+   },
+   {
+    "from": "n0",
+    "to": "n4"
+   },
+   {
+    "from": "n0",
+    "to": "n5"
+   },
+   {
+    "from": "n0",
+    "to": "n6"
+   }
+  ]
+ }
+}

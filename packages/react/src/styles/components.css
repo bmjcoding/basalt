@@ -5498,6 +5498,9 @@
   .basalt-diagram-key { padding-block-start: var(--basalt-space-3); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
   .basalt-diagram-legend { display: flex; flex-wrap: wrap; gap: var(--basalt-space-2) var(--basalt-space-5); margin: 0; padding: 0; list-style: none; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
   .basalt-diagram-entry { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
+  /* A bare stack's one line (backlog four, 1), where the key sits and first in it; the key's entries that are still shown follow at the legend's row gap. */
+  .basalt-diagram-bare-note { margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
+  .basalt-diagram-bare-note:not([hidden]) + .basalt-diagram-legend:has(> .basalt-diagram-entry:not([data-line])) { margin-block-start: var(--basalt-space-2); }
   .basalt-diagram[data-layout="drawn"] .basalt-diagram-entry[data-when="stacked"], .basalt-diagram[data-layout="stacked"] .basalt-diagram-entry[data-when="drawn"], .basalt-diagram:not([data-layout]) .basalt-diagram-entry[data-when="drawn"] { display: none; }
   .basalt-diagram-swatch { flex: none; overflow: visible; }
   .basalt-diagram-swatch-shape { fill: var(--_ground); stroke: var(--basalt-diagram-structure); stroke-width: var(--basalt-size-hairline); }
@@ -5645,7 +5648,7 @@
     .basalt-diagram .basalt-diagram-group, .basalt-diagram .basalt-diagram-gbox { border-color: GrayText; }
     .basalt-diagram .basalt-diagram-lane + .basalt-diagram-lane::before, .basalt-diagram .basalt-diagram-band::before { border-color: GrayText; }
     .basalt-diagram .basalt-diagram-hint { color: GrayText; }
-    .basalt-diagram :is(.basalt-diagram-kind, .basalt-diagram-name, .basalt-diagram-detail, .basalt-diagram-glabel, .basalt-diagram-lane-name, .basalt-diagram-title, .basalt-diagram-source, .basalt-diagram-num, .basalt-diagram-mlabel, .basalt-diagram-route, .basalt-diagram-note, .basalt-diagram-band, .basalt-diagram-tname, .basalt-diagram-cname, .basalt-diagram-keyseat, .basalt-diagram-ctype, .basalt-diagram-more, .basalt-diagram-legend, .basalt-diagram-fk-mark, .basalt-diagram-key-letters) { color: CanvasText; }
+    .basalt-diagram :is(.basalt-diagram-kind, .basalt-diagram-name, .basalt-diagram-detail, .basalt-diagram-glabel, .basalt-diagram-lane-name, .basalt-diagram-title, .basalt-diagram-source, .basalt-diagram-num, .basalt-diagram-mlabel, .basalt-diagram-route, .basalt-diagram-note, .basalt-diagram-band, .basalt-diagram-tname, .basalt-diagram-cname, .basalt-diagram-keyseat, .basalt-diagram-ctype, .basalt-diagram-more, .basalt-diagram-legend, .basalt-diagram-bare-note, .basalt-diagram-fk-mark, .basalt-diagram-key-letters) { color: CanvasText; }
     .basalt-diagram .basalt-diagram-node:focus-visible { outline-color: Highlight; }
     /* The focal node is CanvasText under Canvas ink with forced-color-adjust: none, every colour set by hand, so no backplate sits under its words. */
     .basalt-diagram .basalt-diagram-node[data-focal], .basalt-diagram .basalt-diagram-node[data-focal][data-near] { forced-color-adjust: none; background: CanvasText; border-color: CanvasText; }

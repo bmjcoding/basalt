@@ -1070,6 +1070,9 @@ export interface Dyn {
   /** A drawn layout of one column (the one-column ruling, diagrams-cimip): its column's least width, in px. The stylesheet caps the drawing at
    *  size-breakpoint-container, or at this where it is more, so the cap never takes the track under its minimum. */
   one?: number;
+  /** A stack's lines planned again as end lines in the gutter (backlog four, 1), by edge index: their first stacked route passed a card they do not
+   *  end on. Set only on the stacked layout. */
+  moved?: number[];
 }
 
 export interface TreeIds { base: string }
@@ -1137,15 +1140,17 @@ export function columnCount(m: Model): number { return m.type === "sequence" ? m
 export type StackRoute = "down" | "up" | "trunk" | "rail" | "end-down" | "end-up";
 export interface StackPlan { routes: StackRoute[]; gutter: boolean; lanes: number[]; exits: number[]; gaps: Record<string, number>; third: boolean; laneCount: number }
 
-/** The stacked drawing's routes, end lanes and the gap above each card (in px of the space scale), from the author's order. */
-export function stackPlan(m: Model): StackPlan {
-  return memo(m, "plan", () => planStack(m));
+/** The stacked drawing's routes, end lanes and the gap above each card (in px of the space scale), from the author's order. `moved` (backlog four, 1):
+ *  lines whose stacked route would pass a card they do not end on, planned again as end lines in the end gutter. */
+export function stackPlan(m: Model, moved?: readonly number[]): StackPlan {
+  return memo(m, moved?.length ? `plan:${moved.join(",")}` : "plan", () => planStack(m, moved ?? []));
 }
-function planStack(m: Model): StackPlan {
+function planStack(m: Model, moved: readonly number[]): StackPlan {
   const order = m.nodes;
   const spine = (i: number) => m.type === "data-flow" || !order[i]!.branch;
-  const routes: StackRoute[] = m.edges.map((e) => {
+  const routes: StackRoute[] = m.edges.map((e, k) => {
     const a = m.byId.get(e.from)!.i, b = m.byId.get(e.to)!.i;
+    if (moved.includes(k)) return b > a ? "end-down" : "end-up";
     const between = order.slice(Math.min(a, b) + 1, Math.max(a, b));
     const onlyBranches = between.every((n) => !spine(n.i));
     if (b === a + 1 && !(spine(a) && !spine(b))) return "down";
@@ -1163,7 +1168,8 @@ function planStack(m: Model): StackPlan {
     const [lo, hi] = span(e);
     return !spine(a) && order.slice(lo + 1, hi).every((n) => !spine(n.i)) && ends.every((o) => o.e === e || !overlaps(o.e, e));
   });
-  const gutter = ends.length > 0 && (m.type === "data-flow" || !laneOk);
+  // A moved line runs outside every card and group box: in the gutter, with every other end line.
+  const gutter = ends.length > 0 && (m.type === "data-flow" || !laneOk || moved.length > 0);
   // Lanes in the gutter, nested (1.7 rule 3): of two overlapping lines the one that travels farther takes the outer lane; equal travel, the
   // earlier is inside. Allocated across each overlapping set: shortest first, each one lane outside every overlapping line already placed,
   // so no two overlapping lines share a lane. A line that would need a fifth lane is the development error (`third`).
@@ -1325,6 +1331,16 @@ function buildKey(P: string, m: Model): VElement | null {
   if (m.groups.length && m.legend.group) entry(boxSwatch(P, "group"), m.legend.group);
   if (!entries.length) return null;
   return h("div", { class: `${P}-key` }, h("ul", { class: `${P}-legend`, "aria-label": "Key" }, entries));
+}
+
+/** What a bare stack says where its key sits (backlog four, 1): the owner's words, written once, here. */
+export const BARE_NOTE = "Too many connections to draw at this width. Each one is in the list below.";
+/** The key's seat: the key, and first in it the bare stack's one line (backlog four, 1), real text in the reading order, hidden while lines are drawn. A
+ *  figure with no key keeps the seat for that line alone. Always in the markup, so a page that only writes attributes (the skill's) can show it. */
+function keySeat(P: string, m: Model, bare: boolean): VElement {
+  const note = h("p", { class: `${P}-bare-note`, hidden: !bare }, BARE_NOTE);
+  const key = keyTree(P, m);
+  return key ? h(key.t, key.a, note, ...key.c) : h("div", { class: `${P}-key`, hidden: !bare }, note);
 }
 
 /** The swatch drawn inline in the stacked sequence and in its list: a short arrow like its kind. */
@@ -1771,7 +1787,7 @@ const oneColumnTurnBacks = (m: Model) => m.type === "schema" && m.cols === 1 && 
 export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   const P = o.prefix;
   const ids = idsOf(o.base);
-  const plan = m.type === "sequence" || m.type === "schema" || (m.ext && !m.ext.routed) ? null : stackPlan(m);
+  const plan = m.type === "sequence" || m.type === "schema" || (m.ext && !m.ext.routed) ? null : stackPlan(m, dyn.moved);
   const ctx: TreeContext = { P, ids, level: o.level, plan, hidden: o.hiddenClass };
   const drawn = dyn.layout === "drawn";
   const stops = hasStops(m, dyn);
@@ -1840,7 +1856,7 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
     "aria-describedby": group ? (stops ? `${ids.summary} ${ids.keys}` : ids.summary) : undefined,
     "data-stops": stops ? "" : undefined,
   }, drawingChildren(ctx, m, dyn), m.text ? null : h("div", { class: `${P}-ink`, "aria-hidden": "true" }), h("span", { class: `${P}-ruler`, "aria-hidden": "true" })),
-  keyTree(P, m),
+  keySeat(P, m, Boolean(dyn.bare)),
   h("p", { class: `${P}-hint`, "data-kbd-hint": "", "aria-hidden": "true" }, { slot: "hint" }),
   // On touch, where lines are drawn, a line in the hint's seat and type says how to trace (DECISIONS 306, 1.5); the stylesheet shows it only then.
   (m.ext ? m.ext.traces?.(m, drawn) : hasStops(m, dyn) && m.type !== "sequence" || (drawn && m.type === "sequence")) ? h("p", { class: `${P}-tap-hint`, "aria-hidden": "true" }, `Tap ${stopNoun(m)} to highlight its lines. Tap it again to clear.`) : null,
@@ -3394,7 +3410,7 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   if (W >= mins.least && !m.unplaced) {
     const drawnTry = (pad: boolean) => {
       // One column (not a sequence's participants) is capped before it is measured (the one-column ruling): its least width is written with the layout.
-      let dd = stopOf({ ...current, ...closed, layout: "drawn", grow: undefined, track: undefined, bare: undefined, pad: pad || undefined, rows: undefined, one: m.type !== "sequence" && columnCount(m) === 1 ? mins.own : undefined });
+      let dd = stopOf({ ...current, ...closed, layout: "drawn", grow: undefined, track: undefined, bare: undefined, pad: pad || undefined, rows: undefined, one: m.type !== "sequence" && columnCount(m) === 1 ? mins.own : undefined, moved: undefined });
       dd = heightsFor(dd);
       apply(dd);
       let g = drawnGeometry(input(), measure);
@@ -3427,18 +3443,33 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     if (geo.outside.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.outside)} would leave the drawing`);
     if (geo.unseated.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: no clean seat for ${geo.unseated.map((k) => (m.type === "sequence" ? `message ${k}` : `"${said(m.edges[k]?.label ?? "")}"`)).join(", ")}`);
   }
-  let d = stopOf({ ...current, ...closed, layout: "stacked", heights: undefined, grow: record(), track: m.type === "schema" ? mins.table : undefined, bare: undefined, pad: undefined, rows: undefined, one: undefined });
+  let d = stopOf({ ...current, ...closed, layout: "stacked", heights: undefined, grow: record(), track: m.type === "schema" ? mins.table : undefined, bare: undefined, pad: undefined, rows: undefined, one: undefined, moved: undefined });
   d = heightsFor(d);
   apply(d);
   if (m.type === "sequence" || m.type === "schema" || m.ext?.stackBare) return { dyn: d, geo: null, ink: "", tokens: tk, least: mins.least };
-  const plan = stackPlan(m);
-  let out = stackedGeometry(input(), measure, plan, d.grow);
-  for (let tries = 0; tries < 6 && Object.keys(out.grow).length; tries++) {
-    const grown = record(d.grow);
-    for (const [id, n] of Object.entries(out.grow)) grown[id] = (own(grown, id) ?? 0) + n;
-    d = { ...d, grow: grown };
+  // The stack from a plan: measured, and a label with no clean seat grows the gap above its card, up to six times.
+  const stackFrom = (plan: StackPlan) => {
+    let out = stackedGeometry(input(), measure, plan, d.grow);
+    for (let tries = 0; tries < 6 && Object.keys(out.grow).length; tries++) {
+      const grown = record(d.grow);
+      for (const [id, n] of Object.entries(out.grow)) grown[id] = (own(grown, id) ?? 0) + n;
+      d = { ...d, grow: grown };
+      apply(d);
+      out = stackedGeometry(input(), measure, plan, grown);
+    }
+    return out;
+  };
+  let plan = stackPlan(m);
+  let out = stackFrom(plan);
+  // A line whose route would pass a card it does not end on (backlog four, 1) is planned again as an end line, in the end gutter outside every card and
+  // group box, with the end lines' lanes; the plan runs once more with those lines moved. A line already in the gutter has nowhere further to go.
+  const gutterLine = (k: number) => plan.gutter && (plan.routes[k] === "end-down" || plan.routes[k] === "end-up");
+  const moving = out.geo.through.filter((k) => !gutterLine(k));
+  if (moving.length) {
+    d = { ...d, grow: record(), moved: moving };
     apply(d);
-    out = stackedGeometry(input(), measure, plan, grown);
+    plan = stackPlan(m, moving);
+    out = stackFrom(plan);
   }
   const geo = out.geo;
   // The stack is the last layout there is. If it still holds an overlap (a label with no clean seat after every try, a line through a node or
@@ -3455,7 +3486,7 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     const bare: Geo = { ...geo, lines: [], labels: [], crossings: [] };
     // With no lines, every group's label is on its start seat.
     drawing.querySelectorAll<HTMLElement>(`.${P}-group > .${P}-glabel`).forEach((el) => el.style.removeProperty("--_gx"));
-    const dyn = stopOf({ ...d, grow: record(), bare: true, open: current.bare ? current.open : true, autoOpen: current.bare ? current.autoOpen : current.open ? undefined : true });
+    const dyn = stopOf({ ...d, grow: record(), moved: undefined, bare: true, open: current.bare ? current.open : true, autoOpen: current.bare ? current.autoOpen : current.open ? undefined : true });
     // Written as it is returned: the tries above wrote a state that is not bare, and a host that sees the same state as before renders nothing, so the
     // figure would keep their markup (a stack with no lines, not dressed bare, its list closed: P-R3 of the code re-check).
     apply(dyn);
