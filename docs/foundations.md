@@ -150,7 +150,9 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   band. A modal palette whose input is its only focus stop shows none. Against the fills and rim
   composites it touches the inset ring is 8.0:1 or better in dark and 7.1:1 in light.
   Outlines survive Windows forced-colours mode; box-shadow rings don't. **No state is ever marked by an outline:**
-  selected, active, current and pressed never draw one. Focus is a 2px ring at +2 outside the control, drawn inside at −2
+  selected, active, current and pressed never draw one. A diagram's contour says what a part is in the data (a flowchart's shape, a
+  critical task, a blocked card, a backbone activity), always with a word. It is the part's own edge, never a ring added to it, and it is
+  never selected, active, current or pressed. Focus is a 2px ring at +2 outside the control, drawn inside at −2
   only where +2 would be cut or would cross a neighbour: a field or band flush with a clipping edge (the search dialog's
   band, a flush listbox, an inline-label row), a sortable header cell, a phone tab bar cell, a ghost control hung at an edge whose box ends less than 4 from the edge of its room, and a cut cell of a
   still table (a focus stop, which shows its own ring after Esc has closed its plate).
@@ -1534,7 +1536,7 @@ ruling against the vertical bar is about marks): the 1px divider at a pinned tab
 the app sidebar's 1px edge, a meter's labelled target tick, the vertical `Separator` between groups of controls (1px
 `border-divider`, as tall as the controls), the edges between a `NumberField`'s value and its steppers (part of the
 field's own boundary), a diagram's connector (a line that joins two nodes and ends in a head, with its stems, rails and buses), a
-sequence diagram's lifeline and the activation bar on it, a frame's sides, and a stage list's or a run timeline's connector: a 1px line in `border-input` that joins one stage's
+sequence diagram's lifeline and the activation bar on it, a frame's sides, a time scale's tick lines and its labelled today line, and a stage list's or a run timeline's connector: a 1px line in `border-input` that joins one stage's
 mark to the next. It is drawn between every two consecutive marks, beside an open detail too, and it never fills, breaks, moves or
 changes colour with a stage's state: the mark and its word carry the state. A rail's links are horizontal and are not on this list;
 they fill as their stage passes, repeating the check before them. A connector is never drawn without both its nodes and its head, and neither is ever a mark of state.
@@ -1753,15 +1755,22 @@ Widths the prototype set by hand are derived from tokens, with no new one: a mar
 
 ## Diagrams
 
-Boxes and the lines between them, in five types: architecture, flowchart, data flow, sequence and database schema (DECISIONS 281; the
-owner's prototype, one draft, a check and a decision, revised after the final positions by DECISIONS 282). The components are
-`ArchitectureDiagram`, `FlowchartDiagram`, `DataFlowDiagram`, `SequenceDiagram` and `SchemaDiagram`, and the HTML skill's `diagram` module.
+Boxes and the lines between them, in eight types: architecture, flowchart, data flow, sequence, database schema, state, timeline and
+deployment (DECISIONS 281; the owner's prototype, one draft, a check and a decision, revised after the final positions by DECISIONS 282;
+DECISIONS 359 for the last three). A dependency figure is an architecture and a swimlane is a data flow. The components are
+`ArchitectureDiagram`, `FlowchartDiagram`, `DataFlowDiagram`, `SequenceDiagram`, `SchemaDiagram`, `StateDiagram`, `TimelineDiagram` and
+`DeploymentDiagram`, and the HTML skill's `diagram` module.
 
 **Status:** decided by the council (DECISIONS 281, a handoff); the implementation has not been reviewed.
 
 The parts of DECISIONS 301 (cardinality and far keys, activations and frames, the text art, nested groups, four end lanes, link cards,
 two-line labels, spatial keys, a trace on touch, marks on steps and participants, right to left, export and automatic layout) were
 decided by the council from two drafts and a check (DECISIONS 306, revised by 313). **Status:** the implementation has not been reviewed.
+
+Six planning types (DECISIONS 359, decided by the council from two drafts and a check): gantt, kanban, journey, service blueprint, story
+map and schedule. The components are `GanttDiagram`, `KanbanDiagram`, `JourneyDiagram`, `ServiceBlueprintDiagram`, `StoryMapDiagram` and
+`ScheduleDiagram`. The state, timeline and deployment types and both folds were decided by the council (DECISIONS 359, a handoff).
+**Status:** the implementation has not been reviewed.
 Automatic layout leads with build time: place with `placeDiagram` and pass `placement`, and
 elkjs (EPL-2.0 OR GPL-3.0-or-later, used under EPL-2.0) never reaches the browser.
 
@@ -1781,6 +1790,11 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   detail breaks only at its spaces, never at a hyphen, and keeps the ordinary hyphen so a copy is exact (the decider's answers, review round 64).
 - **The focal node** is inverted: `diagram-focal` under `diagram-focal-ink`, its quiet lines at `opacity-amount`. One at most. The key
   says what it marks.
+- A line of facts about the whole figure (a journey's actor and scenario, a schedule's finish and its assumptions) is under the source:
+  `text-xs`, its first part 500 in primary ink, the rest secondary.
+- A date, a time, a count, a duration and a schedule's number are Geist with tabular figures. Mono stays for a kind and an
+  identifier: on a kind line the kind is Mono, and a time, a duration or a count that shares the line is Geist. A time scale's tick
+  labels are `chart-axis` on every type.
 
 ### Lines
 
@@ -1797,7 +1811,8 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
 - **Crossings:** place to avoid them; lines to one port share one lane and join; of two bypasses from one side, the farther-going
   leaves higher and takes the outer lane. A crossing that is left is cut: the line underneath breaks `size-cut` each side of the one
   on top. The horizontal run is on top, and a traced line is on top of an untraced one.
-- **A label** is `text-xs` Mono in secondary ink, one line, or two where the author writes a break (never a break of the engine's), never cut. On its own line it has a ground-colour plate; beside its line
+- **A label** is `text-xs` Mono in secondary ink, one line, or two where the author writes a break (never a break of the engine's, but a
+  state's label, which the engine writes from the transition's event, guard and action, and breaks in one place: after the event), never cut. On its own line it has a ground-colour plate; beside its line
   it is `space-2` clear of the stroke. Seats are taken along the run's clear shaft (the run without its head). A seat is taken only if
   the label, grown `space-1`, overlaps no node as drawn (the diamond or the capsule, not its box), label, head, boundary, rule or other
   line. A seat is measured from its line's place before the half-pixel snap, so whether it fits never turns on which way a half pixel
@@ -1833,16 +1848,34 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   stays and reads "Hide the list"). This is the one exception to every edge and label being present at every width; a development
   build says so.
 - A name or a label is never cut at any width.
+- **A planning figure stacked** keeps every mark its type exists for that fits in one column, says the rest in words, and lists in its key
+  only what it drew. "Expand" holds the drawn layout. None is the viewer alone at any width.
+- **A matrix** (kanban, journey, service blueprint, story map) has equal tracks `space-4` apart. A track's minimum is `size-diagram-node`
+  or the widest unbreakable thing in any column, a head's count included: the fit is measured, never counted.
+- **An empty cell holds its track and says so in words:** "None" in a blueprint or a journey, and in a story map a slot with a 1px
+  dashed `diagram-structure` contour and "No stories".
+- **Dashed means one thing in a type:** a gantt's today line, a kanban's blocked card, a blueprint's lines of interaction, a story
+  map's empty slot. Nothing is dashed in a journey or a schedule.
+- **A gantt's bar is never widened.** Where its shortest bar would be under `space-2` at its true width the track is not drawn: the figure
+  stacks, and the stack keeps its tracks only while the same holds there. A gantt whose domain is more than 512 times its shortest bar is
+  never drawn.
 
 ### The types
 
 - **Architecture:** a group is a transparent box with a 1px dashed `diagram-structure` edge, radius 12, its label at the top start.
-  Its extent is its members'. A group may hold groups, two levels in all; an inner group is `space-4` inside the outer and radius 8.
+  Its extent is its members'. A group may hold groups, two levels in all; an inner group is `space-4` inside the outer and radius 8. A box's edge is a line: no run lies on it, and a line with an end outside a box crosses its edge once, at a right angle. A gap's lanes keep its
+  middle while each is outside the boxes beside it and `space-3` clear of their edges; otherwise they are laid evenly in the clear
+  band, the part of the gap outside those boxes. A row on which a box starts stands `space-4` lower, so `space-8` is clear above the
+  box and a lone run there is `space-4` from the card and from the edge. With less than `space-2` a lane the figure is stacked.
+  A dependency figure (`dependents`) is an architecture: each card's count of dependents is the engine's, a line in a cycle is dashed in
+  the direction it was written, and automatic layout ranks by longest path from the sources.
 - **Flowchart:** shape carries type: a step is the box, a start or end a capsule, a decision a diamond behind its words. **Every
   flowchart shape has a 1px `diagram-structure` contour** in place of the rim, because the shape has to be seen at 3:1. A decision is
   at least `space-16` tall and never flatter than 5:1. A decision is never taller than it is wide: a width at which one would be is not
   a width the flowchart is drawn at.
-- **Data flow:** lanes are bands ruled apart with the divider, named at the start. A node's kind line is its step number.
+- **Data flow:** lanes are bands ruled apart with the divider, named at the start. A node's kind line is its step number. A step may be a
+  decision: the flowchart's diamond with its step number inside. Every line that leaves it is labelled, and every step then takes the
+  contour. One process a figure: a second participant is a sequence or a second figure.
 - **Sequence:** a head per participant; a lifeline is 1px `diagram-structure`, dashed 4 on 4 off; a message is a 56px row with its
   number and label above the line and a note below, on plates that mask the lifelines; a self-call is a small loop; a reply is dashed;
   a band is a ruled line of words. **A bar** on a lifeline (`size-diagram-activation`, the head's fill, a 1px `diagram-structure`
@@ -1860,6 +1893,42 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   zone plus `radius-xs`. A lane is shared by runs that are never beside each other (their spans overlap or come within `space-8`). A
   bar's ink is the pixel that ends at its distance. A key two or more columns away is drawn along a corridor: a row gap clear of the
   tables between, or the margin above or below. A line that cannot be drawn clean is left out alone, and its row still writes the target.
+- **State:** a state is the node; a composite state is a group. A transition's label is `event`, then `[guard] / action` on a second
+  line, written by the engine, 28 characters a line. Transitions that leave one state on one event are numbered in the order they are
+  tried, and the key says so. The start is a plain line from a `size-diagram-head` dot, `space-10` long: before the figure's initial
+  state on the side the figure reads from, and above a composite's initial state, under its label's band, in every layout. Its room is
+  added and never taken from a gap: the composite's box is `space-8` plus `space-10` above that row, and the row stands `space-10`
+  lower. A mark never lies on a line; with no place `space-4` clear of every line's end the figure is stacked;
+  stacked it has its own `space-8` under a group's label. A final state carries a `space-3-5` ring and dot in its top end corner.
+  Entry and exit actions are in the card under a rule. No mover: a state figure does not know the current state.
+- **Timeline:** points on one linear scale, never even gaps. Each event is a dot (`size-dot`) on the axis and a card that flies from a
+  straight 1px `diagram-structure` stem at its time, `radius-md` in from the card's start corner, in two lanes above the axis and two
+  below. Seats are derived, latest first; a timeline with an event that has no seat is stacked. Ticks are at least `size-diagram-node`
+  apart; a tick's label is Geist with tabular figures in `chart-axis` and gives way only to a stem through it or a break's words. A
+  card's kind line is its time in Geist, then its kind in Mono. A break in the scale is the author's: a `space-8` gap
+  with two slashes, and the length left out written under it by the engine. Stacked, a rail joins the marks and each card writes the
+  gap since the one before. A span is a gantt's.
+- **Deployment:** one environment a figure, named in the source line. Groups nest three deep, here only; the inner two are radius 8,
+  and no line runs through a label at any level. An artifact is a row of its host card, as a schema's column is of its table, and a
+  line may land on it. `× 3` at the end of a host's kind line, in Geist, says how many copies run.
+- **Gantt:** a row a task on one time scale. The names are a `size-diagram-table` column; the scale is inset `space-2` at each end. A bar
+  is 16 tall, `plate-0` under a 1px `diagram-edge` contour, square at both ends, because its ends are its dates. A milestone is a diamond
+  of the same ink on its day. Tick lines are `chart-grid`; today is a 1px dashed `diagram-structure` line, named above the axis. No
+  dependency line is drawn: a row writes what it comes after.
+- **Kanban:** a count of cards in states at one moment, and read-only: nothing drags. A head is its title and its count in words ("3, max
+  2 · Over limit"), every card counted, the heads in one row. Over its limit a column's count is 600 and its rule 2px. A blocked card says
+  "Blocked" and its reason and has a dashed contour.
+- **Journey:** one actor, one scenario, and a scale of five steps the author names. Each stage's head writes its level. The line is the
+  chart's: straight, 2px, one ink, an 8px disc a stage. Stacked it is a strip over the stage cards.
+- **Service blueprint:** stages across, five layers down, and three rules in fixed gaps, each named on the rule: the lines of interaction
+  and internal interaction dashed 4 on 4 in `diagram-structure`, the line of visibility 2px solid. Stacked, all three are inside every
+  stage. An empty cell is the word "None" with no box. Arrows are optional, main or plain, straight or through a gutter, and
+  unlabelled.
+- **Story map:** a backbone of activities (a contour, never inverted) with their steps, slices down, and one release cut: a 2px rule after
+  the slice it names.
+- **Schedule:** a network on the architecture router, placed as an architecture is. Its numbers are computed. A task's contour is its
+  kind: 2px for a critical task, 1px for one with float, each with its word. A line is main only where its finish sets the next task's
+  start on a critical path. Stacked it is its cards in the author's order, each writing what it comes after and which sets its start.
 
 ### The key, the summary and the list
 
@@ -1868,6 +1937,12 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   seat sets them, then "Primary key" and "Foreign key" (built in; the decider's answers, review round 64). A schema that draws
   cardinality shows each form drawn ("Exactly one", "Zero or one", "One or many", "Zero or many"), and a sequence each frame operator
   drawn, the letters set as the tab sets them ("Only if", "Repeats", "One of these"): built in, because they are notation.
+  A state's key shows the start mark ("Starts here"), the final mark ("Ends here") and, where drawn, the order ("Tried in this order: the
+  first that holds is taken"); a timeline's the event ("An event, at its time") and a break ("Time left out of the scale"); a deployment's
+  count ("How many copies run"): built in, because they are notation. The words for the planning types' notation are built in and an app
+  can replace them: a gantt's bar, milestone and today, a kanban's "Over its limit" and "Blocked", a blueprint's three rules, a story map's
+  backbone, and a schedule's two lines, two contours and "ES, EF: earliest start and finish · LS, LF: latest start and finish". A
+  journey's line and a story map's cut must have the author's words.
 - The summary is required. "View as list" opens the same facts as real lists in the same figure: the parts and connections, a
   flowchart's steps with each exit written once, a data flow's steps, a sequence's messages, a schema's tables.
 - **The foot** holds the figure's controls in one fixed order, `space-2` apart, wrapping from the start edge: "View as list", "Expand",
@@ -1879,7 +1954,7 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   figure it was pressed in. The foot does not print.
 - The figure's words are in the HTML before script runs, and where scripting is off the list is open. Before script the figure is
   stacked unless it is at least its least width (the track minimums and gaps summed, never under 640); a figure of more than six
-  columns is stacked until script.
+  columns is stacked until script. A timeline is stacked until script.
 
 ### Keyboard, tracing and motion
 
@@ -1898,6 +1973,10 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   least 44px tall. A linked card follows its link and is never traced by a tap. Nothing is announced.
 - A diagram is still unless its author asks for motion (`motion="animated"`); see [Motion in a diagram](#motion-in-a-diagram). A
   trace's ink changes over `duration-fast`, at once under reduced motion.
+- A planning figure is the same one tab stop. A figure with no edges (gantt, kanban, journey, story map, a blueprint without arrows) has
+  no trace, no tap hint and no "Clear highlight". A schedule's numbers are words in its card and never stops.
+- A timeline's arrows are ← and → through the events in time; a hovered or focused card lifts its own stem and dot, and nothing dims. It
+  has no trace on touch.
 
 
 ### The viewer
@@ -2019,11 +2098,16 @@ over its lifeline; a stacked chip draws the mark before the name.
   the reader's "Background graphics" setting (`print-color-adjust: exact`, with the `-webkit-` form).
 - Forced colours: cardinality marks follow their line; an activation's edge is `CanvasText`; a frame's edges are `GrayText`; a
   linked name is `LinkText`, underlined.
+- Forced colours, planning: a bar `Canvas` under `CanvasText`, the focal bar `CanvasText`; tick and level lines drop; the today line, a
+  dashed rule and an empty slot `GrayText`; the line of visibility, the cut, the over-limit rule, a blocked contour and the journey's line
+  `CanvasText`; a critical task 2px `CanvasText`.
 - Print: a figure prints untraced, in its resting ink, and in the light theme whatever the screen shows. The foot does not print: no
   control is drawn on paper, and the list prints only where the reader opened it.
 - Right to left: the figure mirrors and its words do not, drawn and stacked (stacked, the rail and the trunk run down the right, a
   branch is indented from the right, and the end lines and the end gutter are on the left). Identifiers are isolated left to right as
-  runs; named sides swap; the arrow keys stay physical; the text art stays left to right.
+  runs; named sides swap; the arrow keys stay physical; the text art stays left to right. Every string an author writes is a first-strong
+  isolate, so a line that starts with digits or ends in a mark keeps its order. A timeline mirrors: the earliest event is at the right.
+- Right to left, planning: the figure mirrors, drawn and stacked, and a gantt's time runs right to left.
 - Export: a linked card's arrow is not drawn in a file. A PNG is drawn through an image, so under a content policy `img-src` must allow
   `blob:` or `data:`; where it allows neither, `diagramToPng` rejects with an error that says so and no file is made (the SVG needs neither).
   The skill's "Download PNG" then says so in a note under the foot's buttons and is switched off; the console names the `img-src` to allow.
@@ -2082,7 +2166,11 @@ theme's input boundary, 1.18), the way the other aliases of that mode are declar
 **Not tokens, by choice:** the gaps, the rail (`space-3`), the trunk (`space-8`), the branch indent (`space-12`), the entry inset
 (`space-6`), the end gutter (lanes at `space-3-5`, four at most), the turn stagger (`space-5`), the schema's gap where marks are drawn
 (`space-12` plus `space-3`), a corridor's lanes (`space-3`), the viewer's zoom steps and limits (ratios, the reader's) and the
-quarter-point slots are rules made of the space scale.
+quarter-point slots are rules made of the space scale. So are the gantt's bar height (`space-4`), its floor and its scale inset
+(`space-2`), its bound (512), a journey's level pitch (`space-8`; `space-6` in the strip) and the matrix gap (`space-4`); the start stub
+(`space-10`), the gap above a row that holds a composite's start mark (`space-16` plus `space-10`), the final mark (`space-3-5`), a state's gaps (`space-16` plus `space-4`, and `space-16`), a deployment's column gap
+(`space-16` twice), a timeline's lanes (`space-6` above, `space-10` below, `space-3` between), its break (`space-8`) and its tick
+(`space-1-5`).
 
 ## Layout
 

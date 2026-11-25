@@ -1,0 +1,305 @@
+{
+ "$comment": "The ruling on a state's start mark and the gap (DECISIONS 359, Ops 1, state-gap/ruling.md): laid right on one row and on two, a level run in the gap above a marked row, and a marked group in a marked group. With the fixture's own state (laid down by automatic layout) these are the figures its tests and its pictures draw.",
+ "right": {
+  "type": "state",
+  "source": "Runner, v1.42",
+  "legend": {
+   "main": "The usual path",
+   "group": "A composite state"
+  },
+  "title": "A short run",
+  "summary": "A run starts idle, works while active, and ends succeeded.",
+  "groups": [
+   {
+    "id": "active",
+    "label": "Active"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "idle",
+    "name": "Idle",
+    "initial": true,
+    "col": 1,
+    "row": 1
+   },
+   {
+    "id": "thinking",
+    "name": "Thinking",
+    "group": "active",
+    "initial": true,
+    "col": 2,
+    "row": 1
+   },
+   {
+    "id": "tool",
+    "name": "Tool running",
+    "group": "active",
+    "exit": "record result",
+    "col": 3,
+    "row": 1
+   },
+   {
+    "id": "done",
+    "name": "Succeeded",
+    "final": true,
+    "col": 4,
+    "row": 1
+   }
+  ],
+  "edges": [
+   {
+    "from": "idle",
+    "to": "thinking",
+    "event": "start",
+    "kind": "main"
+   },
+   {
+    "from": "thinking",
+    "to": "tool",
+    "event": "call",
+    "kind": "main"
+   },
+   {
+    "from": "tool",
+    "to": "done",
+    "event": "done",
+    "action": "save",
+    "kind": "main"
+   }
+  ]
+ },
+ "rows": {
+  "type": "state",
+  "source": "Runner, v1.42",
+  "legend": {
+   "main": "The usual path",
+   "group": "A composite state"
+  },
+  "title": "A run that can pause",
+  "summary": "A run starts idle, works while active, may pause, and ends succeeded.",
+  "groups": [
+   {
+    "id": "active",
+    "label": "Active"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "idle",
+    "name": "Idle",
+    "initial": true,
+    "col": 1,
+    "row": 2
+   },
+   {
+    "id": "paused",
+    "name": "Paused",
+    "col": 2,
+    "row": 1
+   },
+   {
+    "id": "thinking",
+    "name": "Thinking",
+    "group": "active",
+    "initial": true,
+    "col": 2,
+    "row": 2
+   },
+   {
+    "id": "tool",
+    "name": "Tool running",
+    "group": "active",
+    "exit": "record result",
+    "col": 3,
+    "row": 2
+   },
+   {
+    "id": "done",
+    "name": "Succeeded",
+    "final": true,
+    "col": 4,
+    "row": 2
+   }
+  ],
+  "edges": [
+   {
+    "from": "idle",
+    "to": "thinking",
+    "event": "start",
+    "kind": "main"
+   },
+   {
+    "from": "thinking",
+    "to": "paused",
+    "event": "pause"
+   },
+   {
+    "from": "thinking",
+    "to": "tool",
+    "event": "call",
+    "kind": "main"
+   },
+   {
+    "from": "tool",
+    "to": "done",
+    "event": "done",
+    "action": "save",
+    "kind": "main"
+   }
+  ]
+ },
+ "run": {
+  "type": "state",
+  "source": "Runner, v1.42",
+  "legend": {
+   "main": "The usual path",
+   "group": "A composite state"
+  },
+  "title": "A level run above a marked row",
+  "summary": "A line from a state on the first row runs level in the gap above the composite's row.",
+  "groups": [
+   {
+    "id": "active",
+    "label": "Active"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "idle",
+    "name": "Idle",
+    "initial": true,
+    "col": 1,
+    "row": 2
+   },
+   {
+    "id": "paused",
+    "name": "Paused",
+    "col": 2,
+    "row": 1
+   },
+   {
+    "id": "thinking",
+    "name": "Thinking",
+    "group": "active",
+    "initial": true,
+    "col": 2,
+    "row": 2
+   },
+   {
+    "id": "tool",
+    "name": "Tool running",
+    "group": "active",
+    "col": 3,
+    "row": 2
+   },
+   {
+    "id": "done",
+    "name": "Succeeded",
+    "final": true,
+    "col": 4,
+    "row": 2
+   }
+  ],
+  "edges": [
+   {
+    "from": "idle",
+    "to": "thinking",
+    "event": "start",
+    "kind": "main"
+   },
+   {
+    "from": "paused",
+    "to": "tool",
+    "event": "resume",
+    "fromSide": "bottom",
+    "toSide": "top"
+   },
+   {
+    "from": "thinking",
+    "to": "tool",
+    "event": "call",
+    "kind": "main"
+   },
+   {
+    "from": "tool",
+    "to": "done",
+    "event": "done",
+    "kind": "main"
+   }
+  ]
+ },
+ "nested": {
+  "type": "state",
+  "source": "Runner, v1.42",
+  "legend": {
+   "main": "The usual path",
+   "group": "A composite state"
+  },
+  "title": "A marked group in a marked group",
+  "summary": "Active starts in Thinking; Planning, inside it, starts in Draft.",
+  "groups": [
+   {
+    "id": "active",
+    "label": "Active"
+   },
+   {
+    "id": "planning",
+    "label": "Planning",
+    "parent": "active"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "idle",
+    "name": "Idle",
+    "initial": true,
+    "col": 1,
+    "row": 1
+   },
+   {
+    "id": "thinking",
+    "name": "Thinking",
+    "group": "active",
+    "initial": true,
+    "col": 2,
+    "row": 1
+   },
+   {
+    "id": "draft",
+    "name": "Draft",
+    "group": "planning",
+    "initial": true,
+    "col": 3,
+    "row": 1
+   },
+   {
+    "id": "done",
+    "name": "Succeeded",
+    "final": true,
+    "col": 4,
+    "row": 1
+   }
+  ],
+  "edges": [
+   {
+    "from": "idle",
+    "to": "thinking",
+    "event": "start",
+    "kind": "main"
+   },
+   {
+    "from": "thinking",
+    "to": "draft",
+    "event": "plan",
+    "kind": "main"
+   },
+   {
+    "from": "draft",
+    "to": "done",
+    "event": "done",
+    "kind": "main"
+   }
+  ]
+ }
+}

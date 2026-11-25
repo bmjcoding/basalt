@@ -123,7 +123,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   inside at −2 only where +2 would be cut or would cross a neighbour: a field or band flush with a clipping edge,
   a sortable header cell (a header band that is itself a button), a phone tab bar cell, a ghost control hung at an edge with less than 4 of room left, and a cut cell of a still table (a focus stop, which shows its own ring after Esc has closed its plate). These structural
   vertical lines are allowed, each named and never a selection, sort, active or status mark: the 1px divider at a pinned table
-  column's edge while the table is scrolled, the app sidebar's 1px edge, a meter's labelled target tick, the vertical
+  column's edge while the table is scrolled, the app sidebar's 1px edge, a meter's labelled target tick, a time scale's tick lines and its labelled today line, the vertical
   `Separator` between groups of controls, the edges between a `NumberField`'s value and its steppers, a diagram's connector, a sequence diagram's lifeline with its activation bar, a frame's sides, and a stage list's or run timeline's connector (1px between two marks, never
   filled and never a state). The active row in a menu, select, combobox or command menu is a rounded plate
   (radius 8, one solid fill per level) plus a lift from secondary ink to primary, with no
@@ -232,8 +232,20 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   focal node that carries one (`print-color-adjust: exact`). A schema may state how many (crow's foot in the line's ink, on every key or none) and
   draws far keys along a corridor. A sequence may show a participant working (a bar) and frame a run of messages
   (`opt`, `loop`, `alt`: structure, never a panel, every word plated), and may be written as text art, which never hides a line and has no caret.
-  Groups nest two deep; four end lanes at most. A card may be a link (the card is the stop; the arrow is the cue). A label breaks only where its
-  author breaks it. Arrow keys are spatial, on tracks. On touch a tap traces and "Clear highlight" clears. The foot's order is fixed ("View as list",
+  Groups nest two deep; four end lanes at most. A deployment nests three, and an artifact is a row of its host that a line may land on.
+  A state's label is the engine's (the event, then `[guard] / action`), guards on one event are numbered in the order tried, a start is a
+  dot and a final state carries a ring. A timeline is one true scale: a card flies from a straight stem at its time, two lanes a side, or
+  the figure is stacked with each gap in words; a break in the scale is the author's, with its length written. A dependency figure is an
+  architecture whose counts, cycle and ranks the engine derives; a swimlane is a data flow, and a decision in it is the diamond with its
+  step number. Every string an author writes keeps its own order right to left. Six planning types (DECISIONS 359): a gantt (square bars
+  on one time scale; a bar is never widened, so under `space-2` the bars go and the words stay; no dependency lines, a row writes what it
+  comes after), a kanban (a read-only count at one moment; over the limit is words, weight and a 2px rule), a journey (one actor, five
+  named steps, one chart line, every stage writing its level), a service blueprint (three named rules in fixed gaps), a story map (a
+  backbone, slices, one cut) and a schedule (the architecture router; the numbers are computed; a line is main only where its finish sets
+  the next start on a critical path). A matrix's fit is measured on its content. An empty cell holds its track and says so. Stacked, a
+  planning figure keeps every mark that fits, says the rest in words, and its key lists only what is drawn. A contour may say what a part
+  is (critical, blocked), with its word; it is never a state. A card may be a link (the card is the stop; the arrow is the cue). A label breaks only where its
+  author breaks it (a state's, after its event). Arrow keys are spatial, on tracks. On touch a tap traces and "Clear highlight" clears. The foot's order is fixed ("View as list",
   "Expand", the run button, "Pause animations", an app's `actions`, "Clear highlight") and it does not print; an app's actions are words-only secondary
   buttons, never a menu, and follow the figure into the viewer. In print a figure is untraced and light.
   Right to left mirrors the figure, not the words. Automatic layout asks elkjs for a column and a row and nothing else; Basalt routes, and a figure

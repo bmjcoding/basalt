@@ -12,7 +12,9 @@ export interface ElkNode { id: string; width?: number; height?: number; x?: numb
 // main line carries one (STRAIGHT): the main path comes out as one straight run in both directions.
 export const W = 200, H = 80;
 const STRAIGHT = "10";
-const options = (direction: "right" | "down"): Record<string, string> => ({
+// A dependency figure (DECISIONS 359, Ops 4) is layered by longest path from the sources, so a card nothing depends on is in the first column.
+const options = (direction: "right" | "down", longest = false): Record<string, string> => ({
+  ...(longest ? { "elk.layered.layering.strategy": "LONGEST_PATH_SOURCE" } : {}),
   "elk.algorithm": "layered",
   "elk.direction": direction === "right" ? "RIGHT" : "DOWN",
   "elk.randomSeed": "1",
@@ -30,13 +32,16 @@ export interface Line { from: string; to: string; main: boolean; k: number }
 
 /** The cards and the lines a figure is placed from, in the author's order. */
 export function partsOf(input: DiagramPlacementInput): { cards: Card[]; lines: Line[]; groups: DiagramGroup[] } {
-  const cards: Card[] = input.type === "schema" ? (input.tables ?? []).map((t) => ({ id: String(t.name) })) : (input.nodes ?? []).map((n) => ({ id: String(n.id), group: n.group }));
+  const cards: Card[] = input.type === "schema" ? (input.tables ?? []).map((t) => ({ id: String(t.name) })) : input.type === "schedule" ? (input.tasks ?? []).map((t) => ({ id: String(t.id) })) : (input.nodes ?? []).map((n) => ({ id: String(n.id), group: n.group }));
+  // A schedule's lines are its tasks' `after` (DECISIONS 359, Planning 1.6).
   const raw = input.type === "schema"
     ? (input.tables ?? []).flatMap((t) => (t.columns ?? []).filter((c) => c.references).map((c) => ({ from: String(t.name), to: String(c.references).split(".")[0]!, main: false })))
-    : (input.edges ?? []).map((e) => ({ from: String(e.from), to: String(e.to), main: e.kind === "main" }));
+    : input.type === "schedule"
+      ? (input.tasks ?? []).flatMap((t) => (t.after ?? []).map((a) => ({ from: String(a), to: String(t.id), main: false })))
+      : (input.edges ?? []).map((e) => ({ from: String(e.from), to: String(e.to), main: e.kind === "main" }));
   const ids = new Set(cards.map((c) => c.id));
   const lines = raw.filter((e) => ids.has(e.from) && ids.has(e.to)).map((e, k) => ({ ...e, k }));
-  return { cards, lines, groups: input.type === "architecture" ? input.groups ?? [] : [] };
+  return { cards, lines, groups: input.type === "architecture" || input.type === "state" || input.type === "deployment" ? input.groups ?? [] : [] };
 }
 
 /**
@@ -58,7 +63,7 @@ export function mainInTheMiddle<T extends { from: string; main: boolean }>(lines
 }
 
 /** The graph handed to elk: cards in the author's order (a way's boxes before the card its line ends on), groups as hierarchy, lines as ordered above. */
-export function graphOf(cards: Card[], lines: Line[], groups: DiagramGroup[], direction: "right" | "down"): ElkNode {
+export function graphOf(cards: Card[], lines: Line[], groups: DiagramGroup[], direction: "right" | "down", longest = false, inOrder = false): ElkNode {
   const kids = new Map<string, ElkNode[]>([["", []]]);
   for (const g of groups) kids.set(g.id, []);
   for (const c of cards) (kids.get(c.group ?? "") ?? kids.get("")!).push({ id: c.id, width: W, height: H });
@@ -70,11 +75,18 @@ export function graphOf(cards: Card[], lines: Line[], groups: DiagramGroup[], di
     const box: ElkNode = { id: `group:${g.id}`, children: kids.get(g.id), layoutOptions: { "elk.padding": "[top=32,left=16,bottom=16,right=16]" } };
     (g.parent && kids.has(g.parent) && !cycles(g) ? kids.get(g.parent)! : children).push(box);
   }
-  return { id: "root", layoutOptions: options(direction), children, edges: lines.map((e, k) => ({ id: `e${k}`, sources: [e.from], targets: [e.to], ...(e.main ? { layoutOptions: { "elk.layered.priority.straightness": STRAIGHT } } : {}) })) };
+  // A state's and a deployment's groups (DECISIONS 359) are handed over in the author's order, each box where its first card is: cycle breaking reads the
+  // model's order, so a group's box after the cards outside it would turn every line out of the group back (a state's final states in the first layer).
+  if (inOrder) {
+    const first = (n: ElkNode): number => (n.children ? Math.min(Infinity, ...n.children.map(first)) : cards.findIndex((c) => c.id === n.id));
+    const sort = (list: ElkNode[]) => { list.sort((a, b) => first(a) - first(b)); for (const n of list) if (n.children) sort(n.children); };
+    sort(children);
+  }
+  return { id: "root", layoutOptions: options(direction, longest), children, edges: lines.map((e, k) => ({ id: `e${k}`, sources: [e.from], targets: [e.to], ...(e.main ? { layoutOptions: { "elk.layered.priority.straightness": STRAIGHT } } : {}) })) };
 }
 
 /** The graph of the first run, as the first decision's tests read it. */
 export function elkGraph(input: DiagramPlacementInput, direction: "right" | "down"): ElkNode {
   const { cards, lines, groups } = partsOf(input);
-  return graphOf(cards, mainInTheMiddle(lines), groups, direction);
+  return graphOf(cards, mainInTheMiddle(lines), groups, direction, Boolean(input.dependents), input.type === "state" || input.type === "deployment");
 }

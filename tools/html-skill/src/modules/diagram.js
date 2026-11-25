@@ -4,13 +4,21 @@
    and draw the same pixels. compose.mjs runs `Basalt._.diagramMarkup` at build time and writes each figure's words into the page, so it
    reads before any script runs; this script then measures it, draws its lines and labels, and wires the keys, the trace and the list.
    Source: tools/html-skill/src/modules/diagram.js (do not edit the copy in the skill folder). */
-import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, moveStop, placeLabels, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
+import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, moveStop, placeLabels, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
 
 (function (B) {
   'use strict';
   var _ = B._;
   var P = 'diagram';
   var serial = 0;
+  // The types a module of their own draws (DECISIONS 359): each registers its maker here (diagram-gantt, diagram-matrix, diagram-timeline, diagram-schedule,
+  // diagram-state, diagram-deployment), so a page pays for the types it draws. A spec takes its type's module on `ext`, never a value from the page's JSON.
+  var types = _.diagramTypes = _.diagramTypes || {};
+  function typed(spec) {
+    var make = Object.prototype.hasOwnProperty.call(types, spec.type) ? types[spec.type] : null;
+    var ext = typeof make === 'function' ? make() : undefined;
+    return spec.ext === ext ? spec : Object.assign({}, spec, { ext: ext });
+  }
 
   function options(base, spec, viewer) {
     return { prefix: P, base: base, hasSource: spec.source !== undefined && spec.source !== null && spec.source !== '', hiddenClass: 'visually-hidden', viewer: viewer ? viewer.keys : undefined };
@@ -27,9 +35,10 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
 
   /** The figure's markup before script runs: its attributes and its inside, as compose.mjs writes it (and as this script writes it for a figure that has none). */
   function markup(spec, base, viewer) {
+    spec = typed(spec);
     // An automatic figure's words are written on the placement compose.mjs made, in the type's own direction, so before script its cards are in their
     // cells and not piled into one (Neon's B8 of the code review).
-    var auto = spec.layout === 'auto' && (spec.type === 'architecture' || spec.type === 'flowchart' || spec.type === 'schema');
+    var auto = spec.layout === 'auto' && autoType(spec.type);
     var list = auto ? (Array.isArray(spec.placement) ? spec.placement : spec.placement ? [spec.placement] : []) : [];
     var first = spec.direction || (spec.type === 'flowchart' ? 'down' : 'right');
     var placed = null;
@@ -42,8 +51,8 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
   }
 
   // The attributes the figure's markup sets on the figure itself; a redraw clears them before it writes the new ones.
-  var OWN = ['aria-labelledby', 'data-type', 'data-cols', 'data-reach', 'data-gutter', 'data-marks', 'data-layout', 'data-measured', 'data-bare'];
-  var OWN_STYLE = ['--_cols', '--_gpad', '--_track'];
+  var OWN = ['aria-labelledby', 'data-type', 'data-cols', 'data-reach', 'data-gutter', 'data-marks', 'data-layout', 'data-measured', 'data-bare', 'data-form', 'data-contour'];
+  var OWN_STYLE = ['--_cols', '--_gpad', '--_track', '--_name', '--_lab', '--_tw', '--_th', '--_tdw'];
 
   /**
    * Draws a figure. `attach` is the page's own wiring: a figure compose.mjs already wrote is measured as it is. Otherwise (a figure with no
@@ -52,11 +61,12 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
    */
   function draw(figure, spec, attach, viewer) {
     if (figure.__diagram) figure.__diagram.stop();
+    spec = typed(spec);
     var base = (figure.getAttribute('aria-labelledby') || '').replace(/-title$/, '').replace(/[^A-Za-z0-9_-]/g, '');
     // Right to left (DECISIONS 306, 1.7): the figure follows its computed direction, and the model is mirrored.
     var rtl = getComputedStyle(figure).direction === 'rtl';
     // Automatic layout (DECISIONS 306, 1.8): a page places at build time (compose.mjs writes `placement` for both directions); a page never holds elkjs.
-    var auto = spec.layout === 'auto' && (spec.type === 'architecture' || spec.type === 'flowchart' || spec.type === 'schema');
+    var auto = spec.layout === 'auto' && autoType(spec.type);
     var placements = auto ? (Array.isArray(spec.placement) ? spec.placement : spec.placement ? [spec.placement] : []) : [];
     if (auto && !placements.length) console.warn('Basalt diagram: "layout": "auto" needs a placement, which compose.mjs writes at build time; drawn from script, place it with placeDiagram (@srasyndicate/basalt/diagram-layout) and pass "placement". The figure is stacked');
     var order = spec.direction ? [spec.direction] : spec.type === 'flowchart' ? ['down', 'right'] : ['right', 'down'];
@@ -107,7 +117,8 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
     // aria-disabled until a trace is up. "On touch" is the media's, or a figure that has taken a touch tap.
     var clearBtn = null, touched = !viewer && matchMedia('(hover: none), (pointer: coarse)').matches;
     function syncClear() {
-      var want = touched && !viewer && ink && ink.innerHTML !== '';
+      // A type of its own with no lines (a gantt, a matrix, a timeline) has no trace on touch, and so no "Clear highlight" (DECISIONS 359).
+      var want = touched && !viewer && ink && ink.innerHTML !== '' && (!model.ext || Boolean(ink.querySelector('.diagram-edge')));
       figure.toggleAttribute('data-touch', Boolean(touched && !viewer));
       if (want && !clearBtn) {
         var foot = figure.querySelector(':scope > .diagram-foot');

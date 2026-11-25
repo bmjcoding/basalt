@@ -18,7 +18,7 @@
   "AppHeader": 1285,
   "AppShell": 104323,
   "AppTile": 1112,
-  "ArchitectureDiagram": 104904,
+  "ArchitectureDiagram": 110544,
   "ArrowDownGlyph": 2868,
   "ArrowLeftGlyph": 2869,
   "ArrowRightGlyph": 2859,
@@ -70,8 +70,9 @@
   "CopyGlyph": 2884,
   "Countdown": 3016,
   "CoverageStrip": 1570,
-  "DataFlowDiagram": 104851,
+  "DataFlowDiagram": 110461,
   "DateAge": 2527,
+  "DeploymentDiagram": 114322,
   "DescriptionColumns": 216,
   "DescriptionItem": 593,
   "DescriptionList": 326,
@@ -105,11 +106,12 @@
   "Fieldset": 6390,
   "FilterResult": 698,
   "FilterToolbar": 774,
-  "FlowchartDiagram": 104872,
+  "FlowchartDiagram": 110482,
   "Form": 8730,
   "FormGrid": 438,
   "FormGridItem": 628,
   "FramedArt": 2067,
+  "GanttDiagram": 125715,
   "GlidePlate": 4209,
   "Heading": 799,
   "HistoryGlyph": 3004,
@@ -123,7 +125,9 @@
   "InlineTextarea": 25828,
   "InlineValue": 349,
   "Input": 27061,
+  "JourneyDiagram": 119177,
   "KEEP": 68,
+  "KanbanDiagram": 118330,
   "Kbd": 9626,
   "LOOPS_TOGGLE_DESCRIPTION": 85,
   "LOOPS_TOGGLE_NAME": 41,
@@ -170,7 +174,7 @@
   "MultiSelect": 151424,
   "Nav": 4774,
   "NavGroup": 492,
-  "NavItem": 110669,
+  "NavItem": 110677,
   "NoticeBar": 788,
   "NotificationCenter": 152696,
   "NotificationCentre": 152706,
@@ -232,7 +236,8 @@
   "STAGE_WORDS": 149,
   "STATUS_MESSAGE_MS": 26,
   "SandboxesGlyph": 2963,
-  "SchemaDiagram": 104820,
+  "ScheduleDiagram": 119401,
+  "SchemaDiagram": 110430,
   "SearchDialog": 89569,
   "SearchField": 18500,
   "SearchGlyph": 3183,
@@ -251,7 +256,8 @@
   "SelectableList": 821,
   "SelectionBar": 25913,
   "Separator": 4531,
-  "SequenceDiagram": 104848,
+  "SequenceDiagram": 110458,
+  "ServiceBlueprintDiagram": 122946,
   "SettingsGlyph": 3100,
   "ShareBar": 1411,
   "Sheet": 70793,
@@ -293,10 +299,12 @@
   "StageMark": 14317,
   "StageRail": 1200,
   "Stat": 2226,
+  "StateDiagram": 117487,
   "Stats": 314,
   "StatusBar": 7225,
   "StatusLine": 504,
   "Stepper": 27886,
+  "StoryMapDiagram": 119963,
   "Stream": 283,
   "StreamArrivedWord": 470,
   "StreamBlock": 2788,
@@ -341,7 +349,8 @@
   "ThemeChoiceControl": 4794,
   "ThemeMenu": 206519,
   "TimeChart": 48163,
-  "ToastProvider": 92989,
+  "TimelineDiagram": 128137,
+  "ToastProvider": 92987,
   "Toolbar": 22915,
   "ToolbarButton": 32730,
   "ToolbarGroup": 21467,
@@ -428,16 +437,16 @@
  },
  "subpaths": {
   "diagram-interop": {
-   "bytes": 138715,
-   "gzip": 39659
+   "bytes": 141120,
+   "gzip": 40708
   }
  },
  "package": {
-  "bytes": 953782,
-  "gzip": 318374
+  "bytes": 1042712,
+  "gzip": 347975
  },
  "styles": {
-  "bytes": 470924,
-  "gzip": 60812
+  "bytes": 511043,
+  "gzip": 65398
  }
 }

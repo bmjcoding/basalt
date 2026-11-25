@@ -692,7 +692,7 @@ function writeDiagrams(markup, held, parts, notes, marks) {
     // Each card's mark: a bundled id is checked and its rule written once; the page's own mark is read into the page and named by an id, so the JSON
     // the script reads carries the id and never a path.
     // An automatic figure (DECISIONS 306, 1.8) is placed here, at build time, for both directions; the page holds the placement and never elkjs.
-    if (spec && spec.layout === "auto" && !spec.placement && ["architecture", "flowchart", "schema"].includes(spec.type)) {
+    if (spec && spec.layout === "auto" && !spec.placement && ["architecture", "flowchart", "schema", "state", "deployment", "schedule"].includes(spec.type)) {
       try {
         spec.placement = placeNow(parts, spec);
         const inner = `\n${JSON.stringify(spec).replace(/</g, "\\u003c")}\n`;
@@ -720,7 +720,10 @@ function writeDiagrams(markup, held, parts, notes, marks) {
     }
     if (!engine) {
       const context = { window: { Basalt: { _: { step() {}, esc: (x) => x } } }, console: { warn() {}, error() {}, log() {} } };
-      vm.runInNewContext(read(parts, "diagram.js"), context);
+      // The type modules (DECISIONS 359) register their types with the diagram module, so their figures' words are written here too.
+      const ctx = vm.createContext(context);
+      for (const name of ["diagram-scale", "diagram-gantt", "diagram-matrix", "diagram-timeline", "diagram-schedule", "diagram-state", "diagram-deployment"]) if (exists(parts, `${name}.js`)) vm.runInContext(read(parts, `${name}.js`), ctx);
+      vm.runInContext(read(parts, "diagram.js"), ctx);
       engine = context.window.Basalt._.diagramMarkup;
     }
     let made;

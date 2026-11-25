@@ -1,0 +1,698 @@
+{
+ "$comment": "The run-edge ruling (DECISIONS 359): the cases written to meet a run on a box edge, copied from the ruling's figures.mjs.",
+ "above": {
+  "type": "architecture",
+  "title": "One run above a boundary",
+  "summary": "A line from the first row runs level in the gap above the boundary's row.",
+  "legend": {
+   "main": "The request path",
+   "plain": "A call",
+   "group": "A boundary"
+  },
+  "groups": [
+   {
+    "id": "vpc",
+    "label": "VPC"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "edge",
+    "name": "Edge",
+    "col": 1,
+    "row": 2
+   },
+   {
+    "id": "queue",
+    "name": "Queue",
+    "col": 2,
+    "row": 1
+   },
+   {
+    "id": "api",
+    "name": "API",
+    "group": "vpc",
+    "col": 2,
+    "row": 2,
+    "focal": true
+   },
+   {
+    "id": "worker",
+    "name": "Worker",
+    "group": "vpc",
+    "col": 3,
+    "row": 2
+   },
+   {
+    "id": "store",
+    "name": "Store",
+    "col": 4,
+    "row": 2
+   }
+  ],
+  "edges": [
+   {
+    "from": "edge",
+    "to": "api",
+    "kind": "main"
+   },
+   {
+    "from": "queue",
+    "to": "worker",
+    "fromSide": "bottom",
+    "toSide": "top",
+    "label": "Jobs"
+   },
+   {
+    "from": "api",
+    "to": "worker",
+    "kind": "main"
+   },
+   {
+    "from": "worker",
+    "to": "store",
+    "kind": "main"
+   }
+  ]
+ },
+ "below": {
+  "type": "architecture",
+  "title": "One run below a boundary",
+  "summary": "A line from the boundary's row runs level in the gap below it.",
+  "legend": {
+   "main": "The request path",
+   "plain": "A call",
+   "group": "A boundary"
+  },
+  "groups": [
+   {
+    "id": "vpc",
+    "label": "VPC"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "edge",
+    "name": "Edge",
+    "col": 1,
+    "row": 1
+   },
+   {
+    "id": "api",
+    "name": "API",
+    "group": "vpc",
+    "col": 2,
+    "row": 1,
+    "focal": true
+   },
+   {
+    "id": "worker",
+    "name": "Worker",
+    "group": "vpc",
+    "col": 3,
+    "row": 1
+   },
+   {
+    "id": "store",
+    "name": "Store",
+    "col": 4,
+    "row": 1
+   },
+   {
+    "id": "audit",
+    "name": "Audit log",
+    "col": 2,
+    "row": 2
+   }
+  ],
+  "edges": [
+   {
+    "from": "edge",
+    "to": "api",
+    "kind": "main"
+   },
+   {
+    "from": "api",
+    "to": "worker",
+    "kind": "main"
+   },
+   {
+    "from": "worker",
+    "to": "store",
+    "kind": "main"
+   },
+   {
+    "from": "worker",
+    "to": "audit",
+    "fromSide": "bottom",
+    "toSide": "top",
+    "label": "Writes"
+   }
+  ]
+ },
+ "twoAbove": {
+  "type": "architecture",
+  "title": "Two runs above a boundary",
+  "summary": "Two lines from the first row run level, beside each other, in the gap above the boundary's row.",
+  "legend": {
+   "main": "The request path",
+   "plain": "A call",
+   "group": "A boundary"
+  },
+  "groups": [
+   {
+    "id": "vpc",
+    "label": "VPC"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "queue",
+    "name": "Queue",
+    "col": 1,
+    "row": 1
+   },
+   {
+    "id": "cron",
+    "name": "Scheduler",
+    "col": 4,
+    "row": 1
+   },
+   {
+    "id": "api",
+    "name": "API",
+    "group": "vpc",
+    "col": 2,
+    "row": 2,
+    "focal": true
+   },
+   {
+    "id": "worker",
+    "name": "Worker",
+    "group": "vpc",
+    "col": 3,
+    "row": 2
+   }
+  ],
+  "edges": [
+   {
+    "from": "queue",
+    "to": "worker",
+    "fromSide": "bottom",
+    "toSide": "top"
+   },
+   {
+    "from": "cron",
+    "to": "api",
+    "fromSide": "bottom",
+    "toSide": "top"
+   },
+   {
+    "from": "api",
+    "to": "worker",
+    "kind": "main"
+   }
+  ]
+ },
+ "twoBelow": {
+  "type": "architecture",
+  "title": "Two runs below a boundary",
+  "summary": "Two lines from the boundary's row run level, beside each other, in the gap below it.",
+  "legend": {
+   "main": "The request path",
+   "plain": "A call",
+   "group": "A boundary"
+  },
+  "groups": [
+   {
+    "id": "vpc",
+    "label": "VPC"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "api",
+    "name": "API",
+    "group": "vpc",
+    "col": 2,
+    "row": 1,
+    "focal": true
+   },
+   {
+    "id": "worker",
+    "name": "Worker",
+    "group": "vpc",
+    "col": 3,
+    "row": 1
+   },
+   {
+    "id": "audit",
+    "name": "Audit log",
+    "col": 1,
+    "row": 2
+   },
+   {
+    "id": "store",
+    "name": "Store",
+    "col": 4,
+    "row": 2
+   }
+  ],
+  "edges": [
+   {
+    "from": "api",
+    "to": "worker",
+    "kind": "main"
+   },
+   {
+    "from": "api",
+    "to": "store",
+    "fromSide": "bottom",
+    "toSide": "top"
+   },
+   {
+    "from": "worker",
+    "to": "audit",
+    "fromSide": "bottom",
+    "toSide": "top"
+   }
+  ]
+ },
+ "between": {
+  "type": "architecture",
+  "title": "One run between two boundaries",
+  "summary": "A line from the upper boundary runs level between the two boundaries and into the lower one.",
+  "legend": {
+   "main": "The request path",
+   "plain": "A call",
+   "group": "A boundary"
+  },
+  "groups": [
+   {
+    "id": "edge",
+    "label": "Edge"
+   },
+   {
+    "id": "core",
+    "label": "Core"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "cdn",
+    "name": "CDN",
+    "group": "edge",
+    "col": 1,
+    "row": 1
+   },
+   {
+    "id": "gw",
+    "name": "Gateway",
+    "group": "edge",
+    "col": 2,
+    "row": 1
+   },
+   {
+    "id": "api",
+    "name": "API",
+    "group": "core",
+    "col": 1,
+    "row": 2,
+    "focal": true
+   },
+   {
+    "id": "worker",
+    "name": "Worker",
+    "group": "core",
+    "col": 2,
+    "row": 2
+   }
+  ],
+  "edges": [
+   {
+    "from": "cdn",
+    "to": "gw",
+    "kind": "main"
+   },
+   {
+    "from": "gw",
+    "to": "api",
+    "fromSide": "bottom",
+    "toSide": "top",
+    "kind": "main"
+   },
+   {
+    "from": "api",
+    "to": "worker"
+   }
+  ]
+ },
+ "twoBetween": {
+  "type": "architecture",
+  "title": "Two runs between two boundaries",
+  "summary": "Two lines from the upper boundary run level, beside each other, between the two boundaries.",
+  "legend": {
+   "main": "The request path",
+   "plain": "A call",
+   "group": "A boundary"
+  },
+  "groups": [
+   {
+    "id": "edge",
+    "label": "Edge"
+   },
+   {
+    "id": "core",
+    "label": "Core"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "cdn",
+    "name": "CDN",
+    "group": "edge",
+    "col": 1,
+    "row": 1
+   },
+   {
+    "id": "gw",
+    "name": "Gateway",
+    "group": "edge",
+    "col": 2,
+    "row": 1
+   },
+   {
+    "id": "api",
+    "name": "API",
+    "group": "core",
+    "col": 2,
+    "row": 2,
+    "focal": true
+   },
+   {
+    "id": "worker",
+    "name": "Worker",
+    "group": "core",
+    "col": 3,
+    "row": 2
+   }
+  ],
+  "edges": [
+   {
+    "from": "cdn",
+    "to": "api",
+    "fromSide": "bottom",
+    "toSide": "top",
+    "kind": "main"
+   },
+   {
+    "from": "gw",
+    "to": "worker",
+    "fromSide": "bottom",
+    "toSide": "top"
+   }
+  ]
+ },
+ "nestedSide": {
+  "type": "architecture",
+  "title": "A run beside a boundary in a boundary",
+  "summary": "A line turns in the gutter beside a boundary whose inner boundary reaches that side.",
+  "legend": {
+   "main": "The request path",
+   "plain": "A call",
+   "group": "A boundary"
+  },
+  "groups": [
+   {
+    "id": "region",
+    "label": "Region"
+   },
+   {
+    "id": "vpc",
+    "label": "VPC",
+    "parent": "region"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "edge",
+    "name": "Edge",
+    "group": "region",
+    "col": 1,
+    "row": 1
+   },
+   {
+    "id": "api",
+    "name": "API",
+    "group": "vpc",
+    "col": 2,
+    "row": 1,
+    "focal": true
+   },
+   {
+    "id": "worker",
+    "name": "Worker",
+    "group": "vpc",
+    "col": 2,
+    "row": 2
+   },
+   {
+    "id": "mail",
+    "name": "Mail",
+    "col": 3,
+    "row": 1
+   },
+   {
+    "id": "store",
+    "name": "Store",
+    "col": 3,
+    "row": 2
+   }
+  ],
+  "edges": [
+   {
+    "from": "edge",
+    "to": "api",
+    "kind": "main"
+   },
+   {
+    "from": "api",
+    "to": "store",
+    "fromSide": "right",
+    "toSide": "left",
+    "label": "Reads"
+   },
+   {
+    "from": "api",
+    "to": "worker",
+    "kind": "main"
+   }
+  ]
+ },
+ "threeSide": {
+  "type": "architecture",
+  "title": "Three runs beside a boundary",
+  "summary": "Three lines turn beside each other in the gutter beside the boundary.",
+  "legend": {
+   "main": "The request path",
+   "plain": "A call",
+   "group": "A boundary"
+  },
+  "groups": [
+   {
+    "id": "vpc",
+    "label": "VPC"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "a",
+    "name": "API",
+    "group": "vpc",
+    "col": 1,
+    "row": 1,
+    "focal": true
+   },
+   {
+    "id": "b",
+    "name": "Worker",
+    "group": "vpc",
+    "col": 1,
+    "row": 2
+   },
+   {
+    "id": "c",
+    "name": "Cron",
+    "group": "vpc",
+    "col": 1,
+    "row": 3
+   },
+   {
+    "id": "x",
+    "name": "Store",
+    "col": 2,
+    "row": 1
+   },
+   {
+    "id": "y",
+    "name": "Cache",
+    "col": 2,
+    "row": 2
+   },
+   {
+    "id": "z",
+    "name": "Mail",
+    "col": 2,
+    "row": 3
+   }
+  ],
+  "edges": [
+   {
+    "from": "a",
+    "to": "y",
+    "fromSide": "right",
+    "toSide": "left"
+   },
+   {
+    "from": "b",
+    "to": "z",
+    "fromSide": "right",
+    "toSide": "left"
+   },
+   {
+    "from": "a",
+    "to": "z",
+    "fromSide": "right",
+    "toSide": "left"
+   }
+  ]
+ },
+ "turnBackOwn": {
+  "type": "architecture",
+  "title": "A boundary's own turn-back",
+  "summary": "A line leaves the bottom of one part and comes back up into the next, both in the boundary.",
+  "legend": {
+   "main": "The request path",
+   "plain": "A call",
+   "group": "A boundary"
+  },
+  "groups": [
+   {
+    "id": "vpc",
+    "label": "VPC"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "api",
+    "name": "API",
+    "group": "vpc",
+    "col": 1,
+    "row": 1,
+    "focal": true
+   },
+   {
+    "id": "worker",
+    "name": "Worker",
+    "group": "vpc",
+    "col": 2,
+    "row": 1
+   },
+   {
+    "id": "store",
+    "name": "Store",
+    "col": 3,
+    "row": 1
+   },
+   {
+    "id": "audit",
+    "name": "Audit log",
+    "col": 3,
+    "row": 2
+   }
+  ],
+  "edges": [
+   {
+    "from": "api",
+    "to": "worker",
+    "kind": "main"
+   },
+   {
+    "from": "worker",
+    "to": "store",
+    "kind": "main"
+   },
+   {
+    "from": "api",
+    "to": "worker",
+    "fromSide": "bottom",
+    "toSide": "bottom",
+    "label": "Retries"
+   }
+  ]
+ },
+ "turnBackForeign": {
+  "type": "architecture",
+  "title": "A turn-back past a boundary",
+  "summary": "A line leaves the bottom of a part in the boundary and comes back up into a part outside it.",
+  "legend": {
+   "main": "The request path",
+   "plain": "A call",
+   "group": "A boundary"
+  },
+  "groups": [
+   {
+    "id": "vpc",
+    "label": "VPC"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "api",
+    "name": "API",
+    "group": "vpc",
+    "col": 1,
+    "row": 1,
+    "focal": true
+   },
+   {
+    "id": "worker",
+    "name": "Worker",
+    "group": "vpc",
+    "col": 2,
+    "row": 1
+   },
+   {
+    "id": "store",
+    "name": "Store",
+    "col": 3,
+    "row": 1
+   },
+   {
+    "id": "audit",
+    "name": "Audit log",
+    "col": 3,
+    "row": 2
+   }
+  ],
+  "edges": [
+   {
+    "from": "api",
+    "to": "worker",
+    "kind": "main"
+   },
+   {
+    "from": "worker",
+    "to": "store",
+    "kind": "main"
+   },
+   {
+    "from": "api",
+    "to": "store",
+    "fromSide": "bottom",
+    "toSide": "bottom",
+    "label": "Reads"
+   }
+  ]
+ }
+}

@@ -22,6 +22,7 @@
 // `compose.mjs --usage` with no name prints).
 // Minified with esbuild (a dev dependency, in the root package.json); legal comments (/*!) are kept.
 
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -233,11 +234,11 @@ const minifyJs = (code) => minify(code.replace(/%glyph-svg:([\w-]+)%/g, (_, name
  * The diagram module's stylesheet: the diagrams section of packages/react/src/styles/components.css (from its heading to the next section's), with React's
  * class prefix as the skill's and React's surface levels as the skill's panel variables (a node is the next level, the ground is the panel's own).
  */
-function diagramCss() {
+function diagramCss(heading = "  /* ---- Diagrams (DECISIONS 281") {
   const react = fs.readFileSync(path.join(repo, "packages", "react", "src", "styles", "components.css"), "utf8");
-  const start = react.indexOf("  /* ---- Diagrams (DECISIONS 281");
+  const start = react.indexOf(heading);
   const end = react.indexOf("  /* ---- ", start + 10);
-  if (start < 0 || end < 0) throw new Error("html-skill: the diagrams section of packages/react/src/styles/components.css moved; update diagramCss");
+  if (start < 0 || end < 0) throw new Error(`html-skill: the section "${heading.trim()}" of packages/react/src/styles/components.css moved; update diagramCss`);
   const css = react.slice(start, end)
     .replaceAll("var(--_surface, var(--basalt-surface-1))", "var(--panel-next, var(--basalt-surface-1))")
     .replaceAll("var(--_surface, var(--basalt-surface-page))", "var(--panel-bg, var(--basalt-surface-page))")
@@ -284,10 +285,35 @@ function diagramZoomCss() {
  * A module whose source imports React's engine (the diagram module): bundled into one script, the import inlined. It is a development build of the engine
  * (NODE_ENV "development"): the skill keeps the checks a production React build drops, since compose.mjs reports them when it writes a page.
  */
-function bundleModule(file) {
-  const out = esbuild.buildSync({ entryPoints: [file], bundle: true, format: "iife", platform: "browser", target: "es2020", write: false, logLevel: "silent", legalComments: "inline", charset: "utf8", define: { "process.env.NODE_ENV": '"development"' } });
-  return out.outputFiles[0].text;
+function bundleModule(file, shimScale = false) {
+  const options = { entryPoints: [file], bundle: true, format: "iife", platform: "browser", target: "es2020", write: false, logLevel: "silent", legalComments: "inline", charset: "utf8", define: { "process.env.NODE_ENV": '"development"' } };
+  if (!shimScale) return esbuild.buildSync(options).outputFiles[0].text;
+  // A plugin needs esbuild's asynchronous API, so this one bundle runs in a child process that prints it, and the build stays synchronous.
+  const run = spawnSync(process.execPath, ["--input-type=module", "-e", SCALE_BUNDLER, JSON.stringify(options), SCALE_TS], { encoding: "utf8", cwd: repo, maxBuffer: 64 * 1024 * 1024 });
+  if (run.status !== 0) throw new Error(`html-skill: bundling ${path.basename(file)} failed: ${run.stderr}`);
+  return run.stdout;
 }
+/**
+ * The type modules that draw on the time scale (DECISIONS 359: diagram-gantt, diagram-timeline) read it from the diagram-scale module, so a page that draws
+ * both holds it once: their import of diagram-scale.ts is a shim that calls `Basalt._.diagramScale` when it is used, never at load.
+ */
+const SCALE_TS = path.join(repo, "packages", "react", "src", "diagram-scale.ts");
+const SCALE_BUNDLER = `
+import fs from "node:fs";
+import * as esbuild from "esbuild";
+const [options, scaleTs] = [JSON.parse(process.argv[1]), process.argv[2]];
+const names = [...fs.readFileSync(scaleTs, "utf8").matchAll(/^export (?:function|const) ([A-Za-z]+)/gm)].map((m) => m[1]);
+const shim = { name: "diagram-scale-shim", setup(build) {
+  build.onResolve({ filter: /[\\/]diagram-scale(\\.ts)?$/ }, () => ({ path: "diagram-scale", namespace: "basalt-scale" }));
+  build.onLoad({ filter: /.*/, namespace: "basalt-scale" }, () => ({ contents: names.map((n) => "export const " + n + " = (...a) => window.Basalt._.diagramScale." + n + "(...a);").join("\\n"), loader: "js" }));
+} };
+const out = await esbuild.build({ ...options, plugins: [shim] });
+process.stdout.write(out.outputFiles[0].text);
+`;
+/** The diagram modules whose script bundles React's engine or a type module of it. */
+const DIAGRAM_SCRIPTS = new Set(["diagram", "diagram-motion", "diagram-zoom", "diagram-export", "diagram-text", "diagram-scale", "diagram-gantt", "diagram-matrix", "diagram-timeline", "diagram-schedule", "diagram-state", "diagram-deployment"]);
+/** The type modules' stylesheets: their own sections of components.css, renamed as the diagram module's is. */
+const DIAGRAM_SECTIONS = { "diagram-gantt": "  /* ---- Diagram gantt (DECISIONS 359", "diagram-matrix": "  /* ---- Diagram matrix (DECISIONS 359", "diagram-timeline": "  /* ---- Diagram timeline (DECISIONS 359", "diagram-schedule": "  /* ---- Diagram schedule (DECISIONS 359", "diagram-state": "  /* ---- Diagram state (DECISIONS 359", "diagram-deployment": "  /* ---- Diagram deployment (DECISIONS 359" };
 
 /** The module names in src/modules.json, in the order they are added to a page. */
 export function moduleNames() {
@@ -316,10 +342,11 @@ export function build() {
     // The motion section, with the motion tokens (the diagram durations and speeds) that only an animated diagram reads.
     if (name === "diagram-motion") files["parts/diagram-motion.css"] = minifyCss(`${filterTokens(tokensCss(), inDiagramMotion)}\n${diagramMotionCss()}`);
     if (name === "diagram-zoom") files["parts/diagram-zoom.css"] = minifyCss(diagramZoomCss());
+    if (Object.hasOwn(DIAGRAM_SECTIONS, name)) files[`parts/${name}.css`] = minifyCss(diagramCss(DIAGRAM_SECTIONS[name]));
     for (const ext of ["css", "js"]) {
       const file = path.join(srcDir, "modules", `${name}.${ext}`);
       if (!fs.existsSync(file)) continue;
-      if (ext === "js" && (name === "diagram" || name === "diagram-motion" || name === "diagram-zoom" || name === "diagram-export" || name === "diagram-text")) files[`parts/${name}.js`] = minifyJs(bundleModule(file));
+      if (ext === "js" && DIAGRAM_SCRIPTS.has(name)) files[`parts/${name}.js`] = minifyJs(bundleModule(file, name === "diagram-gantt" || name === "diagram-timeline"));
       else files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(tokens + fs.readFileSync(file, "utf8")) : minifyJs(fs.readFileSync(file, "utf8"));
     }
   }
