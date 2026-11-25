@@ -28,8 +28,15 @@ import type { WritingEmpty } from "./wait";
 
 export interface TextareaProps extends Omit<React.ComponentProps<"textarea">, "className"> {
   className?: string;
-  /** Visible rows before it scrolls. */
+  /** Visible rows before it scrolls. With `autosize`, the rows it starts at and never goes under. */
   rows?: number;
+  /**
+   * The field grows with its text, a line at a time, from `rows` to `maxRows`, then scrolls, as `Composer`'s field does; it takes no resize handle,
+   * since its height is the text's. Where the browser cannot size a field to its content (`field-sizing`), it is measured, within the same bounds.
+   */
+  autosize?: boolean;
+  /** With `autosize`, the lines it grows to before it scrolls. Default 8 (never under `rows`). */
+  maxRows?: number;
   /**
    * Something else is writing into the field: an agent's draft, a summary written again (DECISIONS 260). It is read-only and `aria-busy` at
    * once, until the writing ends; after 300ms its words dim to secondary ink, its boundary turns dashed and its fill takes the skeleton's calm pulse, for at least 400ms. It is not disabled: the
@@ -42,10 +49,48 @@ export interface TextareaProps extends Omit<React.ComponentProps<"textarea">, "c
 }
 
 /** Multi-line text. Inside a `Field` it takes the field's label, description and error, and, in a required field, `required`. */
-export function Textarea({ className, rows = 4, id, name, value, defaultValue, disabled, autoFocus, required, readOnly, writing = false, writingEmpty, ref, ...props }: TextareaProps) {
+/**
+ * Follows a field's text with its height where the browser cannot size a field to its content (`field-sizing: content`): the stylesheet's least and
+ * greatest heights bound it, and this sets the height the text needs, on every change of `value`, every keystroke and every change of width. Where the
+ * browser can, it does nothing. Shared by `Textarea autosize` and `Composer`.
+ * @internal
+ */
+export function useFitToText(field: React.RefObject<HTMLTextAreaElement | null>, on: boolean, value: unknown) {
+  const fitNow = React.useRef<(() => void) | null>(null);
+  React.useLayoutEffect(() => {
+    const element = field.current;
+    if (!on || !element || typeof CSS === "undefined" || CSS.supports("field-sizing", "content")) return undefined;
+    // The inline height the field had before it followed its text, given back when it stops (autosize turned off, or the field unmounting).
+    const before = element.style.height;
+    const fit = () => {
+      element.style.height = "auto";
+      element.style.height = `${element.scrollHeight + element.offsetHeight - element.clientHeight}px`;
+    };
+    fitNow.current = fit;
+    fit();
+    const resize = new ResizeObserver(() => fit());
+    resize.observe(element);
+    element.addEventListener("input", fit);
+    return () => {
+      fitNow.current = null;
+      resize.disconnect();
+      element.removeEventListener("input", fit);
+      element.style.height = before;
+    };
+  }, [field, on]);
+  // A new value from the app (no input event): fit again.
+  React.useLayoutEffect(() => {
+    fitNow.current?.();
+  }, [value]);
+}
+
+export function Textarea({ className, rows = 4, autosize = false, maxRows = 8, id, name, value, defaultValue, disabled, autoFocus, required, readOnly, writing = false, writingEmpty, ref, style, ...props }: TextareaProps) {
   const own = React.useRef<HTMLTextAreaElement | null>(null);
   const written = useWriting(writing, value, own, writingEmpty);
   const inRequiredField = useInRequiredField();
+  useFitToText(own, autosize, written.value);
+  // The bounds are the stylesheet's, from the rows the component is given.
+  const sized = autosize ? ({ ...style, "--_rows": rows, "--_max-rows": Math.max(rows, maxRows) } as React.CSSProperties) : style;
   return (
     <BaseField.Control
       id={id}
@@ -57,7 +102,7 @@ export function Textarea({ className, rows = 4, id, name, value, defaultValue, d
       required={required ?? (inRequiredField || undefined)}
       readOnly={written.busy || readOnly}
       className={join("basalt-input basalt-textarea", className)}
-      render={<textarea rows={rows} {...props} ref={useJoinedRef(ref, own)} aria-busy={written.busy ? true : props["aria-busy"]} data-writing={written.shown ? "" : undefined} />}
+      render={<textarea rows={rows} {...props} style={sized} ref={useJoinedRef(ref, own)} aria-busy={written.busy ? true : props["aria-busy"]} data-writing={written.shown ? "" : undefined} data-autosize={autosize ? "" : undefined} />}
     />
   );
 }
@@ -170,6 +215,11 @@ export interface CalloutProps extends Omit<React.ComponentProps<"div">, "title">
   status?: CalloutStatus;
   /** One line saying what's wrong or what to know. */
   title: React.ReactNode;
+  /**
+   * Draws the title as a heading of this level (`h2` to `h6`), for callouts a reader moves between by heading (findings, updates). It looks the same:
+   * the heading takes the title's type. Without it the title is not a heading.
+   */
+  heading?: 2 | 3 | 4 | 5 | 6;
   /** What to do about it. */
   children?: React.ReactNode;
   /** Actions, usually one or two small buttons. */
@@ -186,8 +236,9 @@ export interface CalloutProps extends Omit<React.ComponentProps<"div">, "title">
  * decision, or information the reader shouldn't miss. Status is the icon's shape and colour plus
  * the words; the surface stays neutral.
  */
-export function Callout({ status = "info", title, children, actions, live, className, ...props }: CalloutProps) {
+export function Callout({ status = "info", title, heading, children, actions, live, className, ...props }: CalloutProps) {
   const level = usePanelLevel();
+  const Title = heading ? (`h${heading}` as const) : "div";
   return (
     <div
       {...props}
@@ -198,7 +249,7 @@ export function Callout({ status = "info", title, children, actions, live, class
     >
       <Icon icon={CALLOUT_ICON[status]} size={16} className="basalt-callout-icon" />
       <div className="basalt-callout-body">
-        <div className="basalt-callout-title">{title}</div>
+        <Title className="basalt-callout-title">{title}</Title>
         {children ? <div className="basalt-callout-text">{inLevel(level, children)}</div> : null}
         {actions ? <div className="basalt-callout-actions">{inLevel(level, actions)}</div> : null}
       </div>

@@ -83,7 +83,7 @@ export type { ToastAction, ToastApi, ToastHome, ToastProviderProps, ToastOptions
 export { NotificationCenter, NotificationCentre, NotificationList } from "./notifications";
 export type { NotificationCenterProps, NotificationCentreProps, NotificationEntry, NotificationListProps, NotificationStatus } from "./notifications";
 export { CommandList, CommandMenu } from "./command";
-export type { Command, CommandGroup, CommandListProps, CommandMenuProps } from "./command";
+export type { Command, CommandFilter, CommandGroup, CommandListProps, CommandMenuProps } from "./command";
 export { Sparkline } from "./sparkline";
 export type { SparklineProps } from "./sparkline";
 export { Accordion, AccordionItem, Callout, CodeBlock, Popover, PopoverClose, PopoverContent, PopoverDescription, PopoverTitle, PopoverTrigger, Progress, Skeleton, Textarea, createPopoverHandle } from "./feedback";
@@ -181,7 +181,7 @@ export type { UseRouteFocusOptions } from "./route-focus";
 export { Clock, Countdown, DateAge, useNow } from "./time";
 export type { ClockProps, CountdownProps, DateAgeProps } from "./time";
 export { formatAge, formatClock, formatCountdown, formatDay, formatElapsed, formatStamp, formatStatTime } from "./time-format";
-export type { TimeOptions } from "./time-format";
+export type { TimeOptions, TimeZoneNameStyle } from "./time-format";
 // Stages and runs (DECISIONS 316): the seven states' mark, a run's time, a status that changes in place, a run's one voice.
 export { formatRunTime, STAGE_WORDS } from "./run-format";
 export type { Moment, RunTimeScale, StageState } from "./run-format";
