@@ -5,7 +5,7 @@ import * as React from "react";
 
 import { SearchGlyph } from "./glyphs/search";
 import { Button } from "./button";
-import type { CommandGroup, CommandItem } from "./command";
+import type { CommandFilter, CommandGroup, CommandItem } from "./command";
 import { CommandHints, CommandRowContent, commandRowShape, commandValue } from "./command-row";
 import { FilterResult } from "./filter-result";
 import { ChevronLeftGlyph } from "./glyphs/chevron-left";
@@ -13,7 +13,7 @@ import { Icon } from "./icon";
 import { BAND_LEVEL } from "./layers";
 import { Kbd } from "./kbd";
 import { GlidePlate } from "./plate";
-import { useApplePlatform, useShortcutsVisible } from "./keyboard";
+import { isComposingKey, useApplePlatform, useShortcutsVisible } from "./keyboard";
 import { ariaShortcut, shortcutKeys } from "./shortcut";
 import { join } from "./utils";
 
@@ -36,12 +36,56 @@ export function commandFilter(value: string, search: string, keywords?: string[]
  */
 export function orderGroups(groups: CommandGroup[], search: string): CommandGroup[] {
   if (!search) return groups;
+  return rank(groups, (command) => commandFilter(commandValue(command), search, keywordsOf(command)), false);
+}
+
+/** Rows by score, highest first, groups by their best row, ties in the order given; with `drop`, the rows that score 0 and the groups left empty go. */
+function rank(groups: CommandGroup[], scoreOf: (command: CommandItem) => number, drop: boolean): CommandGroup[] {
   const scored = groups.map((group) => {
-    const rows = group.commands.map((command) => ({ command, score: commandFilter(commandValue(command), search, keywordsOf(command)) }));
+    const rows = group.commands.map((command) => ({ command, score: scoreOf(command) })).filter((row) => !drop || row.score > 0);
     const best = rows.reduce((top, row) => Math.max(top, row.score), 0);
     return { group: { ...group, commands: [...rows].sort((a, b) => b.score - a.score).map((row) => row.command) }, best };
   });
-  return scored.sort((a, b) => b.best - a.best).map((entry) => entry.group);
+  return scored.filter((entry) => !drop || entry.group.commands.length > 0).sort((a, b) => b.best - a.best).map((entry) => entry.group);
+}
+
+/**
+ * The rows a `CommandMenu` draws, in the order it draws them. Basalt's own scorer: every row, ordered (`orderGroups`), and cmdk hides those that score 0
+ * with the same scorer. The app's order (`filter={false}`): the rows as given. An app's scorer: scored once here, and only the rows above 0 are drawn, so
+ * what is shown, its order and the first row all come from the same scores, whatever the scorer was a render ago (cmdk is told not to filter).
+ */
+function shownGroups(groups: CommandGroup[], search: string, filter: CommandFilter | undefined): CommandGroup[] {
+  if (!search || filter === false) return groups;
+  if (!filter) return orderGroups(groups, search);
+  return rank(groups, (command) => filter(command, search), true);
+}
+
+/** The row the menu lights when its rows change: the first one drawn and shown. Only Basalt's own scorer draws rows that cmdk then hides. */
+function firstShown(shown: CommandGroup[], search: string, filter: CommandFilter | undefined): string {
+  for (const group of shown) {
+    for (const command of group.commands) {
+      if (!search || filter !== undefined || commandFilter(commandValue(command), search, keywordsOf(command)) > 0) return commandValue(command);
+    }
+  }
+  return "";
+}
+
+/** Whether a key is one cmdk moves the light with (the arrows, Home, End, and its Ctrl N, J, P and K). */
+function navigates(event: React.KeyboardEvent): boolean {
+  switch (event.key) {
+    case "ArrowDown":
+    case "ArrowUp":
+    case "Home":
+    case "End":
+      return true;
+    case "n":
+    case "j":
+    case "p":
+    case "k":
+      return event.ctrlKey;
+    default:
+      return false;
+  }
 }
 
 const keywordsOf = (command: CommandItem) => (command.description ? [...(command.keywords ?? []), command.description] : command.keywords);
@@ -73,6 +117,11 @@ function useActiveDescendant(list: React.RefObject<HTMLElement | null>, field: R
 export interface CommandPanelProps {
   groups: CommandGroup[];
   placeholder: string;
+  /** Names the field (cmdk's label): the dialog's own name. */
+  label: string;
+  /** Names the listbox. */
+  listLabel: string;
+  filter?: CommandFilter;
   hints: boolean;
   onOpenChange: (open: boolean) => void;
   /** What is typed: the menu holds it (from its first keystroke, while this panel loaded), so an app can read it or control it. */
@@ -80,7 +129,7 @@ export interface CommandPanelProps {
   onSearchChange: (search: string) => void;
 }
 
-export function CommandPanel({ groups, placeholder, hints, onOpenChange, search, onSearchChange: setSearch }: CommandPanelProps) {
+export function CommandPanel({ groups, placeholder, label, listLabel, filter, hints, onOpenChange, search, onSearchChange: setSearch }: CommandPanelProps) {
   const hintId = React.useId();
   const apple = useApplePlatform();
   const list = React.useRef<HTMLDivElement>(null);
@@ -88,17 +137,61 @@ export function CommandPanel({ groups, placeholder, hints, onOpenChange, search,
   useActiveDescendant(list, input);
   // the footer is described to a screen reader only while it is drawn: hidden on a touch device with no keyboard
   const chipsShow = useShortcutsVisible();
+  const ordered = shownGroups(groups, search, filter);
+  // The lit row is held here, so it can follow the rows. cmdk lights the first row when the words change, and keeps whatever is lit when rows arrive
+  // (rows from a server would land above a lit row lower down); until the reader moves the light, the first row shown is lit whenever the rows change.
+  const [lit, setLit] = React.useState("");
+  const litNow = React.useRef(lit);
+  litNow.current = lit;
+  // The reader moved the light only when a key cmdk moves it with, or the pointer over a row, really changed the lit row: `reading` holds the lit row
+  // from just before such a key or move, for the rest of that event, and a change to another row while it is held is the reader's.
+  const moved = React.useRef(false);
+  const reading = React.useRef<{ before: string } | null>(null);
+  const hold = () => {
+    reading.current = { before: litNow.current };
+    window.setTimeout(() => { reading.current = null; }, 0);
+  };
+  const light = (next: string) => {
+    if (reading.current && next !== reading.current.before) moved.current = true;
+    setLit(next);
+  };
+  const first = firstShown(ordered, search, filter);
+  const shownRows = ordered.map((group) => group.commands.map(commandValue).join("\u0000")).join("\u0001");
+  const searched = React.useRef(search);
+  React.useLayoutEffect(() => {
+    // New words light the first row again (cmdk does the same), so the light is the reader's again only after another move.
+    if (searched.current !== search) {
+      searched.current = search;
+      moved.current = false;
+    }
+    if (!moved.current && first && first !== lit) setLit(first);
+    // Only a change of the rows or the words decides (`lit` is left out): the light itself moving is cmdk's or the reader's.
+  }, [shownRows, search, first]);
+  // An ordinary row closes the menu, then runs, as it always has; a row that keeps the menu open only runs.
+  const choose = (command: CommandItem) => {
+    if (!command.keepOpen) onOpenChange(false);
+    command.onSelect?.();
+  };
   return (
-    <Command label="Command menu" loop filter={commandFilter}>
+    <Command
+      label={label}
+      loop
+      filter={commandFilter}
+      // Only Basalt's own scorer is cmdk's: the app's order and the app's scorer are drawn as they are (`shownGroups`).
+      shouldFilter={filter === undefined}
+      value={lit}
+      onValueChange={light}
+      onKeyDownCapture={(event) => { if (navigates(event) && !isComposingKey(event.nativeEvent)) hold(); }}
+    >
       <div className="basalt-command-search" data-level={BAND_LEVEL}>
         <Icon icon={SearchGlyph} size={16} />
-        <Command.Input ref={input} className="basalt-command-input" placeholder={placeholder} aria-label={placeholder} aria-describedby={hints && chipsShow ? hintId : undefined} value={search} onValueChange={setSearch} autoFocus />
+        <Command.Input ref={input} className="basalt-command-input" placeholder={placeholder} aria-label={label} aria-describedby={hints && chipsShow ? hintId : undefined} value={search} onValueChange={setSearch} autoFocus />
         <span className="basalt-command-slot" aria-hidden="true" />
       </div>
-      <Command.List ref={list} className="basalt-command-list" label="Commands">
+      <Command.List ref={list} className="basalt-command-list" label={listLabel} onPointerMoveCapture={(event) => { if (event.pointerType !== "touch") hold(); }}>
         <GlidePlate />
         <Command.Empty className="basalt-command-empty">No commands match.</Command.Empty>
-        {orderGroups(groups, search).map((group) => (
+        {ordered.map((group) => (
           <Command.Group key={group.label} heading={group.label} className="basalt-command-group">
             {group.commands.map((command) => {
               const keys = command.shortcut ? shortcutKeys(command.shortcut, apple) : [];
@@ -112,10 +205,7 @@ export function CommandPanel({ groups, placeholder, hints, onOpenChange, search,
                   aria-keyshortcuts={keys.length ? ariaShortcut(keys) : undefined}
                   aria-describedby={keys.length ? spoken : undefined}
                   className="basalt-menu-item"
-                  onSelect={() => {
-                    onOpenChange(false);
-                    command.onSelect?.();
-                  }}
+                  onSelect={() => choose(command)}
                 >
                   <CommandRowContent command={command} spokenId={spoken} />
                 </Command.Item>

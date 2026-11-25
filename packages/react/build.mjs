@@ -323,6 +323,18 @@ for (const file of fs.readdirSync(dist, { recursive: true }).filter((f) => f.end
 
 execFileSync(path.join(path.dirname(require.resolve("typescript/package.json")), "bin", "tsc"), ["-p", here], { stdio: "inherit" });
 
+// The declarations name their siblings as Node's resolution needs ("./glyph-set.js"), so an app type-checked under node16 or nodenext can name a glyph.
+// The rule, and why, is declaration-specifiers.mjs (its test runs the same code): only real module specifiers, never a comment. A specifier that names
+// nothing in dist fails the build, as a declaration that points nowhere would fail an app.
+{
+  const { nodeSpecifier, rewriteSpecifiers } = await import(pathToFileURL(path.join(here, "declaration-specifiers.mjs")).href);
+  for (const file of fs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".d.ts"))) {
+    const source = fs.readFileSync(path.join(dist, file), "utf8");
+    const written = rewriteSpecifiers(source, nodeSpecifier(fs, path, path.dirname(path.join(dist, file)), file));
+    if (written !== source) fs.writeFileSync(path.join(dist, file), written);
+  }
+}
+
 // The two head scripts as files (dist/head/theme.js and dist/head/loops.js), for an app whose content policy forbids an inline script (`script-src 'self'`): it
 // serves the file from its own origin and loads it with a plain `<script src>` in `<head>` (no `async`, `defer` or `type="module"`, which would run it after the
 // first frame). Each file is the exported string itself, character for character (test/content-policy.test.mjs), so the two forms never drift.

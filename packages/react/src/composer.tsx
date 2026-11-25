@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { ActionShortcut } from "./action-shortcut";
 import { Button } from "./button";
-import { Textarea } from "./feedback";
+import { Textarea, useFitToText } from "./feedback";
 import { isComposingKey } from "./keyboard";
 import { isModKey } from "./platform";
 import { isThenable, useJoinedRef } from "./wait";
@@ -105,20 +105,8 @@ export function Composer({ label, value, defaultValue = "", onValueChange, onSen
     return undefined;
   };
 
-  // The field grows with its text where the browser can size it (field-sizing); elsewhere it is measured, within the same bounds.
-  React.useLayoutEffect(() => {
-    const field = own.current;
-    if (!field || typeof CSS === "undefined" || CSS.supports("field-sizing", "content")) return undefined;
-    // The stylesheet's least and greatest heights bound it; this only follows the text.
-    const fit = () => {
-      field.style.height = "auto";
-      field.style.height = `${field.scrollHeight + field.offsetHeight - field.clientHeight}px`;
-    };
-    fit();
-    const resize = new ResizeObserver(() => fit());
-    resize.observe(field);
-    return () => resize.disconnect();
-  }, [text]);
+  // The field grows with its text where the browser can size it (field-sizing); elsewhere it is measured, within the same bounds (Textarea's own measure).
+  useFitToText(own, true, text);
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     textareaProps?.onKeyDown?.(event);

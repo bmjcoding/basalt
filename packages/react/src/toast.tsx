@@ -305,6 +305,14 @@ export interface ToastProviderProps {
    * how to reach it. For translation. Default: "Undo is available. Press F6 to reach it." A toast with no action says nothing extra.
    */
   actionWords?: (label: string) => string;
+  /**
+   * The column the toasts belong to, for an app whose window holds more than one (a conversation beside a panel): the stack's right edge keeps space-4
+   * inside this element's right edge, as it does inside the window's without one. Read again after each render of the stack and once a frame while a
+   * toast is shown, so a column that mounts later, is replaced or moves is followed. The stylesheet's
+   * `--basalt-toast-right` says the same without a measure (the distance from the window's right edge). Under 720 the stack hangs full width from the
+   * bar, and neither is read.
+   */
+  column?: React.RefObject<HTMLElement | null>;
 }
 
 /**
@@ -313,7 +321,7 @@ export interface ToastProviderProps {
  * or in a hidden tab. Results are announced from text-only live regions: danger assertively, the rest politely, once each.
  * The stack itself stays a named region (F6 reaches it).
  */
-export function ToastProvider({ children, limit = 3, actionWords = defaultActionWords }: ToastProviderProps) {
+export function ToastProvider({ children, limit = 3, actionWords = defaultActionWords, column }: ToastProviderProps) {
   const controller = React.useRef<Controller | null>(null);
   if (!controller.current) controller.current = createController();
   controller.current.limit = limit;
@@ -327,7 +335,7 @@ export function ToastProvider({ children, limit = 3, actionWords = defaultAction
         {children}
         <ToastAnnouncer controller={controller.current} />
         <BaseToast.Portal>
-          <ToastStack />
+          <ToastStack column={column} />
         </BaseToast.Portal>
       </BaseToast.Provider>
     </ControllerContext.Provider>
@@ -376,13 +384,41 @@ function ToastAnnouncer({ controller }: { controller: Controller }) {
 /** Whether the stack is hovered or focused (Base UI's `expanded`), which holds every clock. */
 const ExpandedContext = /* @__PURE__ */ React.createContext(false);
 
-function ToastStack() {
+/**
+ * How far the column's right edge is from the window's, in CSS pixels; undefined without a column (or while its ref holds nothing). The ref is read again
+ * after every commit of the stack, and once a frame while a toast is shown, so a column mounted after the provider, a column replaced by another, and a
+ * column that moves sideways at the same width are all followed. Nothing runs while no toast is shown: the next toast measures before it is drawn.
+ */
+function useColumnRight(column: React.RefObject<HTMLElement | null> | undefined, shown: boolean) {
+  const [right, setRight] = React.useState<number | undefined>(undefined);
+  const update = React.useCallback(() => {
+    const element = column?.current;
+    // The fixed stack's right is measured from the viewport's edge, which is the root's client width (a classic scrollbar is outside it).
+    const next = element?.isConnected ? Math.max(0, Math.round(element.ownerDocument.documentElement.clientWidth - element.getBoundingClientRect().right)) : undefined;
+    setRight((was) => (was === next ? was : next));
+  }, [column]);
+  React.useLayoutEffect(update);
+  React.useEffect(() => {
+    if (!shown || !column) return undefined;
+    let frame = window.requestAnimationFrame(function follow() {
+      update();
+      frame = window.requestAnimationFrame(follow);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [shown, column, update]);
+  return right;
+}
+
+function ToastStack({ column }: { column?: React.RefObject<HTMLElement | null> }) {
   const away = useAway();
   // The stack is fixed to the window's bottom: while an on-screen keyboard is up it sits above the keyboard.
   useScreenKeyboardLayout();
+  const { toasts } = BaseToast.useToastManager();
+  const right = useColumnRight(column, toasts.length > 0);
   return (
     <BaseToast.Viewport
       className="basalt-toast-viewport"
+      style={right === undefined ? undefined : ({ "--basalt-toast-right": `${right}px` } as React.CSSProperties)}
       data-away={away ? "" : undefined}
       // The stack is a named region for F6, but not a live one: the text-only regions above announce the results.
       aria-live="off"
