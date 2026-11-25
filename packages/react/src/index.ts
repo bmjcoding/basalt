@@ -128,6 +128,8 @@ export { ShareBar } from "./share-bar";
 export { shareOf } from "./share-of";
 export type { SharePart, ShareBarProps } from "./share-bar";
 export { CoverageStrip, coverageWords } from "./coverage-strip";
+export { Heatmap, heatBounds, heatKey, heatLevel } from "./heatmap";
+export type { HeatKeyItem, HeatmapDay, HeatmapProps } from "./heatmap";
 export type { CoverageDay, CoverageStripProps } from "./coverage-strip";
 export { MarksRow } from "./marks-row";
 export type { MarksKind, MarksRowProps } from "./marks-row";

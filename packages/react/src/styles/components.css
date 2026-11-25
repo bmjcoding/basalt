@@ -5071,6 +5071,54 @@
   .basalt-chart-foot { order: 2; display: flex; }
   .basalt-chart-table { order: 3; }
   .basalt-chart-table[hidden] { display: none; }
+  /* A heatmap (cimip-gaps-3 T2, item 8): the chart's head, readout, key, the grid (a start gutter of weekdays, a month row above, square cells of --_cell,
+     measured, 2px apart), the cut note, the key hint, the caption and the table. All start-aligned; text-xs, numbers tabular, nothing under 12px. */
+  .basalt-heatmap { --_hatch: repeating-linear-gradient(45deg, var(--basalt-chart-missing) 0 var(--basalt-size-hairline), transparent var(--basalt-size-hairline) var(--basalt-size-hatch-pitch)); gap: var(--basalt-space-3); }
+  .basalt-heatmap-readout { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--basalt-space-0-5) var(--basalt-space-1-5); margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+  .basalt-heatmap-seat { justify-items: start; }
+  .basalt-heatmap-value { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-heatmap-why { color: var(--basalt-text-tertiary); }
+  .basalt-heatmap-key { display: flex; flex-wrap: wrap; gap: var(--basalt-space-1) var(--basalt-space-3); margin: 0; padding: 0; list-style: none; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+  .basalt-heatmap-key-item { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
+  .basalt-heatmap-frame { display: grid; grid-template-columns: auto max-content; justify-content: start; column-gap: var(--basalt-space-2); max-inline-size: 100%; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+  .basalt-heatmap-gutter { display: grid; grid-column: 1; grid-row: 2; grid-template-rows: repeat(7, var(--_cell)); row-gap: var(--basalt-space-0-5); padding-block: var(--basalt-space-1); color: var(--basalt-chart-axis); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--_cell) var(--basalt-font-family-sans); white-space: nowrap; }
+  .basalt-heatmap-months { position: relative; grid-column: 2; grid-row: 1; block-size: var(--basalt-text-xs-line-height); margin-inline: var(--basalt-space-1); color: var(--basalt-chart-axis); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); white-space: nowrap; }
+  .basalt-heatmap-months > span { position: absolute; inset-inline-start: calc(var(--_col) * (var(--_cell) + var(--basalt-space-0-5))); }
+  .basalt-heatmap-months > span[data-hidden] { visibility: hidden; }
+  /* The grid keeps space-1 round itself, so an edge cell's ring is whole. */
+  .basalt-heatmap-grid { grid-column: 2; grid-row: 2; padding: var(--basalt-space-1); outline: none; }
+  .basalt-heatmap-cells { display: grid; row-gap: var(--basalt-space-0-5); }
+  .basalt-heatmap-row { display: flex; gap: var(--basalt-space-0-5); }
+  .basalt-heatmap-cell, .basalt-heatmap-blank { box-sizing: border-box; position: relative; flex: none; inline-size: var(--_cell); block-size: var(--_cell); border-radius: var(--basalt-radius-2xs); }
+  .basalt-heatmap-cell { outline: none; transition: background-color var(--basalt-duration-slow) var(--basalt-ease-out); }
+  /* Level 0 is an empty cell with a border-input edge; above 0 four fills; not observed is the hatch with no edge. Zero is a value and missing is never zero. */
+  .basalt-heatmap-cell[data-level="0"], .basalt-heatmap-swatch[data-level="0"] { border: var(--basalt-size-hairline) solid var(--basalt-border-input); }
+  .basalt-heatmap-cell[data-level="1"], .basalt-heatmap-swatch[data-level="1"] { background-color: var(--basalt-chart-heat-1); }
+  .basalt-heatmap-cell[data-level="2"], .basalt-heatmap-swatch[data-level="2"] { background-color: var(--basalt-chart-heat-2); }
+  .basalt-heatmap-cell[data-level="3"], .basalt-heatmap-swatch[data-level="3"] { background-color: var(--basalt-chart-heat-3); }
+  .basalt-heatmap-cell[data-level="4"], .basalt-heatmap-swatch[data-level="4"] { background-color: var(--basalt-chart-heat-4); }
+  .basalt-heatmap-cell[data-missing], .basalt-heatmap-swatch[data-missing] { background-image: var(--_hatch); }
+  .basalt-heatmap-swatch { box-sizing: border-box; position: relative; flex: none; inline-size: var(--basalt-space-3); block-size: var(--basalt-space-3); border-radius: var(--basalt-radius-2xs); }
+  /* The picked day: a size-track disc in chart-observed, ringed size-cut in the surface's colour, centred: a data mark, not a frame. Focus adds the control
+     ring at +2, above its neighbours. */
+  .basalt-heatmap-cell[data-picked]::after { content: ""; box-sizing: content-box; position: absolute; inset-block-start: 50%; inset-inline-start: 50%; inline-size: var(--basalt-size-track); block-size: var(--basalt-size-track); border: var(--basalt-size-cut) solid var(--_cut); border-radius: var(--basalt-radius-full); background: var(--basalt-chart-observed); transform: translate(-50%, -50%); }
+  .basalt-heatmap-cell[data-picked]:dir(rtl)::after { transform: translate(50%, -50%); }
+  .basalt-heatmap-cell:focus-visible { z-index: 1; outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-heatmap-cut { margin: 0; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
+  @media (prefers-reduced-motion: reduce) { .basalt-heatmap-cell { transition: none; } }
+  /* Forced colours: the level is a shape, so the order survives. 0 an empty CanvasText edge; 1 a centred dot; 2 a centred square; 3 a 2px frame and a centred
+     square; 4 solid CanvasText; missing the GrayText hatch; focus Highlight; the picked disc CanvasText cut in Canvas. */
+  @media (forced-colors: active) {
+    .basalt-heatmap { --_hatch: repeating-linear-gradient(45deg, GrayText 0 var(--basalt-size-hairline), transparent var(--basalt-size-hairline) var(--basalt-size-hatch-pitch)); }
+    .basalt-heatmap-cell, .basalt-heatmap-swatch { forced-color-adjust: none; background-color: Canvas; }
+    .basalt-heatmap-cell[data-level="0"], .basalt-heatmap-swatch[data-level="0"] { border-color: CanvasText; }
+    .basalt-heatmap-cell:is([data-level="1"], [data-level="2"], [data-level="3"])::before, .basalt-heatmap-swatch:is([data-level="1"], [data-level="2"], [data-level="3"])::before { content: ""; position: absolute; inset: 0; margin: auto; inline-size: var(--basalt-size-dot); block-size: var(--basalt-size-dot); background: CanvasText; }
+    .basalt-heatmap-cell[data-level="1"]::before, .basalt-heatmap-swatch[data-level="1"]::before { inline-size: var(--basalt-size-track); block-size: var(--basalt-size-track); border-radius: var(--basalt-radius-full); }
+    .basalt-heatmap-cell[data-level="3"], .basalt-heatmap-swatch[data-level="3"] { border: var(--basalt-size-cut) solid CanvasText; }
+    .basalt-heatmap-cell[data-level="4"], .basalt-heatmap-swatch[data-level="4"] { background-color: CanvasText; }
+    .basalt-heatmap-cell[data-picked]::after { z-index: 1; border-color: Canvas; background: CanvasText; }
+    .basalt-heatmap-cell:focus-visible { outline-color: Highlight; }
+  }
   .basalt-chart-scroll-hint { margin: var(--basalt-space-2) 0 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
   /* The chart's table is the still table. Its date is a pinned row header: opaque at its row's level in every state, with the
      hover wash laid over the panel's fill as one cell background. "Not observed" is tertiary with no mark. */
