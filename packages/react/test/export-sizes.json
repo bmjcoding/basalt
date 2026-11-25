@@ -23,7 +23,7 @@
   "ArrowLeftGlyph": 2869,
   "ArrowRightGlyph": 2859,
   "ArrowUpGlyph": 2867,
-  "Avatar": 11505,
+  "Avatar": 11555,
   "BackLink": 3844,
   "BackToTop": 21379,
   "Badge": 556,
@@ -137,7 +137,7 @@
   "LinkTab": 3764,
   "LinkTabs": 141595,
   "LinkTile": 4463,
-  "ListBand": 159639,
+  "ListBand": 159792,
   "Listbox": 3215,
   "ListboxGroup": 377,
   "ListboxOption": 4052,
@@ -193,11 +193,11 @@
   "Pagination": 22574,
   "PairedArt": 462,
   "PaneLayout": 1307,
-  "PanelList": 444,
-  "PanelRow": 4642,
+  "PanelList": 607,
+  "PanelRow": 4668,
   "PauseGlyph": 3210,
   "PeriodStepper": 18018,
-  "PhaseChart": 51411,
+  "PhaseChart": 51446,
   "PlanGlyph": 2966,
   "PlayGlyph": 2838,
   "PlusGlyph": 2825,
@@ -249,8 +249,8 @@
   "SearchTrigger": 3907,
   "SectionActions": 226,
   "SectionIntro": 224,
-  "Segment": 15635,
-  "SegmentedControl": 19300,
+  "Segment": 15770,
+  "SegmentedControl": 19913,
   "Select": 140297,
   "SelectableItem": 26617,
   "SelectableList": 821,
@@ -309,7 +309,7 @@
   "StreamArrivedWord": 470,
   "StreamBlock": 2788,
   "StreamEntry": 2611,
-  "StreamMessage": 14883,
+  "StreamMessage": 14933,
   "StreamNote": 2679,
   "StreamQuote": 966,
   "Switch": 16297,
@@ -348,7 +348,7 @@
   "Textarea": 27069,
   "ThemeChoiceControl": 4794,
   "ThemeMenu": 206519,
-  "TimeChart": 48163,
+  "TimeChart": 48198,
   "TimelineDiagram": 130716,
   "ToastProvider": 92987,
   "Toolbar": 22915,
@@ -442,11 +442,11 @@
   }
  },
  "package": {
-  "bytes": 1045301,
-  "gzip": 349027
+  "bytes": 1046461,
+  "gzip": 349400
  },
  "styles": {
-  "bytes": 511421,
-  "gzip": 65456
+  "bytes": 511496,
+  "gzip": 65473
  }
 }

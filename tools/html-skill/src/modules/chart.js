@@ -312,7 +312,6 @@
     var tableEl = figure.querySelector('.chart-table');
 
     /* A grid of one row whose cells are the days, as React's (G18): a focus stop needs a widget role, and an image is not one. The row has no box. */
-    var dayRow = daysEl.firstChild;
     var dayEls = [];
     for (var di = 0; di < n; di++) {
       var dayEl = document.createElement('div');
@@ -320,7 +319,7 @@
       dayEl.className = 'chart-day';
       dayEl.setAttribute('data-i', di);
       dayEl.setAttribute('aria-label', daySentence(c, di));
-      dayRow.appendChild(dayEl);
+      daysEl.firstChild.appendChild(dayEl);
       dayEls.push(dayEl);
     }
 
