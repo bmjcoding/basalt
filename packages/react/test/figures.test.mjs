@@ -534,7 +534,7 @@ describe("Stat", () => {
     assert.equal(await source.locator("time").textContent(), "4:41\u00a0AM");
     // The dot is drawn by the stylesheet and is not in the text (the wording audit's W8); the comma is the words' own join.
     assert.equal(await source.locator("[aria-hidden=true]").count(), 0, "no aria-hidden dot beside a hidden comma");
-    assert.equal(await source.locator(".basalt-dot-sep .basalt-visually-hidden").textContent(), ", ");
+    assert.equal(await source.locator(".basalt-dot-sep .basalt-said").textContent(), ", ");
     assert.match(await source.locator(".basalt-dot-sep").evaluate((el) => getComputedStyle(el, "::before").content), /·/);
     assert.equal(await source.evaluate((el) => el.textContent.replace(/\s+/g, " ")), "4:41 AM, Scale");
     // what is seen: the visually hidden comma takes no room, so the line is as wide as "4:41 AM · Scale" written out

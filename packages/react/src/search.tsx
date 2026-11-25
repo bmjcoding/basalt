@@ -161,6 +161,12 @@ export interface SearchFieldProps {
   placeholder?: string;
   /** Enter in the field: run the search now. */
   onSubmit?: (value: string) => void;
+  /**
+   * Enter in the field, said as its own event before `onSubmit`, with the words (trimmed; empty when there are none): for a search that opens its results
+   * on Enter and not on focus, so that taking focus (a Tab passing through, a shortcut) opens nothing. A key an input method is still composing with is
+   * not Enter.
+   */
+  onOpen?: (value: string) => void;
   /** Esc in an empty field (the first Esc empties it): the app closes its search. Without it, the second Esc is left to what holds the field (a sheet closes). */
   onEscape?: () => void;
   /** The clear button's name. Default "Clear search". */
@@ -182,7 +188,7 @@ export interface SearchFieldProps {
  * is padding, kept, so the words never move). It is a `role="search"` form. Esc empties it first and only the next Esc leaves (`onEscape`). The browser's
  * own clear × is hidden: the field has one ×.
  */
-export function SearchField({ label, value, onValueChange, placeholder, onSubmit, onEscape, clearLabel = "Clear search", controlSize = "md", disabled, readOnly, inputRef, inputProps, className }: SearchFieldProps) {
+export function SearchField({ label, value, onValueChange, placeholder, onSubmit, onOpen, onEscape, clearLabel = "Clear search", controlSize = "md", disabled, readOnly, inputRef, inputProps, className }: SearchFieldProps) {
   const off = Boolean(disabled ?? inputProps?.disabled);
   const fixed = off || Boolean(readOnly ?? inputProps?.readOnly);
   const own = React.useRef<HTMLInputElement | null>(null);
@@ -218,8 +224,11 @@ export function SearchField({ label, value, onValueChange, placeholder, onSubmit
         onChange={(event) => onValueChange(event.target.value)}
         onKeyDown={(event) => {
           inputProps?.onKeyDown?.(event);
+          if (event.defaultPrevented || isComposingKey(event.nativeEvent)) return;
+          // Enter goes on to submit the form (onSubmit); the open is said first.
+          if (event.key === "Enter" && !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) onOpen?.(value.trim());
           // An input method's own Esc (cancelling a composition) is the input method's.
-          if (event.defaultPrevented || event.key !== "Escape" || isComposingKey(event.nativeEvent)) return;
+          if (event.key !== "Escape") return;
           if (value && !fixed) {
             // The first Esc empties the words, and nothing round the field closes with it.
             event.preventDefault();

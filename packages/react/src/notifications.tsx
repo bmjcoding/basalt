@@ -15,7 +15,7 @@ import { Icon } from "./icon";
 import { GlidePlate } from "./plate";
 import { useReveal } from "./reveal";
 import type { ToastStatus } from "./toast";
-import type { Align, IconComponent, OpenChangeDetails, PopupActions, Side } from "./types";
+import type { Align, FocusTarget, IconComponent, OpenChangeDetails, PopupActions, Side } from "./types";
 import { join } from "./utils";
 
 /**
@@ -91,6 +91,12 @@ export interface NotificationCenterProps extends ListParts {
   onOpenChange?: (open: boolean, details: OpenChangeDetails) => void;
   side?: Side;
   align?: Align;
+  /**
+   * What takes focus when the popover opens: `true` for its first control (the default, "Mark all as read", which stays a stop while there is nothing to
+   * mark), `false` for none, an element or a ref, or a function given how it was opened (`"mouse"`, `"touch"`, `"keyboard"`) that returns one: say,
+   * a function that finds the first entry (`.basalt-notification`) to open on the list.
+   */
+  initialFocus?: FocusTarget;
   className?: string;
 }
 
@@ -133,7 +139,7 @@ function drawn(entries: readonly NotificationEntry[]): NotificationEntry[] {
  * On a phone the bell gives way to a page: put `NotificationList` on the app's own page and link to it from the tab bar (`TabBarItem`
  * with `NotificationsGlyph` and its `dot`), the same page "View all" opens.
  */
-export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, onClearAll, onViewAll, viewAllHref, label = "Notifications", open, defaultOpen, onOpenChange, side = "bottom", align = "end", edge, className }: NotificationCenterProps) {
+export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, onClearAll, onViewAll, viewAllHref, label = "Notifications", open, defaultOpen, onOpenChange, side = "bottom", align = "end", edge, initialFocus, className }: NotificationCenterProps) {
   const entries = drawn(given);
   const unread = unreadCount(entries);
   const popup = React.useRef<PopupActions | null>(null);
@@ -146,7 +152,7 @@ export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, on
         data-unread={unread > 0 ? "" : undefined}
         render={<IconButton icon={NotificationsGlyph} label={unread > 0 ? `${label}, ${unread} unread` : label} edge={edge} className={className} />}
       />
-      <PopoverContent side={side} align={align} className="basalt-notifications">
+      <PopoverContent side={side} align={align} initialFocus={initialFocus} className="basalt-notifications">
         <div className="basalt-notifications-head">
           <PopoverTitle className="basalt-notifications-title">{label}</PopoverTitle>
           <span className="basalt-notifications-count">{unread} unread</span>
@@ -293,7 +299,8 @@ function NotificationRow({ entry, onChoose, group }: { entry: NotificationEntry;
     <span className="basalt-notification-title">
       {unread ? <span className="basalt-visually-hidden">Unread: </span> : null}
       {entry.title}
-      {group ? <span className="basalt-visually-hidden">, {group.count} times</span> : null}
+      {/* Read in place and drawn at no size (`basalt-said`), so the text reads "Deploy finished, 3 times" with no space before the comma. */}
+      {group ? <span className="basalt-said">, {group.count} times</span> : null}
     </span>
   );
   const body = (
