@@ -848,13 +848,13 @@
         "art",
         "kbd"
       ],
-      "budget": 157500,
+      "budget": 159400,
       "usage": 5900,
       "builds": [
         "kbd"
       ],
       "usageReason": "DECISIONS 359: 5100 to 5900 for one line naming the new shapes of data (state, deployment, schedule, a dependency figure, a data flow's decision) and the type modules that draw the rest.",
-      "budgetReason": " DECISIONS 359 (diagram batch D, wave 1): 148204 to 155366 bytes (+7162, +4.8%): the type-module seam, the isolates on every author string, the dependency and swimlane folds and their CSS. The schedule, the state and the deployment are modules of their own (diagram-schedule, diagram-state, diagram-deployment), so a page pays for the types it draws. Cap 148700 to 155500. The run-edge ruling (run-edge/ruling.md): 155394 to 156279 bytes (+885) for the clear band beside a box's edge, the refusal under space-2 a lane and the row a box starts on standing space-4 lower; cap 155500 to 156400 (the owner approved the raise, DECISIONS 378). Merged with #146 (Esc on a trace stops at the figure; a drawn sequence speaks its routes): 156495 bytes, cap 156400 to 156600."
+      "budgetReason": " DECISIONS 359 (diagram batch D, wave 1): 148204 to 155366 bytes (+7162, +4.8%): the type-module seam, the isolates on every author string, the dependency and swimlane folds and their CSS. The schedule, the state and the deployment are modules of their own (diagram-schedule, diagram-state, diagram-deployment), so a page pays for the types it draws. Cap 148700 to 155500. The run-edge ruling (run-edge/ruling.md): 155394 to 156279 bytes (+885) for the clear band beside a box's edge, the refusal under space-2 a lane and the row a box starts on standing space-4 lower; cap 155500 to 156400 (the owner approved the raise, DECISIONS 378). Merged with #146 (Esc on a trace stops at the figure; a drawn sequence speaks its routes): 156495 bytes, cap 156400 to 156600. DECISIONS 383, item 3 (#148: a turn-back clear of a box edge, its label in a gap row): 157384 to 159366 bytes (+1982); cap 157500 to 159400."
     },
     "diagram-motion": {
       "classes": [

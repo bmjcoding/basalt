@@ -1119,8 +1119,12 @@ export function groupEdges(m: Model): [number, number, number, number] {
 function groupLevels(m: Model, g: Model["groups"][number], side: number): number {
   const c = groupCells(m, g)!;
   const kids = m.groups.filter((k) => k.parent === g.id);
-  const reaches = kids.some((k) => { const kc = groupCells(m, k); return kc && [kc.r1 === c.r1, kc.c2 === c.c2, kc.r2 === c.r2, kc.c1 === c.c1][side]; });
-  return reaches ? 2 : 1;
+  const reach = Math.max(0, ...kids.map((k) => { const kc = groupCells(m, k); return kc && [kc.r1 === c.r1, kc.c2 === c.c2, kc.r2 === c.r2, kc.c1 === c.c1][side] ? groupLevels(m, k, side) : 0; }));
+  // A turn-back between two of a box's own parts, beside its edge, stays in the box (backlog four, 3): the box is space-8 out on that side, the lane
+  // space-4 from the cards and space-4 from the edge. Above, the box is space-8 out already.
+  const own = side > 0 && m.edges.some((e) => { const a = m.byId.get(e.from)!, b = m.byId.get(e.to)!;
+    return e.fromSide === SIDES[side] && e.toSide === SIDES[side] && g.all.includes(e.from) && g.all.includes(e.to) && (side === 1 ? Math.max(a.col, b.col) === c.c2 : side === 3 ? Math.min(a.col, b.col) === c.c1 : Math.max(a.row2, b.row2) === c.r2); });
+  return Math.max(1 + reach, own ? 2 : 1);
 }
 /** How many group levels reach the start and the end columns: each adds space-4 to the least width. */
 export function groupReach(m: Model): number {
@@ -2290,6 +2294,47 @@ function wholePixels(box: Rect, ox: number, oy: number, clear: (b: Rect) => bool
   return box;
 }
 
+/**
+ * The seats of an inside turn-back's label (backlog four, 3, revised): a turn-back whose two ends and lane are all in one box runs space-4 from the
+ * cards and space-4 from the box's edge, too narrow for a label, but it passes a gap row between two cards where nothing stands on the lane's inner
+ * side. Its label sits there, beside the lane on the inner side: a plate whose outer end is space-1 short of the lane's stroke, reaching inward over
+ * the empty gutter, centred in the gap. The gaps are tried nearest the line's midpoint first (a tie, within 2, goes to the one nearer the line's start); the seat
+ * check keeps the plate 4 clear of the lane, the gap row's cards, the box edge and every other label. Any other line, a turn-back whose lane is not
+ * beside its box's edge included, has none.
+ */
+function gapSeats(line: GLine, groups: Rect[], nodes: GNode[], w: number, hgt: number, s: Tokens["space"]): Rect[] {
+  if (line.pts.length !== 4) return [];
+  const [a, b, c, d] = line.pts as [Pt, Pt, Pt, Pt];
+  const vertical = Math.abs(a.y - b.y) < 0.01 && Math.abs(b.x - c.x) < 0.01 && Math.abs(c.y - d.y) < 0.01;
+  const level = Math.abs(a.x - b.x) < 0.01 && Math.abs(b.y - c.y) < 0.01 && Math.abs(c.x - d.x) < 0.01;
+  if (!vertical && !level) return [];
+  // In the lane's own terms: `across` is the axis the lane is out along, `along` the axis it runs.
+  const across = (p: Pt) => (vertical ? p.x : p.y), along = (p: Pt) => (vertical ? p.y : p.x);
+  const dir = Math.sign(across(b) - across(a));
+  if (!dir || Math.sign(across(c) - across(d)) !== dir) return [];
+  // Only a lane beside the edge of the box that holds it (space-4 in, a pixel for the snap); a lane with room on the line keeps its seats.
+  const within = (g: Rect) => [a, b, c, d].every((p) => p.x > g.l && p.x < g.r && p.y > g.t && p.y < g.b);
+  const beside = (g: Rect) => { const [lo, hi] = vertical ? [g.l, g.r] : [g.t, g.b]; return (dir > 0 ? hi - across(b) : across(b) - lo) <= s("4") + 1; };
+  if (!groups.some((g) => within(g) && beside(g))) return [];
+  // The plate: the words and space-1 at each end, as a plate on a line is; its outer end is space-1 short of the stroke.
+  const deep = vertical ? w + 2 * s("1") : hgt, wide = vertical ? hgt : w + 2 * s("1");
+  const outer = across(b) - dir * (line.width / 2 + s("1"));
+  const [n1, n2] = dir > 0 ? [outer - deep, outer] : [outer, outer + deep];
+  const lo = Math.min(along(b), along(c)), hi = Math.max(along(b), along(c)), mid = (lo + hi) / 2;
+  const span = (r: Rect): [number, number, number, number] => (vertical ? [r.l, r.r, r.t, r.b] : [r.t, r.b, r.l, r.r]);
+  const cards = nodes.map((n) => span(n.rect)).filter(([x1, x2, y1, y2]) => x1 < n2 && x2 > n1 && y1 < hi && y2 > lo).sort((p, q) => p[2] - q[2]);
+  const gaps: number[] = [];
+  let edge = cards[0]?.[3] ?? Infinity;
+  for (const [, , y1, y2] of cards.slice(1)) {
+    if (y1 > edge && (edge + y1) / 2 > lo && (edge + y1) / 2 < hi) gaps.push((edge + y1) / 2);
+    edge = Math.max(edge, y2);
+  }
+  const start = along(a);
+  // Two gaps within 2 of the midpoint's distance are a tie: the snapped ends move the midpoint by half pixels, and a seat never turns on those.
+  gaps.sort((p, q) => (Math.abs(Math.abs(p - mid) - Math.abs(q - mid)) > 2 ? Math.abs(p - mid) - Math.abs(q - mid) : Math.abs(p - start) - Math.abs(q - start)));
+  return gaps.map((g) => (vertical ? { l: n1, r: n2, t: g - wide / 2, b: g + wide / 2 } : { l: g - wide / 2, r: g + wide / 2, t: n1, b: n2 }));
+}
+
 function seatLabels(m: Model, lines: GLine[], nodes: GNode[], obstacles: Obstacles, groups: Rect[], bounds: Rect, tk: Tokens, measure: ReturnType<typeof ruler>, grid: { ox: number; oy: number }): { labels: GLabel[]; unseated: number[]; bounded: number[] } {
   const s = tk.space;
   const placed: Rect[] = [];
@@ -2333,7 +2378,15 @@ function seatLabels(m: Model, lines: GLine[], nodes: GNode[], obstacles: Obstacl
       if (obstacles.rects.some((r) => hit(G, r))) return false;
       return !lines.some((o) => o.i !== line.i && segmentsOf(o.pts).some(([a, b]) => hit(G, segRect(a, b, o.width))));
     };
-    for (const run of runs) {
+    // An inside turn-back's label is seated first in a gap row (backlog four, 3, revised), then as any line's.
+    // Its own lane counts too, so the plate stays 4 clear of it when it moves onto whole pixels.
+    const gapClear = (box: Rect, bounded = true) => clear(box, bounded) && !hit(grow(box, GROW), segRect(line.pts[1]!, line.pts[2]!, line.width));
+    let gap = false;
+    for (const box of gapSeats(line, groups, nodes, w, hgt, s)) {
+      if (gapClear(box)) { chosen = { box, on: true }; gap = true; break; }
+      if (!inBounds && gapClear(box, false)) inBounds = true;
+    }
+    for (const run of chosen ? [] : runs) {
       for (const f of [1 / 2, 1 / 3, 2 / 3]) {
         const mid = run.p + (run.q - run.p) * f;
         const cands: Array<{ box: Rect; on: boolean }> = [];
@@ -2354,7 +2407,7 @@ function seatLabels(m: Model, lines: GLine[], nodes: GNode[], obstacles: Obstacl
       if (chosen) break;
     }
     if (!chosen) { unseated.push(line.i); if (inBounds) bounded.push(line.i); continue; }
-    const box = wholePixels(chosen.box, grid.ox, grid.oy, (b) => clear(b));
+    const box = wholePixels(chosen.box, grid.ox, grid.oy, (b) => (gap ? gapClear(b) : clear(b)));
     placed.push(box);
     labels.push({ i: line.i, text, box, on: chosen.on });
   }
@@ -2581,6 +2634,18 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
   gather();
 
   const lanes = new Map<number, number>();
+  // A turn-back alone is space-4 out from its side, and space-4 clear of every box edge it runs beside: past it, outside, where an end is out of the
+  // box (backlog four, 3); a box that holds both ends grew on that side (groupLevels).
+  const past = (k: number, side: number, dir: number, vertical: boolean, run: [number, number], out: number): number => {
+    let at = side + dir * out;
+    for (const r of groups.slice().sort((p, q) => dir * ((vertical ? (dir > 0 ? p.r : -p.l) : dir > 0 ? p.b : -p.t) - (vertical ? (dir > 0 ? q.r : -q.l) : dir > 0 ? q.b : -q.t)))) {
+      const [lo, hi, r1, r2] = vertical ? [r.l, r.r, r.t, r.b] : [r.t, r.b, r.l, r.r];
+      if (r2 <= Math.min(...run) || r1 >= Math.max(...run)) continue;
+      const edge = dir > 0 ? hi : lo;
+      if ((edge - side) * dir > 0 && Math.abs(edge - at) < s("4") - 0.5) at = edge + dir * s("4");
+    }
+    return at;
+  };
   const route = (k: number): Pt[] => {
     const [s1, s2] = sides[k]!;
     const { p1, p2 } = ends[k]!;
@@ -2596,7 +2661,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
       if (s1 === s2) {
         // A one-column schema's turn-back takes its lane: space-4 out, the second space-3 further (call 2); space-6 out where marks are drawn (1.1).
         const out = s(m.marks ? "6" : "4") + (m.type === "schema" && m.cols === 1 ? (turnBackLanes(m).lane.get(k) ?? 0) * s("3") : 0);
-        const x = lanes.get(k) ?? (s1 === "right" ? Math.max(p1.x, p2.x) + out : Math.min(p1.x, p2.x) - out);
+        const x = lanes.get(k) ?? past(k, s1 === "right" ? Math.max(p1.x, p2.x) : Math.min(p1.x, p2.x), s1 === "right" ? 1 : -1, true, [p1.y, p2.y], out);
         return [p1, { x, y: p1.y }, { x, y: p2.y }, p2];
       }
       if (Math.abs(p1.y - p2.y) <= 0.5) return [p1, { x: p2.x, y: p1.y }];
@@ -2604,7 +2669,7 @@ function drawnGeometry(input: DrawnInput, measure: ReturnType<typeof ruler>): Ge
       return [p1, { x, y: p1.y }, { x, y: p2.y }, p2];
     }
     if (!isH(s1) && !isH(s2)) {
-      if (s1 === s2) { const y = lanes.get(k) ?? (s1 === "bottom" ? Math.max(p1.y, p2.y) + s("4") : Math.min(p1.y, p2.y) - s("4")); return [p1, { x: p1.x, y }, { x: p2.x, y }, p2]; }
+      if (s1 === s2) { const y = lanes.get(k) ?? past(k, s1 === "bottom" ? Math.max(p1.y, p2.y) : Math.min(p1.y, p2.y), s1 === "bottom" ? 1 : -1, false, [p1.x, p2.x], s("4")); return [p1, { x: p1.x, y }, { x: p2.x, y }, p2]; }
       if (Math.abs(p1.x - p2.x) <= 0.5) return [p1, { x: p1.x, y: p2.y }];
       const y = lanes.get(k) ?? (p1.y + p2.y) / 2;
       return [p1, { x: p1.x, y }, { x: p2.x, y }, p2];

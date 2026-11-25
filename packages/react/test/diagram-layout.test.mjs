@@ -212,6 +212,68 @@ describe("the side choice", () => {
   });
 });
 
+describe("a turn-back beside a box's edge (backlog four, 3)", () => {
+  // Each run of a line against each box edge it runs beside (sharing more than 2px along it), and every label's and card's box, from the page.
+  const measure = (page, key) => page.evaluate(({ P, key }) => {
+    const fig = document.getElementById(`fig-${key}`), d = fig.querySelector(`.${P}-drawing`), o = d.getBoundingClientRect();
+    const R = (el) => { const r = el.getBoundingClientRect(); return { l: r.left - o.left, t: r.top - o.top, r: r.right - o.left, b: r.bottom - o.top }; };
+    const shown = (el) => el.getClientRects().length && getComputedStyle(el).display !== "contents";
+    const boxes = [...d.querySelectorAll(`.${P}-gbox, .${P}-group`)].filter(shown).map((el) => ({ id: el.dataset.group, ...R(el) }));
+    const cards = [...d.querySelectorAll(`.${P}-node`)].filter(shown).map((el) => ({ id: el.dataset.node, ...R(el) }));
+    const svg = d.querySelector(`.${P}-svg`).getBoundingClientRect();
+    const lines = [...d.querySelectorAll(`.${P}-edge`)].map((g) => {
+      // The corners, as the geometry check reads them: a rounded corner's control point stands for it.
+      const pts = [];
+      for (const m of g.querySelector(`.${P}-line`).getAttribute("d").matchAll(/([MLQ])([^MLQ]*)/g)) {
+        const n = m[2].trim().split(/[ ,]+/).map(Number);
+        if (m[1] === "Q") pts.pop();
+        pts.push({ x: n[0] + svg.left - o.left, y: n[1] + svg.top - o.top });
+      }
+      return { i: g.dataset.edge, from: g.dataset.from, to: g.dataset.to, pts, width: parseFloat(getComputedStyle(g.querySelector(`.${P}-line`)).strokeWidth) };
+    });
+    const near = [];
+    for (const ln of lines) for (let k = 1; k < ln.pts.length; k++) {
+      const p = ln.pts[k - 1], q = ln.pts[k], level = Math.abs(p.y - q.y) < 0.75, upright = Math.abs(p.x - q.x) < 0.75;
+      if (!level && !upright) continue;
+      const lo = level ? Math.min(p.x, q.x) : Math.min(p.y, q.y), hi = level ? Math.max(p.x, q.x) : Math.max(p.y, q.y), at = level ? p.y : p.x;
+      for (const b of boxes) for (const [side, edge, e1, e2] of level ? [["top", b.t + 0.5, b.l, b.r], ["bottom", b.b - 0.5, b.l, b.r]] : [["left", b.l + 0.5, b.t, b.b], ["right", b.r - 0.5, b.t, b.b]]) {
+        if (Math.min(hi, e2) - Math.max(lo, e1) <= 2) continue;
+        const apart = Math.abs(at - edge);
+        if (apart <= 2) near.push(`${ln.from}>${ln.to} is ${apart.toFixed(1)} from ${b.id}'s ${side} edge`);
+      }
+    }
+    const labels = [...d.querySelectorAll(`.${P}-label`)].map((el) => ({ i: el.dataset.edge, on: el.hasAttribute("data-on"), ...R(el) }));
+    return { layout: fig.getAttribute("data-layout"), boxes, cards, lines, labels, near };
+  }, { P, key });
+
+  for (const theme of ["dark", "light"]) test(`${theme}: at 1440 both figures draw with every label, no turn-back within 2 of a box edge it runs beside, and the inside one's label in a gap row`, async () => {
+    const { page, errors } = await figurePage({ theme });
+    await draw(page, [{ key: "two", spec: FIG.twoMains }, { key: "nested", spec: FIG.nestedOneLine }]);
+    for (const [key, spec] of [["two", FIG.twoMains], ["nested", FIG.nestedOneLine]]) {
+      const g = await inspect(page, key), got = await measure(page, key);
+      assert.equal(g.layout, "drawn", `${key} draws`);
+      assert.equal(g.lines.length, spec.edges.length, `${key}: every line`);
+      assert.equal(g.labels.length, spec.edges.filter((e) => e.label).length, `${key}: every label`);
+      assert.deepEqual(g.problems, [], `${key}: ${JSON.stringify(g.problems)}`);
+      assert.deepEqual(got.near, [], `${key}: a run on a box's edge`);
+    }
+    // The two-main-lines figure: API to Store turns back inside Core. Its lane is space-4 from the cards and from Core's edge; its label is a plate
+    // beside the lane on the inner side, its outer end space-1 short of the stroke, centred in a gap row between two cards (the one nearest the
+    // line's midpoint: API to Jobs, the tie going to the line's start).
+    const got = await measure(page, "two");
+    const line = got.lines.find((l) => l.from === "api" && l.to === "db");
+    const lane = line.pts[1].x, core = got.boxes.find((b) => b.id === "core"), api = got.cards.find((c) => c.id === "api"), jobs = got.cards.find((c) => c.id === "jobs");
+    assert.ok(Math.abs(core.r - lane - 16) <= 1 && Math.abs(lane - api.r - 16) <= 1, `the lane at ${lane}: Core's edge at ${core.r}, the cards' at ${api.r}`);
+    const label = got.labels.find((l) => l.i === line.i);
+    assert.ok(label.on, "a plate");
+    assert.ok(Math.abs(lane - line.width / 2 - label.r - 4) <= 1, `the plate's outer end ${label.r}, the stroke's inner side ${lane - line.width / 2}`);
+    assert.ok(label.t >= api.b + 4 - 0.5 && label.b <= jobs.t - 4 + 0.5, `the plate (${label.t} to ${label.b}) in the gap from ${api.b} to ${jobs.t}`);
+    assert.ok(Math.abs((label.t + label.b) / 2 - (api.b + jobs.t) / 2) <= 1, "centred in the gap");
+    assert.deepEqual(errors, []);
+    await page.close();
+  });
+});
+
 describe("rule 5: the author is told why", () => {
   test("the nested-group architecture with two-line labels warns once at 1104 with both directions' reasons, not again after a resize; at 390 nothing", async () => {
     const { page, warnings } = await figurePage();
