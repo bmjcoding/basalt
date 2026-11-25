@@ -367,14 +367,15 @@ describe("TextButton's busy look", () => {
     });
   }
 
-  test("held, the underline stands still (dashed, in the ink); under reduced motion it keeps breathing (a colour step); in forced colours it stays dashed", async () => {
+  test("held and under reduced motion the underline stands still (dashed and full, in the ink: the same look, cimip-gaps-3 T1); in forced colours it stays dashed", async () => {
     const { page } = await open(`<B.TextButton data-testid="t" loading>Write it again</B.TextButton>`);
     const label = page.locator(".basalt-text-button-label");
     await page.evaluate(() => document.documentElement.setAttribute("data-loops", "held"));
     assert.deepEqual(await css(label, "animationName", "textDecorationStyle"), { animationName: "none", textDecorationStyle: "dashed" });
     await page.evaluate(() => document.documentElement.removeAttribute("data-loops"));
     await page.emulateMedia({ reducedMotion: "reduce" });
-    assert.equal((await css(label, "animationName")).animationName, "basalt-underline-breathe");
+    assert.deepEqual(await css(label, "animationName", "textDecorationStyle"), { animationName: "none", textDecorationStyle: "dashed" });
+    assert.equal(await label.evaluate((el) => el.getAnimations().length), 0, "nothing runs under reduced motion");
     await page.emulateMedia({ reducedMotion: "no-preference", forcedColors: "active" });
     assert.equal((await css(label, "textDecorationStyle")).textDecorationStyle, "dashed");
   });

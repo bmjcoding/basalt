@@ -550,10 +550,10 @@ describe("the loops hold", () => {
     await context.close();
   });
 
-  test("held outranks reduced motion: the ring stands still at full strength instead of fading, and braille holds its first frame", async () => {
+  test("reduced motion and the hold draw the same still ring at full strength (cimip-gaps-3 T1), and braille holds its first frame", async () => {
     const { page, context } = await open({ reducedMotion: "reduce" });
     const ring = () => page.evaluate(() => { const s = getComputedStyle(document.querySelector(".spinner")); return [s.animationName, s.borderTopColor === s.color]; });
-    assert.equal((await ring())[0], "bh-fade", "reduced motion alone fades the ring");
+    assert.deepEqual(await ring(), ["none", true], "reduced motion alone stills the ring, its arc in currentColor");
     await page.locator("#hold").click();
     assert.deepEqual(await ring(), ["none", true]);
     await context.close();

@@ -19,8 +19,8 @@ const page = (body) => compose(`<title>Runs</title>${body}`, { fonts: false }).h
 const BASE = "*, ::before, ::after { box-sizing: border-box; } body { margin: 0; background: var(--basalt-surface-page); color: var(--basalt-text-primary); font: 400 14px / 20px var(--basalt-font-family-sans); }";
 const reactPage = async (body, options) => { const r = await fixturePage(reactBrowser, body, { standards: true, ...options }); await r.page.addStyleTag({ content: BASE }); await settle(r.page); return r.page; };
 
-const STATES = ["queued", "running", "success", "failed", "skipped", "canceled", "retrying"];
-const WORDS = { queued: "Queued", running: "Running", success: "Passed", failed: "Failed", skipped: "Skipped", canceled: "Canceled", retrying: "Retrying" };
+const STATES = ["idle", "queued", "running", "success", "failed", "skipped", "canceled", "retrying"];
+const WORDS = { idle: "Not started", queued: "Queued", running: "Running", success: "Passed", failed: "Failed", skipped: "Skipped", canceled: "Canceled", retrying: "Retrying" };
 
 // The row exactly as the usage file writes it: the word beside the name. The fixtures take the page's width up to 640, so 390 is a phone's list.
 const SKILL_LIST = `<div style="max-width: 640px; padding: 24px"><ol class="run-stages" aria-label="Stages">${STATES.map((s) => `<li class="run-stage" data-state="${s}"><span class="run-mark" data-state="${s}" aria-hidden="true"></span><span class="run-stage-name">Stage ${s}</span><span class="run-stage-word">${WORDS[s]}</span><span class="run-stage-meta">fact</span><span class="run-stage-time">1.2 s</span></li>`).join("")}</ol></div>`;
@@ -210,4 +210,48 @@ describe("the review's findings", () => {
     assert.equal((tree.match(/Failed/g) ?? []).length, 1, tree);
     await context.close();
   });
+});
+
+// cimip-gaps-3 T1: the idle mark (CircleDashed, tertiary, never animated), the still ring under reduced motion, and the opaque bar under more contrast.
+describe("T1 in the skill", () => {
+  for (const scheme of ["dark", "light"]) {
+    test(`the idle mark is React's CircleDashed in tertiary and never animates; its rail word is said, not drawn (${scheme})`, async () => {
+      const body = `${SKILL_LIST}<div style="width: 640px; padding: 24px"><ol class="run-rail" aria-label="Kitchen"><li class="run-stage" data-state="success"><span class="run-mark" data-state="success" aria-hidden="true"></span><span class="run-stage-name">Prep</span><span class="run-stage-word">Passed</span><span class="run-stage-time">1 min</span></li><li class="run-stage" data-state="idle" id="rail-idle"><span class="run-mark" data-state="idle" aria-hidden="true"></span><span class="run-stage-name">Plate</span><span class="run-stage-word">Not started</span><span class="run-stage-time"></span></li></ol></div>`;
+      const { page: s, context } = await openHtml(browser, page(body), { scheme });
+      const react = await reactPage(`import { CircleDashedIcon } from "@phosphor-icons/react/dist/csr/CircleDashed";
+createRoot(document.getElementById("root")).render(<span id="ref"><B.Icon icon={CircleDashedIcon} size={16} /></span>);`, { theme: scheme });
+      for (const mode of [{}, { reducedMotion: "reduce" }, { forcedColors: "active" }]) {
+        await s.emulateMedia(mode);
+        const r = await s.evaluate(() => { const m = document.querySelector('.run-stages .run-mark[data-state="idle"]'); return { svg: m.querySelector("svg path")?.getAttribute("d"), running: m.getAnimations({ subtree: true }).length, color: getComputedStyle(m).color }; });
+        assert.equal(r.running, 0, `still under ${JSON.stringify(mode)}`);
+        assert.equal(r.svg, await react.evaluate(() => document.querySelector("#ref svg path").getAttribute("d")), "React's glyph");
+      }
+      await s.emulateMedia({ reducedMotion: "no-preference", forcedColors: "none" });
+      const ink = await s.evaluate(() => { const p = document.createElement("span"); p.style.color = "var(--basalt-text-tertiary)"; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return [c, getComputedStyle(document.querySelector('.run-stages .run-mark[data-state="idle"]')).color, getComputedStyle(document.querySelector('.run-stages .run-stage[data-state="idle"] .run-stage-word')).color]; });
+      assert.equal(ink[1], ink[0]);
+      assert.equal(ink[2], ink[0]);
+      const rail = await s.evaluate(() => getComputedStyle(document.querySelector("#rail-idle > .run-stage-word")).position);
+      assert.equal(rail, "absolute", "the rail's idle word is visually hidden");
+      await context.close();
+    });
+
+    test(`under reduced motion the ring of a running and a retrying mark stands still, its arc in currentColor, as held (${scheme})`, async () => {
+      const { page: s, context } = await openHtml(browser, page(SKILL_LIST), { scheme, reducedMotion: "reduce" });
+      const r = await s.evaluate(() => [...document.querySelectorAll('.run-mark:is([data-state="running"], [data-state="retrying"])')].map((m) => { const c = getComputedStyle(m, "::before"); return [c.animationName, c.borderTopColor === c.color]; }));
+      assert.deepEqual(r, [["none", true], ["none", true]]);
+      assert.equal(await s.evaluate(() => document.getAnimations().filter((a) => a.effect.getComputedTiming().iterations === Infinity).length), 0, "no loop runs");
+      await context.close();
+    });
+
+    test(`the top bar is opaque surface-page with no filter under more contrast, as React's (${scheme})`, async () => {
+      const body = '<header class="topbar"><div class="topbar-inner"><a class="brand" href="#">Acme</a></div></header><main style="height: 3000px"><p>Long page.</p></main>';
+      const { page: s, context } = await openHtml(browser, page(body), { scheme });
+      await s.emulateMedia({ contrast: "more" });
+      await s.evaluate(() => window.scrollTo(0, 600));
+      const r = await s.evaluate(() => { const b = getComputedStyle(document.querySelector(".topbar")); const p = document.createElement("div"); p.style.background = "var(--basalt-surface-page)"; document.body.append(p); const page = getComputedStyle(p).backgroundColor; p.remove(); return { bg: b.backgroundColor, page, filter: b.backdropFilter }; });
+      assert.equal(r.bg, r.page);
+      assert.equal(r.filter, "none");
+      await context.close();
+    });
+  }
 });

@@ -61,9 +61,8 @@ export function StageBadge({ state, words, variant = "outline", size = 16, state
   const [extra, setExtra] = React.useState<readonly StageState[]>(() => (states.includes(state) ? [] : [state]));
   const outside = !states.includes(state);
   if (outside && !extra.includes(state)) setExtra([...extra, state]);
-  React.useEffect(() => {
-    if (process.env.NODE_ENV !== "production" && outside) warnRun("StageBadge", `it showed "${state}", which its \`states\` leave out; its seat widened to hold it. List every state the badge can show.`);
-  }, [outside, state]);
+  // Said once for each state (warnRun keeps the set), from the render, as RunTimer's warnings are.
+  if (process.env.NODE_ENV !== "production" && outside) warnRun("StageBadge", `it showed "${state}", which its \`states\` leave out; its seat widened to hold it. List every state the badge can show.`);
   const seat: Record<string, string> = {};
   for (const one of [...states, ...extra]) seat[one] = all[one];
   const [faces, setFaces] = React.useState<Face[]>(() => [{ key: 0, state }]);

@@ -72,19 +72,19 @@ describe("Q7a: the disclosure chevron is the core chevron at 16, turned 180 degr
   }
 });
 
-describe("Q7b: the reduced-motion ring fades to 0.55 on the token curve", () => {
+// Q7b is superseded by cimip-gaps-3 T1: under reduced motion no loop runs, so the ring stands still at full opacity, its arc in currentColor, and
+// bh-fade is gone with its readers.
+describe("Q7b, as T1 rules it: under reduced motion the ring stands still", () => {
   for (const theme of THEMES) {
-    test(`${theme}: a busy button's ring and the spinner keep the 1200ms period, drop to 0.55 and use the token's ease-in-out`, async () => {
+    test(`${theme}: a busy button's ring and the spinner run no animation, stand at full opacity with their quarter arc in currentColor, and bh-fade is gone`, async () => {
       const { page: p, context } = await openHtml(browser, page('<button class="btn" aria-busy="true" id="b">Saving</button><span class="spinner" id="s" role="status" aria-label="Loading"></span>'), { scheme: theme, reducedMotion: "reduce" });
-      const curve = await p.evaluate(() => { const probe = document.createElement("i"); probe.style.transitionTimingFunction = "var(--basalt-ease-in-out)"; document.body.append(probe); const v = getComputedStyle(probe).transitionTimingFunction; probe.remove(); return v; });
-      assert.match(curve, /cubic-bezier/, "the token is a curve, not the keyword");
       const ring = await p.evaluate(() => {
-        const read = (selector, pseudo) => { const c = getComputedStyle(document.querySelector(selector), pseudo); return { name: c.animationName, fn: c.animationTimingFunction, duration: c.animationDuration }; };
+        const read = (selector, pseudo) => { const c = getComputedStyle(document.querySelector(selector), pseudo); return { name: c.animationName, opacity: c.opacity, arc: c.borderTopColor === c.color }; };
         const frames = [...document.styleSheets].flatMap((s) => [...s.cssRules].flatMap((r) => r.cssRules ? [...r.cssRules] : [r])).find((r) => r.type === CSSRule.KEYFRAMES_RULE && r.name === "bh-fade");
-        return { button: read("#b", "::after"), spinner: read("#s", null), low: frames ? [...frames.cssRules].find((k) => k.keyText === "50%").style.opacity : null };
+        return { button: read("#b", "::after"), spinner: read("#s", null), fade: !!frames };
       });
-      assert.equal(ring.low, "0.55");
-      for (const one of [ring.button, ring.spinner]) { assert.equal(one.name, "bh-fade"); assert.equal(one.fn, curve); assert.equal(one.duration, "1.2s"); }
+      assert.equal(ring.fade, false, "bh-fade has no reader left, so it is gone");
+      for (const one of [ring.button, ring.spinner]) assert.deepEqual(one, { name: "none", opacity: "1", arc: true });
       await context.close();
     });
   }
