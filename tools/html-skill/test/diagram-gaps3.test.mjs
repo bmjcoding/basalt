@@ -31,7 +31,8 @@ async function tree(page) {
   const prop = (n, k) => n.properties?.find((p) => p.name === k)?.value?.value;
   return nodes.filter((n) => !n.ignored).map((n) => ({ role: v(n, "role"), name: v(n, "name"), description: v(n, "description"), roledescription: prop(n, "roledescription") ?? "", focused: Boolean(prop(n, "focused")) }));
 }
-const focused = async (page) => (await tree(page)).find((n) => n.focused) ?? null;
+// The focused element: the document (RootWebArea) is focused too while the page has focus, so it is passed over.
+const focused = async (page) => (await tree(page)).find((n) => n.focused && n.role !== "RootWebArea") ?? null;
 /** Tab into a figure from a button just before it, an arrow that moves the stop (→, else ↓), then out and in again: what the tree says each time. */
 async function tabArrowTab(page, id) {
   await page.evaluate((id) => { const b = document.createElement("button"); b.id = `before-${id}`; b.textContent = "Before"; document.getElementById(id).before(b); }, id);
@@ -88,6 +89,7 @@ describe("the skill: a page of diagrams (G17)", () => {
       const got = await tabArrowTab(page, id);
       // Each fixture's own keys (a kanban's say nothing of a trace: it has none).
       assert.ok(got.keys && got.keys.length > 20, `${id}: ${got.keys}`);
+      assert.ok(["image", "link"].includes(got.tabIn?.role), `${id}: tabbing in, focus is on a card (${got.tabIn?.role})`);
       assert.equal(got.tabIn?.description, got.keys, `${id}: tabbing in`);
       assert.ok(got.moved, `${id}: an arrow moves the stop`);
       assert.equal(got.moved.description, "", `${id}: the card an arrow reaches`);

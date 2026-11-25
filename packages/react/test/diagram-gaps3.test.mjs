@@ -45,7 +45,8 @@ async function tree(page) {
   return nodes.filter((n) => !n.ignored).map((n) => ({ role: v(n, "role"), name: v(n, "name"), description: v(n, "description"), roledescription: prop(n, "roledescription") ?? "", focused: Boolean(prop(n, "focused")) }));
 }
 /** What the focused element is named and described by, from the accessibility tree. */
-const focused = async (page) => (await tree(page)).find((n) => n.focused) ?? null;
+// The focused element: the document (RootWebArea) is focused too while the page has focus, so it is passed over.
+const focused = async (page) => (await tree(page)).find((n) => n.focused && n.role !== "RootWebArea") ?? null;
 /**
  * Tab into a figure from a button placed just before it, then an arrow that moves the stop, then out and in again: what the tree says each time. The
  * arrow tried is the first of → ↓ that moves focus (a kanban's cards go down a column).
@@ -93,6 +94,7 @@ describe("a page of diagrams (G17)", () => {
       const got = await tabArrowTab(page, id, P);
       // Each fixture's own keys (a kanban's say nothing of a trace: it has none).
       assert.ok(got.keys && got.keys.length > 20, `${id}: the figure has a keys sentence (${got.keys})`);
+      assert.ok(["image", "link"].includes(got.tabIn?.role), `${id}: tabbing in, focus is on a card (${got.tabIn?.role})`);
       assert.equal(got.tabIn?.description, got.keys, `${id}: tabbing in, the card is described by the keys`);
       assert.ok(got.moved, `${id}: an arrow moves the stop`);
       assert.equal(got.moved.description, "", `${id}: the card an arrow reaches is not described by them again`);

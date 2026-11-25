@@ -225,8 +225,9 @@ describe("a diagram under style-src 'self'", () => {
 // automatically, a text sequence) and the nine of batch D, drawn at 1104 and at 480. Each label is read, by its figure, its line and its words, with its
 // box in its drawing (left, top and width), in the task that rendered it (React's layout effects have run; nothing has painted), and again once the page
 // has settled: under the policy both are exactly what an unrestricted page gives, label for label, so a label left at 0,0 or missing fails. No style is
-// refused. The one other refusal, img-src data: (the sequence's alt divider, whose dashes are a data: SVG mask in the sheet), is pinned to that resource:
-// with one more same-origin sheet that takes the divider's mask away, the policy refuses nothing at all. Written while tests are paused (DECISIONS 359):
+// refused. The one other refusal, img-src data:, is pinned to its resources, the two data: SVG masks a diagram draws (the sequence's alt divider's dashes,
+// and a link card's arrow or external cue, a core glyph's mask): with one more same-origin sheet that takes those masks away, the policy refuses nothing
+// at all. (The probe of cimip-gaps-3/diagrams found the cue's: with the divider's mask alone taken away, img-src data: was still refused.) Written while tests are paused (DECISIONS 359):
 // not yet run by the suite; the probe of cimip-gaps-3/diagrams ran the same logic.
 const EVERY = `
 import a from "./test/fixtures/cimip-diagrams-b.json";
@@ -245,7 +246,7 @@ window.showEvery = (width) => {
   flushSync(() => root.render(<div style={{ display: "grid", gap: 64, width }}>{Object.entries(ALL).map(([k, { type, ...props }]) => { const X = C[type]; return <X key={k} id={"fig-" + k} {...props} />; })}</div>));
   return window.labelSeats();
 };`;
-const NO_DIVIDER = ".basalt-diagram-felse::before { mask: none; }";
+const NO_MASKS = ".basalt-diagram-felse::before, .basalt-diagram-node[data-link] .basalt-diagram-name-end::after { mask: none; }";
 
 describe("every diagram type under style-src 'self' (G15)", () => {
   for (const width of [1104, 480]) {
@@ -256,22 +257,22 @@ describe("every diagram type under style-src 'self' (G15)", () => {
           const first = await page.evaluate((w) => window.showEvery(w), width);
           await page.waitForFunction(() => [...document.querySelectorAll("figure")].every((f) => f.hasAttribute("data-layout")));
           await frames(page, 6);
-          return { first, seats: await page.evaluate(() => window.labelSeats()), refused: await refused(page), errors, dividers: await page.locator(".basalt-diagram-felse").count() };
+          return { first, seats: await page.evaluate(() => window.labelSeats()), refused: await refused(page), errors, dividers: await page.locator(".basalt-diagram-felse").count(), cues: await page.locator(".basalt-diagram-node[data-link] .basalt-diagram-name-end").count() };
         } finally {
           await context.close();
         }
       };
       const open = await read("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:");
       const strict = await read(SELF);
-      const pinned = await read(SELF, NO_DIVIDER);
+      const pinned = await read(SELF, NO_MASKS);
       assert.deepEqual(open.refused, []);
       assert.ok(open.seats.length > 0 && open.first.length === open.seats.length, `every label is there before the first paint (${open.first.length} of ${open.seats.length})`);
       assert.deepEqual(strict.first, open.first, "before the first paint, label for label");
       assert.deepEqual(strict.seats, open.seats, "settled, label for label");
       assert.deepEqual(strict.refused.filter((r) => r.startsWith("style-src")), [], "no style is refused");
-      assert.ok(strict.dividers > 0, "the page draws an alt divider");
+      assert.ok(strict.dividers > 0 && strict.cues > 0, "the page draws an alt divider and a link card's cue");
       assert.deepEqual([...new Set(strict.refused)], ["img-src data"], "the one other refusal is a data: image");
-      assert.deepEqual(pinned.refused, [], "and it is the divider's mask: without it nothing is refused");
+      assert.deepEqual(pinned.refused, [], "and it is those masks: without them nothing is refused");
       assert.deepEqual([strict.errors, pinned.errors], [[], []]);
     });
   }
