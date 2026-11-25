@@ -822,7 +822,7 @@
   .basalt-menu[data-actions] .basalt-menu-item[data-described] { grid-template-rows: var(--_line) auto; }
   .basalt-menu[data-actions] .basalt-menu-item[data-described] > .basalt-menu-item-description { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: break-word; text-wrap: pretty; }
   /* A menu with a described row is as wide as its content, up to the popover maximum; beyond it a Menu's descriptions wrap and other popups' are cut. */
-  .basalt-menu:has(.basalt-menu-item[data-described]) {
+  .basalt-menu:has(.basalt-menu-item[data-described], .basalt-menu-text) {
     width: max-content;
     /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
     max-width: min(var(--basalt-size-popover-max), calc(100vw - 2 * var(--basalt-space-4)));
@@ -840,6 +840,17 @@
     padding: var(--basalt-space-2) var(--basalt-space-3) var(--basalt-space-0-5);
     font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
     color: var(--basalt-text-tertiary);
+  }
+
+  /* MenuText: a line of words under a group's label, not a row: 13/18 at 400 in tertiary (the menu's ink for what cannot be chosen), the label's
+     edge, space-1 below, wrapping inside the menu's 320. Never lit, no plate, no stop. */
+  .basalt-menu-text {
+    margin: 0;
+    padding: 0 var(--basalt-space-3) var(--basalt-space-1);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
+    color: var(--basalt-text-tertiary);
+    overflow-wrap: break-word;
+    text-wrap: pretty;
   }
 
   .basalt-menu-trigger { cursor: pointer; }
@@ -7936,7 +7947,7 @@
     .basalt-table[data-pinned="3"] tr:not([data-empty]) > :nth-child(3)::after { forced-color-adjust: none; background: CanvasText; }
     .basalt-table[data-pinned] tr:not([data-empty]) > :is(td, th[scope="row"]) { background-color: Canvas; background-image: none; }
     .basalt-sort-seat { color: ButtonText; }
-    .basalt-filter-count, .basalt-filter-result { color: CanvasText; }
+    .basalt-filter-count, .basalt-filter-result, .basalt-menu-text { color: CanvasText; }
     .basalt-sheet { border-color: CanvasText; }
     /* The header is Canvas with a real border and no filter or alpha fill. */
     .basalt-chrome { background: Canvas; color: CanvasText; border-bottom-color: CanvasText; -webkit-backdrop-filter: none; backdrop-filter: none; }

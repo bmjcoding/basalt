@@ -78,7 +78,7 @@
   .menu-item[data-highlighted] .menu-item-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
   .menu-item:is([disabled], [aria-disabled="true"]) .menu-item-description { color: var(--basalt-text-disabled); }
   /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
-  .menu:has(.menu-item-description) { width: max-content; max-width: min(var(--basalt-size-popover-max), calc(100vw - 2 * var(--basalt-space-4))); }
+  .menu:has(.menu-item-description, .menu-text) { width: max-content; max-width: min(var(--basalt-size-popover-max), calc(100vw - 2 * var(--basalt-space-4))); }
   @media (pointer: coarse), (width < %bp-md%) {
     .menu-item { height: max(calc(var(--_h) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); }
     .menu-item:has(> .menu-item-description) { height: auto; min-height: max(calc(var(--_h) + var(--_desc) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); }
@@ -87,6 +87,9 @@
   /* A separator runs rim to rim and sits 2px from the rows, so it is 4px from a plate. A group label is tertiary 12/16 at 500, aligned with the rows' text. */
   .menu-separator { height: var(--basalt-size-hairline); margin: var(--basalt-space-0-5) calc(-1 * var(--basalt-space-1)); background: var(--basalt-border-divider); }
   .menu-group-label { padding: var(--basalt-space-2) var(--basalt-space-3) var(--basalt-space-0-5); font: var(--basalt-font-weight-medium) var(--bh-xs); color: var(--basalt-text-tertiary); }
+  /* A line of words that is not a row (React's MenuText): 13/18 at 400 in tertiary, the label's edge, space-1 below, wrapping inside the menu's 320. Never lit, no plate,
+     no stop; the script ties it to its group (or the menu) with aria-describedby. */
+  .menu-text { margin: 0; padding: 0 var(--basalt-space-3) var(--basalt-space-1); font: var(--basalt-font-weight-regular) var(--bh-sm); color: var(--basalt-text-tertiary); overflow-wrap: break-word; text-wrap: pretty; }
 
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
     .menu[data-glide] .menu-item[data-highlighted]::before { background-color: transparent; }
@@ -94,6 +97,7 @@
   @media (forced-colors: active) {
     /* The lit row opts out of colour adjustment (Chromium paints a Canvas backplate behind forced text) and names a system colour for every part. */
     .menu-item:is([disabled], [aria-disabled="true"]) { color: GrayText; }
+    .menu-text { color: CanvasText; }
     .menu-item[data-highlighted] { forced-color-adjust: none; color: HighlightText; }
     .menu-item[data-highlighted]::before { background-color: Highlight; }
     .menu-item[data-highlighted] :is(svg, .menu-item-label, .menu-item-description, .menu-check) { color: HighlightText; }

@@ -1368,7 +1368,8 @@
         "menu-check",
         "menu-radio-dot",
         "menu-separator",
-        "menu-group-label"
+        "menu-group-label",
+        "menu-text"
       ],
       "requires": [
         "popover",
