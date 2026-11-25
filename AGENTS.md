@@ -220,7 +220,8 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   (info, warning, error, success). Status icons pair with words. A stage's mark (`StageMark`) is seven shapes at 16, running the ring; its state's word is always said,
   and where it is drawn differs by part: foundations' table in "Stages and runs" is the rule.
 - **Diagrams:** monochrome; one focal node, inverted. Three lines named by look (main 2px, plain 1px, dashed), and the key says what
-  each means. The drawn layout is used only when it fits (640, the track minimums, a clean seat for every label); otherwise stacked, in
+  each means; a line's state (failing, degraded) is words, in its label or the key, never a kind, a mark or a colour. A stacked line that
+  would pass a card is replanned into the end gutter; a stack that still overlaps is bare, and one line where its key sits points to the list. The drawn layout is used only when it fits (640, the track minimums, a clean seat for every label); otherwise stacked, in
   the author's order, at most 480 wide. One column is at most 480 wide, drawn or stacked (or its track's least width where that is more), on the start edge. Nothing is cut and nothing overlaps at any width. Ports, routes, groups and foreign keys are derived from one
   record each. A flowchart's shapes have a 3:1 contour. Tracing changes ink, never weight. The words are in the HTML before script.
   Still by default; `motion="animated"` adds an entrance on view (each line draws once, every word at rest, inside five seconds) and,

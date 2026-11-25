@@ -1800,6 +1800,8 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
 
 - Three kinds, named by their look; the key gives each its meaning. **Main:** 2px, primary ink, a filled head. **Plain:** 1px,
   secondary ink, a filled head. **Dashed:** 1px, secondary ink, 6 on 4 off, an open head.
+- **A line's state** (failing, degraded) is written in words, in its label first or else in the key, and is never a fourth kind, a mark or a
+  colour (backlog four, 4).
 - Lines are orthogonal, with elbows of 8 or half the shorter leg. One head, `size-diagram-head`, at the far end. A line ends on the
   shape drawn, not on its box. A 1px line sits on half pixels, a 2px line on whole ones, and a head snaps with its line.
 - **Ports are derived.** Nodes in a row or a column face each other; otherwise a line leaves sideways and enters from above or below.
@@ -1826,7 +1828,9 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
 - **Stacked** is one column in the author's order, at most 480 wide (`size-breakpoint-container`) on the start edge. Architecture and
   flowchart are a spine with indented branches: a rail and a trunk at the start, one lane at the end, every route taken from the order.
   A line that leaves or passes a spine card runs in an end gutter outside the cards (lanes `space-3-5` apart, four at most; the gutter is
-  its lanes and `space-3`), down into a card's top or up into its bottom. A data flow is its steps in order with bypasses in that gutter. A sequence is a strip of participants and a numbered list that names each message's sender,
+  its lanes and `space-3`), down into a card's top or up into its bottom. A line whose stacked route (a stem, a trunk, a rail or the end lane) would
+  pass a card it does not end on is planned again as an end line in that gutter, outside every card and group box, in the author's order, and the
+  stack is measured once more (backlog four, 1). A data flow is its steps in order with bypasses in that gutter. A sequence is a strip of participants and a numbered list that names each message's sender,
   receiver and kind. A schema is its cards in an auto-fit grid with no lines, because every foreign-key row writes its target. A stacked
   group whose first card is entered by a turn has `space-12` above; its label stays in the first `space-8`. Stacked, a group's label gives
   way to the lines at its top edge: it slides along the edge, on the start side, and is never set over a line that has room to pass.
@@ -1845,7 +1849,8 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   not at all where `placement` is given; the HTML skill places at build time.
 - **A stack that would still overlap draws no lines** (the decider's answers, review round 64): a drawing known to overlap is never drawn, and all its lines go,
   not some. It is dressed as where scripting is off: no line in the key, no key hint, no roving stops, and the list open (the toggle
-  stays and reads "Hide the list"). This is the one exception to every edge and label being present at every width; a development
+  stays and reads "Hide the list"), and where the key sits one line in `text-xs` and secondary ink, first in the key, says "Too many connections to
+  draw at this width. Each one is in the list below." This is the one exception to every edge and label being present at every width; a development
   build says so.
 - A name or a label is never cut at any width.
 - **A planning figure stacked** keeps every mark its type exists for that fits in one column, says the rest in words, and lists in its key
