@@ -9,6 +9,7 @@ import { BAND_LEVEL, inLevel, MODAL_LEVEL, ModalDepth, ModalHost, useModalLayer,
 import { useModalOutside } from "./modal-outside";
 import { isComposingKey } from "./keyboard";
 import { isModKey } from "./platform";
+import type { MatchRange } from "./search-match";
 import { Spinner } from "./spinner";
 import type { IconComponent } from "./types";
 import { join } from "./utils";
@@ -34,7 +35,38 @@ export interface CommandItem {
    * `onSelect` changes `groups`, or types a word into a controlled `search`). A `CommandList` never closes, so it does not read it.
    */
   keepOpen?: boolean;
+  /**
+   * What matched, as the app that ranked the rows found it: ranges (`[start, end)` in UTF-16 code units, as `markMatches` takes them) on the
+   * string of each name, drawn as `SearchMatch` wherever that string shows. Basalt marks nothing from its own score. `unavailable` indexes the
+   * reason, never the description.
+   */
+  matches?: CommandMatches;
+  /**
+   * Why the command cannot run now. Its presence is the state: the row stays where the order put it, can be lit and reached by every key and the
+   * pointer, but Enter, a click or a tap runs nothing and closes nothing, and the reason is spoken (again on every press). The title and glyph are
+   * in disabled ink and the reason is the second line, in the description's inks; it wraps, so it is never cut. No key chip is drawn. With a
+   * `description`, the reason takes the second line and the description stays a search keyword. With `danger`, unavailable wins. An app's own
+   * global shortcut for the command should check the same condition.
+   */
+  unavailable?: string;
 }
+
+/** The ranges that matched in each of a command's strings (`CommandItem.matches`). */
+export interface CommandMatches {
+  label?: readonly MatchRange[];
+  description?: readonly MatchRange[];
+  /** Ranges on the reason (`unavailable`), never the description's offsets. */
+  unavailable?: readonly MatchRange[];
+}
+
+/** What a function `empty` is given: the words typed, and a way to empty the search and focus the field. */
+export interface CommandEmptyState {
+  search: string;
+  clear: () => void;
+}
+
+/** What a command surface shows when no row is shown: its own sentence (and a control) in place of Basalt's, inside Basalt's centred stack. */
+export type CommandEmpty = React.ReactNode | ((state: CommandEmptyState) => React.ReactNode);
 
 /**
  * How a `CommandMenu` matches and orders its rows. `false`: the app filters and orders them itself, and every row it gives is shown, in its order. A
@@ -65,8 +97,17 @@ export interface CommandMenuProps {
    * app's own order (rows from a server, already ranked), or a function that scores a row (`CommandFilter`).
    */
   filter?: CommandFilter;
-  /** Show a footer naming the keys (↵ Run, Esc Close). Off by default: they're universal. */
+  /** Show the keys (↵ Run, Esc Close) at the end of the foot. Off by default: they're universal. The foot and its count are always drawn. */
   hints?: boolean;
+  /** What the foot counts, singular: "7 commands", "2 of 7". "command" by default. */
+  noun?: string;
+  /** The app's own count line, in place of the default (a server's own total, or a noun that does not take an s). */
+  count?: string;
+  /**
+   * What shows when no row is shown, in place of Basalt's sentence and button ("Nothing matches “…”." and Clear search; "Nothing to show." with no
+   * words and no rows). A node, or a function of the search and a `clear` that empties it and focuses the field. Basalt keeps the centred stack.
+   */
+  empty?: CommandEmpty;
   /**
    * What is typed in the search field, for a menu that controls it: pass it with `onSearchChange`. Left out, the menu keeps its own, which starts empty
    * at every opening. A controlled search is the app's to clear: the menu changes it only as the person types (clear it in `onOpenChange` for a fresh
@@ -156,7 +197,7 @@ export function CommandMenu(props: CommandMenuProps) {
  * state, and the review walkthrough passes a fixed one to show the loading and error looks.
  * @internal
  */
-export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Search commands", label, listLabel = "Commands", filter, hints = false, search: controlled, onSearchChange, state, retry }: CommandMenuProps & { state: PanelState; retry: () => void }) {
+export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Search commands", label, listLabel = "Commands", filter, hints = false, noun = "command", count, empty, search: controlled, onSearchChange, state, retry }: CommandMenuProps & { state: PanelState; retry: () => void }) {
   const layer = useModalLayer();
   const popup = React.useRef<HTMLDivElement>(null);
   const popupRef = useModalOutside<HTMLDivElement>(popup);
@@ -223,7 +264,7 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
             {inLevel(
               MODAL_LEVEL,
               Panel ? (
-                <Panel groups={groups} placeholder={placeholder} label={label ?? "Command menu"} listLabel={listLabel} filter={filter} hints={hints} onOpenChange={onOpenChange} search={search} onSearchChange={setSearch} />
+                <Panel groups={groups} placeholder={placeholder} label={label ?? "Command menu"} listLabel={listLabel} filter={filter} hints={hints} noun={noun} count={count} empty={empty} onOpenChange={onOpenChange} search={search} onSearchChange={setSearch} />
               ) : state.status === "error" ? (
                 // The alert is the sentence alone: the buttons are not read out with it. A browser keeps a failed
                 // file for the life of the page, so after a second failure Reload page comes first and has focus.
@@ -279,6 +320,13 @@ export interface CommandListProps {
   placeholder?: string;
   /** What the foot counts, singular: "9 commands", "3 of 9". "command" by default. */
   noun?: string;
+  /** The app's own count line, in place of the default (a server's own total, or a noun that does not take an s). */
+  count?: string;
+  /**
+   * What shows when no row is shown, in place of Basalt's sentence and button. A node, or a function of the search and a `clear` that empties it
+   * and focuses the field. Basalt keeps the centred stack and its padding.
+   */
+  empty?: CommandEmpty;
   /** A command was chosen (↵ or a press); its own `onSelect` has already run. Not called when there is a `detail` pane. */
   onSelect?: (command: CommandItem) => void;
   /**
@@ -307,7 +355,7 @@ export interface CommandListProps {
  * "Nothing matches" heights is kept as page under it, so filtering never moves what follows. Until cmdk
  * arrives (the first mount, as `CommandMenu`'s first opening), the rows are drawn as they will be and what is typed is kept.
  */
-export function CommandList({ groups, label, placeholder = "Search commands", noun = "command", onSelect, detail, bindShortcut = false, reserve = true, className }: CommandListProps) {
+export function CommandList({ groups, label, placeholder = "Search commands", noun = "command", count, empty, onSelect, detail, bindShortcut = false, reserve = true, className }: CommandListProps) {
   const level = usePanelLevel();
   const bandLevel = Math.min(level + 1, 3);
   const { state, retry } = usePanel(true);
@@ -342,7 +390,7 @@ export function CommandList({ groups, label, placeholder = "Search commands", no
     const ListPanel = state.ListPanel;
     return (
       <div ref={host} className="basalt-command-host" data-pane={detail ? "" : undefined} data-reserve={reserve && level === 1 ? "" : undefined}>
-        <ListPanel groups={groups} label={label} placeholder={placeholder} noun={noun} level={level} bandLevel={bandLevel} onSelect={onSelect} detail={paneOf} className={className} initialSearch={early} focusHandoff={handoff} />
+        <ListPanel groups={groups} label={label} placeholder={placeholder} noun={noun} count={count} empty={empty} level={level} bandLevel={bandLevel} onSelect={onSelect} detail={paneOf} className={className} initialSearch={early} focusHandoff={handoff} />
       </div>
     );
   }
@@ -393,7 +441,7 @@ export function CommandList({ groups, label, placeholder = "Search commands", no
             )}
           </div>
           <div className="basalt-command-foot">
-            <p className="basalt-filter-result basalt-command-count">{total} {total === 1 ? noun : `${noun}s`}</p>
+            <p className="basalt-filter-result basalt-command-count">{count ?? `${total} ${total === 1 ? noun : `${noun}s`}`}</p>
             <CommandHints preview={Boolean(detail)} />
           </div>
         </div>

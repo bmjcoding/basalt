@@ -24,17 +24,9 @@
   .command-results { position: relative; box-sizing: border-box; max-height: var(--basalt-size-popup-max-height); overflow-y: auto; overscroll-behavior: contain; padding: var(--basalt-space-0-5) var(--basalt-space-1); scroll-padding-block: var(--basalt-space-0-5); }
   .command-sizer > [role="group"] + [role="group"] { margin-top: var(--basalt-space-1); }
 
-  /* No match: one centred sentence and a ghost button, in the panel's flow with its own padding, outside the listbox. */
+  /* No match: the palette's block (palette.css), in the panel's flow, outside the listbox. Beside a preview it covers the held list. */
   .command-split[data-mode] .command-none { position: absolute; inset: 0; }
   .command-none[data-measure] { position: absolute; inset-inline: 0; top: 0; visibility: hidden; }
-  .command-none { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--basalt-space-3); padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; font: var(--basalt-font-weight-regular) var(--bh-sm); color: var(--basalt-text-secondary); }
-  .command-none p { margin: 0; overflow-wrap: anywhere; }
-
-  /* The foot: the count (shown at once, spoken once) and the key legend. */
-  .command-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2) var(--basalt-space-4); flex: none; padding: var(--basalt-space-2) var(--basalt-space-4); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); color: var(--basalt-text-secondary); }
-  .command-count { margin: 0; font: var(--basalt-font-weight-regular) var(--bh-xs); font-variant-numeric: tabular-nums; }
-  .command-hints { display: inline-flex; flex-wrap: wrap; gap: var(--basalt-space-4); margin-inline-start: auto; font: var(--basalt-font-weight-regular) var(--bh-xs); }
-  .command-hints > span { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
 
   /* Not in use, the list shows no plate and no lit row: a page at rest with one row lit reads as a selection that isn't there, and ↵ would do nothing. The glide
      fades the shared plate (data-idle counts as no lit row); each row's own plate (touch, reduced motion, forced colours) is cleared here. */
@@ -42,6 +34,7 @@
   .command-results[data-idle] .row:is([data-active], [aria-selected="true"])::before { background-color: transparent; transition-duration: var(--basalt-duration-fast); }
   .command-results[data-idle] .row[data-danger]:is([data-active], [aria-selected="true"]) { color: var(--basalt-status-danger); }
   .command-results[data-idle] .row:is([data-active], [aria-selected="true"]) .row-description { color: var(--basalt-text-tertiary); }
+  .command-results[data-idle] .row[data-unavailable]:is([data-active], [aria-selected="true"]) { color: var(--basalt-text-disabled); }
 
   /* List plus preview: two level-1 panels space-4 apart, the list a fixed size-list-width and the pane the rest, equal in height, with no line between them. It
      answers its own width, not the viewport's: side by side from the list, the gap and one container breakpoint, so the pane is never narrow beside the list;
@@ -93,6 +86,6 @@
     .command-results[data-idle] .row:is([data-active], [aria-selected="true"])::before { background-color: transparent; }
     .command-results[data-idle] .row:is([data-active], [aria-selected="true"]) :is(svg, .row-label, .row-hint, .row-description, .status, .badge) { color: CanvasText; }
     .command-results[data-idle] .row:is([data-active], [aria-selected="true"]) .kbd { background: Canvas; border-color: GrayText; color: CanvasText; }
-    .command-count, .command-none { color: CanvasText; }
+    .command-results[data-idle] .row[data-unavailable]:is([data-active], [aria-selected="true"]) :is(svg, .row-label) { color: GrayText; }
   }
 }

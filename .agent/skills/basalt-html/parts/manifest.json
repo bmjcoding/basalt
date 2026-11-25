@@ -1202,8 +1202,10 @@
         "palette-scrim",
         "palette",
         "palette-list",
-        "palette-empty",
-        "palette-footer"
+        "command-none",
+        "command-foot",
+        "command-count",
+        "command-hints"
       ],
       "attrs": [
         "data-open-palette",
@@ -1240,10 +1242,6 @@
         "command-body",
         "command-results",
         "command-sizer",
-        "command-none",
-        "command-foot",
-        "command-count",
-        "command-hints",
         "command-slot",
         "command-back",
         "command-pane-body",

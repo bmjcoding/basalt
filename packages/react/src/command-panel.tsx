@@ -1,17 +1,16 @@
 // The cmdk-backed bodies of CommandMenu (the modal) and CommandList (the one in the page). A module of its own, so both can
 // import it when they first show and an app that never opens one never downloads cmdk (and the Radix code under it).
-import { Command, defaultFilter, useCommandState } from "cmdk";
+import { Command, defaultFilter } from "cmdk";
 import * as React from "react";
 
 import { SearchGlyph } from "./glyphs/search";
 import { Button } from "./button";
-import type { CommandFilter, CommandGroup, CommandItem } from "./command";
+import type { CommandEmpty, CommandFilter, CommandGroup, CommandItem } from "./command";
 import { CommandHints, CommandRowContent, commandRowShape, commandValue } from "./command-row";
-import { FilterResult } from "./filter-result";
+import { FilterResult, StatusLine } from "./filter-result";
 import { ChevronLeftGlyph } from "./glyphs/chevron-left";
 import { Icon } from "./icon";
 import { BAND_LEVEL } from "./layers";
-import { Kbd } from "./kbd";
 import { GlidePlate } from "./plate";
 import { isComposingKey, useApplePlatform, useShortcutsVisible } from "./keyboard";
 import { ariaShortcut, shortcutKeys } from "./shortcut";
@@ -60,32 +59,224 @@ function shownGroups(groups: CommandGroup[], search: string, filter: CommandFilt
   return rank(groups, (command) => filter(command, search), true);
 }
 
-/** The row the menu lights when its rows change: the first one drawn and shown. Only Basalt's own scorer draws rows that cmdk then hides. */
-function firstShown(shown: CommandGroup[], search: string, filter: CommandFilter | undefined): string {
-  for (const group of shown) {
-    for (const command of group.commands) {
-      if (!search || filter !== undefined || commandFilter(commandValue(command), search, keywordsOf(command)) > 0) return commandValue(command);
-    }
-  }
-  return "";
+/** Whether a row is shown: every row drawn is, except under Basalt's own scorer, where cmdk hides the rows that score 0. */
+function isShown(command: CommandItem, search: string, filter: CommandFilter | undefined): boolean {
+  return !search || filter !== undefined || commandFilter(commandValue(command), search, keywordsOf(command)) > 0;
 }
 
-/** Whether a key is one cmdk moves the light with (the arrows, Home, End, and its Ctrl N, J, P and K). */
-function navigates(event: React.KeyboardEvent): boolean {
-  switch (event.key) {
-    case "ArrowDown":
-    case "ArrowUp":
-    case "Home":
-    case "End":
-      return true;
-    case "n":
-    case "j":
-    case "p":
-    case "k":
-      return event.ctrlKey;
-    default:
-      return false;
-  }
+/** The value cmdk keeps for a row (it trims what it is given), and what the lit row is held as. */
+const valueOf = (command: CommandItem) => commandValue(command).trim();
+
+/** The rows shown, in the order they are drawn: every row, available or not. The first is the one lit when the rows change (`firstShown`). */
+function shownValues(shown: CommandGroup[], search: string, filter: CommandFilter | undefined): string[] {
+  const out: string[] = [];
+  for (const group of shown) for (const command of group.commands) if (isShown(command, search, filter)) out.push(valueOf(command));
+  return out;
+}
+
+/** The count line: "7 commands" at rest (and whenever every row shows), "2 of 7" while filtering, the app's own line when it gives one. */
+export function countLine(shown: number, total: number, noun: string, count?: string): string {
+  if (count !== undefined) return count;
+  return shown === total ? `${total} ${total === 1 ? noun : `${noun}s`}` : `${shown} of ${total}`;
+}
+
+interface LitOptions {
+  /** The rows drawn and their order. */
+  shown: CommandGroup[];
+  search: string;
+  filter: CommandFilter | undefined;
+  list: React.RefObject<HTMLElement | null>;
+  /** Every command, by its value. */
+  commands: Map<string, CommandItem>;
+  /** Whether the pointer lights a row (not beside a preview, where the plate marks what the pane shows). */
+  pointer: boolean;
+  /** Enter, with a row lit that can run. */
+  onEnter: (command: CommandItem, event: React.KeyboardEvent<HTMLDivElement>) => void;
+}
+
+/**
+ * The lit row, held by Basalt in both panels (cmdk's `value` is controlled), so a row that cannot run can be lit, reached and pressed. cmdk skips
+ * `aria-disabled` rows in its own first-row and arrow code, so the keys it moves with (the arrows, Home, End, its Ctrl N, J, P and K, with Alt by group and
+ * ⌘ to the ends) and Enter are handled here, over every row in DOM order, before cmdk sees them. cmdk's own changes are taken only from the pointer; a
+ * pointer on a disabled row (cmdk gives it no handler) is read by delegation on the list. Any other change cmdk makes (it lights its first enabled row as
+ * the search changes, and writes its own value before the controlled early return) is put back by a value that differs only in a trailing space, which
+ * cmdk trims. Until the reader moves the light, the first row shown is lit whenever the rows or the words change.
+ */
+function useLitRow({ shown, search, filter, list, commands, pointer, onEnter }: LitOptions) {
+  const [lit, setLitState] = React.useState("");
+  const [resync, setResync] = React.useState(0);
+  const litNow = React.useRef(lit);
+  litNow.current = lit;
+  const moved = React.useRef(false);
+  const fromPointer = React.useRef<string | null>(null);
+  const scroll = React.useRef(false);
+  const values = shownValues(shown, search, filter);
+  const first = values[0] ?? "";
+  const shownKey = values.join("\u0000");
+  const searched = React.useRef(search);
+  const setLit = (next: string, { byReader = false, scrollTo = true } = {}) => {
+    if (byReader && next !== litNow.current) moved.current = true;
+    scroll.current = scrollTo;
+    litNow.current = next;
+    setLitState(next);
+  };
+  React.useLayoutEffect(() => {
+    // New words light the first row again (cmdk does the same), so the light is the reader's again only after another move.
+    if (searched.current !== search) {
+      searched.current = search;
+      moved.current = false;
+    }
+    const gone = !values.includes(litNow.current);
+    if ((!moved.current || gone) && first !== litNow.current) {
+      if (gone) moved.current = false;
+      setLit(first);
+    }
+    // Only a change of the rows or the words decides: the light itself moving is the reader's.
+  }, [shownKey, search, first]);
+  // A move by key, or the rows changing, keeps the lit row in view (its group's heading too, when it is the group's first row), as cmdk did.
+  React.useLayoutEffect(() => {
+    if (!scroll.current) return;
+    scroll.current = false;
+    const row = rowOf(list.current, lit);
+    if (!row) return;
+    if (row.parentElement?.firstElementChild === row) row.closest("[cmdk-group]")?.querySelector("[cmdk-group-heading]")?.scrollIntoView({ block: "nearest" });
+    row.scrollIntoView({ block: "nearest" });
+  }, [lit, list]);
+  const [said, setSaid] = React.useState({ text: "", id: 0 });
+  const say = (text: string) => setSaid((last) => ({ text, id: last.id + 1 }));
+
+  // cmdk's own change: taken from the pointer (a move over a row, or a press), put back from anything else.
+  const onValueChange = (next: string) => {
+    if (fromPointer.current !== null) {
+      setLit(next.trim(), { byReader: fromPointer.current !== "touch", scrollTo: false });
+      return;
+    }
+    if (next.trim() !== litNow.current) setResync((count) => count + 1);
+  };
+  const holdPointer = (event: React.PointerEvent | React.MouseEvent) => {
+    fromPointer.current = "pointerType" in event ? event.pointerType : "mouse";
+    window.setTimeout(() => { fromPointer.current = null; }, 0);
+  };
+  const disabledRow = (target: EventTarget) => (target as Element).closest?.<HTMLElement>("[cmdk-item][aria-disabled='true']") ?? null;
+  const listProps = {
+    onPointerMoveCapture: holdPointer,
+    onPointerDownCapture: holdPointer,
+    onClickCapture: holdPointer,
+    onPointerMove: (event: React.PointerEvent) => {
+      if (!pointer) return;
+      const row = disabledRow(event.target);
+      const value = row?.getAttribute("data-value");
+      if (value && value !== litNow.current) setLit(value, { byReader: event.pointerType !== "touch", scrollTo: false });
+    },
+    // A press on a row that cannot run keeps focus where it is (the field), as a press on any other row does.
+    onMouseDown: (event: React.MouseEvent) => { if (disabledRow(event.target)) event.preventDefault(); },
+    onClick: (event: React.MouseEvent) => {
+      const row = disabledRow(event.target);
+      const command = row ? commands.get(row.getAttribute("data-value") ?? "") : undefined;
+      if (command?.unavailable === undefined) return;
+      // A press lights the row it was on (beside a preview too, where the pane then shows the reason).
+      setLit(valueOf(command), { scrollTo: false });
+      say(command.unavailable);
+    },
+  };
+
+  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.defaultPrevented || isComposingKey(event.nativeEvent)) return;
+    const host = list.current;
+    if (!host) return;
+    const rows = [...host.querySelectorAll<HTMLElement>("[cmdk-item]")];
+    const at = rows.findIndex((row) => row.getAttribute("data-value") === litNow.current);
+    const go = (row: HTMLElement | undefined) => {
+      event.preventDefault();
+      const value = row?.getAttribute("data-value");
+      if (value) setLit(value, { byReader: true });
+    };
+    const step = (by: 1 | -1) => {
+      if (!rows.length) return go(undefined);
+      const next = at === -1 ? (by > 0 ? 0 : rows.length - 1) : (at + by + rows.length) % rows.length;
+      go(rows[next]);
+    };
+    const byGroup = (by: 1 | -1) => {
+      const groups = [...host.querySelectorAll<HTMLElement>("[cmdk-group]")].filter((group) => group.querySelector("[cmdk-item]"));
+      const current = rows[at]?.closest<HTMLElement>("[cmdk-group]");
+      const index = current ? groups.indexOf(current) : -1;
+      const target = index === -1 ? undefined : groups[index + by];
+      if (target) go(target.querySelector<HTMLElement>("[cmdk-item]") ?? undefined);
+      else step(by);
+    };
+    const down = () => (event.metaKey ? go(rows[rows.length - 1]) : event.altKey ? byGroup(1) : step(1));
+    const up = () => (event.metaKey ? go(rows[0]) : event.altKey ? byGroup(-1) : step(-1));
+    switch (event.key) {
+      case "ArrowDown": return down();
+      case "ArrowUp": return up();
+      case "n":
+      case "j": return event.ctrlKey ? down() : undefined;
+      case "p":
+      case "k": return event.ctrlKey ? up() : undefined;
+      case "Home": return go(rows[0]);
+      case "End": return go(rows[rows.length - 1]);
+      case "Enter": {
+        event.preventDefault();
+        const command = commands.get(litNow.current);
+        if (!command) return undefined;
+        // A row that cannot run: nothing runs, nothing closes, focus and the light stay, and the reason is said (again on every press).
+        if (command.unavailable !== undefined) return say(command.unavailable);
+        return onEnter(command, event);
+      }
+      default: return undefined;
+    }
+  };
+
+  // The trailing space changes the prop, so cmdk writes its value again; it trims it, so the value it keeps is the lit row's.
+  const value = resync % 2 ? `${lit} ` : lit;
+  const status = <StatusLine delay={0} sendId={said.id}>{said.text}</StatusLine>;
+  return { lit, setLit, value, onValueChange, onKeyDown, listProps, say, status };
+}
+
+const rowOf = (host: HTMLElement | null, value: string) => (value ? [...(host?.querySelectorAll<HTMLElement>("[cmdk-item]") ?? [])].find((row) => row.getAttribute("data-value") === value) ?? null : null);
+
+/** Every command, by the value cmdk keeps for it. */
+function byValue(groups: CommandGroup[]) {
+  const out = new Map<string, CommandItem>();
+  for (const group of groups) for (const command of group.commands) out.set(valueOf(command), command);
+  return out;
+}
+
+/** A cmdk row: a row that cannot run is cmdk's `disabled` (cmdk writes `aria-disabled` and never clicks it), and carries no key chip or shortcut. */
+function CommandRow({ command, spoken, apple, chevron, onSelect }: { command: CommandItem; spoken: string; apple: boolean; chevron?: boolean; onSelect: () => void }) {
+  const unavailable = command.unavailable !== undefined;
+  const keys = command.shortcut && !unavailable ? shortcutKeys(command.shortcut, apple) : [];
+  return (
+    <Command.Item
+      value={commandValue(command)}
+      keywords={keywordsOf(command)}
+      disabled={unavailable}
+      {...commandRowShape(command)}
+      aria-keyshortcuts={keys.length ? ariaShortcut(keys) : undefined}
+      aria-describedby={keys.length ? spoken : undefined}
+      className="basalt-menu-item"
+      onSelect={onSelect}
+    >
+      <CommandRowContent command={command} spokenId={spoken} chevron={chevron} />
+    </Command.Item>
+  );
+}
+
+/**
+ * No row shown: one centred sentence (and a control), outside the listbox, so a button or a link is valid there. With words, "Nothing matches “…”."
+ * and Clear search; with no words and no rows, "Nothing to show."; `empty` replaces both. It is not live: the count already said "0 of 7". A key other
+ * than Esc stops here, so cmdk's root (which takes Enter for its lit row) never eats a button's or a link's own activation.
+ */
+function NoneBlock({ search, clear, empty, className, ...props }: { search: string; clear: () => void; empty?: CommandEmpty } & Omit<React.ComponentProps<"div">, "children" | "onKeyDown">) {
+  const words = search.trim();
+  const content = empty === undefined
+    ? (words ? <><p>Nothing matches “{words}”.</p><Button variant="ghost" size="sm" onClick={clear}>Clear search</Button></> : <p>Nothing to show.</p>)
+    : typeof empty === "function" ? empty({ search, clear }) : empty;
+  return (
+    <div {...props} className={join("basalt-command-none", className)} onKeyDown={(event) => { if (event.key !== "Escape") event.stopPropagation(); }}>
+      {content}
+    </div>
+  );
 }
 
 const keywordsOf = (command: CommandItem) => (command.description ? [...(command.keywords ?? []), command.description] : command.keywords);
@@ -123,54 +314,37 @@ export interface CommandPanelProps {
   listLabel: string;
   filter?: CommandFilter;
   hints: boolean;
+  noun: string;
+  count?: string;
+  empty?: CommandEmpty;
   onOpenChange: (open: boolean) => void;
   /** What is typed: the menu holds it (from its first keystroke, while this panel loaded), so an app can read it or control it. */
   search: string;
   onSearchChange: (search: string) => void;
 }
 
-export function CommandPanel({ groups, placeholder, label, listLabel, filter, hints, onOpenChange, search, onSearchChange: setSearch }: CommandPanelProps) {
+export function CommandPanel({ groups, placeholder, label, listLabel, filter, hints, noun, count, empty, onOpenChange, search, onSearchChange: setSearch }: CommandPanelProps) {
   const hintId = React.useId();
   const apple = useApplePlatform();
   const list = React.useRef<HTMLDivElement>(null);
   const input = React.useRef<HTMLInputElement>(null);
   useActiveDescendant(list, input);
-  // the footer is described to a screen reader only while it is drawn: hidden on a touch device with no keyboard
+  // the legend is described to a screen reader only while it is drawn: hidden on a touch device with no keyboard
   const chipsShow = useShortcutsVisible();
   const ordered = shownGroups(groups, search, filter);
-  // The lit row is held here, so it can follow the rows. cmdk lights the first row when the words change, and keeps whatever is lit when rows arrive
-  // (rows from a server would land above a lit row lower down); until the reader moves the light, the first row shown is lit whenever the rows change.
-  const [lit, setLit] = React.useState("");
-  const litNow = React.useRef(lit);
-  litNow.current = lit;
-  // The reader moved the light only when a key cmdk moves it with, or the pointer over a row, really changed the lit row: `reading` holds the lit row
-  // from just before such a key or move, for the rest of that event, and a change to another row while it is held is the reader's.
-  const moved = React.useRef(false);
-  const reading = React.useRef<{ before: string } | null>(null);
-  const hold = () => {
-    reading.current = { before: litNow.current };
-    window.setTimeout(() => { reading.current = null; }, 0);
-  };
-  const light = (next: string) => {
-    if (reading.current && next !== reading.current.before) moved.current = true;
-    setLit(next);
-  };
-  const first = firstShown(ordered, search, filter);
-  const shownRows = ordered.map((group) => group.commands.map(commandValue).join("\u0000")).join("\u0001");
-  const searched = React.useRef(search);
-  React.useLayoutEffect(() => {
-    // New words light the first row again (cmdk does the same), so the light is the reader's again only after another move.
-    if (searched.current !== search) {
-      searched.current = search;
-      moved.current = false;
-    }
-    if (!moved.current && first && first !== lit) setLit(first);
-    // Only a change of the rows or the words decides (`lit` is left out): the light itself moving is cmdk's or the reader's.
-  }, [shownRows, search, first]);
+  const commands = React.useMemo(() => byValue(groups), [groups]);
   // An ordinary row closes the menu, then runs, as it always has; a row that keeps the menu open only runs.
   const choose = (command: CommandItem) => {
+    if (command.unavailable !== undefined) return;
     if (!command.keepOpen) onOpenChange(false);
     command.onSelect?.();
+  };
+  const lit = useLitRow({ shown: ordered, search, filter, list, commands, pointer: true, onEnter: choose });
+  const total = commands.size;
+  const shown = shownValues(ordered, search, filter).length;
+  const clear = () => {
+    setSearch("");
+    input.current?.focus();
   };
   return (
     <Command
@@ -179,47 +353,32 @@ export function CommandPanel({ groups, placeholder, label, listLabel, filter, hi
       filter={commandFilter}
       // Only Basalt's own scorer is cmdk's: the app's order and the app's scorer are drawn as they are (`shownGroups`).
       shouldFilter={filter === undefined}
-      value={lit}
-      onValueChange={light}
-      onKeyDownCapture={(event) => { if (navigates(event) && !isComposingKey(event.nativeEvent)) hold(); }}
+      value={lit.value}
+      onValueChange={lit.onValueChange}
+      onKeyDown={lit.onKeyDown}
     >
       <div className="basalt-command-search" data-level={BAND_LEVEL}>
         <Icon icon={SearchGlyph} size={16} />
         <Command.Input ref={input} className="basalt-command-input" placeholder={placeholder} aria-label={label} aria-describedby={hints && chipsShow ? hintId : undefined} value={search} onValueChange={setSearch} autoFocus />
         <span className="basalt-command-slot" aria-hidden="true" />
       </div>
-      <Command.List ref={list} className="basalt-command-list" label={listLabel} onPointerMoveCapture={(event) => { if (event.pointerType !== "touch") hold(); }}>
+      <Command.List ref={list} className="basalt-command-list" label={listLabel} data-none={shown === 0 ? "" : undefined} {...lit.listProps}>
         <GlidePlate />
-        <Command.Empty className="basalt-command-empty">No commands match.</Command.Empty>
         {ordered.map((group) => (
           <Command.Group key={group.label} heading={group.label} className="basalt-command-group">
-            {group.commands.map((command) => {
-              const keys = command.shortcut ? shortcutKeys(command.shortcut, apple) : [];
-              const spoken = `${hintId}-${command.id}`;
-              return (
-                <Command.Item
-                  key={command.id}
-                  value={commandValue(command)}
-                  keywords={keywordsOf(command)}
-                  {...commandRowShape(command)}
-                  aria-keyshortcuts={keys.length ? ariaShortcut(keys) : undefined}
-                  aria-describedby={keys.length ? spoken : undefined}
-                  className="basalt-menu-item"
-                  onSelect={() => choose(command)}
-                >
-                  <CommandRowContent command={command} spokenId={spoken} />
-                </Command.Item>
-              );
-            })}
+            {group.commands.map((command) => (
+              <CommandRow key={command.id} command={command} spoken={`${hintId}-${command.id}`} apple={apple} onSelect={() => choose(command)} />
+            ))}
           </Command.Group>
         ))}
       </Command.List>
-      {hints ? (
-        <div className="basalt-command-footer" id={hintId} data-kbd-hint="">
-          <span><Kbd shortcut>↵</Kbd> Run</span>
-          <span><Kbd shortcut>Esc</Kbd> Close</span>
-        </div>
-      ) : null}
+      {shown === 0 ? <NoneBlock search={search} clear={clear} empty={empty} /> : null}
+      <div className="basalt-command-foot">
+        <FilterResult className="basalt-command-count">{countLine(shown, total, noun, count)}</FilterResult>
+        {/* The legend keeps its id while hidden from assistive technology, so the field's description still resolves. */}
+        {hints ? <CommandHints id={hintId} preview={false} modal /> : null}
+      </div>
+      {lit.status}
     </Command>
   );
 }
@@ -232,6 +391,8 @@ export interface CommandListPanelProps {
   placeholder: string;
   /** The noun the count uses: "9 commands", "3 of 9". */
   noun: string;
+  count?: string;
+  empty?: CommandEmpty;
   level: number;
   bandLevel: number;
   onSelect?: (command: CommandItem) => void;
@@ -270,13 +431,12 @@ const tokenPx = (el: HTMLElement, name: string, fallback: number) => {
   return Number.isFinite(value) ? value : fallback;
 };
 
-export function CommandListPanel({ groups, label, placeholder, noun, level, bandLevel, onSelect, detail, className, initialSearch = "", focusHandoff }: CommandListPanelProps) {
+export function CommandListPanel({ groups, label, placeholder, noun, count, empty, level, bandLevel, onSelect, detail, className, initialSearch = "", focusHandoff }: CommandListPanelProps) {
   const ids = { hint: React.useId(), pane: React.useId(), heading: React.useId(), list: React.useId() };
   const apple = useApplePlatform();
   const [search, setSearch] = React.useState("");
   const [focused, setFocused] = React.useState(false);
   const [hovered, setHovered] = React.useState(false);
-  const [active, setActive] = React.useState("");
   const [mode, setMode] = React.useState<"split" | "push">("push");
   const [view, setView] = React.useState<"list" | "detail">("list");
   const [enter, setEnter] = React.useState<"next" | "prev" | undefined>();
@@ -292,15 +452,11 @@ export function CommandListPanel({ groups, label, placeholder, noun, level, band
   const searchRef = React.useRef(search);
   searchRef.current = search;
 
-  const commands = React.useMemo(() => {
-    const byValue = new Map<string, CommandItem>();
-    for (const group of groups) for (const command of group.commands) byValue.set(commandValue(command), command);
-    return byValue;
-  }, [groups]);
+  const commands = React.useMemo(() => byValue(groups), [groups]);
   const total = commands.size;
   const split = Boolean(detail) && mode === "split";
-  const current = detail ? commands.get(active) : undefined;
-  const idle = !split && !focused && !hovered;
+  const ordered = orderGroups(groups, search);
+  const shown = shownValues(ordered, search, undefined).length;
 
   // Opens with the text that was typed while this loaded. It is applied after the first layout, which has measured the
   // unfiltered list, so the list holds that height whatever the first search is.
@@ -392,14 +548,34 @@ export function CommandListPanel({ groups, label, placeholder, noun, level, band
     setView("list");
   };
   const choose = (command: CommandItem) => {
+    // A row that cannot run opens no pane and runs nothing: its reason is said instead.
+    if (command.unavailable !== undefined) {
+      lit.say(command.unavailable);
+      return;
+    }
     if (!detail) {
       command.onSelect?.();
       onSelect?.(command);
       return;
     }
-    setActive(commandValue(command));
+    lit.setLit(valueOf(command), { scrollTo: false });
     if (mode === "push") push();
   };
+  const lit = useLitRow({
+    shown: ordered,
+    search,
+    filter: undefined,
+    list,
+    commands,
+    pointer: !split,
+    onEnter: (command, event) => {
+      // In a split the plate marks what the pane shows, so ↵ in the field runs the pane's primary action: its first button.
+      if (split && event.target === input.current) paneBody.current?.querySelector<HTMLElement>("button:not([disabled]), a[href]")?.click();
+      else choose(command);
+    },
+  });
+  const current = detail ? commands.get(lit.lit) : undefined;
+  const idle = !split && !focused && !hovered;
 
   const keys = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
@@ -411,11 +587,7 @@ export function CommandListPanel({ groups, label, placeholder, noun, level, band
       }
       return;
     }
-    if (event.key === "Enter" && split && event.target === input.current && !event.nativeEvent.isComposing) {
-      // In a split the plate marks what the pane shows, so ↵ runs the pane's primary action: its first button.
-      event.preventDefault();
-      paneBody.current?.querySelector<HTMLElement>("button:not([disabled]), a[href]")?.click();
-    }
+    lit.onKeyDown(event);
   };
 
   const clear = () => {
@@ -423,24 +595,9 @@ export function CommandListPanel({ groups, label, placeholder, noun, level, band
     input.current?.focus();
   };
 
-  const row = (command: CommandItem) => {
-    const keysOf = command.shortcut ? shortcutKeys(command.shortcut, apple) : [];
-    const spoken = `${ids.hint}-${command.id}`;
-    return (
-      <Command.Item
-        key={command.id}
-        value={commandValue(command)}
-        keywords={keywordsOf(command)}
-        {...commandRowShape(command)}
-        aria-keyshortcuts={keysOf.length ? ariaShortcut(keysOf) : undefined}
-        aria-describedby={keysOf.length ? spoken : undefined}
-        className="basalt-menu-item"
-        onSelect={() => choose(command)}
-      >
-        <CommandRowContent command={command} spokenId={spoken} chevron={Boolean(detail)} />
-      </Command.Item>
-    );
-  };
+  const row = (command: CommandItem) => (
+    <CommandRow key={command.id} command={command} spoken={`${ids.hint}-${command.id}`} apple={apple} chevron={Boolean(detail)} onSelect={() => choose(command)} />
+  );
 
   const panel = (
     <Command
@@ -450,7 +607,8 @@ export function CommandListPanel({ groups, label, placeholder, noun, level, band
       filter={commandFilter}
       // In a split a pointer passing over a row changes nothing: the plate marks what the pane shows.
       disablePointerSelection={split}
-      {...(detail ? { value: active, onValueChange: setActive } : null)}
+      value={lit.value}
+      onValueChange={lit.onValueChange}
       className="basalt-command basalt-command-page"
       data-level={level}
       role="region"
@@ -483,22 +641,24 @@ export function CommandListPanel({ groups, label, placeholder, noun, level, band
           data-idle={idle ? "" : undefined}
           onPointerEnter={(event) => { if (event.pointerType !== "touch") setHovered(true); }}
           onPointerLeave={() => setHovered(false)}
+          {...lit.listProps}
         >
           <GlidePlate />
-          {orderGroups(groups, search).map((group) => (
+          {ordered.map((group) => (
             <Command.Group key={group.label} heading={group.label} className="basalt-command-group">
               {group.commands.map(row)}
             </Command.Group>
           ))}
         </Command.List>
-        <NoMatch query={search} onClear={clear} />
+        {shown === 0 ? <NoneBlock search={search} clear={clear} empty={empty} /> : null}
         {/* An unseen copy of "Nothing matches", measured with the list, so the page can keep room for it. */}
-        <div className="basalt-command-none basalt-command-none-sizer" aria-hidden="true" inert>
-          <p>Nothing matches.</p>
-          <Button variant="ghost" size="sm" tabIndex={-1}>Clear search</Button>
-        </div>
+        <NoneBlock className="basalt-command-none-sizer" aria-hidden="true" inert search={empty === undefined ? "?" : ""} clear={() => {}} empty={empty} />
       </div>
-      <Foot total={total} noun={noun} hintId={ids.hint} preview={Boolean(detail)} query={search} />
+      <div className="basalt-command-foot">
+        <FilterResult className="basalt-command-count">{countLine(shown, total, noun, count)}</FilterResult>
+        <CommandHints id={ids.hint} preview={Boolean(detail)} />
+      </div>
+      {lit.status}
     </Command>
   );
 
@@ -523,34 +683,11 @@ export function CommandListPanel({ groups, label, placeholder, noun, level, band
         <div className="basalt-command-back">
           <Button variant="ghost" size="sm" icon={ChevronLeftGlyph} aria-label={`Back to ${label}`} onClick={back}>{label}</Button>
         </div>
-        <div ref={paneBody} className="basalt-command-pane-body">{current ? detail(current) : <p className="basalt-command-pane-empty">Nothing to show.</p>}</div>
+        <div ref={paneBody} className="basalt-command-pane-body">
+          {/* A row that cannot run has no pane: its reason is the pane's empty form, and ↵ has no button to press. */}
+          {current?.unavailable !== undefined ? <p className="basalt-command-pane-empty">{current.unavailable}</p> : current ? detail(current) : <p className="basalt-command-pane-empty">Nothing to show.</p>}
+        </div>
       </div>
-    </div>
-  );
-}
-
-/** The count and the key legend. The count is shown at once and spoken once, after 400ms of stillness. */
-function Foot({ total, noun, hintId, preview, query }: { total: number; noun: string; hintId: string; preview: boolean; query: string }) {
-  const counted = useCommandState((state) => state.filtered.count);
-  // Before cmdk has seen its rows it counts none: an empty query shows every row, so that is what the count says.
-  const shown = query === "" ? total : counted;
-  const text = shown === total ? `${total} ${total === 1 ? noun : `${noun}s`}` : `${shown} of ${total}`;
-  return (
-    <div className="basalt-command-foot">
-      <FilterResult className="basalt-command-count">{text}</FilterResult>
-      <CommandHints id={hintId} preview={preview} />
-    </div>
-  );
-}
-
-/** No match: one centred sentence and a ghost button, in the held area and outside the listbox, so the button is valid there. */
-function NoMatch({ query, onClear }: { query: string; onClear: () => void }) {
-  const shown = useCommandState((state) => state.filtered.count);
-  if (shown > 0) return null;
-  return (
-    <div className="basalt-command-none">
-      <p>Nothing matches “{query.trim()}”.</p>
-      <Button variant="ghost" size="sm" onClick={onClear}>Clear search</Button>
     </div>
   );
 }

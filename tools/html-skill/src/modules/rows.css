@@ -80,6 +80,12 @@
   .row:is([data-active], [aria-selected="true"]) .row-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
   .row-chevron { display: none; flex: none; margin-inline-start: var(--basalt-space-2); color: var(--basalt-text-secondary); }
   .row-chevron:dir(rtl) { transform: scaleX(-1); }
+  /* A row that cannot run (`unavailable`: data-unavailable and aria-disabled="true", in the palette and the command list). It is lit and reached like any
+     row and runs nothing. Its title and glyph are disabled ink, at rest and lit; the reason is the second line in the description's inks (tertiary at rest,
+     secondary lit), and wraps, so the row grows by the description's line for each line it takes: it is the only statement of why. */
+  .row[data-unavailable], .row[data-unavailable]:is([data-active], [aria-selected="true"]) { color: var(--basalt-text-disabled); cursor: default; }
+  .row[data-unavailable] { grid-template-rows: var(--row-line) auto; }
+  .row[data-unavailable] > .row-description { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: break-word; text-wrap: pretty; }
 
   /* The long form of a profile (decisions 106 and 107): a .rows list of links, the glyph in the row's seat, the handle as the hint. A row for a
      service without a mark keeps an empty seat (the glyph's 16px and the row's gap, on the start side), only when another row in this list
@@ -98,5 +104,8 @@
     .row:is([data-active], [aria-selected="true"])::before { background-color: Highlight; }
     .row:is([data-active], [aria-selected="true"]) :is(svg, .row-label, .row-hint, .row-description, .status, .badge) { color: HighlightText; }
     .row:is([data-active], [aria-selected="true"]) .kbd { background: Highlight; border-color: HighlightText; color: HighlightText; }
+    /* A row that cannot run, at rest: its title and glyph GrayText, its reason CanvasText. Lit, every part is HighlightText (above). */
+    .row[data-unavailable]:not([data-active], [aria-selected="true"]), .row[data-unavailable]:not([data-active], [aria-selected="true"]) > :is(svg, .row-label) { color: GrayText; }
+    .row[data-unavailable]:not([data-active], [aria-selected="true"]) > .row-description { color: CanvasText; }
   }
 }

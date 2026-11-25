@@ -3555,16 +3555,18 @@
   .basalt-command-error .basalt-command-empty { padding-bottom: var(--basalt-space-3); color: var(--basalt-text-primary); }
   .basalt-command-group + .basalt-command-group { margin-top: var(--basalt-space-1); }
 
-  .basalt-command-footer {
-    display: flex;
-    gap: var(--basalt-space-4);
-    padding: var(--basalt-space-2) var(--basalt-space-4);
-    box-shadow: inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider);
-    font-size: var(--basalt-text-xs-size);
-    color: var(--basalt-text-secondary);
+  /* The modal's foot is the list's foot band (below): the count, and with `hints` the legend at its end. It is always mounted and at least a key
+     chip's height plus its padding (36px), so it never comes and goes; inside the 480px cap the list gives up the room. */
+  .basalt-dialog.basalt-command { display: flex; flex-direction: column; }
+  .basalt-dialog.basalt-command > [cmdk-root] { display: flex; flex-direction: column; min-height: 0; }
+  .basalt-dialog.basalt-command .basalt-command-list { flex: 0 1 auto; min-height: 0; }
+  .basalt-dialog.basalt-command .basalt-command-list[data-none] { padding-block: 0; }
+  .basalt-dialog.basalt-command .basalt-command-foot { box-sizing: border-box; min-height: calc(var(--basalt-size-kbd) + 2 * var(--basalt-space-2)); }
+  /* While the empty block holds a tab stop the field is no longer the modal's only stop, so its band takes the list's flush-field ring (−2). */
+  .basalt-dialog.basalt-command:has(.basalt-command-none :is(a[href], button:not(:disabled), input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"]))) .basalt-command-search:has(.basalt-command-input:focus-visible) {
+    outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus);
+    outline-offset: calc(-1 * var(--basalt-size-focus-width));
   }
-
-  .basalt-command-footer span { display: inline-flex; align-items: center; gap: var(--basalt-space-2); }
   .basalt-command [cmdk-group-heading] {
     padding: var(--basalt-space-2) var(--basalt-space-3) var(--basalt-space-0-5);
     font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
@@ -3574,6 +3576,18 @@
      the label. Rest ink, the plate and the lift are shared with Menu, above. cmdk keeps the plate when the pointer
      leaves a row, as it does everywhere. */
   .basalt-command .basalt-menu-item { --_plate-height: var(--_basalt-control-xl, var(--basalt-size-control-xl)); --_gap: var(--basalt-space-3); cursor: pointer; }
+
+  /* A row that cannot run (`unavailable`): it stays in the order, is lit and reached like any row, and runs nothing. The title and glyph are disabled
+     ink, at rest and lit; the reason is the second line in the description's inks (tertiary at rest, secondary on the plate), never disabled ink. The
+     reason is the only statement of why, so it wraps and the row grows by its line for each line it takes; an ordinary description still cuts. */
+  .basalt-command .basalt-menu-item[data-unavailable],
+  .basalt-command .basalt-menu-item[data-unavailable][data-selected="true"],
+  .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-unavailable][data-selected="true"] { color: var(--basalt-text-disabled); cursor: default; }
+  .basalt-command .basalt-menu-item[data-unavailable] { grid-template-rows: var(--_line) auto; }
+  .basalt-command .basalt-menu-item[data-unavailable] > .basalt-menu-item-description.basalt-command-reason { overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: break-word; text-wrap: pretty; color: var(--basalt-text-tertiary); }
+  .basalt-command .basalt-command-list:not([data-idle]) .basalt-menu-item[data-unavailable][data-selected="true"] > .basalt-menu-item-description.basalt-command-reason { color: var(--basalt-text-secondary); }
+  /* Matched words (the app's `matches`) are SearchMatch: primary at 600. On a danger or an unavailable title the mark keeps the title's ink and is 600 only. */
+  .basalt-command .basalt-menu-item:is([data-danger], [data-unavailable]) > .basalt-menu-item-label .basalt-search-match { color: inherit; }
 
   /* ---- The command list in the page, and list plus preview ----
      CommandMenu's panel set in the page: a level-1 panel in the flow with its rim and no scrim or shadow. The band, the rows and
@@ -7846,6 +7860,19 @@
        contrast, so a lit danger row takes the same pairing as any other. Its words still say what it does. */
     .basalt-menu-item[data-danger][data-highlighted],
     .basalt-command .basalt-menu-item[data-danger][data-selected="true"] { color: HighlightText; }
+    /* A command row's marks: CanvasText at 600 at rest, HighlightText on the lit row. A row that cannot run: at rest its title and glyph are GrayText
+       and the reason (with its marks) CanvasText; lit, every part is HighlightText on Highlight. */
+    .basalt-command .basalt-menu-item .basalt-search-match { color: CanvasText; }
+    .basalt-command .basalt-command-list:not([data-idle]) .basalt-menu-item[data-selected="true"] .basalt-search-match { color: HighlightText; }
+    .basalt-command .basalt-menu-item[data-unavailable]:not([data-selected="true"]),
+    .basalt-command .basalt-menu-item[data-unavailable]:not([data-selected="true"]) > :is(.basalt-menu-item-label, .basalt-icon),
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-unavailable][data-selected="true"],
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-unavailable][data-selected="true"] > :is(.basalt-menu-item-label, .basalt-icon) { color: GrayText; }
+    .basalt-command .basalt-menu-item[data-unavailable]:not([data-selected="true"]) > .basalt-command-reason,
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-unavailable][data-selected="true"] > .basalt-command-reason,
+    .basalt-command .basalt-menu-item[data-unavailable]:not([data-selected="true"]) .basalt-search-match { color: CanvasText; }
+    .basalt-command .basalt-command-list:not([data-idle]) .basalt-menu-item[data-unavailable][data-selected="true"],
+    .basalt-command .basalt-command-list:not([data-idle]) .basalt-menu-item[data-unavailable][data-selected="true"] :is(.basalt-menu-item-label, .basalt-icon, .basalt-command-reason, .basalt-search-match) { color: HighlightText; }
     .basalt-radio-indicator[data-checked] { background: HighlightText; }
     .basalt-switch-thumb { background: ButtonText; }
     .basalt-switch-thumb[data-checked] { background: HighlightText; }
