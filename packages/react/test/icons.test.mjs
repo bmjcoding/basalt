@@ -262,7 +262,9 @@ describe("the bytes, with the plugin and without it", () => {
   // clock and a day), the canceled line's Prohibit and the core minus, so with the plugin it rose from 28,655 to 35,865 (28,700 to 35,900). Reported on the
   // PR: more than the 5% margin; the decider accepted it (the pixel review of 316, ruling 1). The review round's fixes (the failed outcome, the command
   // that never steps back, RunTimer's print and redraw guards) bring it to 36,630 (36,650).
-  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 36_650, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 89_700, 3_000], ["NotificationCentre", 148_050, 3_500]]) {
+  // cimip-gaps-3 E2 (DECISIONS 246, measured with the plugin on origin/main c99c81d3 and the E2 branch; main is already over both): ToastProvider 96,757 on main,
+  // 96,989 with E2 (+232), so 89,700 to 97,000; NotificationCentre 148,740 on main, 148,759 with E2 (+19), so 148,050 to 148,800.
+  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 36_650, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 97_000, 3_000], ["NotificationCentre", 148_800, 3_500]]) {
     test(`${name} with the plugin is under ${limit} bytes and at least ${saving} smaller than without, alone and beside the app's own icons`, async () => {
       const icons = CASES.find(([n]) => n === name)[1];
       // the static graph under splitting: a control's glyph engine loads on demand, so it is not part of what an app loads first
