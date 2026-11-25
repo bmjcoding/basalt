@@ -12,12 +12,14 @@
     --_room: calc(var(--basalt-size-focus-width) + var(--basalt-size-focus-offset));
     --_hang: min(var(--_px), calc(var(--basalt-edge-room-start, calc(var(--_px) + var(--_room))) - var(--_room)));
   }
-  .tabs-scroll { overflow-x: auto; padding: var(--_room); margin: calc(-1 * var(--_room)); margin-inline-start: calc(-1 * (var(--_hang) + var(--_room))); }
+  .tabs-scroll { overflow-x: auto; padding: var(--_room); margin: calc(-1 * var(--_room)); margin-inline-start: calc(-1 * (var(--_hang) + var(--_room))); scrollbar-width: none; overscroll-behavior-inline: contain; }
+  /* No scrollbar is drawn, so overflow starting never changes the row's height (cimip-gaps-3 t4, as React's). */
+  .tabs-scroll::-webkit-scrollbar { display: none; }
   .tabs { position: relative; display: flex; gap: var(--basalt-space-1); width: max-content; min-width: 100%; box-sizing: border-box; }
   .tabs::before { content: ""; position: absolute; inset-inline: var(--_hang) 0; bottom: 0; height: var(--basalt-size-hairline); background: var(--basalt-border-divider); pointer-events: none; }
-  /* A tab brought into view (the script's focusin reveal) keeps the ring's 4 clear, and a hairline more: a scroll offset lands on a whole pixel and a tab's
-     edge does not. The content starts at the tab's start. */
-  .tab { position: relative; display: inline-flex; align-items: center; justify-content: flex-start; gap: var(--basalt-space-1-5); flex: none; height: var(--basalt-size-control-lg); padding: 0 var(--basalt-space-2); margin: 0; scroll-margin-inline: calc(var(--_room) + var(--basalt-size-hairline)); border: 0; border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0; background: transparent; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / normal var(--basalt-font-family-sans); cursor: pointer; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  /* A tab brought into view (the script's focusin reveal) keeps space-6 clear on each side, as React's (cimip-gaps-3 t4): the tab after it always shows its
+     start, so a pointer reaches every tab by pressing the last one in view. The content starts at the tab's start. */
+  .tab { position: relative; display: inline-flex; align-items: center; justify-content: flex-start; gap: var(--basalt-space-1-5); flex: none; height: var(--basalt-size-control-lg); padding: 0 var(--basalt-space-2); margin: 0; scroll-margin-inline: var(--basalt-space-6); border: 0; border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0; background: transparent; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / normal var(--basalt-font-family-sans); cursor: pointer; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
   /* The selected tab is its label at 600 in primary ink (400 in secondary at rest), each reserving the 600's width (see segment), with the underline. */
   .tab[aria-selected="true"] { color: var(--basalt-text-primary); }
   /* The 600 is on the label, not on the tab (decision 149): words the script did not reserve keep their weight and move nothing. */
