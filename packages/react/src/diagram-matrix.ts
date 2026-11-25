@@ -3,7 +3,7 @@
 // DOM for both forms switched by the engine's --_drawn, an empty cell that holds its track and says so in words. Their components hand this module to the
 // engine on the spec, so an app that draws an architecture bundles none of it. Nothing runs at load. The implementation has not been reviewed.
 
-import { cardRole, h, iso, lineSwatch, rectOf, sentence, svgA, txt } from "./diagram-core";
+import { h, iso, lineSwatch, rectOf, sentence, svgA, txt } from "./diagram-core";
 import type { DiagramLineKind, DiagramSpec, DiagramTypeExt, Dyn, ExtBuildKit, ExtBuilt, ExtMeasureKit, Geo, GLine, Measured, MEdge, MNode, Model, Pt, Tokens, VAttrs, VChild, VElement, VNode } from "./diagram-core";
 
 // ============================================================================================================================================
@@ -54,7 +54,7 @@ const stopIndex = (dyn: Dyn, id: string) => (dyn.layout && !dyn.bare ? (dyn.stop
 function stop(P: string, m: Model, n: MNode, dyn: Dyn, level: number | undefined, extra: VAttrs, ...kids: VChild[]): VElement {
   return h(n.href ? "a" : "div", {
     class: `${P}-node`, ...linkAttrs(n.href, n.blank), "data-node": n.id, "data-focal": n.focal ? "" : undefined, "data-level": level,
-    ...cardRole(m, n.href, stopIndex(dyn, n.id)), "aria-label": m.ext!.sentence!(m, n), tabindex: stopIndex(dyn, n.id), ...extra,
+    role: n.href ? undefined : "img", "aria-label": m.ext!.sentence!(m, n), tabindex: stopIndex(dyn, n.id), ...extra,
   }, ...kids);
 }
 /** A node's own words: its kind line, its name and its detail, as the shipped node writes them. */
@@ -270,7 +270,8 @@ const jstage = (m: Model, id: string) => jplan(m).stages.find((s) => s.id === id
 
 function journeySentence(m: Model, n: MNode): string {
   const p = jplan(m), s = jstage(m, n.id);
-  const parts = [`${p.words.stage} ${s.i + 1} of ${p.stages.length}, ${s.name}: ${s.levelWord}.`];
+  // The name first (cimip-gaps-3, Astra's 4): a card's name begins with its visible name, what a speech user says; then its place and its level.
+  const parts = [`${sentence(s.name)} ${p.words.stage} ${s.i + 1} of ${p.stages.length}: ${s.levelWord}.`];
   for (const f of J_FIELDS) if (s.fields[f]) parts.push(`${bandWord(p, f)}: ${f === "quote" ? `“${s.fields[f]}”` : sentence(s.fields[f]!)}`);
   if (s.focal && m.legend.focal) parts.push(sentence(m.legend.focal));
   return parts.join(" ");
@@ -405,7 +406,7 @@ function buildBlueprint(spec: DiagramSpec, kit: ExtBuildKit): ExtBuilt {
   const given = new Map<string, BlueprintCell>();
   for (const c of rawCells) { const k = cellId(String(c.stage), String(c.layer)); if (kit.dev && given.has(k)) kit.warn(`the cell ${k} is given twice`); given.set(k, c); }
   for (const k of given.keys()) if (kit.dev && !stages.some((s) => k.startsWith(`${s.id}:`))) kit.warn(`the cell ${k} names a stage that is not in stages`);
-  // Every cell of the grid is a stop, an empty one included (1.4): "Cold sandbox, Frontstage: none".
+  // Every cell of the grid is a stop, an empty one included (1.4): "None. Cold sandbox, Frontstage."
   const cells: BCell[] = [];
   for (const [si, st] of stages.entries()) for (const layer of layers) {
     const raw = given.get(cellId(st.id, layer));
@@ -444,7 +445,8 @@ const stageName = (p: BlueprintPlan, c: BCell) => p.stages[c.stage]!.name;
 
 function blueprintSentence(m: Model, n: MNode): string {
   const p = bplan(m), c = bcell(m, n.id);
-  if (c.empty) return `${stageName(p, c)}, ${p.layerWords[c.layer]}: ${p.words.none.toLowerCase()}.`;
+  // An empty cell's visible word ("None") leads its name too (cimip-gaps-3, Astra's 4), then where it is.
+  if (c.empty) return `${sentence(p.words.none)} ${stageName(p, c)}, ${p.layerWords[c.layer]}.`;
   const parts = [`${c.name}. ${stageName(p, c)}, ${p.layerWords[c.layer]}.`];
   if (c.detail) parts.push(sentence(c.detail));
   const to = p.arrows.filter((a) => a.from === c.id).map((a) => bcell(m, a.to)).map((t) => `${t.name} (${t.stage === c.stage ? p.layerWords[t.layer] : stageName(p, t)})`);

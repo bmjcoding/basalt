@@ -24,7 +24,8 @@ window.show = (provider) => {
 };`;
 
 /** A page served under `policy`, with the head files, the shipped sheet and the fixture as files of its own origin. `inline` is an inline script in the head. */
-async function policyPage(policy, { inline = "", storage = {}, viewport = { width: 1440, height: 900 }, fixture = FIXTURE } = {}) {
+/** `ready` is the global the fixture defines, waited for before the page is handed back; `sheet` is one more same-origin stylesheet, after the shipped one. */
+async function policyPage(policy, { inline = "", storage = {}, viewport = { width: 1440, height: 900 }, fixture = FIXTURE, ready = "show", sheet = "" } = {}) {
   const context = await browser.newContext({ viewport });
   // Before any page script, and outside the policy: what a returning visitor has stored, and a log of every refusal.
   await context.addInitScript((stored) => {
@@ -34,11 +35,12 @@ async function policyPage(policy, { inline = "", storage = {}, viewport = { widt
   }, storage);
   const bundled = await bundleFixture(fixture);
   const files = {
-    "/": ["text/html", `<!doctype html><html lang="en"><head><link rel="stylesheet" href="/styles.css"><script src="/head/theme.js"></script><script src="/head/loops.js"></script>${inline ? `<script>${inline}</script>` : ""}<script src="/fixture.js" defer></script></head><body><div id="root"></div></body></html>`],
+    "/": ["text/html", `<!doctype html><html lang="en"><head><link rel="stylesheet" href="/styles.css">${sheet ? '<link rel="stylesheet" href="/sheet.css">' : ""}<script src="/head/theme.js"></script><script src="/head/loops.js"></script>${inline ? `<script>${inline}</script>` : ""}<script src="/fixture.js" defer></script></head><body><div id="root"></div></body></html>`],
     "/styles.css": ["text/css", fs.readFileSync(path.join(dist, "styles.css"), "utf8")],
     "/head/theme.js": ["text/javascript", fs.readFileSync(path.join(dist, "head", "theme.js"), "utf8")],
     "/head/loops.js": ["text/javascript", fs.readFileSync(path.join(dist, "head", "loops.js"), "utf8")],
     "/fixture.js": ["text/javascript", bundled],
+    "/sheet.css": ["text/css", sheet],
   };
   await context.route(`${ORIGIN}/**`, (route) => {
     const file = files[new URL(route.request().url()).pathname];
@@ -49,7 +51,7 @@ async function policyPage(policy, { inline = "", storage = {}, viewport = { widt
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(`${ORIGIN}/`);
-  await page.waitForFunction(() => typeof window.show === "function");
+  await page.waitForFunction((name) => typeof window[name] === "function", ready);
   return { page, context, errors };
 }
 
@@ -189,7 +191,7 @@ const indents = (page) => page.evaluate((P) => [...document.querySelectorAll(`#s
 describe("a diagram under style-src 'self'", () => {
   test("its line labels sit where an unrestricted page puts them, on the page and in the viewer, and the policy refuses nothing", async () => {
     const read = async (policy) => {
-      const { page, context, errors } = await policyPage(policy, { fixture: DIAGRAMS });
+      const { page, context, errors } = await policyPage(policy, { fixture: DIAGRAMS, ready: "showDiagrams" });
       try {
         await page.evaluate(() => window.showDiagrams());
         await page.waitForSelector(`#arch[data-layout="drawn"] .${DP}-ink > .${DP}-label`);
@@ -220,9 +222,12 @@ describe("a diagram under style-src 'self'", () => {
 });
 
 // Every type under style-src 'self' (G15 of the console's log, cimip-gaps-3): a page of every diagram, the classic five (authored and placed
-// automatically, a text sequence) and the nine of batch D, drawn at 1104 and at 480. The policy refuses nothing, no figure's label waits for a frame to
-// be placed (each is placed as React commits, in the task that rendered it), and every label sits where an unrestricted page puts it. Written while
-// tests are paused (DECISIONS 359): not yet run by the suite; the probe of cimip-gaps-3/diagrams ran the same page.
+// automatically, a text sequence) and the nine of batch D, drawn at 1104 and at 480. Each label is read, by its figure, its line and its words, with its
+// box in its drawing (left, top and width), in the task that rendered it (React's layout effects have run; nothing has painted), and again once the page
+// has settled: under the policy both are exactly what an unrestricted page gives, label for label, so a label left at 0,0 or missing fails. No style is
+// refused. The one other refusal, img-src data: (the sequence's alt divider, whose dashes are a data: SVG mask in the sheet), is pinned to that resource:
+// with one more same-origin sheet that takes the divider's mask away, the policy refuses nothing at all. Written while tests are paused (DECISIONS 359):
+// not yet run by the suite; the probe of cimip-gaps-3/diagrams ran the same logic.
 const EVERY = `
 import a from "./test/fixtures/cimip-diagrams-b.json";
 import d from "./test/fixtures/diagrams-d1.json";
@@ -231,44 +236,43 @@ delete ALL.$comment;
 const C = { architecture: B.ArchitectureDiagram, flowchart: B.FlowchartDiagram, "data-flow": B.DataFlowDiagram, sequence: B.SequenceDiagram, schema: B.SchemaDiagram,
   gantt: B.GanttDiagram, kanban: B.KanbanDiagram, journey: B.JourneyDiagram, "service-blueprint": B.ServiceBlueprintDiagram, "story-map": B.StoryMapDiagram,
   schedule: B.ScheduleDiagram, timeline: B.TimelineDiagram, state: B.StateDiagram, deployment: B.DeploymentDiagram };
+window.labelSeats = () => [...document.querySelectorAll(".basalt-diagram-ink > .basalt-diagram-label")].map((el) => {
+  const d = el.closest(".basalt-diagram-drawing").getBoundingClientRect(), r = el.getBoundingClientRect();
+  return \`\${el.closest("figure").id} \${el.dataset.edge} \${el.textContent} \${Math.round(r.left - d.left)},\${Math.round(r.top - d.top)},\${Math.round(r.width)}\`;
+});
 window.showEvery = (width) => {
   const root = createRoot(document.getElementById("root"));
   flushSync(() => root.render(<div style={{ display: "grid", gap: 64, width }}>{Object.entries(ALL).map(([k, { type, ...props }]) => { const X = C[type]; return <X key={k} id={"fig-" + k} {...props} />; })}</div>));
-  // Before any frame has run: each label's place, as the layout effects left it.
-  return [...document.querySelectorAll(".basalt-diagram-ink > .basalt-diagram-label")].map((el) => ({ fig: el.closest("figure").id, left: el.style.left, top: el.style.top }));
+  return window.labelSeats();
 };`;
-const seats = (page) => page.evaluate((P) => [...document.querySelectorAll(`.${P}-ink > .${P}-label`)].map((el) => {
-  const d = el.closest(`.${P}-drawing`).getBoundingClientRect(), r = el.getBoundingClientRect();
-  return `${el.closest("figure").id} ${el.textContent} ${Math.round(r.left - d.left)},${Math.round(r.top - d.top)},${Math.round(r.width)}`;
-}), DP);
+const NO_DIVIDER = ".basalt-diagram-felse::before { mask: none; }";
 
 describe("every diagram type under style-src 'self' (G15)", () => {
   for (const width of [1104, 480]) {
-    test(`at ${width}: the policy refuses nothing, every label is placed as React commits, and each sits where an open policy puts it`, async () => {
-      const read = async (policy) => {
-        const { page, context, errors } = await policyPage(policy, { fixture: EVERY, viewport: { width: width + 32, height: 900 } });
+    test(`at ${width}: each label's figure, line, words and box are an open policy's, before the first paint and settled; no style is refused`, async () => {
+      const read = async (policy, sheet = "") => {
+        const { page, context, errors } = await policyPage(policy, { fixture: EVERY, ready: "showEvery", sheet, viewport: { width: width + 32, height: 900 } });
         try {
           const first = await page.evaluate((w) => window.showEvery(w), width);
-          await frames(page, 6);
           await page.waitForFunction(() => [...document.querySelectorAll("figure")].every((f) => f.hasAttribute("data-layout")));
-          await frames(page, 4);
-          return { first, seats: await seats(page), refused: await refused(page), errors };
+          await frames(page, 6);
+          return { first, seats: await page.evaluate(() => window.labelSeats()), refused: await refused(page), errors, dividers: await page.locator(".basalt-diagram-felse").count() };
         } finally {
           await context.close();
         }
       };
+      const open = await read("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:");
       const strict = await read(SELF);
-      const open = await read("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'");
-      // No style is refused. (Under default-src 'self' the policy also refuses img-src data: for one thing: a sequence's `alt` divider, whose dashes are a
-      // data: SVG mask in the sheet, so the divider is not drawn. Found by the probe of cimip-gaps-3/diagrams, before and after this branch alike; it is
-      // the lead's to route, and this test does not hide it: the second assertion names it.)
-      assert.deepEqual(strict.refused.filter((r) => r.startsWith("style-src")), []);
-      assert.deepEqual([...new Set(strict.refused.map((r) => r.split(" ")[0]))].filter((d) => d !== "style-src-attr" && d !== "style-src-elem"), strict.refused.length ? ["img-src"] : []);
-      assert.deepEqual(strict.errors, []);
-      assert.ok(strict.first.length > 20, `the page draws labels in its first frame (${strict.first.length})`);
-      assert.deepEqual(strict.first.filter((l) => !l.left || !l.top), [], "no label waits for a frame to be placed");
-      assert.ok(strict.seats.length > 20, `${strict.seats.length} labels`);
-      assert.deepEqual(strict.seats, open.seats);
+      const pinned = await read(SELF, NO_DIVIDER);
+      assert.deepEqual(open.refused, []);
+      assert.ok(open.seats.length > 0 && open.first.length === open.seats.length, `every label is there before the first paint (${open.first.length} of ${open.seats.length})`);
+      assert.deepEqual(strict.first, open.first, "before the first paint, label for label");
+      assert.deepEqual(strict.seats, open.seats, "settled, label for label");
+      assert.deepEqual(strict.refused.filter((r) => r.startsWith("style-src")), [], "no style is refused");
+      assert.ok(strict.dividers > 0, "the page draws an alt divider");
+      assert.deepEqual([...new Set(strict.refused)], ["img-src data"], "the one other refusal is a data: image");
+      assert.deepEqual(pinned.refused, [], "and it is the divider's mask: without it nothing is refused");
+      assert.deepEqual([strict.errors, pinned.errors], [[], []]);
     });
   }
 });
@@ -284,7 +288,7 @@ window.png = () => diagramToPng(document.getElementById("arch")).then(
 describe("a diagram's PNG under img-src", () => {
   for (const [name, images, drawn] of [["'self'", "'self'", false], ["'self' blob:", "'self' blob:", true], ["'self' data:", "'self' data:", true]]) {
     test(`img-src ${name}: ${drawn ? "the PNG is drawn at 2x" : "it rejects with an error that names img-src, and makes no file"}`, async () => {
-      const { page, context, errors } = await policyPage(`default-src 'self'; script-src 'self'; style-src 'self'; img-src ${images}`, { fixture: EXPORT });
+      const { page, context, errors } = await policyPage(`default-src 'self'; script-src 'self'; style-src 'self'; img-src ${images}`, { fixture: EXPORT, ready: "showDiagrams" });
       try {
         await page.evaluate(() => window.showDiagrams());
         await page.waitForSelector(`#arch[data-layout="drawn"] .${DP}-ink > .${DP}-label`);

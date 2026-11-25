@@ -1,17 +1,15 @@
-// A page of several diagrams (cimip-gaps-3, the console's log: G17 and G18) and the viewer's outline. G17: the keys are said once a figure only where a
-// reader moves into its drawing (the drawing's description), never in the page's flow, and "View as list" and "Expand" name their figure, the words shown
-// leading the name (WCAG 2.5.3); an app's action is described by the title. G18: a card that is a focus stop has an interactive role (a button described
-// as its stop's noun, its sentence unchanged), so axe's focus-order-semantics finds nothing on a page of three figures. The viewer's list sits under the
-// dialog's h2: its sub-headings are h3 and its group lines h4, whatever the page's heading. In Chromium against the built package. Written while tests are
-// paused (DECISIONS 359): not yet run by the suite; the probe of cimip-gaps-3/diagrams read the same page. The G15 test is in content-policy.test.mjs.
+// A page of several diagrams (cimip-gaps-3, the console's log: G17) and the viewer's outline. G17: the keys sentence is never in the page's flow; it
+// describes the card that holds the drawing's tab stop, so it is said as a reader tabs in, and not again on each arrow (the card an arrow reaches carries
+// none, until focus leaves the figure). "View as list", "Expand" and the rest of Basalt's foot name their figure, the words shown leading the name
+// (WCAG 2.5.3); an app's action is described by the title. Every card's name begins with its visible name, in every type (Astra's 4). The viewer's list
+// sits under the dialog's h2: its sub-headings are h3 and its group lines h4, whatever the page's heading. G18 (a card's role) is held for a design
+// round and is not tested here. In Chromium against the built package. Written while tests are paused (DECISIONS 359): not yet run by the suite; the
+// probe of cimip-gaps-3/diagrams read the same pages. The G15 test is in content-policy.test.mjs.
 import assert from "node:assert/strict";
-import fs from "node:fs";
-import { createRequire } from "node:module";
 import { after, before, describe, test } from "node:test";
 
 import { fixturePage, launch } from "./support.mjs";
 
-const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 const P = "basalt-diagram";
 let browser;
 before(async () => { browser = await launch(); });
@@ -43,21 +41,64 @@ async function tree(page) {
   const { nodes } = await cdp.send("Accessibility.getFullAXTree");
   await cdp.detach();
   const v = (n, k) => n[k]?.value ?? "";
-  return nodes.filter((n) => !n.ignored).map((n) => ({ role: v(n, "role"), name: v(n, "name"), description: v(n, "description"), roledescription: n.properties?.find((p) => p.name === "roledescription")?.value?.value ?? "" }));
+  const prop = (n, k) => n.properties?.find((p) => p.name === k)?.value?.value;
+  return nodes.filter((n) => !n.ignored).map((n) => ({ role: v(n, "role"), name: v(n, "name"), description: v(n, "description"), roledescription: prop(n, "roledescription") ?? "", focused: Boolean(prop(n, "focused")) }));
+}
+/** What the focused element is named and described by, from the accessibility tree. */
+const focused = async (page) => (await tree(page)).find((n) => n.focused) ?? null;
+/**
+ * Tab into a figure from a button placed just before it, then an arrow that moves the stop, then out and in again: what the tree says each time. The
+ * arrow tried is the first of → ↓ that moves focus (a kanban's cards go down a column).
+ */
+async function tabArrowTab(page, id, P) {
+  await page.evaluate((id) => { const b = document.createElement("button"); b.id = `before-${id}`; b.textContent = "Before"; document.getElementById(id).before(b); }, id);
+  const keys = await page.locator(`#${id} > [id$="-keys"]`).textContent();
+  await page.locator(`#before-${id}`).focus();
+  await page.keyboard.press("Tab");
+  const tabIn = await focused(page);
+  const first = await page.evaluate(() => document.activeElement?.dataset.node);
+  let moved = null;
+  for (const key of ["ArrowRight", "ArrowDown"]) {
+    await page.keyboard.press(key);
+    await frames(page, 2);
+    if (await page.evaluate((f) => document.activeElement?.dataset.node !== f, first)) { moved = await focused(page); break; }
+  }
+  await page.keyboard.press("Shift+Tab");
+  await frames(page, 2);
+  await page.keyboard.press("Tab");
+  await frames(page, 2);
+  const again = await focused(page);
+  return { keys, tabIn, moved, again, inCard: await page.evaluate((P) => Boolean(document.activeElement?.matches(`.${P}-node`)), P) };
 }
 const title = (page, id) => page.locator(`#${id} .${P}-title`).innerText();
 
 describe("a page of diagrams (G17)", () => {
-  test("the keys sentence is not in the page's flow: each figure's drawing is described by it, and the hint on screen is hidden from assistive technology", async () => {
+  test("the keys sentence is not in the page's flow; the drawing is described by its summary alone, and the hint on screen is hidden", async () => {
     const { page, errors } = await threePage();
     const nodes = await tree(page);
     assert.deepEqual(nodes.filter((n) => /Arrow keys|Home and End/.test(n.name)), [], "no text node says the keys");
     assert.deepEqual(nodes.filter((n) => n.role === "StaticText" && /^(the ends|clear|Esc)$/.test(n.name)), [], "the hint's words are not read");
     const drawings = nodes.filter((n) => n.role === "group" && n.roledescription === "diagram");
     assert.equal(drawings.length, 4);
-    for (const d of drawings) assert.match(d.description, /Arrow keys move .*Home and End go to the ends; Escape clears the trace\./, `${d.name} is described by its keys`);
+    for (const d of drawings) assert.doesNotMatch(d.description, /Arrow keys/, `${d.name}: the keys are not the drawing's, so they are not said twice on tab-in`);
     assert.deepEqual(await page.locator(`.${P} [id$="-keys"]`).evaluateAll((els) => els.map((el) => el.hidden)), [true, true, true, true]);
     assert.deepEqual(await page.locator(`.${P}-hint`).evaluateAll((els) => els.map((el) => el.getAttribute("aria-hidden"))), ["true", "true", "true", "true"]);
+    assert.deepEqual(errors, []);
+    await page.close();
+  });
+
+  test("Tab, then an arrow, then out and in: the keys are the stop's description on each tab-in and on no card an arrow reaches", async () => {
+    const { page, errors } = await threePage();
+    for (const id of ["fig-a", "fig-b", "fig-c", "fig-d"]) {
+      const got = await tabArrowTab(page, id, P);
+      // Each fixture's own keys (a kanban's say nothing of a trace: it has none).
+      assert.ok(got.keys && got.keys.length > 20, `${id}: the figure has a keys sentence (${got.keys})`);
+      assert.equal(got.tabIn?.description, got.keys, `${id}: tabbing in, the card is described by the keys`);
+      assert.ok(got.moved, `${id}: an arrow moves the stop`);
+      assert.equal(got.moved.description, "", `${id}: the card an arrow reaches is not described by them again`);
+      assert.equal(got.inCard, true);
+      assert.equal(got.again?.description, got.keys, `${id}: out and in again, they are said again`);
+    }
     assert.deepEqual(errors, []);
     await page.close();
   });
@@ -86,59 +127,43 @@ describe("a page of diagrams (G17)", () => {
   });
 });
 
-describe("a card's role (G18)", () => {
-  test("a card that is a focus stop is a button described as its stop's noun, named by its sentence; a link card is the link; at rest a card is an image", async () => {
-    const { page, errors } = await threePage();
-    const read = (sel) => page.locator(sel).evaluateAll((els) => els.map((el) => [el.tagName.toLowerCase(), el.getAttribute("role"), el.getAttribute("aria-roledescription"), el.hasAttribute("tabindex")]));
-    for (const [id, noun] of [["fig-a", "part"], ["fig-b", "step"], ["fig-c", "card"], ["fig-d", "participant"]]) {
-      const cards = await read(`#${id} .${P}-node`);
-      assert.ok(cards.length > 2);
-      for (const [tag, role, rd, stop] of cards) {
-        assert.equal(stop, true, `${id}: every card is a stop when drawn`);
-        if (tag === "a") assert.deepEqual([role, rd], [null, null], `${id}: a link card is the link`);
-        else assert.deepEqual([role, rd], ["button", noun], `${id}: a card`);
+// Every card-producing type (Astra's 4, the lead's ruling on label-content-name-mismatch): a card's name begins with its visible name, what a speech user
+// says and voice control matches; an empty blueprint cell's is its word ("None"). axe's experimental label-content-name-mismatch compares a card's whole
+// visible text in screen order and is not asserted: the sentence is kept, and the card's words are not hidden from assistive technology.
+const EVERY = `
+import a from "./test/fixtures/cimip-diagrams-b.json";
+import d from "./test/fixtures/diagrams-d1.json";
+const ALL = { ...a, ...d };
+delete ALL.$comment;
+const C = { architecture: B.ArchitectureDiagram, flowchart: B.FlowchartDiagram, "data-flow": B.DataFlowDiagram, sequence: B.SequenceDiagram, schema: B.SchemaDiagram,
+  gantt: B.GanttDiagram, kanban: B.KanbanDiagram, journey: B.JourneyDiagram, "service-blueprint": B.ServiceBlueprintDiagram, "story-map": B.StoryMapDiagram,
+  schedule: B.ScheduleDiagram, timeline: B.TimelineDiagram, state: B.StateDiagram, deployment: B.DeploymentDiagram };
+createRoot(document.getElementById("root")).render(<main style={{ width: window.__width }}>{Object.entries(ALL).map(([k, { type, ...props }]) => { const X = C[type]; return <X key={k} id={"fig-" + k} {...props} />; })}</main>);`;
+/** Each card's name and visible name: its name line, a table's name, or an empty cell's word. */
+const cardNames = (page, P) => page.locator(`.${P}-node[aria-label]`).evaluateAll((els, P) => els.map((el) => {
+  const shown = el.querySelector(`.${P}-name, .${P}-tname, .${P}-empty`);
+  const norm = (t) => (t ?? "").replace(/\s+/g, " ").trim();
+  return { fig: el.closest("figure").id, type: el.closest("figure").dataset.type, name: norm(el.getAttribute("aria-label")), shown: norm(shown?.textContent) };
+}), P);
+
+describe("every card's name begins with its visible name (Astra's 4)", () => {
+  for (const width of [1104, 390]) {
+    test(`at ${width}, every type`, async () => {
+      const { page, errors } = await fixturePage(browser, `window.__width = ${width};${EVERY}`, { theme: "dark", standards: true, viewport: { width: width + 32, height: 900 } });
+      await page.waitForFunction((P) => [...document.querySelectorAll(`figure.${P}`)].every((f) => f.dataset.layout), P);
+      await frames(page);
+      const cards = await cardNames(page, P);
+      const types = new Set(cards.map((c) => c.type));
+      for (const t of ["architecture", "flowchart", "data-flow", "sequence", "schema", "gantt", "kanban", "journey", "service-blueprint", "story-map", "schedule", "timeline", "state", "deployment"]) assert.ok(types.has(t), `${t} has named cards at ${width}`);
+      assert.ok(cards.some((c) => c.type === "service-blueprint" && c.shown === "None"), "an empty blueprint cell is among them");
+      for (const c of cards) {
+        assert.ok(c.shown, `${c.fig}: a card shows its name (${c.name})`);
+        assert.ok(c.name.startsWith(c.shown), `${c.fig}: "${c.name}" begins with "${c.shown}"`);
       }
-    }
-    // Its sentence is its name, as it was as an image.
-    const nodes = await tree(page);
-    const sentence = await page.locator(`#fig-a .${P}-node:not(a)`).first().getAttribute("aria-label");
-    assert.equal(nodes.filter((n) => n.role === "button" && n.name === sentence && n.roledescription === "part").length, 1);
-    assert.deepEqual(errors, []);
-    await page.close();
-  });
-
-  test("before script a card is an image with no stop", async () => {
-    const { page } = await fixturePage(browser, `import a from "./test/fixtures/cimip-diagrams-b.json"; import { renderToString } from "react-dom/server";
-      document.getElementById("root").innerHTML = renderToString(<B.ArchitectureDiagram id="fig-a" {...a.architecture} />);`, { theme: "dark", standards: true });
-    const cards = await page.locator(`#fig-a .${P}-node:not(a)`).evaluateAll((els) => els.map((el) => [el.getAttribute("role"), el.getAttribute("aria-roledescription"), el.getAttribute("tabindex")]));
-    assert.ok(cards.length > 2);
-    for (const c of cards) assert.deepEqual(c, ["img", null, null]);
-    await page.close();
-  });
-
-  test("axe's focus-order-semantics, and the role and name rules, find nothing on a page of three figures (and one with a sequence)", async () => {
-    const { page, errors } = await threePage();
-    await page.evaluate(() => { document.title = "Figures"; document.documentElement.lang = "en"; });
-    await page.addScriptTag({ content: axeSource });
-    const found = await page.evaluate(async () => (await globalThis.axe.run(document, { runOnly: { type: "rule", values: ["focus-order-semantics", "aria-roledescription", "aria-allowed-role", "nested-interactive", "button-name"] }, resultTypes: ["violations"] }))
-      .violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`));
-    assert.deepEqual(found, []);
-    // axe's experimental label-content-name-mismatch is not asserted (the lead's ruling, cimip-gaps-3): a card is named by its sentence, which begins with
-    // its own visible name ("Browser, client. ..."), what a speech user says and voice control matches; the eyebrow word on the card ("client") is in the
-    // name too. The rule compares the card's whole visible text in screen order and flags the order. The spoken sentence stays; hiding the card's words
-    // from assistive technology would hide the signal from the checker and fix nothing for a speech user. What is asserted is the part that matters:
-    const names = await page.locator(`.${P}-node`).evaluateAll((els, P) => els.map((el) => {
-      const shown = el.querySelector(`.${P}-name, .${P}-tname`);
-      return { name: (el.getAttribute("aria-label") ?? "").replace(/\s+/g, " ").trim(), shown: (shown?.textContent ?? "").replace(/\s+/g, " ").trim() };
-    }), P);
-    assert.ok(names.length > 10, `${names.length} cards`);
-    for (const { name, shown } of names) {
-      assert.ok(shown, `a card shows its name (${name})`);
-      assert.ok(name.startsWith(shown), `"${name}" begins with the card's visible name "${shown}"`);
-    }
-    assert.deepEqual(errors, []);
-    await page.close();
-  });
+      assert.deepEqual(errors, []);
+      await page.close();
+    });
+  }
 });
 
 describe("the viewer's outline", () => {
@@ -148,7 +173,7 @@ describe("the viewer's outline", () => {
       const outline = async (id) => {
         await page.locator(`#${id} .${P}-expand`).click();
         await page.waitForSelector(`dialog.${P}-viewer[open] .${P}[data-layout]`);
-        await page.locator(`dialog.${P}-viewer .${P}-toggle`).click();
+        await page.locator(`dialog.${P}-viewer .${P}-viewer-end .${P}-toggle`).click();
         await page.waitForSelector(`dialog.${P}-viewer .${P}-viewer-list`);
         const got = await page.locator(`dialog.${P}-viewer`).evaluate((d) => [...d.querySelectorAll("h1, h2, h3, h4, h5, h6")].filter((h) => h.getClientRects().length).map((h) => [h.tagName, h.textContent]));
         await page.keyboard.press("Escape");

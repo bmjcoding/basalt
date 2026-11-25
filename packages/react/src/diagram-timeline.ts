@@ -4,7 +4,7 @@
 // zone through time-format.ts (DECISIONS 207). TimelineDiagram hands this module to the engine on the spec. Nothing runs at load. The implementation has
 // not been reviewed.
 
-import { cardRole, escapeHtml, h, iso, own, rectOf, sentence, svgA, txt } from "./diagram-core";
+import { escapeHtml, h, iso, own, rectOf, sentence, svgA, txt } from "./diagram-core";
 import type { DiagramSpec, DiagramTypeExt, Dyn, ExtBuildKit, ExtBuilt, ExtMeasureKit, Geo, Measured, MNode, Model, VElement, VNode } from "./diagram-core";
 import { clockLadder, dateWords, instantOf, roundOut, scaleMap, ticks } from "./diagram-scale";
 import type { ScaleMap, ScaleTick } from "./diagram-scale";
@@ -124,11 +124,10 @@ function drawing(P: string, m: Model, dyn: Dyn, level?: number): VNode[] {
     while (b < p.breaks.length && p.breaks[b]!.to <= e.at) { const br = p.breaks[b++]!; out.push(h("p", { class: `${P}-tl-break`, "aria-hidden": "true" }, h("span", { class: `${P}-tl-break-words` }, iso(`// ${lengthWords(br.to - br.from)}${br.label ? ` · ${br.label}` : ""}`)))); }
     const n = m.byId.get(e.id)!;
     const gap = gapBefore(p, e);
-    const tabindex = dyn.layout && !dyn.bare ? (dyn.stop === e.id ? 0 : -1) : dyn.keep === e.id ? -1 : undefined;
     out.push(h(e.href ? "a" : "div", {
       class: `${P}-node ${P}-tl-card`, href: e.href, target: e.href && e.blank ? "_blank" : undefined, rel: e.href && e.blank ? "noopener noreferrer" : undefined, "data-link": e.href ? (e.blank ? "external" : "") : undefined,
-      "data-node": e.id, "data-focal": e.focal ? "" : undefined, "data-level": level, ...cardRole(m, e.href, tabindex), "aria-label": writeSentence(m, n),
-      tabindex, style: own(dyn.place, e.id),
+      "data-node": e.id, "data-focal": e.focal ? "" : undefined, "data-level": level, role: e.href ? undefined : "img", "aria-label": writeSentence(m, n),
+      tabindex: dyn.layout && !dyn.bare ? (dyn.stop === e.id ? 0 : -1) : dyn.keep === e.id ? -1 : undefined, style: own(dyn.place, e.id),
     },
     // The kind line: the time (Geist, 500, tabular), the gap since the event before (stacked only), then the kind in Mono; never broken.
     h("span", { class: `${P}-kind ${P}-tl-line` }, h("span", { class: `${P}-tl-time` }, clockOf(e.at, p.zone)), gap !== null && k > 0 ? h("span", { class: `${P}-tl-gap` }, ` +${lengthWords(gap)}`) : null, e.kind ? [" · ", iso(e.kind)] : null),

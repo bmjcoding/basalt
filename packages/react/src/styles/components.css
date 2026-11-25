@@ -4147,9 +4147,8 @@
 
   /* What a bone stands in for is not drawn under it. An unknown control's own marks (a selected tab's underline, a pill) go with it. */
   .basalt-bones [data-boned],
-  /* A diagram's card is a button only as a focus stop: its marks are kept, as they were when it was a picture (bones-measure.ts). */
-  .basalt-bones :is(button, [role="tab"], [role="button"]:not(.basalt-diagram-node), [role="combobox"]):not([data-bone-keep], [data-bone-keep] *)::before,
-  .basalt-bones :is(button, [role="tab"], [role="button"]:not(.basalt-diagram-node), [role="combobox"]):not([data-bone-keep], [data-bone-keep] *)::after,
+  .basalt-bones :is(button, [role="tab"], [role="button"], [role="combobox"]):not([data-bone-keep], [data-bone-keep] *)::before,
+  .basalt-bones :is(button, [role="tab"], [role="button"], [role="combobox"]):not([data-bone-keep], [data-bone-keep] *)::after,
   .basalt-bones [data-boned-mark~="before"]::before,
   .basalt-bones [data-boned-mark~="after"]::after,
   /* A state is not loading: the chosen tab's underline and the navigation's pill are not drawn in an unknown part. */

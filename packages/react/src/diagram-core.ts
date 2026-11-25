@@ -997,17 +997,6 @@ function stopNoun(m: Model): string {
   return m.type === "architecture" ? "a part" : m.type === "sequence" ? "a participant" : m.type === "schema" ? "a table" : "a step";
 }
 
-/**
- * A card's role, where it is a picture named by its sentence (G18 of the console's log): at rest an image; as a focus stop (it traces on focus and the
- * arrows move from it) a button described as its stop's noun ("part", "task"), so a focus stop has an interactive role and is said as what it is, its
- * sentence unchanged. A link card is the link, and takes neither. The type modules' cards take it too.
- */
-export function cardRole(m: Model, href: string | undefined, tabindex: number | undefined): VAttrs {
-  if (href) return {};
-  if (tabindex === undefined) return { role: "img" };
-  return { role: "button", "aria-roledescription": stopNoun(m).replace(/^an? /, "") };
-}
-
 // ============================================================================================================================================
 // The markup tree
 // ============================================================================================================================================
@@ -1052,6 +1041,11 @@ export interface Dyn {
   layout?: "drawn" | "stacked";
   /** The node that holds the roving tab stop. */
   stop?: string;
+  /**
+   * The stop was moved by an arrow key while focus is in the drawing: the keys sentence is not on it, so it is said when a reader tabs in and not again on
+   * every arrow (G17 of cimip-gaps-3). Cleared when focus leaves the drawing.
+   */
+  roved?: boolean;
   /** A node that keeps focus (and tabindex -1) in a stack with no stops, until focus leaves it. */
   keep?: string;
   /** A decision's measured height, by node id, in px. */
@@ -1448,7 +1442,7 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
     "data-mark": n.mark ? n.mark.id ?? "" : undefined,
     "data-level": ctx.level,
     style: style.join(";"),
-    ...(images ? cardRole(m, n.href, tabbable) : {}),
+    role: images && !n.href ? "img" : undefined,
     "aria-label": images || n.href ? nodeSentence(m, n) : undefined,
     tabindex: tabbable,
   },
@@ -1684,7 +1678,7 @@ function buildList(P: string, m: Model): VNode[] {
 }
 
 /** The keys sentence (hidden), which describes the drawing to a screen reader. Drawn, the arrows are spatial (DECISIONS 306, 1.5), unless they fall back. */
-function keysSentence(m: Model, drawn = false): string {
+export function keysSentence(m: Model, drawn = false): string {
   if (m.ext?.keys) return m.ext.keys(m, drawn);
   const noun = m.ext ? m.ext.stop.replace(/^an? /, "") : m.type === "architecture" ? "part" : m.type === "sequence" ? "participant" : m.type === "schema" ? "table" : "step";
   const arrows = drawn && spatialTable(m) ? `Arrow keys move to the nearest ${noun} in that direction` : `Arrow keys move to the next or the previous ${noun}, in the author's order`;
@@ -1863,23 +1857,40 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
     role: group ? "group" : undefined,
     "aria-roledescription": group ? "diagram" : undefined,
     "aria-labelledby": group ? ids.title : undefined,
-    // The keys sentence describes the drawing only where it has stops (a bare stack has none).
-    "aria-describedby": group ? (stops ? `${ids.summary} ${ids.keys}` : ids.summary) : undefined,
+    // The summary describes the drawing; the keys sentence describes its tab stop (below).
+    "aria-describedby": group ? ids.summary : undefined,
     "data-stops": stops ? "" : undefined,
-  }, drawingChildren(ctx, m, dyn), m.text ? null : h("div", { class: `${P}-ink`, "aria-hidden": "true" }), h("span", { class: `${P}-ruler`, "aria-hidden": "true" })),
+  }, stops && !dyn.roved ? describeStop(P, drawingChildren(ctx, m, dyn), ids.keys) : drawingChildren(ctx, m, dyn), m.text ? null : h("div", { class: `${P}-ink`, "aria-hidden": "true" }), h("span", { class: `${P}-ruler`, "aria-hidden": "true" })),
   keySeat(P, m, Boolean(dyn.bare)),
   h("p", { class: `${P}-hint`, "data-kbd-hint": "", "aria-hidden": "true" }, { slot: "hint" }),
   // On touch, where lines are drawn, a line in the hint's seat and type says how to trace (DECISIONS 306, 1.5); the stylesheet shows it only then.
   (m.ext ? m.ext.traces?.(m, drawn) : hasStops(m, dyn) && m.type !== "sequence" || (drawn && m.type === "sequence")) ? h("p", { class: `${P}-tap-hint`, "aria-hidden": "true" }, `Tap ${stopNoun(m)} to highlight its lines. Tap it again to clear.`) : null,
   h("div", { class: `${P}-foot` }, { slot: "toggle" }),
   h("div", { id: ids.list, class: `${P}-list`, hidden: !dyn.open }, listTree(P, m)),
-  // The keys sentence is the drawing's description alone (G17 of the console's log): hidden, so a page of figures does not read it in its flow once a
-  // figure; aria-describedby reads a hidden element it names. The key hint on screen is hidden from assistive technology.
+  // The keys sentence (G17 of the console's log) describes the drawing's tab stop (describeStop): hidden, so a page of figures does not read it in its
+  // flow once a figure, and said as a reader tabs in (aria-describedby reads a hidden element it names). The key hint on screen is hidden from assistive
+  // technology.
   h("span", { id: ids.keys, class: o.hiddenClass, hidden: true }, o.viewer ? `${keysSentence(m, drawn)} ${o.viewer}` : keysSentence(m, drawn)),
   h("figcaption", { id: ids.summary, class: `${P}-summary` }, { slot: "summary" }));
 }
 
 export const figureIds = idsOf;
+
+/**
+ * The keys sentence on the drawing's tab stop (G17 of cimip-gaps-3): the card that holds tabindex 0 is described by it, so it is said once, as a reader
+ * tabs into the figure; the arrows move the stop with `Dyn.roved` set, and the card they reach carries none. Every type's cards (the engine's and a type
+ * module's) are found the same way, by their class and tab index, and the path to the card is copied, so a tree a type keeps is never changed.
+ */
+function describeStop(P: string, kids: VNode[], keys: string): VNode[] {
+  let done = false;
+  const walk = (v: VNode): VNode => {
+    if (done || typeof v === "string" || "slot" in v) return v;
+    if (v.a.tabindex === 0 && typeof v.a.class === "string" && v.a.class.split(" ").includes(`${P}-node`)) { done = true; return { ...v, a: { ...v.a, "aria-describedby": keys } }; }
+    const c = v.c.map(walk);
+    return c.some((x, k) => x !== v.c[k]) ? { ...v, c } : v;
+  };
+  return kids.map(walk);
+}
 
 // ============================================================================================================================================
 // Measuring and drawing (script only)
@@ -3672,9 +3683,11 @@ export function syncAttributes(el: Element, v: VNode, root = true): void {
 }
 
 /** Moves the roving stop from one node to another with no walk of the tree: the only attributes a stop changes are the two nodes' tab indexes. */
-export function moveStop(fig: Element, P: string, from: string | undefined, to: string): void {
+export function moveStop(fig: Element, P: string, from: string | undefined, to: string, keys?: string): void {
   if (from === to) return;
   const node = (id: string) => fig.querySelector(`.${P}-node[data-node="${CSS.escape(id)}"]`);
-  if (from) node(from)?.setAttribute("tabindex", "-1");
+  if (from) { node(from)?.setAttribute("tabindex", "-1"); node(from)?.removeAttribute("aria-describedby"); }
   node(to)?.setAttribute("tabindex", "0");
+  // The keys sentence goes with the stop only where it was not moved by an arrow (Dyn.roved): a click inside the figure, or a layout's new stop.
+  if (keys) node(to)?.setAttribute("aria-describedby", keys);
 }

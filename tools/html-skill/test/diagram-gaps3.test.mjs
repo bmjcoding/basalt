@@ -1,19 +1,17 @@
-// The skill's share of cimip-gaps-3 (the console's log: G17 and G18) and the viewer's outline, as React's (packages/react/test/diagram-gaps3.test.mjs):
-// a page of three composed figures. The keys sentence is the drawing's description and not in the page's flow; "View as list" and "Expand" name their
-// figure, the words shown first; a card that is a focus stop is a button described as its stop's noun, and an image before script; axe's
-// focus-order-semantics finds nothing; the viewer's list is h3 under its h2, a sequence's bands and frames h4. Written while tests are paused
-// (DECISIONS 359): not yet run by the suite; the probe of cimip-gaps-3/diagrams read the same page.
+// The skill's share of cimip-gaps-3 (the console's log: G17) and the viewer's outline, as React's (packages/react/test/diagram-gaps3.test.mjs): the keys
+// sentence is not in the page's flow and describes the drawing's tab stop, said on tab-in and not on each arrow, and it is written from the measured
+// layout, as React's; Basalt's foot buttons name their figure, the words shown first; every card's name begins with its visible name, in every type; the
+// viewer's list is h3 under its h2, a sequence's bands and frames h4; the list's heads compute React's tracking and wrap. G18 (a card's role) is held for
+// a design round. Written while tests are paused (DECISIONS 359): not yet run by the suite; the probe of cimip-gaps-3/diagrams read the same pages.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { createRequire } from "node:module";
 import { after, before, describe, test } from "node:test";
 
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
 import { fixturePage as reactFixture, pkg } from "../../../packages/react/test/support.mjs";
 import { launch, openHtml } from "./support.mjs";
 
-const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 const A = JSON.parse(fs.readFileSync(path.join(pkg, "test", "fixtures", "cimip-diagrams-b.json"), "utf8"));
 const D = JSON.parse(fs.readFileSync(path.join(pkg, "test", "fixtures", "diagrams-d1.json"), "utf8"));
 const P = "diagram";
@@ -30,7 +28,29 @@ async function tree(page) {
   const { nodes } = await cdp.send("Accessibility.getFullAXTree");
   await cdp.detach();
   const v = (n, k) => n[k]?.value ?? "";
-  return nodes.filter((n) => !n.ignored).map((n) => ({ role: v(n, "role"), name: v(n, "name"), description: v(n, "description"), roledescription: n.properties?.find((p) => p.name === "roledescription")?.value?.value ?? "" }));
+  const prop = (n, k) => n.properties?.find((p) => p.name === k)?.value?.value;
+  return nodes.filter((n) => !n.ignored).map((n) => ({ role: v(n, "role"), name: v(n, "name"), description: v(n, "description"), roledescription: prop(n, "roledescription") ?? "", focused: Boolean(prop(n, "focused")) }));
+}
+const focused = async (page) => (await tree(page)).find((n) => n.focused) ?? null;
+/** Tab into a figure from a button just before it, an arrow that moves the stop (→, else ↓), then out and in again: what the tree says each time. */
+async function tabArrowTab(page, id) {
+  await page.evaluate((id) => { const b = document.createElement("button"); b.id = `before-${id}`; b.textContent = "Before"; document.getElementById(id).before(b); }, id);
+  const keys = await page.locator(`#${id} > [id$="-keys"]`).textContent();
+  await page.locator(`#before-${id}`).focus();
+  await page.keyboard.press("Tab");
+  const tabIn = await focused(page);
+  const first = await page.evaluate(() => document.activeElement?.dataset.node);
+  let moved = null;
+  for (const key of ["ArrowRight", "ArrowDown"]) {
+    await page.keyboard.press(key);
+    await frames(page, 2);
+    if (await page.evaluate((f) => document.activeElement?.dataset.node !== f, first)) { moved = await focused(page); break; }
+  }
+  await page.keyboard.press("Shift+Tab");
+  await frames(page, 2);
+  await page.keyboard.press("Tab");
+  await frames(page, 2);
+  return { keys, tabIn, moved, again: await focused(page) };
 }
 async function open() {
   const { page, context, errors } = await openHtml(browser, html(), { scheme: "dark", width: 1136 });
@@ -41,13 +61,13 @@ async function open() {
 const title = (page, id) => page.locator(`#${id} .${P}-title`).innerText();
 
 describe("the skill: a page of diagrams (G17)", () => {
-  test("the keys are each drawing's description and not in the flow; View as list and Expand name their figure", async () => {
+  test("the keys are not in the flow nor the drawing's description; View as list and Expand name their figure", async () => {
     const { page, context, errors } = await open();
     const nodes = await tree(page);
     assert.deepEqual(nodes.filter((n) => /Arrow keys|Home and End/.test(n.name)), []);
     const drawings = nodes.filter((n) => n.role === "group" && n.roledescription === "diagram");
     assert.equal(drawings.length, 4);
-    for (const d of drawings) assert.match(d.description, /Arrow keys move .*Escape clears the trace\./);
+    for (const d of drawings) assert.doesNotMatch(d.description, /Arrow keys/);
     const names = nodes.filter((n) => n.role === "button").map((n) => n.name);
     for (const id of Object.keys(FIGS)) {
       const t = await title(page, id);
@@ -60,6 +80,34 @@ describe("the skill: a page of diagrams (G17)", () => {
     assert.equal((await tree(page)).filter((n) => n.role === "button" && n.name === `Hide the list ${shown}`).length, 1);
     assert.deepEqual(errors, []);
     await context.close();
+  });
+
+  test("Tab, then an arrow, then out and in: the keys are the stop's description on each tab-in and on no card an arrow reaches", async () => {
+    const { page, context, errors } = await open();
+    for (const id of Object.keys(FIGS)) {
+      const got = await tabArrowTab(page, id);
+      // Each fixture's own keys (a kanban's say nothing of a trace: it has none).
+      assert.ok(got.keys && got.keys.length > 20, `${id}: ${got.keys}`);
+      assert.equal(got.tabIn?.description, got.keys, `${id}: tabbing in`);
+      assert.ok(got.moved, `${id}: an arrow moves the stop`);
+      assert.equal(got.moved.description, "", `${id}: the card an arrow reaches`);
+      assert.equal(got.again?.description, got.keys, `${id}: out and in again`);
+    }
+    assert.deepEqual(errors, []);
+    await context.close();
+  });
+
+  test("the keys sentence is written from the measured layout, as React's: a drawn figure's keys are React's, word for word", async () => {
+    const { page, context } = await open();
+    const skill = await page.evaluate((P) => [...document.querySelectorAll(`figure.${P}`)].map((f) => [f.id, f.dataset.layout, f.querySelector(":scope > [id$='-keys']").textContent]), P);
+    await context.close();
+    const react = await reactFixture(browser, `import a from "./test/fixtures/cimip-diagrams-b.json"; import d from "./test/fixtures/diagrams-d1.json";
+      createRoot(document.getElementById("root")).render(<main style={{ width: 1104 }}><h1>Figures</h1><B.ArchitectureDiagram id="fig-a" {...a.architecture} /><B.FlowchartDiagram id="fig-b" {...a.flowchart} /><B.KanbanDiagram id="fig-c" {...d.kanban} type={undefined} /><B.SequenceDiagram id="fig-d" {...a.sequence} /></main>);`,
+    { theme: "dark", standards: true, viewport: { width: 1136, height: 900 } });
+    await react.page.waitForFunction(() => [...document.querySelectorAll("figure.basalt-diagram")].every((f) => f.dataset.layout === "drawn"));
+    const fromReact = await react.page.evaluate(() => [...document.querySelectorAll("figure.basalt-diagram")].map((f) => [f.id, f.dataset.layout, f.querySelector(":scope > [id$='-keys']").textContent]));
+    assert.deepEqual(skill, fromReact);
+    await react.page.close();
   });
 
   test("before script the toggle is named for its figure, the keys sentence is hidden and a card is an image with no stop", async () => {
@@ -81,34 +129,33 @@ describe("the skill: a page of diagrams (G17)", () => {
   });
 });
 
-describe("the skill: a card's role (G18)", () => {
-  test("a stop is a button described as its stop's noun; axe's focus-order-semantics and the role and name rules find nothing", async () => {
-    const { page, context, errors } = await open();
-    for (const [id, noun] of [["fig-a", "part"], ["fig-b", "step"], ["fig-c", "card"], ["fig-d", "participant"]]) {
-      const cards = await page.locator(`#${id} .${P}-node`).evaluateAll((els) => els.map((el) => [el.tagName.toLowerCase(), el.getAttribute("role"), el.getAttribute("aria-roledescription")]));
-      assert.ok(cards.length > 2);
-      for (const [tag, role, rd] of cards) assert.deepEqual([role, rd], tag === "a" ? [null, null] : ["button", noun], `${id}`);
-    }
-    await page.addScriptTag({ content: axeSource });
-    const found = await page.evaluate(async () => (await globalThis.axe.run(document, { runOnly: { type: "rule", values: ["focus-order-semantics", "aria-roledescription", "aria-allowed-role", "nested-interactive", "button-name"] }, resultTypes: ["violations"] }))
-      .violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`));
-    assert.deepEqual(found, []);
-    // axe's experimental label-content-name-mismatch is not asserted (the lead's ruling, cimip-gaps-3): a card is named by its sentence, which begins with
-    // its own visible name ("Browser, client. ..."), what a speech user says and voice control matches; the eyebrow word on the card ("client") is in the
-    // name too. The rule compares the card's whole visible text in screen order and flags the order. The spoken sentence stays; hiding the card's words
-    // from assistive technology would hide the signal from the checker and fix nothing for a speech user. What is asserted is the part that matters:
-    const names = await page.locator(`.${P}-node`).evaluateAll((els, P) => els.map((el) => {
-      const shown = el.querySelector(`.${P}-name, .${P}-tname`);
-      return { name: (el.getAttribute("aria-label") ?? "").replace(/\s+/g, " ").trim(), shown: (shown?.textContent ?? "").replace(/\s+/g, " ").trim() };
-    }), P);
-    assert.ok(names.length > 10, `${names.length} cards`);
-    for (const { name, shown } of names) {
-      assert.ok(shown, `a card shows its name (${name})`);
-      assert.ok(name.startsWith(shown), `"${name}" begins with the card's visible name "${shown}"`);
-    }
-    assert.deepEqual(errors, []);
-    await context.close();
-  });
+// Every card-producing type (Astra's 4): a card's name begins with its visible name, an empty blueprint cell's with its word ("None"). axe's experimental
+// label-content-name-mismatch is not asserted (the lead's ruling): it compares a card's whole visible text in screen order; the sentence is kept, and the
+// card's words are not hidden from assistive technology, which would hide the signal and fix nothing for a speech user.
+describe("the skill: every card's name begins with its visible name (Astra's 4)", () => {
+  for (const width of [1104, 390]) {
+    test(`at ${width}, every type`, async () => {
+      const all = { ...A, ...D };
+      delete all.$comment;
+      const page0 = compose(`<title>Every</title><main style="max-width:${width}px;margin:0 auto;padding:16px">${Object.entries(all).map(([k, spec]) => `<figure class="diagram" id="fig-${k}"><script type="application/json" data-diagram>${JSON.stringify(spec).replace(/</g, "\\u003c")}</script></figure>`).join("")}</main>`).html;
+      const { page, context, errors } = await openHtml(browser, page0, { scheme: "dark", width: width + 32 });
+      await page.waitForFunction((P) => [...document.querySelectorAll(`figure.${P}`)].every((f) => f.dataset.layout), P);
+      const cards = await page.locator(`.${P}-node[aria-label]`).evaluateAll((els, P) => els.map((el) => {
+        const shown = el.querySelector(`.${P}-name, .${P}-tname, .${P}-empty`);
+        const norm = (t) => (t ?? "").replace(/\s+/g, " ").trim();
+        return { fig: el.closest("figure").id, type: el.closest("figure").dataset.type, name: norm(el.getAttribute("aria-label")), shown: norm(shown?.textContent) };
+      }), P);
+      const types = new Set(cards.map((c) => c.type));
+      for (const t of ["architecture", "flowchart", "data-flow", "sequence", "schema", "gantt", "kanban", "journey", "service-blueprint", "story-map", "schedule", "timeline", "state", "deployment"]) assert.ok(types.has(t), `${t} at ${width}`);
+      assert.ok(cards.some((c) => c.type === "service-blueprint" && c.shown === "None"), "an empty blueprint cell is among them");
+      for (const c of cards) {
+        assert.ok(c.shown, `${c.fig}: a card shows its name (${c.name})`);
+        assert.ok(c.name.startsWith(c.shown), `${c.fig}: "${c.name}" begins with "${c.shown}"`);
+      }
+      assert.deepEqual(errors, []);
+      await context.close();
+    });
+  }
 });
 
 describe("the skill: the viewer's outline", () => {
@@ -117,7 +164,7 @@ describe("the skill: the viewer's outline", () => {
     const outline = async (id) => {
       await page.locator(`#${id} .${P}-expand`).click();
       await page.waitForSelector(`dialog.${P}-viewer[open] figure.${P}[data-layout]`);
-      await page.locator(`dialog.${P}-viewer .${P}-toggle`).click();
+      await page.locator(`dialog.${P}-viewer .${P}-viewer-end .${P}-toggle`).click();
       await page.waitForSelector(`dialog.${P}-viewer .${P}-viewer-list`);
       const got = await page.locator(`dialog.${P}-viewer`).evaluate((d) => [...d.querySelectorAll("h1, h2, h3, h4, h5, h6")].filter((h) => h.getClientRects().length).map((h) => [h.tagName, h.textContent]));
       await page.keyboard.press("Escape");

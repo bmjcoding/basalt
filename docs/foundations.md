@@ -1969,10 +1969,10 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
 ### Keyboard, tracing and motion
 
 - Where lines are drawn the drawing is one tab stop: a `role="group"` with `aria-roledescription="diagram"`, named by the title and
-  described by the summary and a sentence about the keys (hidden, so a page of figures never reads it in its flow; the hint on screen is
-  hidden from assistive technology). Each node is named by a sentence that says what it is, where it sits, and what it connects from
-  and to: a focus stop is a `role="button"` described as its stop's noun (`aria-roledescription="part"`), and a card that is not a stop
-  (before script) a `role="img"` (G17 and G18 of cimip-gaps-3, DECISIONS 385). Basalt's foot buttons are named by their words, then the
+  described by the summary. The node that holds the tab stop is described by a sentence about the keys: hidden, so a page of figures
+  never reads it in its flow, and said as a reader tabs in, not again on each arrow (the hint on screen is hidden from assistive
+  technology). Each node is a focusable `role="img"` named by a sentence that begins with its visible name and says what it is, where it
+  sits, and what it connects from and to (G17 of cimip-gaps-3, DECISIONS 385). Basalt's foot buttons are named by their words, then the
   figure's title; an app's action keeps its own name and is described by the title. → ↓ ← ↑ move to the nearest part in that direction: first a part in the same row
   or column, then the lowest of tracks along the arrow plus twice the tracks across it. The rule runs on a part's column and rows,
   never on its measured centre, and a figure whose parts cannot all be reached that way keeps the author's order. Stacked, the keys

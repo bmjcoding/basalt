@@ -553,7 +553,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
       const to = keyTarget(model, node.dataset.node!, event.key, dynRef.current.layout === "drawn");
       if (!to) return;
       event.preventDefault();
-      const next = { ...dynRef.current, stop: to };
+      // Moved by an arrow (Dyn.roved): the card it reaches is not described by the keys sentence, which was said as the reader tabbed in.
+      const next = { ...dynRef.current, stop: to, roved: true };
       dynRef.current = next;
       setDyn(next);
       figRef.current?.querySelector<HTMLElement>(`.${P}-node[data-node="${CSS.escape(to)}"]`)?.focus({ preventScroll: false });
@@ -572,7 +573,11 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
       onBlur?.(event);
       const left = nodeOf(event.target);
       if (!left) return;
-      if (!nodeOf(event.relatedTarget)) setFocusTrace(null);
+      // Focus leaving the figure's cards: the trace goes, and the stop is described by the keys sentence again for the next tab in.
+      if (!nodeOf(event.relatedTarget)) {
+        setFocusTrace(null);
+        if (dynRef.current.roved) { const next = { ...dynRef.current, roved: undefined }; dynRef.current = next; setDyn(next); }
+      }
       // A node kept as a stop in a stack with no stops stops being one once focus has left it.
       if (dynRef.current.keep === left.dataset.node) { const next = { ...dynRef.current, keep: undefined }; dynRef.current = next; setDyn(next); }
     },
