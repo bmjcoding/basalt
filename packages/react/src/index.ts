@@ -181,7 +181,7 @@ export type { UseRouteFocusOptions } from "./route-focus";
 export { Clock, Countdown, DateAge, useNow } from "./time";
 export type { ClockProps, CountdownProps, DateAgeProps } from "./time";
 export { formatAge, formatClock, formatCountdown, formatDay, formatElapsed, formatStamp, formatStatTime } from "./time-format";
-export type { TimeOptions } from "./time-format";
+export type { TimeOptions, TimeZoneNameStyle } from "./time-format";
 // Stages and runs (DECISIONS 316): the seven states' mark, a run's time, a status that changes in place, a run's one voice.
 export { formatRunTime, STAGE_WORDS } from "./run-format";
 export type { Moment, RunTimeScale, StageState } from "./run-format";

@@ -199,3 +199,81 @@ test("a head's seat holds today's held form and not the dated one; a run started
   await page.clock.runFor(50);
   assert.match(plain(await text(page, "#head")), /^Started [A-Z][a-z]{2} \d{1,2}, \d{4}, \d{1,2}:\d\d [AP]M$/, "a start in another year says its year");
 });
+
+// ---- cimip-gaps-3 E1: the spoken form beside `format`; whole seconds are a minutes-scale rail's alone (gaps3-e1.test.mjs)
+describe("tenths stay outside a minutes-scale rail", () => {
+  test("a standalone timer at the minutes scale, and a list whose scale grew, keep their tenths and their dateTime's", async () => {
+    const page = await open(RUN(`<>
+      <span id="alone"><B.RunTimer start={10_000 - 4_500} scale="minutes" /></span>
+      <B.StageList label="Grown"><B.RunStage name="Short" state="success" start={0} end={1_500} /><B.RunStage name="Long" state="success" start={0} end={754_000} /></B.StageList>
+    </>`));
+    assert.equal(await text(page, "#alone"), "4.5 s");
+    await page.clock.runFor(100);
+    assert.equal(await text(page, "#alone"), "4.6 s", "by the tenth");
+    const short = await page.evaluate(() => { const t = document.querySelector(".basalt-run-stage time"); return [t.querySelector("[data-on]").textContent, t.getAttribute("datetime")]; });
+    assert.deepEqual(short, ["1.5 s", "PT1.5S"], "a sibling of a time that grew the list's scale is unchanged");
+  });
+});
+
+const CIMIP_LIKE = `
+const short = (ms) => { const s = Math.floor(ms / 1000); return s < 60 ? s + "s" : Math.floor(s / 60) + "m " + (s % 60) + "s"; };
+const long = (ms) => { const s = Math.floor(ms / 1000), m = Math.floor(s / 60), r = s % 60; const u = (n, w) => n + " " + w + (n === 1 ? "" : "s"); return m ? u(m, "minute") + " " + u(r, "second") : u(r, "second"); };
+`;
+
+describe("spoken", () => {
+  test("184,000 ms with a short format and a spoken one: draws \"3m 4s\", says \"3 minutes 4 seconds\" once, never live, the ISO duration kept", async () => {
+    const page = await open(`${CIMIP_LIKE}${RUN(`<span id="t"><B.RunTimer start={0} end={184_000} scale="minutes" format={short} spoken={long} /></span>`)}`);
+    assert.equal(await text(page, "#t"), "3m 4s");
+    const r = await page.evaluate(() => {
+      const t = document.querySelector("#t time");
+      return { iso: t.getAttribute("datetime"), hidden: t.querySelector(".basalt-reserve").getAttribute("aria-hidden"), live: t.querySelectorAll("[aria-live],[role=status],[role=log]").length + (t.closest("[aria-live],[role=status],[role=log]") ? 1 : 0) };
+    });
+    assert.deepEqual(r, { iso: "PT3M4S", hidden: "true", live: 0 });
+    const tree = await page.locator("#t").ariaSnapshot();
+    assert.equal((tree.match(/3 minutes 4 seconds/g) ?? []).length, 1, tree);
+    assert.doesNotMatch(tree, /3m 4s/, "the drawn form is not read beside it");
+  });
+
+  test("a second passes: the drawn figure holds, the spoken words follow, and nothing is announced", async () => {
+    const page = await open(`${CIMIP_LIKE}
+const minutes = (ms) => Math.floor(ms / 60_000) + "m";
+${RUN(`<span id="t"><B.RunTimer start={10_000 - 184_000} scale="minutes" format={minutes} spoken={long} /></span>`)}`);
+    const read = () => page.evaluate(() => { const t = document.querySelector("#t time"); return [t.querySelector("[data-on]").textContent, t.querySelector(":scope > .basalt-visually-hidden").textContent]; });
+    assert.deepEqual(await read(), ["3m", "3 minutes 4 seconds"]);
+    await page.clock.runFor(1_000);
+    assert.deepEqual(await read(), ["3m", "3 minutes 5 seconds"], "the spoken words never go stale while the drawn figure holds");
+    const live = await page.evaluate(() => { const t = document.querySelector("#t time"); return t.querySelectorAll("[aria-live],[role=status],[role=log],[role=alert]").length + (t.closest("[aria-live],[role=status],[role=log],[role=alert]") ? 1 : 0); });
+    assert.equal(live, 0, "never a live region");
+    assert.equal(((await page.locator("#t").ariaSnapshot()).match(/3 minutes 5 seconds/g) ?? []).length, 1);
+  });
+
+  test("the seat follows the drawn formatter, never the spoken one", async () => {
+    const page = await open(`${CIMIP_LIKE}${RUN(`<>
+      <span id="a"><B.RunTimer start={0} end={184_000} scale="minutes" format={short} /></span>
+      <span id="b"><B.RunTimer start={0} end={184_000} scale="minutes" format={short} spoken={long} /></span>
+    </>`)}`);
+    assert.equal(await width(page, "#a time"), await width(page, "#b time"));
+  });
+
+  test("left out, today's timer: the drawn figure is what is read, and nothing is hidden", async () => {
+    const page = await open(RUN(`<span id="t"><B.RunTimer start={0} end={184_000} /></span>`));
+    assert.equal(await page.evaluate(() => document.querySelector("#t .basalt-reserve").hasAttribute("aria-hidden")), false);
+    assert.equal(await page.evaluate(() => document.querySelectorAll("#t time > .basalt-visually-hidden").length), 0);
+    assert.match(await page.locator("#t").ariaSnapshot(), /3 min 4 s/);
+  });
+
+  test("the held, hidden and empty forms are unchanged: no spoken form stands for them", async () => {
+    const page = await open(`${CIMIP_LIKE}${RUN(`<>
+      <span id="started"><B.RunTimer start={4_000} format={short} spoken={long} /></span>
+      <span id="hidden"><B.RunTimer start={4_000} format={short} spoken={long} whenHeld="hidden" /></span>
+      <span id="empty"><B.RunTimer format={short} spoken={long} /></span>
+    </>`)}`);
+    assert.equal(await page.evaluate(() => document.querySelectorAll("#empty time > .basalt-visually-hidden").length), 0, "no start, nothing said");
+    await hold(page, true);
+    await page.clock.runFor(50);
+    assert.match(plain(await text(page, "#started")), /^Started /);
+    assert.equal(await page.evaluate(() => document.querySelectorAll("#started time > .basalt-visually-hidden").length), 0, "the started-at form is read as drawn");
+    assert.equal(await page.evaluate(() => document.querySelector("#started .basalt-reserve").hasAttribute("aria-hidden")), false);
+    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#hidden time")).visibility), "hidden", "the hidden form hides the spoken words with it");
+  });
+});

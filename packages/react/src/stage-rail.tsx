@@ -10,7 +10,10 @@ declare const process: { env: { NODE_ENV?: string } };
 export interface StageRailProps {
   /** Names the rail ("Release v2.14.0 stages"). */
   label: string;
-  /** One scale for every node's time: seconds or minutes. The hour form is wider than a column at 390, so a rail of hour-long stages shows the run's time in its head. */
+  /**
+   * One scale for every node's time: seconds or minutes. At "minutes" a time under a minute is whole seconds ("45 s"). The hour form is wider than a
+   * column at 390, so a rail of hour-long stages shows the run's time in its head.
+   */
   timeScale?: "seconds" | "minutes";
   className?: string;
   /** Two to six `RunStage` nodes, in order. */
@@ -30,7 +33,8 @@ export function StageRail({ label, timeScale = "seconds", className, children }:
     scale = "minutes";
   }
   if (process.env.NODE_ENV !== "production" && (count < 2 || count > 6)) warnRun("StageRail", `a rail holds two to six stages, not ${count}; use a StageList.`);
-  const { provide } = useRunTimeScale(scale, "minutes");
+  // A rail given the minutes scale counts in whole seconds under a minute (its `dateTime` keeps the tenth); a rail whose scale grew keeps its tenths.
+  const { provide } = useRunTimeScale(scale, "minutes", scale === "minutes");
   return (
     <div className={join("basalt-run-rail-box", className)}>
       <ol className="basalt-run-rail" aria-label={label} data-count={count} style={{ "--_count": count } as React.CSSProperties}>

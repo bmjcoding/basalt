@@ -5,6 +5,7 @@ import * as React from "react";
 
 import { ChosenLabel } from "./chosen";
 import { FieldGroupContext } from "./field-group";
+import { useMergedRef } from "./merged-ref";
 import { Pill } from "./pill";
 import type { ChangeDetails, ChoiceValue, Orientation, PartProps } from "./types";
 import { join, withClass } from "./utils";
@@ -247,10 +248,26 @@ export interface SegmentedControlProps extends PartProps<"div", "defaultValue" |
    * Names the group for screen readers, e.g. "Time range". Required unless the group is in a `Field` (its label names it) or `aria-labelledby` does.
    */
   "aria-label"?: string;
+  /**
+   * A radiogroup of radios instead of a group of pressed buttons (G25), drawn with the same pixels: the group is `role="radiogroup"`, each segment `role="radio"` with
+   * `aria-checked`, and any of the four arrows (Home and End too) moves focus to the next segment that is not disabled and checks it, as radios do (looping unless `loopFocus={false}`). The segments may sit in a fragment or a wrapper. Tab still lands on the checked segment, or on the
+   * first that can take focus while none is checked (and checks nothing). A required group takes `aria-required`, which a radiogroup can carry, in place of the word in its name.
+   */
+  radio?: boolean;
 }
 
 /** The value that holds the group's one tab stop while focus is outside it: undefined while focus is inside (the roving focus owns it) or when nothing can take it. */
 const SegmentStop = /* @__PURE__ */ React.createContext<string | undefined>(undefined);
+/** In a radio group, the checked value (`value` undefined while none is; the pressed one, so `aria-checked` and the drawn choice agree): each segment is a radio. `null` outside a radio group. */
+const SegmentRadio = /* @__PURE__ */ React.createContext<{ value: string | undefined } | null>(null);
+/** The keys that move a radio group's check: all four arrows, Home and End (a key predicate: nothing is built when the module loads). */
+const isRovingKey = (key: string) => key === "ArrowRight" || key === "ArrowDown" || key === "ArrowLeft" || key === "ArrowUp" || key === "Home" || key === "End";
+/** A radio group's segments in the DOM, wherever they sit under it (a fragment or a wrapper of the app's own), each with its own value and whether it can take focus. */
+function radiosIn(group: HTMLElement) {
+  return Array.from(group.querySelectorAll<HTMLElement>(".basalt-segment[data-value]"))
+    .filter((el) => el.closest(".basalt-segmented") === group)
+    .map((el) => ({ el, value: el.dataset.value as string, disabled: (el as HTMLButtonElement).disabled || el.hasAttribute("data-disabled") }));
+}
 
 /**
  * A single choice among a few options that filter or change the current view (a time
@@ -259,7 +276,7 @@ const SegmentStop = /* @__PURE__ */ React.createContext<string | undefined>(unde
  * A segment with no label (an icon alone) draws its glyph's selected form. It is one tab stop: Tab lands on the chosen segment (on the first one that can
  * take focus while none is chosen), and the arrows move within it. In a form it is a field's control: put it in a `Field`, and `required` and `invalid` work as they do there.
  */
-export function SegmentedControl({ value, defaultValue, onValueChange, className, children, fullWidth = false, required: requiredProp, requiredLabel, invalid: invalidProp, ...props }: SegmentedControlProps) {
+export function SegmentedControl({ value, defaultValue, onValueChange, className, children, fullWidth = false, required: requiredProp, requiredLabel, invalid: invalidProp, radio = false, loopFocus = true, ref, ...props }: SegmentedControlProps) {
   // Always controlled underneath: pressing the selected segment again leaves it selected. With no value there is no segment pressed.
   const [inner, setInner] = React.useState(defaultValue);
   const current = value ?? inner;
@@ -275,40 +292,83 @@ export function SegmentedControl({ value, defaultValue, onValueChange, className
   );
   const order = items.map((item) => item.value);
   const chosenItem = items.find((item) => item.value === current && !item.disabled);
-  const stop = inside || props.disabled ? undefined : (chosenItem ?? items.find((item) => !item.disabled))?.value;
+  // A radio group's stop is its checked radio whatever wraps the segments (a fragment hides them from `items`), unless that radio is known to be disabled.
+  const checkedStop = current !== undefined && !items.some((item) => item.value === current && item.disabled) ? current : undefined;
+  const stop = inside || props.disabled ? undefined : radio ? (checkedStop ?? items.find((item) => !item.disabled)?.value) : (chosenItem ?? items.find((item) => !item.disabled))?.value;
   // The name: a `Field`'s label names the group (a `<label for>` cannot), with the word after it when required, said in a hidden span the name refers to; without one, `aria-label` and the word.
+  // A radiogroup carries `aria-required` itself, so the word is added to its name only in a group of pressed buttons.
+  const worded = required && !radio;
   const named = field && !props["aria-label"] && !props["aria-labelledby"];
-  const labelledby = named ? (required ? `${field.labelId} ${hidden}` : field.labelId) : props["aria-labelledby"];
-  const label = !named && required && props["aria-label"] && !props["aria-labelledby"] ? `${props["aria-label"]}, ${word}` : props["aria-label"];
+  const labelledby = named ? (worded ? `${field.labelId} ${hidden}` : field.labelId) : props["aria-labelledby"];
+  const label = !named && worded && props["aria-label"] && !props["aria-labelledby"] ? `${props["aria-label"]}, ${word}` : props["aria-label"];
   const describedby = [field?.descriptionId, invalid ? field?.errorId : undefined, props["aria-describedby"]].filter(Boolean).join(" ") || undefined;
+  const group = React.useRef<HTMLDivElement | null>(null);
+  const groupRef = useMergedRef(group, ref);
+  const pick = (picked: string) => {
+    if (picked === current) return;
+    // A radio group reads its order from the DOM, so segments in a fragment or a wrapper still say which way the pill travels.
+    const sequence = radio && group.current ? radiosIn(group.current).map((r) => r.value) : order;
+    const from = current == null ? -1 : sequence.indexOf(current);
+    const to = sequence.indexOf(picked);
+    if (from >= 0 && to >= 0 && from !== to) setDirection(to > from ? "forward" : "back");
+    setInner(picked);
+    onValueChange?.(picked);
+  };
+  // A radio group moves by its own keys (the roving focus underneath is horizontal only): all four arrows, Home and End move focus to the next segment that can take
+  // it, skipping a disabled one, and check it. The value and the disabled state are the reached segment's own, read from the DOM, whatever wraps it.
+  const onRadioKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!isRovingKey(event.key) || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const radios = radiosIn(event.currentTarget).filter((r) => !r.disabled);
+    if (!radios.length) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const at = radios.findIndex((r) => r.el === document.activeElement || r.el.contains(document.activeElement));
+    const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+    const forward = event.key === "ArrowDown" || event.key === (rtl ? "ArrowLeft" : "ArrowRight");
+    let to: number;
+    if (event.key === "Home") to = 0;
+    else if (event.key === "End") to = radios.length - 1;
+    else if (at < 0) to = forward ? 0 : radios.length - 1;
+    else {
+      to = at + (forward ? 1 : -1);
+      if (to < 0 || to >= radios.length) to = loopFocus ? (to + radios.length) % radios.length : at;
+    }
+    const reached = radios[to];
+    if (!reached) return;
+    reached.el.focus();
+    pick(reached.value);
+  };
+  const checked = React.useMemo(() => (radio ? { value: current } : null), [radio, current]);
   return (
     <SegmentStop.Provider value={stop}>
+    <SegmentRadio.Provider value={checked}>
     <ToggleGroup
       {...props}
+      {...(radio ? { role: "radiogroup" } : {})}
+      ref={groupRef}
+      loopFocus={loopFocus}
       aria-label={label}
       aria-labelledby={labelledby}
       aria-describedby={describedby}
       aria-invalid={invalid || undefined}
+      aria-required={radio && required ? true : undefined}
       data-direction={direction || undefined}
       data-full-width={fullWidth ? "" : undefined}
+      onKeyDownCapture={radio ? (event) => { props.onKeyDownCapture?.(event); if (!event.isPropagationStopped()) onRadioKey(event); } : props.onKeyDownCapture}
       onFocus={(event) => { props.onFocus?.(event); setInside(true); }}
       onBlur={(event) => { props.onBlur?.(event); if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setInside(false); }}
       value={current === undefined ? [] : [current]}
       onValueChange={(next) => {
         const picked = next.find((item) => item !== current) as string | undefined;
-        if (picked === undefined) return;
-        const from = current == null ? -1 : order.indexOf(current);
-        const to = order.indexOf(picked);
-        if (from >= 0 && to >= 0 && from !== to) setDirection(to > from ? "forward" : "back");
-        setInner(picked);
-        onValueChange?.(picked);
+        if (picked !== undefined) pick(picked);
       }}
       className={withClass("basalt-segmented", className)}
     >
       <Pill />
       {children}
-      {named && required ? <span id={hidden} aria-hidden="true" className="basalt-visually-hidden">{`, ${word}`}</span> : null}
+      {named && worded ? <span id={hidden} aria-hidden="true" className="basalt-visually-hidden">{`, ${word}`}</span> : null}
     </ToggleGroup>
+    </SegmentRadio.Provider>
     </SegmentStop.Provider>
   );
 }
@@ -323,5 +383,9 @@ export function Segment({ className, children, value, ...props }: SegmentProps) 
   // As a Tab: the label is 400 at rest and 600 once chosen and reserves its 600 width, whatever it is, and an icon follows the choice.
   // The group's one tab stop is the chosen segment: while focus is outside the group, the others are out of the Tab order whatever the roving focus last held.
   const stop = React.useContext(SegmentStop);
-  return <Toggle {...props} {...(stop === undefined ? {} : { tabIndex: stop === value ? 0 : -1 })} value={value} className={withClass("basalt-segment", className)}><ChosenLabel>{children}</ChosenLabel></Toggle>;
+  // In a radio group the segment is a radio: `aria-checked` in place of `aria-pressed` (Base UI's own, which the props given after it replace). `data-value` is how the
+  // group finds its segments and their order in the DOM, wherever they sit under it.
+  const radio = React.useContext(SegmentRadio);
+  const radioProps = radio ? { role: "radio", "aria-checked": radio.value === value, "aria-pressed": undefined, "data-value": value } : {};
+  return <Toggle {...props} {...radioProps} {...(stop === undefined ? {} : { tabIndex: stop === value ? 0 : -1 })} value={value} className={withClass("basalt-segment", className)}><ChosenLabel>{children}</ChosenLabel></Toggle>;
 }

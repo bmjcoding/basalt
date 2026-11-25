@@ -1,142 +1,122 @@
-// Round 71: cimip-gaps-3 batch E3 (engineering, no panel). The parts of the batch that change a pixel: ShareBar's words no longer break inside a word,
-// the stream's text column declares its start room so a ghost `Button edge="start"` hangs, and Textarea's opt-in `autosize`. Callout's `heading` is shown
-// beside the plain title, to show that it draws the same. Built by Opus; not reviewed; the browser tests are written and not run (DECISIONS 359).
+// Round 71: time, runs and stamps (cimip-gaps-3, batch E1; engineering, the owner's handoff, DECISIONS 385). The only pixels that change by default are a
+// fault's: a rail at the minutes scale wrote tenths of a second under a minute; it now draws whole seconds (its datetime keeps the tenth). The rest are opt-in props
+// that draw nothing until an app gives them (`RunTimer`/`RunStage`/`RunStep` `spoken`, `RunStage`/`RunStep` `format`, `SourceStamp timeZoneName`,
+// `Sparkline format`). Not reviewed; the browser tests are written and not run (DECISIONS 359).
 //
-// Each "today" side is this build with the batch's one rule taken back, scoped to that side, so the two differ only where the batch does.
+// Today's rail is drawn with the build's own `format` writing today's form (`formatRunTime` at the seconds scale), so the two sides differ only where the
+// build does. Every time is finished (an `end`), so the shots are still. Synthetic data in two unlike domains: a bakery's order and a photo export.
 
 import * as React from "react";
 
-import { Button, Callout, ShareBar, Stream, StreamMessage, Textarea } from "../../packages/react/src/index";
+import { RunStage, RunTimer, SourceStamp, Sparkline, StageList, StageRail, formatRunTime } from "../../packages/react/src/index";
 import type { Round } from "./rounds";
 
+const T0 = Date.UTC(2026, 10, 24, 15, 0);
+const today = (ms: number) => formatRunTime(ms).text;
+const short = (ms: number) => { const s = Math.floor(ms / 1000); return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`; };
+const long = (ms: number) => {
+  const s = Math.floor(ms / 1000), m = Math.floor(s / 60), r = s % 60;
+  const unit = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  return m ? `${unit(m, "minute")} ${unit(r, "second")}` : unit(r, "second");
+};
+
 const label: React.CSSProperties = { margin: "0 0 var(--basalt-space-2)", fontSize: "var(--basalt-text-xs-size)", lineHeight: "var(--basalt-text-xs-line-height)", color: "var(--basalt-text-secondary)" };
-const PAIR = ".r71-pair { display: grid; gap: var(--basalt-space-6); grid-template-columns: minmax(0, 1fr); } @media (min-width: 720px) { .r71-pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }";
+const pair: React.CSSProperties = { display: "grid", gap: "var(--basalt-space-8)", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))" };
+const stack: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "var(--basalt-space-8)" };
 
-function Side({ today, children, what }: { today: boolean; children: React.ReactNode; what: [string, string] }) {
+function Rail({ old }: { old: boolean }) {
+  const f = old ? today : undefined;
   return (
-    <div className={today ? "r71-today" : undefined} style={{ minWidth: 0 }}>
-      <p style={label}>{today ? what[0] : what[1]}</p>
-      {children}
+    <div style={{ minWidth: 0 }}>
+      <p style={label}>{old ? "Today (main): tenths at the minutes scale" : "This build: whole seconds"}</p>
+      <StageRail label={old ? "Order stages, today" : "Order stages"} timeScale="minutes">
+        <RunStage name="Mixed" state="success" start={T0} end={T0 + 4_900} format={f} />
+        <RunStage name="Proofed" state="success" start={T0} end={T0 + 41_300} format={f} />
+        <RunStage name="Baked" state="success" start={T0} end={T0 + 754_000} format={f} />
+      </StageRail>
     </div>
   );
 }
 
-function Pair({ undo, what, children }: { undo: string; what: [string, string]; children: React.ReactNode }) {
+function Spoken() {
   return (
-    <div className="r71-pair">
-      <style>{`${PAIR} ${undo}`}</style>
-      <Side today what={what}>{children}</Side>
-      <Side today={false} what={what}>{children}</Side>
+    <div style={{ minWidth: 0 }}>
+      <p style={label}>An app's own short form, with its spoken form for a screen reader (read "3 minutes 4 seconds"; nothing new is drawn)</p>
+      <StageList label="Export stages" timeScale="minutes">
+        <RunStage name="Resize" state="success" start={T0} end={T0 + 184_000} format={short} spoken={long} />
+        <RunStage name="Upload" state="success" start={T0} end={T0 + 7_000} format={short} spoken={long} />
+      </StageList>
+      <p style={{ ...label, marginBlockStart: "var(--basalt-space-4)" }}>A run's time in a head: <RunTimer start={T0} end={T0 + 184_000} format={short} spoken={long} /></p>
     </div>
   );
 }
 
-// Two unlike domains: a build server's queue and a recipe box's week.
-const QUEUE = [
-  { name: "Waiting for a runner", value: 41 },
-  { name: "Working", value: 2 },
-  { name: "Queued", value: 1 },
+function Stamps() {
+  const at = Date.UTC(2026, 10, 24, 21, 55, 17);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--basalt-space-3)", minWidth: 0 }}>
+      <p style={label}>SourceStamp: as today, then with timeZoneName="short", then "shortOffset" as a button (the zone is inside the time and the button's name)</p>
+      <SourceStamp source="weather" state="answered" at={at} timeZone="America/Chicago" />
+      <SourceStamp source="weather" state="answered" at={at} timeZone="America/Chicago" timeZoneName="short" />
+      <SourceStamp source="exports" state="stale" at={at} timeZone="Europe/Berlin" timeZoneName="shortOffset" onOpen={() => {}} />
+    </div>
+  );
+}
+
+function Lines() {
+  return (
+    <div style={{ ...pair, alignItems: "start" }}>
+      <Sparkline label="Error rate" data={[0.4, 1.25, 0.8, 2.75, 1.9]} format={(v) => `${v.toFixed(2)}%`} />
+      <Sparkline label="Loaves sold" data={[120, 2440, 800, 1310]} />
+    </div>
+  );
+}
+
+const DECISIONS = [
+  "A fault (cimip-gaps-3 sort A3): a StageRail given timeScale=\"minutes\" draws a time under a minute in whole seconds (\"41 s\"), by the second, its datetime still to the tenth (PT41.3S). Lists, timelines, standalone timers and a rail whose scale grew keep their tenths.",
+  "RunTimer spoken: the drawn figure is hidden from assistive technology and the spoken words are read once in its place, never a live region; datetime stays the ISO duration; the held, hidden and started-at forms are unchanged; the seat follows format, never spoken.",
+  "RunStage and RunStep forward format and spoken to their one timer, in a list, on a rail and in a timeline's full step and tail row.",
+  "SourceStamp's datetime is the instant in UTC (\"2026-11-24T21:55:17.000Z\"), the drawn clock the zone's; timeZoneName writes the zone's name inside its time, after a no-break space, so it is in the stamp's accessible name.",
+  "Sparkline format writes the latest value, both ends of the scale and the image's name. Left out, whole numbers as today.",
+  "Not reviewed. Engineering inside the agreed design; the browser tests are written and not run (DECISIONS 359).",
 ];
-const WEEK = [
-  { name: "Weeknight dinners", value: 9 },
-  { name: "Baking", value: 1 },
-  { name: "Preserves", value: 1 },
-];
-
-function Shares() {
-  return (
-    <Pair undo=".r71-today .basalt-share-name { overflow-wrap: anywhere !important; } .r71-today .basalt-share-value { white-space: normal !important; }" what={["Today (main): a name may break anywhere", "This build: names break only between words"]}>
-      <div style={{ display: "grid", gap: "var(--basalt-space-6)" }}>
-        <ShareBar size="md" parts={QUEUE} />
-        <ShareBar size="md" parts={WEEK} format={(share) => `${share} percent`} />
-      </div>
-    </Pair>
-  );
-}
-
-function Edge({ state }: { state: string }) {
-  const button = React.useRef<HTMLButtonElement>(null);
-  React.useEffect(() => {
-    if (state === "focused") document.querySelector<HTMLButtonElement>(".r71-pair > :last-child .r71-edge")?.focus();
-  }, [state]);
-  return (
-    <Pair undo=".r71-today .basalt-stream-body { --basalt-edge-room-start: initial; }" what={["Today (main): no room declared, the button does not hang", "This build: it hangs into the gutter's gap"]}>
-      <Stream>
-        <StreamMessage author="Build server" time="09:12">
-          <p style={{ margin: 0 }}>Deploy of web #212 finished in 4 min 10 s.</p>
-          <Button ref={button} className="r71-edge" variant="ghost" size="sm" edge="start">Open the log</Button>
-        </StreamMessage>
-        <StreamMessage author="Ines Moreau" time="18:40">
-          <p style={{ margin: 0 }}>The plum jam set overnight; I wrote the times down.</p>
-          <Button className="r71-edge" variant="ghost" size="sm" edge="start">Show the recipe</Button>
-        </StreamMessage>
-      </Stream>
-    </Pair>
-  );
-}
-
-const METHOD = "Halve the plums and take the stones out.\nWeigh them, then add half their weight in sugar.\nLeave overnight.\nBoil hard for 8 minutes.\nTest a spoonful on a cold plate.\nPot while hot.";
-
-function Fields() {
-  return (
-    <div className="r71-pair">
-      <style>{PAIR}</style>
-      <div style={{ minWidth: 0, display: "grid", gap: "var(--basalt-space-3)" }}>
-        <p style={label}>Textarea, rows 3, as today (no autosize)</p>
-        <Textarea aria-label="Method" rows={3} defaultValue={METHOD} />
-        <p style={label}>Callout, plain title</p>
-        <Callout status="warning" title="The runner pool is full">New builds wait until one frees up.</Callout>
-      </div>
-      <div style={{ minWidth: 0, display: "grid", gap: "var(--basalt-space-3)" }}>
-        <p style={label}>Textarea autosize, rows 2 to maxRows 5: one line, then six lines (capped, scrolls)</p>
-        <Textarea aria-label="Note" autosize rows={2} maxRows={5} defaultValue="Use the big pan." />
-        <Textarea aria-label="Method, grown" autosize rows={2} maxRows={5} defaultValue={METHOD} />
-        <p style={label}>Callout heading={"{3}"}: the title is an h3, drawn the same</p>
-        <Callout status="warning" heading={3} title="The runner pool is full">New builds wait until one frees up.</Callout>
-      </div>
-    </div>
-  );
-}
-
-const NOT_REVIEWED = "Engineering batch E3 of cimip-gaps-3 (the owner's handoff, DECISIONS 385): no panel; built by Opus and not reviewed. The browser tests are written and not run (DECISIONS 359).";
 
 export const ROUND_71: Round = {
   id: "71",
-  title: "cimip-gaps-3 E3: the pixels the engineering batch moves",
+  title: "Time, runs and stamps (cimip-gaps-3, E1)",
   reviewed: false,
   summary:
-    "Batch E3 is engineering (props, faults and restored behaviour). Three things in it change a pixel, shown here beside today's: ShareBar's names no longer break inside a word and its shares stay on one line; the stream's text column declares its start room, so a ghost Button edge=\"start\" in a message hangs into the gutter's gap; Textarea's opt-in autosize. Callout heading is shown to draw the same as the plain title. Not reviewed; tests written, not run.",
+    "Batch E1 of the third CIMIP gaps pass: a rail at the minutes scale writes whole seconds (today's on the left, this build's on the right), and four opt-in props that draw nothing by default: a run timer's spoken form, format and spoken through RunStage and RunStep, SourceStamp's zone, and Sparkline's format. Engineering; not reviewed; the browser tests are written and not run.",
   steps: [
     {
-      id: "share-words",
-      name: "ShareBar: a name breaks only between words",
-      intro: "A part is as wide as its words at least; with a name allowed to break anywhere, that width fell to one letter. Today's above (on a phone) or on the left, this build's after it.",
-      decisions: ["The name is overflow-wrap: normal and the share white-space: nowrap, set on the part so a page's own overflow-wrap does not reach in (the sort's A7).", "A word wider than the bar's room now widens its part (taken from the others); a name of several words still wraps between them.", NOT_REVIEWED],
-      tryIt: ["Narrow the window: \"Working\" and \"Queued\" stay whole words; the long names wrap between words."],
+      id: "time",
+      name: "Whole seconds at the minutes scale, and the spoken form",
+      intro: "A three-stage rail at timeScale=\"minutes\", today's form beside this build's; then a list and a head timer with an app's own short form and its spoken form.",
+      decisions: [...DECISIONS.slice(0, 3), ...DECISIONS.slice(5)],
+      tryIt: ["Compare the rails' first two seats: \"4.9 s\" and \"41.3 s\" today, \"4 s\" and \"41 s\" now.", "Read the list with a screen reader: \"3 minutes 4 seconds\", once."],
       widths: [1440, 390],
-      height: 520,
-      demo: () => <Shares />,
+      height: 720,
+      demo: () => (
+        <div style={stack}>
+          <div style={pair}><Rail old /><Rail old={false} /></div>
+          <Spoken />
+        </div>
+      ),
     },
     {
-      id: "stream-edge",
-      name: "The stream's text column declares its edge room",
-      intro: "A ghost Button edge=\"start\" puts its words on the text's line and hangs its box into the room its container declares. A message's text column now declares the gutter's gap (space-3).",
-      decisions: ["--basalt-edge-room-start: space-3 on .basalt-stream-body; its end room is left to the stream's container (the message's end is the stream's).", "The hang is min(the button's inset, 12); the ring is +2 where 4 is left, else -2, by the edge rule.", NOT_REVIEWED],
-      tryIt: ["Hover a button: its plate starts in the gap, never over the avatar.", "Tab to it: its ring."],
-      states: ["focused"],
+      id: "stamps",
+      name: "The stamp's zone and the sparkline's format",
+      intro: "SourceStamp as today and with its zone; a sparkline of fractions with its format beside one of whole numbers.",
+      decisions: DECISIONS.slice(3),
+      tryIt: ["Tab to the stale stamp: its name says the zone next to the time."],
       widths: [1440, 390],
       height: 560,
-      demo: ({ state }) => <Edge state={state} />,
-    },
-    {
-      id: "fields",
-      name: "Textarea autosize, and Callout heading",
-      intro: "Textarea autosize grows with its text a line at a time from rows to maxRows, then scrolls, with no resize handle (Composer's field, the same rule and fallback). Callout heading draws its title as a heading of that level, looking the same.",
-      decisions: ["Opt-in: a Textarea without autosize is unchanged (its rows and its resize handle).", "The bounds are rows and max(rows, maxRows) lines, default maxRows 8; a browser without field-sizing is measured, as Composer is.", NOT_REVIEWED],
-      tryIt: ["Type into the autosized fields: they grow to five lines, then scroll."],
-      widths: [1440, 390],
-      height: 900,
-      demo: () => <Fields />,
+      demo: () => (
+        <div style={stack}>
+          <Stamps />
+          <Lines />
+        </div>
+      ),
     },
   ],
 };

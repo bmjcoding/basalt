@@ -1645,8 +1645,9 @@ The plan is secondary ink, never a series, and never carries a marker: a marker 
 
 ### Keyboard and screen readers
 
-- **The plot is one tab stop:** a `role="group"` with `aria-roledescription="chart"`, named by the title and described by the summary
-  and a sentence about the keys. Inside it each day is a focusable `role="img"` with a roving `tabindex`, named by its full sentence:
+- **The plot is one tab stop:** a `role="grid"` with `aria-roledescription="chart"`, named by the title and described by the summary
+  and a sentence about the keys. It owns one `row` with no box of its own, and each day is a focusable `gridcell` in it with a roving
+  `tabindex` (a focus stop needs a widget role; an image is not one), named by its full sentence:
   the day, each series' value or "not observed" and its reason, the plan, and where the value sits against it.
 - **Keys:** ← → a day, Page Up and Page Down a week (Page Up is earlier), Home and End the ends. Tab leaves; nothing is trapped.
 - **No live region.** Moving focus is the announcement, so a hover never talks and nothing is read twice. The SVG is `aria-hidden`.
@@ -1714,7 +1715,7 @@ changes); the implementation hasn't been reviewed. The votes that had no majorit
   text from the first frame. It takes one series, and the legend rows of a chart that does not set it are unchanged, with their reserved widths.
 - **The phase chart** (`PhaseChart`, votes 11, 16 and 17): a `TimeChart` with a trend, the one second plot height (`size-chart-plot-sm`, 96px, fixed at every width), and a
   lane of one choice a week (seven days a choice; lanes of other lengths are in the backlog) on the plot's own axis, with the open week's plate behind both. The chart ships no word for the period (DECISIONS 207):
-  the lane's name, the previous and next buttons, the numbered name (a function of the index), the status line and the Enter hint are required props, each a whole string the product writes, as `PeriodStepper`'s `previousLabel` and `nextLabel` are. A press on a day, or Enter on the focused day, opens its week; the days stay images
+  the lane's name, the previous and next buttons, the numbered name (a function of the index), the status line and the Enter hint are required props, each a whole string the product writes, as `PeriodStepper`'s `previousLabel` and `nextLabel` are. A press on a day, or Enter on the focused day, opens its week; the days stay grid cells
   with a roving tab stop, and there is no live region. The chosen call takes primary ink on the `state-selected` plate with no weight change, and the plate slides over
   `duration-slow` on `ease-out` (3 to 1; none under reduced motion; in forced colours it is a 1px `Highlight` outline). The lane's choices are 44px on touch. Where a week's
   slot is under 44px (twelve choices do not fit a phone), the lane is marks (a changed week's mark is larger) and previous and next controls step through the weeks, with the
@@ -2649,8 +2650,9 @@ fallback when the picture is missing. The one set of company files Basalt ships 
 `Stepper` (back and next through a short flow) and not `Pagination`. The buttons are `IconButton`s, ghost, 32px, the core `chevron-left` and `chevron-right`
 (`Pagination`'s), `space-1` from the label. The label is `text-base` at 500 in primary, centred, tabular, on one line, in a seat of at least `space-32` (128px).
 **At the first or last period the button stops but keeps focus** (`aria-disabled`, `focusableWhenDisabled`), so a keyboard user is not dropped. **With no periods** (the
-whole span shown) both buttons are `visibility: hidden` and keep their room, so nothing moves. **It is spoken once:** the label is shown at once and a polite
-status line says its words, with a hidden prefix ("Week 8, build, "), after it has held still for 400ms, so six presses in a second speak once. **Under 640px of
+whole span shown) both buttons are `visibility: hidden` and keep their room, so nothing moves. **It is spoken once:** the label is shown at once and, when it changes after the stepper mounts, a polite
+status line says its words, with a hidden prefix ("Week 8, build, "), after it has held still for 400ms, so six presses in a second speak once. The period a
+page arrives on is read in place and never announced (the live line starts empty). **Under 640px of
 the app's container** it takes its own row under the tabs: full width, the buttons at the ends, 52px tall, `space-2` of inline padding, a `border-divider` line above (DECISIONS 167), each button at
 least 44 by 44. The buttons are a press, an explicit act, so WCAG 3.2.2 is not engaged.
 
@@ -2686,7 +2688,8 @@ under the list moves whenever the list's height does, drops rows away from the p
   an app with a sticky header of its own inside the pane sets the property in its own CSS). The return waits for the page or size the press asked for, however long the app takes to
   load it, and forgets the press when a filter changes or the app moves somewhere else.
 - **The count** is "1–25 of 214", `text-sm`, secondary, tabular, in a seat as wide as its widest form for the unfiltered total ("888–888 of 888"), so a shorter count moves nothing.
-  It is blank for no matches. The band keeps its rows then: it is the list's fixed head, and nothing above the rows moves.
+  A list read from a server gives the widest count it will show (`seatTotal`) so the seat is drawn before the first answer. A list whose `FilterResult` already says the total
+  drops it from the count (`rangeTotal={false}`: "1–25", in the band and the foot). It is blank for no matches. The band keeps its rows then: it is the list's fixed head, and nothing above the rows moves.
 - **The page size** is a `Select` of the app's sizes (10, 25, 50 and 100 unless it gives others) followed by the words "per page", named by the app's noun and those words ("Orders
   per page"): the visible words are inside the name (WCAG 2.5.3), the noun is the app's. The size a list starts at is the app's too (the examples start at 25; it is not a default),
   and so is whether it remembers the reader's choice. A new size keeps the reader's first row in view (page 3 at 25 per page is page 6 at 10).
@@ -2720,7 +2723,8 @@ scrolling, and if someone physically scrolls up the scroll back up to top goes a
 
 **The list's foot** (under 720, with more than one page). The band's Previous, count and Next again, centred under the rows, with no seat under it (the page's own bottom padding is all that follows;
 DECISIONS 227: the empty seat and the off-centre pager were what the owner objected to). It holds no page size: that is a setting and stays at the top with the filters. It is a `nav` named by the app
-("Order pages, end of list"). It is not drawn from 720 (the band is stuck there), nor with one page or none. A press changes the page, returns the window at once to where the band rests (the band
+("Order pages, end of list"). It is not drawn from 720 (the band is stuck there), nor with one page or none, unless the app holds its room (`keepFootRoom`, opt-in pending the council's decision on the default: its arrows hidden at
+one page, as the band's are, so rows that arrive after the first frame move nothing under the list). A press changes the page, returns the window at once to where the band rests (the band
 under the bar and the first row under it), moves focus to the band's own Previous or Next, and the band's status line says the page once; Back to top goes, since the window moved up.
 
 **The ring fix.** The band's narrow form and the foot set an arrow, the count and the next arrow `space-1` apart, so an arrow's +2 focus ring (2px wide, ending 4px out) touched the count's text. The
@@ -3084,7 +3088,7 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   it ("Show 5 earlier steps", "Show 5 earlier steps, 1 failed"; open, "Hide earlier steps") holds its line from the first frame and opens the
   whole record in full form. Hover and focus lift the tail to its first step. Nothing here speaks.
 - **`RunTimer`.** Geist Mono at `text-xs`, tertiary, tabular, a `time` with an ISO duration, never a live region: "12.3 s" under a minute
-  (every 100ms), "12 min 34 s" to an hour, "12 hr 34 min" to a day, then "3 days". One shared interval. Its seat is one `Reserve` cell as wide as its scale's longest form and never empty, the figure end-aligned in a column, centred under a rail's node and
+  (every 100ms; on a rail given the minutes scale, whole seconds, "45 s", by the second, its `datetime` still to the tenth), "12 min 34 s" to an hour, "12 hr 34 min" to a day, then "3 days". One shared interval. Its seat is one `Reserve` cell as wide as its scale's longest form and never empty, the figure end-aligned in a column, centred under a rail's node and
   start-aligned right after a `Terminal` head's state word (under 480px of the `Terminal`'s own width a head with a run's time is two rows:
   the title and the copy button on its end edge, then the state and its time from the title's start edge, `space-2` between the lines and `space-3`
   under the status, 70px at 390 and 320); a list sets one scale for all its timers. A run's head seat also holds today's held form
@@ -3205,6 +3209,8 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
   "Mmm 00 00:00 PM" in `en-US`).
 - **The source stamp** (`SourceStamp`; V5, V6, R8): four 8px shapes as drawn (filled, half-filled, hollow, a cross) and Basalt's braille for "asking", all in one 8 by 10 seat, with a word
   always; the "just landed" flash is dropped. Source first, time to the second and 24-hour, no middle dot ("github 18:52:07"); `Stat` is unchanged. V5 had no majority, so option (a) stands.
+  Its `time`'s `datetime` is the instant in UTC ("2026-11-24T21:55:17.000Z"), the drawn clock the zone's; `timeZoneName` writes the zone's name inside the
+  `time`, after a no-break space ("github 18:52:07 CST"), so it is in the stamp's accessible name.
   **Waiting and unreachable** (`SourceStateWords`): words only, both sentences in one `Reserve` cell, the failure said once through `StatusLine`, "Ask again" a `TextButton`.
 - **The status bar** (`StatusBar`; V7, R6, R7). A 44px foot from 720, fixed under it (56 plus the safe area). A message the app has also logged goes after 5000ms; any other stays until
   replaced or cleared with Esc. An error carries XCircle in a 16px seat and danger ink and is said through an assertive region that is in the page before the text. The slot reserves its
