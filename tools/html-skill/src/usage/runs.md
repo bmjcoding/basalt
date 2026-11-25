@@ -9,9 +9,9 @@
 </ol>
 ```
 
-A run's stages and steps as states (React's StageList, StageRail and RunTimeline's full rows). `data-state` is `idle` (not started: a still dashed circle), `queued`, `running`, `success`, `failed`, `skipped`, `canceled` or `retrying`, on the `li` and on its `.run-mark` (always `aria-hidden="true"`: the word says the state).
+A run's stages and steps as states (React's StageList, StageRail and RunTimeline's full rows). `data-state` is `idle` (not started), `queued`, `running`, `success`, `failed`, `skipped`, `canceled` or `retrying`, on the `li` and on its `.run-mark` (always `aria-hidden="true"`: the word says the state).
 
 - **Words:** write every state's word in `.run-stage-word` (a step's in `.run-step-word`). A list draws all but a passed stage's; a rail draws failed, skipped, canceled and retrying, in the place of the time; a step draws idle, queued, failed, skipped, canceled and retrying, so a running or passed step's word goes in a `.visually-hidden` span.
 - `<ol class="run-rail">` takes the same `li`, word beside the name (two to four stages; five or six are rows under 480px): the link fills when a stage passes.
 - `<ol class="run-steps">` of `<li class="run-step" data-state>`: the mark, `.run-step-sentence`, `.run-step-meta` (its time in `.run-step-time`), an optional `.run-step-detail`. A page shows the whole record: no counter.
-- Times are text the page writes; a page that rewrites a running time itself writes whole minutes under reduced motion ("<1 min", "4 min"). A status that changes is the `status` module's badge, swapped at once. The ring and the queued mark join the hold.
+- Times are text the page writes: under reduced motion a running one is whole minutes ("<1 min", "4 min"). A status that changes is the `status` module's badge, swapped at once. The ring and the queued mark join the hold.
