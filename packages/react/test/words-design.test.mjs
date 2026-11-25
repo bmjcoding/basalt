@@ -182,8 +182,8 @@ describe("Q5 (W9): a clock a person reads follows the locale; a stamp to the sec
         assert.deepEqual(await time("#clock-us time"), [`6:42${NBSP}PM`, "2026-11-17T18:42"]);
         assert.deepEqual(await time("#clock-gb time"), ["18:42", "2026-11-17T18:42"]);
         assert.deepEqual(await time(".basalt-stat-source time"), [`Nov 7, 8:02${NBSP}AM`, "2026-11-07T08:02"]);
-        assert.deepEqual(await time("#source time"), ["18:42:07", "2026-11-17T18:42:07"]);
-        assert.deepEqual(await time("#retry time"), ["18:42:07", "2026-11-17T18:42:07"]);
+        assert.deepEqual(await time("#source time"), ["18:42:07", "2026-11-17T18:42:07.000Z"], "an instant (cimip-gaps-3 E1)");
+        assert.deepEqual(await time("#retry time"), ["18:42:07", "2026-11-17T18:42:07.000Z"], "an instant (cimip-gaps-3 E1)");
         assert.deepEqual(await time(".basalt-command-block-time"), ["18:42:07", "2026-11-17T18:42:07"]);
         // the reserved widest stamp follows what the column holds
         const reserved = (selector) => page.locator(`${selector} .basalt-event-time .basalt-reserve > span`).evaluateAll((els) => els.map((el) => el.textContent));

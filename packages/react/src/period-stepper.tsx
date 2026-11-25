@@ -37,18 +37,25 @@ export interface PeriodStepperProps extends Omit<React.ComponentProps<"div">, "c
 }
 
 /**
- * Previous, the period, next. The label is shown at once and spoken once (a polite status line after it has held still for `delay`, with the
- * prefix); the buttons are core chevrons. In a container narrower than 640px the stepper takes its own row under the bar's tabs, if the bar
- * wraps (`flex-wrap: wrap`): full width, buttons at the ends, 52px tall with a hairline above, each button at least 44 by 44. The container is the
- * app's (`container-type: inline-size` on the bar's parent).
+ * Previous, the period, next. The label is shown at once; a change made after the stepper mounts is spoken once (a polite status line after it has
+ * held still for `delay`, with the prefix), and the period a page arrives on is read in place, never announced. The buttons are core chevrons. In a
+ * container narrower than 640px the stepper takes its own row under the bar's tabs, if the bar wraps (`flex-wrap: wrap`): full width, buttons at the
+ * ends, 52px tall with a hairline above, each button at least 44 by 44. The container is the app's (`container-type: inline-size` on the bar's parent).
  */
 export function PeriodStepper({ label, spokenPrefix = "", previousLabel, nextLabel, onPrevious, onNext, atStart = false, atEnd = false, whole = false, delay, className, ...props }: PeriodStepperProps) {
+  const said = `${spokenPrefix}${label}`;
+  // The period the page arrived on is read, never spoken: it is the page's own content, in a plain hidden line, and the live line starts empty. Only a
+  // change made after mount moves the words into the live line (and out of the plain one, so the period is read once), which then speaks it.
+  const [first] = React.useState(said);
+  const [changed, setChanged] = React.useState(false);
+  if (!changed && said !== first) setChanged(true);
   return (
     <div aria-label={props["aria-labelledby"] ? undefined : "Period"} {...props} role="group" data-whole={whole ? "" : undefined} className={join("basalt-period-stepper", className)}>
       <IconButton icon={ChevronLeftGlyph} label={previousLabel} disabled={atStart} focusableWhenDisabled onClick={() => { if (!atStart) onPrevious?.(); }} />
       <p className="basalt-period-label">
         <span aria-hidden="true">{label}</span>
-        <StatusLine delay={delay}>{`${spokenPrefix}${label}`}</StatusLine>
+        <span className="basalt-visually-hidden">{changed ? "" : said}</span>
+        <StatusLine delay={delay}>{changed ? said : ""}</StatusLine>
       </p>
       <IconButton icon={ChevronRightGlyph} label={nextLabel} disabled={atEnd} focusableWhenDisabled onClick={() => { if (!atEnd) onNext?.(); }} />
     </div>
