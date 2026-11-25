@@ -5,7 +5,7 @@ import { SearchGlyph } from "./glyphs/search";
 import { Button } from "./button";
 import { CommandHints, CommandRowContent, commandRowShape, commandValue } from "./command-row";
 import { Icon } from "./icon";
-import { BAND_LEVEL, inLevel, MODAL_LEVEL, ModalDepth, useModalLayer, usePanelLevel } from "./layers";
+import { BAND_LEVEL, inLevel, MODAL_LEVEL, ModalDepth, ModalHost, useModalLayer, usePanelLevel } from "./layers";
 import { useModalOutside } from "./modal-outside";
 import { isModKey } from "./platform";
 import { Spinner } from "./spinner";
@@ -155,6 +155,7 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
   const Panel = state.status === "ready" ? state.Panel : null;
   return (
     <ModalDepth.Provider value={layer.depth}>
+    <ModalHost.Provider value={popup}>
       <BaseDialog.Root open={open} onOpenChange={onOpenChange} onOpenChangeComplete={closed}>
         <BaseDialog.Portal>
           <BaseDialog.Backdrop className="basalt-dialog-backdrop basalt-command-backdrop" style={{ zIndex: layer.backdrop }} />
@@ -203,6 +204,7 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
           </BaseDialog.Popup>
         </BaseDialog.Portal>
       </BaseDialog.Root>
+    </ModalHost.Provider>
     </ModalDepth.Provider>
   );
 }

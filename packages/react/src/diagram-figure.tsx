@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { Kbd } from "./kbd";
 import { useShortcutsVisible } from "./keyboard";
-import { inLevel, usePanelLevel } from "./layers";
+import { inLevel, ModalHost, usePanelLevel } from "./layers";
 import {
   applyTrace, autoType, buildModel, placeLabels, tapTrace, transcript, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml,
 } from "./diagram-core";
@@ -507,6 +507,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
     void fetchViewer().then((mod) => { setOpening(false); if (mod) setViewerOpen(true); });
   };
   const closeViewer = React.useCallback(() => setViewerOpen(false), []);
+  // The nearest Basalt modal's popup, when the figure is in one: the viewer is written into it (layers.ts, ModalHost).
+  const modalHost = React.useContext(ModalHost);
   // An app's own actions: their module loads once script runs, only for a figure that has some; until it arrives, and if it cannot, none is drawn.
   const hasActions = !viewer && Boolean(actions?.length);
   const [actionsModule, setActionsModule] = React.useState<ActionsModule | null>(null);
@@ -639,7 +641,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
         {opening ? <span className="basalt-button-spinner" aria-hidden="true"><span className="basalt-spinner" data-variant="ring" style={{ width: 16, height: 16 }}><svg viewBox="0 0 16 16" width={16} height={16} fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeOpacity="0.25" strokeWidth="1.5" /><path d="M8 1.75A6.25 6.25 0 0 1 14.25 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></span></span> : null}
       </button>
       {viewerOpen && viewerModule ? (
-        <viewerModule.DiagramViewer kit={kitOf()} actions={actions} Actions={Actions} spec={viewerSpec} component={component} source={source} summary={summary} opener={expandRef} onClose={closeViewer} />
+        <viewerModule.DiagramViewer kit={kitOf()} actions={actions} Actions={Actions} spec={viewerSpec} component={component} source={source} summary={summary} opener={expandRef} host={modalHost} onClose={closeViewer} />
       ) : null}
     </>
   ) : null;
