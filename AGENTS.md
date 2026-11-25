@@ -93,7 +93,11 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   (hover after 600ms, keyboard focus, a long press on touch; a press sorts and cancels it), opener+1, the rim, radius 12,
   `shadow-overlay`, above the header else beside it, never over its column, WCAG 1.4.13, only for a column a reader could misread
   (DECISIONS 257, 261). At 390 the name (and the select column) is pinned, opaque in every state, and a cell focused
-  from the keyboard is never covered (a tap never scrolls the table). Pages set `scrollbar-gutter: stable`. A cut cell keeps its ellipsis and the 40px row and can always be read: while
+  from the keyboard is never covered (a tap never scrolls the table); a column is never dropped or folded as the table narrows (facts a reader
+  does not compare go in the name cell's `TableCall`, padded `space-2` in every table). Pages set `scrollbar-gutter: stable`. A row is at least
+  40px (32 compact, 44 comfortable and on touch): a `wrap` cell (a column of sentences, every cell or none, never a fixed form or a number) has the
+  one-line row's padding round its line and is never cut. A `TableRow linked` hands a plain primary press to its link, which stays the one
+  control; modified and middle clicks, drags, selections, controls and cut cells keep theirs. A cut cell keeps its ellipsis and the row and can always be read: while
   it is cut it is a focus stop, and on hover or focus its whole value opens in place on a level-3 plate (WCAG 1.4.13: Esc, hoverable,
   persistent; never past the viewport); after Esc the cell shows its own −2 ring. A column of one fixed form (a date, a time, a status)
   is sized for its longest form under WCAG 1.4.12 spacing, and so is a header's label for its column (a sortable header is its own
@@ -146,7 +150,12 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **A focusable row** (a link or button in a list, not a listbox option) takes the control ring
   at +2, outside the row, and its list keeps at least `space-1-5` from any clipping edge. A
   full-bleed band holding its own control focuses that control; a band that is itself the link
-  or button takes the flush-field −2 inset.
+  or button takes the flush-field −2 inset. A split `PanelRow` (with `actions`) is the band too: its trigger shows the band's −2 inset on
+  its cover, and each action its own ring at +2.
+- **Cut text** (`Text lines`): one line or a clamp of n (capped at n of the reader's own `1lh`), read whole on the level-3 plate on hover,
+  keyboard focus or a touch and hold, Esc closing it (WCAG 1.4.13). Outside a control it is its own stop (the +2 ring, radius 6, or 8 for a
+  clamp); inside a link, button, `summary`, `label` or widget role the control is the stop, the plate opens from its hover and focus, and
+  without hover the text is whole at rest. `peek={false}` only where a press shows the whole text. Never a `title` or a `Tooltip`.
 - **Keyboard keys are chips:** a fill with no border, 20px tall (`size-kbd`), one per key, 2px apart; ⌘ ⌥ ⌃ are
   Phosphor icons at 12 inside the chip. Only real shortcuts, one per row, never on the primary fill; the chip is
   `aria-hidden` and the item carries `aria-keyshortcuts`. Shortcut chips (`data-shortcut`) and hint legends
