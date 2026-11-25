@@ -13,7 +13,25 @@
   .tok-f { color: var(--basalt-syntax-function); }
   .tok-c { color: var(--basalt-syntax-comment); }
 
+  /* Line numbers (data-line-numbers, code.js): a column of their own, at least 24px and as wide as the widest number, space-4 before the text,
+     end-aligned and tertiary. The digits are drawn from data-n, so a copy and a selection never take them. No vertical rule. */
+  .code-lines { display: grid; grid-template-columns: minmax(calc(var(--basalt-size-icon-sm) + var(--basalt-space-2) + var(--basalt-space-4)), max-content) auto; width: max-content; min-width: 100%; }
+  .code-line { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; min-height: var(--basalt-size-code-line-height); }
+  .code-number { padding-inline-end: var(--basalt-space-4); text-align: end; color: var(--basalt-text-tertiary); font-variant-numeric: tabular-nums; -webkit-user-select: none; user-select: none; }
+  .code-number::before { content: attr(data-n); }
+  .code-text { min-width: 0; }
+  /* The sideways cue: a foot band under the code, inside the well, shown only while the code is wider than its box (the table hint's form). */
+  .code-hint { margin: 0; padding: var(--basalt-space-1-5) var(--basalt-space-4); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); font: var(--basalt-font-weight-regular) var(--bh-xs); color: var(--basalt-text-tertiary); }
+  .code-hint[hidden] { display: none; }
+  pre.code + .code-hint { background-color: var(--panel-well); border-end-start-radius: var(--basalt-radius-md); border-end-end-radius: var(--basalt-radius-md); }
+  pre.code:has(+ .code-hint:not([hidden])) { border-end-start-radius: 0; border-end-end-radius: 0; }
+
   @media print {
     pre.code, .code-body { white-space: pre-wrap; overflow-wrap: anywhere; overflow: visible; }
+    .code-lines { grid-template-columns: minmax(calc(var(--basalt-size-icon-sm) + var(--basalt-space-2) + var(--basalt-space-4)), max-content) minmax(0, 1fr); width: auto; }
+    .code-hint { display: none; }
+  }
+  @media (forced-colors: active) {
+    .code-hint { border-top-color: CanvasText; color: CanvasText; }
   }
 }

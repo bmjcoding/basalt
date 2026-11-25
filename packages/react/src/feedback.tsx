@@ -338,8 +338,19 @@ export interface CodeBlockProps {
    * continuation is indented 2ch (beside a prompt, it starts at the text's edge), so it never reads as a new line. Copy is unchanged.
    */
   wrap?: boolean;
+  /**
+   * Number every source line (CRLF and blank lines inside included, no number for a final newline) in a column of its own: Geist Mono 13/20,
+   * tertiary, end-aligned, at least 24px and as wide as the widest number, `space-4` before the text (or the prompt, when there is one). The
+   * numbers are never copied or read. With `wrap`, a number sits on its line's first row. Off by default.
+   */
+  lineNumbers?: boolean;
+  /** The first line's number, an integer, read only with `lineNumbers`. 1 by default. */
+  startLine?: number;
   className?: string;
 }
+
+/** The line under a block whose lines are wider than its box. */
+const SCROLL_HINT = "Scroll sideways to see the long lines";
 
 /** Code longer than this (UTF-16 code units) is, in a browser, coloured once its plain text has painted; shorter code is coloured in the render. */
 const COLOUR_LATER_FROM = 10_000;
@@ -348,7 +359,7 @@ const COLOUR_LATER_FROM = 10_000;
 const noSubscription = () => () => {};
 
 /** Code, commands or logs, in mono on a sunken surface, scrolling sideways rather than wrapping (`wrap` breaks long lines at spaces instead). */
-export function CodeBlock({ code, language, title, copyable = true, prompt, wrap = false, className }: CodeBlockProps) {
+export function CodeBlock({ code, language, title, copyable = true, prompt, wrap = false, lineNumbers = false, startLine = 1, className }: CodeBlockProps) {
   // A well: level 1 on the page, one deeper inside a card, and so on up to 3.
   const level = usePanelLevel();
   // The code renders as plain text at once; colour follows when its grammar has loaded, with
@@ -398,7 +409,23 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, wrap
   }, [tokens, code]);
   // With a prompt, every line has a gutter, so the text is cut into lines; without one the block is a single run of text.
   // A block that wraps is cut into lines too, each a row of words that break only at a space.
-  const lines = React.useMemo(() => (prompt === undefined && !wrap ? null : codeLines(code, tokens)), [prompt, wrap, code, tokens]);
+  const lines = React.useMemo(() => (prompt === undefined && !wrap && !lineNumbers ? null : codeLines(code, tokens)), [prompt, wrap, lineNumbers, code, tokens]);
+  const first = Number.isInteger(startLine) ? startLine : 1;
+  // The sideways cue: a line of words under the code while the pre is wider than its box, measured before the first paint in the browser (on a
+  // server-drawn page it arrives at hydration) and never changed while it scrolls.
+  const pre = React.useRef<HTMLPreElement>(null);
+  const [overflows, setOverflows] = React.useState(false);
+  React.useLayoutEffect(() => {
+    const box = pre.current;
+    if (!box) return undefined;
+    const measure = () => setOverflows(box.scrollWidth > box.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    if (box.firstElementChild) observer.observe(box.firstElementChild);
+    return () => observer.disconnect();
+    // The code changing changes what overflows without resizing the pre.
+  }, [code, Boolean(lines), wrap, lineNumbers]);
   // What the last copy did, held for CONFIRM_MS: the check, or the close for a refused write (copy-result.ts; DECISIONS 336, the open items' ruling).
   const copyResult = useCopyResult();
   // The copy glyph is one that changes (Copy, then Check): the morph's engine is on its way before the first click.
@@ -421,11 +448,12 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, wrap
         </figcaption>
       ) : null}
       {/* a scrollable region must be reachable by keyboard */}
-      <pre className="basalt-code-pre" tabIndex={0} role="region" aria-label={title ? `${title} code` : "Code"}>
-        {lines && prompt !== undefined ? (
-          <code data-language={language} className="basalt-code-lines">
+      <pre ref={pre} className="basalt-code-pre" tabIndex={0} role="region" aria-label={title ? `${title} code` : "Code"}>
+        {lines && (prompt !== undefined || lineNumbers) ? (
+          <code data-language={language} className="basalt-code-lines" data-numbered={lineNumbers ? "" : undefined} data-prompted={prompt !== undefined ? "" : undefined}>
             {lines.map((line, i) => (
-              <CodeLine key={i} gutter={i > 0 && continues(lines[i - 1]) ? null : <CodePrompt>{prompt}</CodePrompt>}>
+              // A line after a trailing backslash keeps its number; only its prompt's seat is empty.
+              <CodeLine key={i} number={lineNumbers ? first + i : undefined} bare={prompt === undefined} gutter={prompt === undefined || (i > 0 && continues(lines[i - 1])) ? null : <CodePrompt>{prompt}</CodePrompt>}>
                 {/* A line that is one plain run is passed as a string. React hydrates a string child by its text alone, so a cold
                     client (grammar not loaded yet) matches a server that sent coloured spans for the same line. */}
                 {wrap ? codeWords(line) : line.length === 1 && line[0] && !line[0].color ? line[0].text : line.map((run, j) => (run.color ? <span key={j} style={{ color: run.color }}>{run.text}</span> : <React.Fragment key={j}>{run.text}</React.Fragment>))}
@@ -441,6 +469,8 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, wrap
           <code data-language={language}>{tokens ? <>{content.nodes}{content.rest}</> : code}</code>
         )}
       </pre>
+      {/* Hidden from assistive technology: the pre is already a named, focusable region. */}
+      <p className="basalt-code-hint" aria-hidden="true" hidden={!overflows}>{SCROLL_HINT}</p>
       {title ? null : copyButton}
     </figure>
   );

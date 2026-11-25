@@ -1,0 +1,46 @@
+@layer basalt {
+
+  /* ---- Rich text: type and rhythm for a renderer's elements (React's RichText; no parser, no measure) ----
+     Body 14/20 in primary at 400, blocks space-3 apart with no outer margin, lists indented space-5 with items space-1 apart, strong at 600,
+     em the browser's italic of Geist. Inline code is React's InlineCode (the sunken fill, the hairline, radius 4, 0.9em mono), each wrapped piece
+     closed; a link is Link (primary ink, the input boundary's underline lifting on hover, the control ring at +2). A long word never widens the
+     column. The floor for what a renderer also emits: every heading 14/20 at 600 (the element keeps its level), a quote indented space-4 in
+     secondary with no bar, a rule, a pre that scrolls sideways (no well), an image no wider than the column. Tables, task lists and footnotes are
+     not styled. .prose is unchanged: put a .rich-text inside it in a card, or bare in a stream's text column. */
+  .rich-text { min-width: 0; font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); letter-spacing: normal; color: var(--basalt-text-primary); overflow-wrap: anywhere; }
+  .rich-text :where(p, ul, ol, li, blockquote, pre, figure, hr, h1, h2, h3, h4, h5, h6) { margin: 0; }
+  .rich-text :where(p, ul, ol, blockquote, pre, figure, hr, h1, h2, h3, h4, h5, h6, table, dl, div, details) + :where(p, ul, ol, blockquote, pre, figure, hr, h1, h2, h3, h4, h5, h6, table, dl, div, details) { margin-block-start: var(--basalt-space-3); }
+  .rich-text :where(ul, ol) { padding-inline-start: var(--basalt-space-5); }
+  .rich-text :where(li + li, li > ul, li > ol) { margin-block-start: var(--basalt-space-1); }
+  .rich-text :where(li)::marker { color: inherit; }
+  .rich-text :where(strong, b) { font-weight: var(--basalt-font-weight-semibold); }
+  .rich-text :where(em, i) { font-style: italic; }
+  .rich-text :not(pre) > code {
+    padding: var(--basalt-space-0-5) var(--basalt-space-1);
+    border-radius: var(--basalt-radius-xs);
+    background: var(--basalt-surface-sunken);
+    color: var(--basalt-text-primary);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline);
+    /* stylelint-disable-next-line unit-disallowed-list -- inline code is React's InlineCode, 0.9 of the text around it; the type scale has no relative step */
+    font: var(--basalt-font-weight-regular) 0.9em / inherit var(--basalt-font-family-mono);
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+  .rich-text a[href] { color: var(--basalt-text-primary); text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-underline-offset: var(--basalt-size-underline-offset); text-decoration-thickness: var(--basalt-size-hairline); transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .rich-text a[href]:hover { text-decoration-color: currentColor; }
+  .rich-text a[href]:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); border-radius: var(--basalt-radius-xs); }
+  .rich-text :where(h1, h2, h3, h4, h5, h6) { font: var(--basalt-font-weight-semibold) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); letter-spacing: normal; text-wrap: wrap; }
+  .rich-text :where(p, ul, ol, blockquote, pre, figure, hr, h1, h2, h3, h4, h5, h6, table, dl, div, details) + :where(h1, h2, h3, h4, h5, h6) { margin-block-start: var(--basalt-space-4); }
+  .rich-text :where(h1, h2, h3, h4, h5, h6) + :where(p, ul, ol, blockquote, pre, figure, hr, h1, h2, h3, h4, h5, h6, table, dl, div, details) { margin-block-start: var(--basalt-space-2); }
+  .rich-text :where(blockquote) { padding-inline-start: var(--basalt-space-4); color: var(--basalt-text-secondary); }
+  .rich-text :where(hr) { height: 0; border: 0; border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .rich-text :where(p, ul, ol, blockquote, pre, figure, hr, h1, h2, h3, h4, h5, h6, table, dl, div, details) + :where(hr), .rich-text :where(hr) + :where(p, ul, ol, blockquote, pre, figure, hr, h1, h2, h3, h4, h5, h6, table, dl, div, details) { margin-block-start: var(--basalt-space-4); }
+  .rich-text :where(pre) { overflow-x: auto; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-size-code-line-height) var(--basalt-font-family-mono); white-space: pre; overflow-wrap: normal; }
+  .rich-text :where(pre code) { font: inherit; }
+  .rich-text :where(img) { max-inline-size: 100%; height: auto; }
+
+  @media (forced-colors: active) {
+    .rich-text :not(pre) > code { padding: calc(var(--basalt-space-0-5) - var(--basalt-size-hairline)) calc(var(--basalt-space-1) - var(--basalt-size-hairline)); border: var(--basalt-size-hairline) solid CanvasText; box-shadow: none; }
+    .rich-text a[href] { color: LinkText; }
+  }
+}

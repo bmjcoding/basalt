@@ -441,10 +441,25 @@
         "tok-s",
         "tok-n",
         "tok-f",
-        "tok-c"
+        "tok-c",
+        "code-lines",
+        "code-line",
+        "code-number",
+        "code-text",
+        "code-hint"
+      ],
+      "attrs": [
+        "data-line-numbers"
       ],
       "budget": 1050,
       "usage": 450
+    },
+    "rich-text": {
+      "classes": [
+        "rich-text"
+      ],
+      "budget": 3300,
+      "usage": 800
     },
     "callout": {
       "classes": [

@@ -90,6 +90,7 @@ export { Accordion, AccordionItem, Callout, CodeBlock, Popover, PopoverClose, Po
 export { DescriptionColumns, DescriptionItem, DescriptionList } from "./description-list";
 export type { DescriptionColumnsProps, DescriptionItemProps, DescriptionListProps } from "./description-list";
 export { Prose } from "./prose";
+export { RichText } from "./rich-text";
 export { ChartGroup, TimeChart } from "./chart";
 export { trailingMean } from "./trailing-mean";
 export type { ChartGroupProps, ChartKind, ChartLaneGeometry, ChartPlan, ChartSeries, TimeChartProps } from "./chart";
