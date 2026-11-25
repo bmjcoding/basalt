@@ -82,7 +82,7 @@ function Same() {
       </div>
       <div>
         <p style={label}>Avatar: initials from the name (“Doe, Jane Q”), then initials=&quot;JD&quot;</p>
-        <div style={{ display: "flex", gap: "var(--basalt-space-2)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--basalt-space-2)" }}>
           <Avatar name="Doe, Jane Q" /><Avatar name="Doe, Jane Q" initials="JD" /><Avatar name="Okafor, Chidi" initials="CO" size={40} />
         </div>
       </div>
