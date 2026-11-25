@@ -109,12 +109,14 @@ function useLitRow({ shown, search, filter, list, commands, pointer, onEnter }: 
   litNow.current = lit;
   const moved = React.useRef(false);
   const fromPointer = React.useRef<string | null>(null);
-  const scroll = React.useRef(false);
+  // How the next lit row is brought into view: by a key, as cmdk does (the nearest scroller, the page too); when the rows change, inside the list
+  // alone, so a list lower on the page never pulls the page to it; by the pointer, not at all.
+  const scroll = React.useRef<"key" | "list" | false>(false);
   const values = shownValues(shown, search, filter);
   const first = values[0] ?? "";
   const shownKey = values.join("\u0000");
   const searched = React.useRef(search);
-  const setLit = (next: string, { byReader = false, scrollTo = true } = {}) => {
+  const setLit = (next: string, { byReader = false, scrollTo = "list" as "key" | "list" | false } = {}) => {
     if (byReader && next !== litNow.current) moved.current = true;
     scroll.current = scrollTo;
     litNow.current = next;
@@ -135,12 +137,23 @@ function useLitRow({ shown, search, filter, list, commands, pointer, onEnter }: 
   }, [shownKey, search, first]);
   // A move by key, or the rows changing, keeps the lit row in view (its group's heading too, when it is the group's first row), as cmdk did.
   React.useLayoutEffect(() => {
-    if (!scroll.current) return;
+    const how = scroll.current;
     scroll.current = false;
-    const row = rowOf(list.current, lit);
-    if (!row) return;
-    if (row.parentElement?.firstElementChild === row) row.closest("[cmdk-group]")?.querySelector("[cmdk-group-heading]")?.scrollIntoView({ block: "nearest" });
-    row.scrollIntoView({ block: "nearest" });
+    const host = list.current;
+    const row = rowOf(host, lit);
+    if (!how || !host || !row) return;
+    const first = row.parentElement?.firstElementChild === row;
+    const heading = first ? row.closest("[cmdk-group]")?.querySelector<HTMLElement>("[cmdk-group-heading]") : null;
+    if (how === "key") {
+      heading?.scrollIntoView({ block: "nearest" });
+      row.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    const box = host.getBoundingClientRect();
+    const top = (heading ?? row).getBoundingClientRect().top - box.top;
+    const bottom = row.getBoundingClientRect().bottom - box.top;
+    if (top < 0) host.scrollTop += top;
+    else if (bottom > host.clientHeight) host.scrollTop += bottom - host.clientHeight;
   }, [lit, list]);
   const [said, setSaid] = React.useState({ text: "", id: 0 });
   const say = (text: string) => setSaid((last) => ({ text, id: last.id + 1 }));
@@ -189,7 +202,7 @@ function useLitRow({ shown, search, filter, list, commands, pointer, onEnter }: 
     const go = (row: HTMLElement | undefined) => {
       event.preventDefault();
       const value = row?.getAttribute("data-value");
-      if (value) setLit(value, { byReader: true });
+      if (value) setLit(value, { byReader: true, scrollTo: "key" });
     };
     const step = (by: 1 | -1) => {
       if (!rows.length) return go(undefined);
