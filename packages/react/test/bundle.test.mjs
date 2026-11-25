@@ -771,10 +771,10 @@ test("AppShell loads the rail's tooltip for the version on demand", async () => 
 // RunStage 39,229, 22,900 (39,250 to 22,950). StageMark 14,451 (31,147 on main), StageBadge 5,414 (22,072), RunAnnouncer 582 (19,047) and formatRunTime 649 (19,114)
 // are under the limits E1 left as they were, and none of them loads Base UI again.
 // cimip-gaps-3 T1: the idle mark (Phosphor's CircleDashed, one file, as the other marks), the badge's `states` seat and RunTimer's minute grain, each
-// limit raised by its own increase, main to here: StageMark 14,451 to 19,448 (+4,997; 14,500 to 19,497), StageBadge 5,414 to 5,708 (+294; 5,450 to
-// 5,744), RunTimer 6,091 to 6,827 (+736; 6,100 to 6,836), RunStage 22,181 to 27,958 (+5,777; 22,200 to 27,977), StageList, RunStage 22,948 to 28,723
+// limit raised by its own increase, main to here: StageMark 14,451 to 19,448 (+4,997; 14,500 to 19,497), StageBadge 5,414 to 5,678 (+264; 5,450 to
+// 5,714), RunTimer 6,091 to 6,827 (+736; 6,100 to 6,836), RunStage 22,181 to 27,958 (+5,777; 22,200 to 27,977), StageList, RunStage 22,948 to 28,723
 // (+5,775; 22,950 to 28,725), StageRail, RunStage 22,900 to 28,675 (+5,775; 22,950 to 28,725). formatRunTime 649 to 684 stays under its 750.
-for (const [name, limit, phosphor] of [["StageMark", 19_497, true], ["StageBadge", 5_744, false], ["RunTimer", 6_836, false], ["RunAnnouncer", 600, false], ["formatRunTime", 750, false], ["RunStage", 27_977, true], ["StageList, RunStage", 28_725, true], ["StageRail, RunStage", 28_725, true]]) {
+for (const [name, limit, phosphor] of [["StageMark", 19_497, true], ["StageBadge", 5_714, false], ["RunTimer", 6_836, false], ["RunAnnouncer", 600, false], ["formatRunTime", 750, false], ["RunStage", 27_977, true], ["StageList, RunStage", 28_725, true], ["StageRail, RunStage", 28_725, true]]) {
   test(`${name} alone loads no Base UI${phosphor ? "" : " and no Phosphor"} (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);

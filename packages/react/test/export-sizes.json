@@ -294,7 +294,7 @@
   "Sparkline": 4631,
   "Spinner": 1509,
   "Stage": 1219,
-  "StageBadge": 5470,
+  "StageBadge": 5440,
   "StageList": 1306,
   "StageMark": 19314,
   "StageRail": 1258,
@@ -446,11 +446,11 @@
   }
  },
  "package": {
-  "bytes": 1060137,
-  "gzip": 353565
+  "bytes": 1060106,
+  "gzip": 353574
  },
  "styles": {
-  "bytes": 514700,
-  "gzip": 65882
+  "bytes": 514930,
+  "gzip": 65895
  }
 }

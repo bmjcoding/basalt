@@ -7245,6 +7245,9 @@
   /* The compact cards (titleSize md and base, cimip-gaps-3 T1), for an app page: the title a step of the scale at 600, a 16px arrow at every width,
      the arrow still centred on the title's first line from --_title-line, and the foot a step down. The display card is unchanged. */
   .basalt-link-card[data-title-size] { --_arrow: var(--basalt-size-icon-sm); }
+  /* The new-tab arrow is a box of its own here, as the go arrow is, so the centring above holds for it too (on a text line it sat on the baseline). */
+  .basalt-link-card[data-title-size] > .basalt-link-card-top > .basalt-external { display: inline-flex; flex: none; }
+  .basalt-link-card[data-title-size] > .basalt-link-card-top > .basalt-external > .basalt-icon { vertical-align: baseline; margin-block: 0; }
   .basalt-link-card[data-title-size] > .basalt-link-card-top { gap: var(--basalt-space-4); padding-block-start: 0; }
   .basalt-link-card[data-title-size] .basalt-link-card-foot { gap: 0 var(--basalt-space-4); }
   .basalt-link-card[data-title-size="md"] { --_title-line: var(--basalt-text-md-line-height); }
