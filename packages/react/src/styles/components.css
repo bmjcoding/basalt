@@ -7237,6 +7237,9 @@
   .basalt-panel-list { box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) auto; margin: 0; padding: 0; list-style: none; overflow: clip; border-radius: var(--basalt-radius-lg); background: var(--_surface, var(--basalt-surface-raised)); color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); }
   .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-lead) { grid-template-columns: auto minmax(0, 1fr) auto; }
   .basalt-panel-item { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
+  /* A child that is not a PanelRow's item (an app's own li holding a DisclosureRow) takes the full row, never one of PanelRow's columns (G86): auto-placed,
+     it would fill one track, and under 720 every other one would be the 0px column. */
+  .basalt-panel-list > :not(.basalt-panel-item) { grid-column: 1 / -1; min-width: 0; }
   .basalt-panel-item + .basalt-panel-item { border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
   .basalt-panel-row {
     box-sizing: border-box;

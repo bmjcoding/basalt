@@ -114,9 +114,10 @@ describe("the chart", () => {
     for (const need of ["art", "table", "kbd"]) assert.ok(compose("<title>t</title><figure class=\"chart\"></figure>", { fonts: false }).modules.includes(need), need);
   });
 
-  test("the plot is one tab stop with a focusable image a day, named by its full sentence, and 'today' only on today's date", async () => {
+  test("the plot is one tab stop with a focusable grid cell a day, named by its full sentence, and 'today' only on today's date", async () => {
     const { page, context } = await open();
-    assert.equal(await page.locator("#bars .chart-days").getAttribute("role"), "group");
+    assert.equal(await page.locator("#bars .chart-days").getAttribute("role"), "grid");
+    assert.equal(await page.locator("#bars .chart-days > [role=row] > .chart-day[role=gridcell]").count(), 10, "G18: the days are a grid's cells in its one row, as React's");
     assert.equal(await page.locator("#bars .chart-days").getAttribute("aria-roledescription"), "chart");
     assert.equal(await page.locator("#bars .chart-day[tabindex='0']").count(), 1, "one tab stop");
     assert.equal(await page.locator("#bars .chart-day[tabindex='-1']").count(), 9);

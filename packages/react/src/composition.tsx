@@ -18,12 +18,17 @@ export interface AvatarProps extends React.ComponentProps<"span"> {
   name: string;
   src?: string;
   size?: 24 | 32 | 40 | 48;
+  /**
+   * The app's own initials, one or two letters, drawn in place of the ones Basalt takes from `name` (its first and last words), for a
+   * name whose words are not in that order ("Doe, Jane Q" is "JD", not "DQ"). Drawn as given, upper-cased; `name` stays what is said.
+   */
+  initials?: string;
   fallback?: React.ReactNode;
 }
 
-export function Avatar({ name, src, size = 32, fallback, className, style, ...props }: AvatarProps) {
+export function Avatar({ name, src, size = 32, initials: own, fallback, className, style, ...props }: AvatarProps) {
   const words = name.trim().split(/\s+/).filter(Boolean);
-  const initials = [words[0], words.length > 1 ? words[words.length - 1] : undefined].filter(Boolean).map((word) => Array.from(word!)[0]).join("").toLocaleUpperCase();
+  const initials = own?.trim() ? own.trim().toLocaleUpperCase() : [words[0], words.length > 1 ? words[words.length - 1] : undefined].filter(Boolean).map((word) => Array.from(word!)[0]).join("").toLocaleUpperCase();
   return (
     <BaseAvatar.Root {...props} role="img" aria-label={name} className={join("basalt-avatar", className)} style={{ width: size, height: size, ...style }}>
       {src ? <BaseAvatar.Image src={src} alt="" className="basalt-avatar-image" /> : null}

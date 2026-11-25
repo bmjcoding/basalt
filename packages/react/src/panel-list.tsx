@@ -4,22 +4,39 @@
 import * as React from "react";
 
 import { inLevel, usePanelLevel } from "./layers";
+import { useMergedRef } from "./merged-ref";
 import { NewTabGlyph, NewTabWords, opensNewTab } from "./new-tab";
 import { join } from "./utils";
 
 export interface PanelListProps extends React.ComponentProps<"ul"> {
-  /** `PanelRow`s, as direct children. Name the list with `aria-label` or `aria-labelledby` (its heading). */
+  /**
+   * `PanelRow`s, as direct children. Name the list with `aria-label` or `aria-labelledby` (its heading). Anything else is an `li` of the app's own
+   * (`<li><DisclosureRow … /></li>`), laid across the full row: the columns are `PanelRow`'s, and no other child takes them.
+   */
   children: React.ReactNode;
 }
 
+declare const process: { env: { NODE_ENV?: string } };
+let warnedChild = false;
+
 /**
  * Rows of one list in one panel: the panel's level (one above what it sits in, 3 at most), its one rim and radius 12, and a `border-divider`
- * between rows (never above the first or below the last). Each row is a `PanelRow`.
+ * between rows (never above the first or below the last). Each row is a `PanelRow`; a child that is not one is laid across the full row (G86), and
+ * in development a child that is not an `li` is reported once, since a list holds only items.
  */
-export function PanelList({ className, children, ...props }: PanelListProps) {
+export function PanelList({ className, children, ref, ...props }: PanelListProps) {
   const level = usePanelLevel();
+  const node = React.useRef<HTMLUListElement | null>(null);
+  const setRef = useMergedRef(node, ref);
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === "production" || warnedChild || !node.current) return;
+    const stray = Array.from(node.current.children).find((child) => child.tagName !== "LI");
+    if (!stray) return;
+    warnedChild = true;
+    console.warn(`Basalt PanelList: a <${stray.tagName.toLowerCase()}> is a direct child of the list, which holds only items. Give PanelList PanelRows, or put anything else in an <li> of its own; it is laid across the full row`);
+  });
   return (
-    <ul {...props} data-level={level} className={join("basalt-panel-list", className)}>
+    <ul {...props} ref={setRef} data-level={level} className={join("basalt-panel-list", className)}>
       {inLevel(level, children)}
     </ul>
   );

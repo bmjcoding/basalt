@@ -169,7 +169,7 @@ function PhaseDemo({ state }: { state: string }) {
           const cn = rect(calls[calls.length - 1]!)!;
           const marks = !!el.querySelector(".basalt-phase-calls[data-marks]");
           out.push(`plot ${px(d0.h)} tall (size-chart-plot-sm, 96px); the lane spans ${px(c0.x)} to ${px(cn.x + cn.w)} against the plot's ${px(d0.x)} to ${px(dn.x + dn.w)}; a choice is ${px(c0.w)} wide, ${px(c0.h)} tall`);
-          out.push(`${days.length} days, role img: ${el.querySelectorAll(".basalt-chart-day[role=img]").length}; tab stops: ${el.querySelectorAll(".basalt-chart-day[tabindex='0']").length}; live regions: ${el.querySelectorAll("figure [aria-live]").length}; the lane is ${marks ? "marks, with previous and next" : "words, one choice a week"}`);
+          out.push(`${days.length} days, role gridcell: ${el.querySelectorAll(".basalt-chart-day[role=gridcell]").length}; tab stops: ${el.querySelectorAll(".basalt-chart-day[tabindex='0']").length}; live regions: ${el.querySelectorAll("figure [aria-live]").length}; the lane is ${marks ? "marks, with previous and next" : "words, one choice a week"}`);
           const span = el.querySelector(".basalt-chart-span");
           const sc = getComputedStyle(span!);
           out.push(`plate: ${sc.backgroundColor}, slides over ${sc.transitionDuration} on ${sc.transitionTimingFunction.split(",")[0]}`);
