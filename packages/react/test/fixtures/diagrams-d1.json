@@ -1,0 +1,888 @@
+{
+ "$comment": "DECISIONS 359, batch D wave 1: one figure of each new type and fold, on CIMIP's synthetic data. The React tests and the HTML skill's tests draw the same data (each entry is the component's props with its type).",
+ "gantt": {
+  "type": "gantt",
+  "title": "Sandbox platform rollout",
+  "summary": "Seven weeks from images to general availability, the canary after the warm pool is sized.",
+  "source": "Platform plan, Nov 2026",
+  "today": "2026-11-24",
+  "legend": {
+   "focal": "The launch"
+  },
+  "phases": [
+   {
+    "id": "build",
+    "label": "Build"
+   },
+   {
+    "id": "rollout",
+    "label": "Rollout"
+   }
+  ],
+  "tasks": [
+   {
+    "id": "t1",
+    "name": "Sandbox images",
+    "start": "2026-11-02",
+    "end": "2026-11-09",
+    "phase": "build"
+   },
+   {
+    "id": "t2",
+    "name": "Egress proxy allow-list",
+    "start": "2026-11-10",
+    "end": "2026-11-18",
+    "phase": "build",
+    "after": [
+     "t1"
+    ]
+   },
+   {
+    "id": "t3",
+    "name": "Two-step approval gate",
+    "start": "2026-11-10",
+    "end": "2026-11-20",
+    "phase": "build",
+    "after": [
+     "t1"
+    ],
+    "detail": "approval-gate",
+    "detailMono": true
+   },
+   {
+    "id": "t4",
+    "name": "Warm pool sizing",
+    "start": "2026-11-19",
+    "end": "2026-11-24",
+    "phase": "rollout",
+    "after": [
+     "t2"
+    ]
+   },
+   {
+    "id": "t5",
+    "name": "Canary in us-east-1",
+    "start": "2026-11-25",
+    "end": "2026-12-01",
+    "phase": "rollout",
+    "after": [
+     "t3",
+     "t4"
+    ]
+   },
+   {
+    "id": "t6",
+    "name": "General availability",
+    "start": "2026-12-03",
+    "milestone": true,
+    "phase": "rollout",
+    "after": [
+     "t5"
+    ],
+    "focal": true
+   }
+  ]
+ },
+ "kanban": {
+  "type": "kanban",
+  "title": "Incidents this morning",
+  "summary": "Nine incidents: three in investigation against a limit of two, one of them blocked.",
+  "source": "Incident board, 09:00",
+  "legend": {
+   "focal": "Paged on-call"
+  },
+  "columns": [
+   {
+    "id": "triage",
+    "label": "Triage"
+   },
+   {
+    "id": "investigating",
+    "label": "Investigating",
+    "limit": 2
+   },
+   {
+    "id": "approval",
+    "label": "Awaiting approval",
+    "limit": 3
+   },
+   {
+    "id": "mitigated",
+    "label": "Mitigated",
+    "more": 6,
+    "note": "Last 24 hours"
+   }
+  ],
+  "cards": [
+   {
+    "id": "inc-482",
+    "column": "triage",
+    "kind": "INC-482",
+    "name": "504s on /runs"
+   },
+   {
+    "id": "inc-483",
+    "column": "triage",
+    "kind": "INC-483",
+    "name": "Slow sandbox boot"
+   },
+   {
+    "id": "inc-479",
+    "column": "investigating",
+    "kind": "INC-479",
+    "name": "Approval timeouts",
+    "blocked": "Waiting on the IdP team"
+   },
+   {
+    "id": "inc-480",
+    "column": "investigating",
+    "kind": "INC-480",
+    "name": "Egress denied for npm"
+   },
+   {
+    "id": "inc-481",
+    "column": "investigating",
+    "kind": "INC-481",
+    "name": "Runner out of memory",
+    "focal": true
+   },
+   {
+    "id": "inc-476",
+    "column": "approval",
+    "kind": "INC-476",
+    "name": "Roll back proxy config"
+   },
+   {
+    "id": "inc-470",
+    "column": "mitigated",
+    "kind": "INC-470",
+    "name": "Certificate expiry"
+   },
+   {
+    "id": "inc-471",
+    "column": "mitigated",
+    "kind": "INC-471",
+    "name": "Queue backlog"
+   }
+  ]
+ },
+ "journey": {
+  "type": "journey",
+  "title": "A sandbox fails at night",
+  "summary": "Confidence falls at triage and recovers once the fix is applied.",
+  "source": "Interviews, Oct 2026",
+  "actor": "On-call engineer",
+  "scenario": "A sandbox fails at 2 a.m.",
+  "scale": [
+   "Blocked",
+   "Strained",
+   "Neutral",
+   "Steady",
+   "Confident"
+  ],
+  "legend": {
+   "line": "How sure the engineer feels",
+   "focal": "The worst moment"
+  },
+  "stages": [
+   {
+    "id": "paged",
+    "name": "Paged",
+    "level": 2,
+    "actions": "Reads the alert on a phone",
+    "touchpoint": "Pager"
+   },
+   {
+    "id": "triage",
+    "name": "Triage",
+    "level": 1,
+    "actions": "Opens logs, finds nothing",
+    "quote": "Which run is it?",
+    "friction": "Logs are split across two tools",
+    "focal": true
+   },
+   {
+    "id": "approve",
+    "name": "Approve",
+    "level": 2,
+    "actions": "Waits for a second approver",
+    "touchpoint": "Approval gate"
+   },
+   {
+    "id": "fix",
+    "name": "Fix",
+    "level": 4,
+    "actions": "Rolls back the proxy config",
+    "opportunity": "One-click rollback"
+   },
+   {
+    "id": "review",
+    "name": "Review",
+    "level": 5,
+    "actions": "Writes the timeline",
+    "quote": "That was quick in the end."
+   }
+  ]
+ },
+ "blueprint": {
+  "type": "service-blueprint",
+  "title": "Starting a run",
+  "summary": "What the user sees, what runs behind it, and the pool that supports it.",
+  "source": "Service design, Nov 2026",
+  "legend": {
+   "plain": "Hands off to",
+   "focal": "What the user watches"
+  },
+  "stages": [
+   {
+    "id": "s1",
+    "name": "Request a run",
+    "time": "0–2 s"
+   },
+   {
+    "id": "s2",
+    "name": "Approve",
+    "time": "2–40 s"
+   },
+   {
+    "id": "s3",
+    "name": "Run",
+    "time": "40 s–12 min"
+   }
+  ],
+  "cells": [
+   {
+    "stage": "s1",
+    "layer": "evidence",
+    "name": "Run page"
+   },
+   {
+    "stage": "s1",
+    "layer": "customer",
+    "name": "Submits a run"
+   },
+   {
+    "stage": "s2",
+    "layer": "customer",
+    "name": "Waits"
+   },
+   {
+    "stage": "s3",
+    "layer": "customer",
+    "name": "Reads the log"
+   },
+   {
+    "stage": "s1",
+    "layer": "frontstage",
+    "name": "Run form"
+   },
+   {
+    "stage": "s3",
+    "layer": "frontstage",
+    "name": "Live log",
+    "focal": true
+   },
+   {
+    "stage": "s1",
+    "layer": "backstage",
+    "name": "Policy check",
+    "detail": "policy-svc",
+    "detailMono": true
+   },
+   {
+    "stage": "s2",
+    "layer": "backstage",
+    "name": "Approval gate"
+   },
+   {
+    "stage": "s3",
+    "layer": "backstage",
+    "name": "Runner"
+   },
+   {
+    "stage": "s3",
+    "layer": "support",
+    "name": "Sandbox pool"
+   }
+  ],
+  "arrows": [
+   {
+    "from": {
+     "stage": "s1",
+     "layer": "customer"
+    },
+    "to": {
+     "stage": "s1",
+     "layer": "frontstage"
+    }
+   },
+   {
+    "from": {
+     "stage": "s3",
+     "layer": "backstage"
+    },
+    "to": {
+     "stage": "s3",
+     "layer": "support"
+    }
+   }
+  ]
+ },
+ "storyMap": {
+  "type": "story-map",
+  "title": "Incident commander",
+  "summary": "What ships first: open, triage and mitigate an incident; review comes later.",
+  "source": "Story mapping, Nov 2026",
+  "persona": "Incident commander on a weekday shift",
+  "legend": {
+   "focal": "The riskiest story"
+  },
+  "activities": [
+   {
+    "id": "open",
+    "name": "Open incident",
+    "steps": [
+     "Declare",
+     "Page"
+    ]
+   },
+   {
+    "id": "triage",
+    "name": "Triage",
+    "steps": [
+     "Find the run",
+     "Read logs"
+    ]
+   },
+   {
+    "id": "mitigate",
+    "name": "Mitigate",
+    "steps": [
+     "Roll back",
+     "Approve"
+    ]
+   },
+   {
+    "id": "review",
+    "name": "Review",
+    "steps": [
+     "Timeline",
+     "Actions"
+    ]
+   }
+  ],
+  "slices": [
+   {
+    "id": "mvp",
+    "label": "First release"
+   },
+   {
+    "id": "next",
+    "label": "Next"
+   },
+   {
+    "id": "later",
+    "label": "Later"
+   }
+  ],
+  "cut": {
+   "after": "mvp",
+   "label": "Release cut · v1.0"
+  },
+  "stories": [
+   {
+    "id": "s1",
+    "activity": "open",
+    "slice": "mvp",
+    "name": "Declare from the alert"
+   },
+   {
+    "id": "s2",
+    "activity": "triage",
+    "slice": "mvp",
+    "name": "Link the run to the incident"
+   },
+   {
+    "id": "s3",
+    "activity": "mitigate",
+    "slice": "mvp",
+    "name": "Multi-region cluster diff",
+    "kind": "RISK-2",
+    "focal": true
+   },
+   {
+    "id": "s4",
+    "activity": "open",
+    "slice": "next",
+    "name": "Page a second team"
+   },
+   {
+    "id": "s5",
+    "activity": "mitigate",
+    "slice": "next",
+    "name": "One-click rollback"
+   },
+   {
+    "id": "s6",
+    "activity": "review",
+    "slice": "next",
+    "name": "Draft the timeline"
+   },
+   {
+    "id": "s7",
+    "activity": "review",
+    "slice": "later",
+    "name": "Export to the postmortem"
+   }
+  ]
+ },
+ "schedule": {
+  "type": "schedule",
+  "title": "Restoring a run",
+  "summary": "Twenty-five minutes from the page to the confirmed fix, on two critical paths.",
+  "source": "Runbook RB-12",
+  "unit": "min",
+  "legend": {
+   "focal": "The step the customer sees"
+  },
+  "tasks": [
+   {
+    "id": "t1",
+    "kind": "T1",
+    "name": "Page on-call",
+    "duration": 3
+   },
+   {
+    "id": "t2",
+    "kind": "T2",
+    "name": "Open incident",
+    "duration": 2,
+    "after": [
+     "t1"
+    ]
+   },
+   {
+    "id": "t3",
+    "kind": "T3",
+    "name": "Pull logs",
+    "duration": 10,
+    "after": [
+     "t1"
+    ]
+   },
+   {
+    "id": "t4",
+    "kind": "T4",
+    "name": "Check deploys",
+    "duration": 5,
+    "after": [
+     "t1"
+    ]
+   },
+   {
+    "id": "t5",
+    "kind": "T5",
+    "name": "Find cause",
+    "duration": 8,
+    "after": [
+     "t2",
+     "t3"
+    ]
+   },
+   {
+    "id": "t6",
+    "kind": "T6",
+    "name": "Roll back",
+    "duration": 8,
+    "after": [
+     "t3",
+     "t4"
+    ]
+   },
+   {
+    "id": "t7",
+    "kind": "T7",
+    "name": "Confirm fix",
+    "duration": 4,
+    "after": [
+     "t5",
+     "t6"
+    ],
+    "focal": true
+   }
+  ],
+  "layout": "auto"
+ },
+ "timeline": {
+  "type": "timeline",
+  "title": "INC-482, 504s on /runs",
+  "summary": "Seven events: the fix in eleven minutes, then a 31-minute soak before it was resolved.",
+  "source": "Incident log",
+  "legend": {
+   "focal": "Resolved"
+  },
+  "breaks": [
+   {
+    "from": "2026-11-24T14:13:00Z",
+    "to": "2026-11-24T14:44:00Z",
+    "label": "soak"
+   }
+  ],
+  "events": [
+   {
+    "id": "e1",
+    "at": "2026-11-24T14:01:00Z",
+    "name": "Alert fires",
+    "kind": "alert"
+   },
+   {
+    "id": "e2",
+    "at": "2026-11-24T14:02:00Z",
+    "name": "On-call paged",
+    "kind": "page"
+   },
+   {
+    "id": "e3",
+    "at": "2026-11-24T14:03:00Z",
+    "name": "Triage started",
+    "kind": "triage",
+    "detail": "28% 504 on /runs"
+   },
+   {
+    "id": "e4",
+    "at": "2026-11-24T14:07:00Z",
+    "name": "Cause found",
+    "kind": "diagnosis",
+    "detail": "proxy allow-list"
+   },
+   {
+    "id": "e5",
+    "at": "2026-11-24T14:10:00Z",
+    "name": "Fix applied",
+    "kind": "change"
+   },
+   {
+    "id": "e6",
+    "at": "2026-11-24T14:12:00Z",
+    "name": "Errors back to zero",
+    "kind": "check"
+   },
+   {
+    "id": "e7",
+    "at": "2026-11-24T14:46:00Z",
+    "name": "Resolved",
+    "kind": "resolve",
+    "focal": true
+   }
+  ]
+ },
+ "state": {
+  "type": "state",
+  "title": "An agent run",
+  "summary": "A run starts idle, works while active, and ends succeeded, failed or canceled.",
+  "source": "Runner, v1.42",
+  "legend": {
+   "main": "The usual path",
+   "group": "A composite state"
+  },
+  "groups": [
+   {
+    "id": "active",
+    "label": "Active"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "idle",
+    "name": "Idle",
+    "initial": true
+   },
+   {
+    "id": "thinking",
+    "name": "Thinking",
+    "group": "active",
+    "initial": true
+   },
+   {
+    "id": "tool",
+    "name": "Tool running",
+    "group": "active",
+    "exit": "record result"
+   },
+   {
+    "id": "waiting",
+    "name": "Waiting approval",
+    "group": "active",
+    "entry": "notify approver"
+   },
+   {
+    "id": "done",
+    "name": "Succeeded",
+    "final": true
+   },
+   {
+    "id": "failed",
+    "name": "Failed",
+    "final": true
+   },
+   {
+    "id": "canceled",
+    "name": "Canceled",
+    "final": true
+   }
+  ],
+  "edges": [
+   {
+    "from": "idle",
+    "to": "thinking",
+    "event": "start",
+    "kind": "main"
+   },
+   {
+    "from": "thinking",
+    "to": "tool",
+    "event": "tool.call",
+    "guard": "read-only",
+    "kind": "main"
+   },
+   {
+    "from": "thinking",
+    "to": "waiting",
+    "event": "tool.call",
+    "guard": "writes"
+   },
+   {
+    "from": "waiting",
+    "to": "canceled",
+    "event": "deny"
+   },
+   {
+    "from": "tool",
+    "to": "done",
+    "event": "done",
+    "action": "save",
+    "kind": "main"
+   },
+   {
+    "from": "tool",
+    "to": "failed",
+    "event": "error"
+   }
+  ],
+  "layout": "auto"
+ },
+ "deployment": {
+  "type": "deployment",
+  "title": "The runner in production",
+  "summary": "The load balancer sends runs to three copies of the API, which write to the database.",
+  "source": "infra/prod.tf",
+  "environment": "Production · us-east-1",
+  "legend": {
+   "main": "A request",
+   "plain": "A call",
+   "group": "A network boundary",
+   "focal": "What this page is about"
+  },
+  "groups": [
+   {
+    "id": "account",
+    "label": "AWS · runner account"
+   },
+   {
+    "id": "private",
+    "label": "Private subnet",
+    "parent": "account"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "alb",
+    "kind": "Load balancer",
+    "name": "ALB",
+    "group": "account",
+    "col": 1,
+    "row": 1
+   },
+   {
+    "id": "api",
+    "kind": "ECS Fargate",
+    "name": "api service",
+    "group": "private",
+    "col": 2,
+    "row": 1,
+    "replicas": 3,
+    "focal": true,
+    "artifacts": [
+     {
+      "id": "art-api",
+      "name": "api",
+      "detail": "v1.42.0"
+     },
+     {
+      "id": "art-worker",
+      "name": "worker",
+      "detail": "v1.42.0"
+     }
+    ]
+   },
+   {
+    "id": "db",
+    "kind": "Aurora PostgreSQL",
+    "name": "runs database",
+    "detail": "1 writer, 1 reader",
+    "group": "private",
+    "col": 3,
+    "row": 1
+   }
+  ],
+  "edges": [
+   {
+    "from": "alb",
+    "to": "art-api",
+    "kind": "main",
+    "label": "HTTPS :443"
+   },
+   {
+    "from": "art-worker",
+    "to": "db",
+    "label": "TLS :5432"
+   }
+  ]
+ },
+ "dependency": {
+  "type": "architecture",
+  "title": "What depends on what",
+  "summary": "The web app depends on the API; the API and auth depend on each other.",
+  "source": "Service catalogue",
+  "dependents": {
+   "one": "dependent",
+   "other": "dependents"
+  },
+  "legend": {
+   "plain": "Depends on",
+   "dashed": "Depend on each other (a cycle)"
+  },
+  "nodes": [
+   {
+    "id": "web",
+    "kind": "Next.js",
+    "name": "web"
+   },
+   {
+    "id": "cli",
+    "kind": "Go",
+    "name": "cli"
+   },
+   {
+    "id": "api",
+    "kind": "Service",
+    "name": "api"
+   },
+   {
+    "id": "auth",
+    "kind": "Service",
+    "name": "auth"
+   },
+   {
+    "id": "db",
+    "kind": "Aurora",
+    "name": "db"
+   }
+  ],
+  "edges": [
+   {
+    "from": "web",
+    "to": "api"
+   },
+   {
+    "from": "cli",
+    "to": "api"
+   },
+   {
+    "from": "api",
+    "to": "auth"
+   },
+   {
+    "from": "auth",
+    "to": "api"
+   },
+   {
+    "from": "api",
+    "to": "db"
+   }
+  ],
+  "layout": "auto"
+ },
+ "swimlane": {
+  "type": "data-flow",
+  "title": "Who approves a run",
+  "summary": "A run that writes waits for an approver; a read-only run starts at once.",
+  "source": "Approval policy",
+  "legend": {
+   "plain": "Then"
+  },
+  "lanes": [
+   {
+    "id": "requester",
+    "label": "Requester"
+   },
+   {
+    "id": "system",
+    "label": "Runner"
+   },
+   {
+    "id": "approver",
+    "label": "Approver"
+   }
+  ],
+  "nodes": [
+   {
+    "id": "n1",
+    "name": "Request a run",
+    "lane": "requester",
+    "col": 1
+   },
+   {
+    "id": "n2",
+    "name": "Does it write?",
+    "lane": "system",
+    "col": 2,
+    "shape": "decision"
+   },
+   {
+    "id": "n3",
+    "name": "Approve",
+    "lane": "approver",
+    "col": 3
+   },
+   {
+    "id": "n4",
+    "name": "Start sandbox",
+    "lane": "system",
+    "col": 4
+   }
+  ],
+  "edges": [
+   {
+    "from": "n1",
+    "to": "n2"
+   },
+   {
+    "from": "n2",
+    "to": "n3",
+    "label": "writes",
+    "fromSide": "bottom"
+   },
+   {
+    "from": "n2",
+    "to": "n4",
+    "label": "read-only"
+   },
+   {
+    "from": "n3",
+    "to": "n4",
+    "label": "approved"
+   }
+  ]
+ }
+}
