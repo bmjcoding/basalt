@@ -6,6 +6,9 @@ import { ChevronRightGlyph } from "./glyphs/chevron-right";
 import { ControlIcon, loadFlight } from "./control-icon";
 import { join } from "./utils";
 
+/** Set by `DisclosureList`: a row in it renders its root as an `li`, through an app's own wrapper component too. */
+export const InDisclosureList = /* @__PURE__ */ React.createContext(false);
+
 // ---- The disclosure row ----
 // One line that opens to show its detail under it: a tool call, a thought, a folded stretch of work, a step's log. Lighter than `Accordion`
 // (which is for a page's sections, with a heading and a divider): no heading, no divider, no wash. The row is a button (`aria-expanded`,
@@ -36,9 +39,11 @@ export interface DisclosureRowProps extends Omit<React.ComponentProps<"div">, "t
 export function DisclosureRow({ title, mark, meta, children, wrap = false, open: controlled, defaultOpen = false, onOpenChange, disabled, hiddenUntilFound, className, ...props }: DisclosureRowProps) {
   const [inner, setInner] = React.useState(defaultOpen);
   const open = controlled ?? inner;
+  const inList = React.useContext(InDisclosureList);
   return (
     <BaseCollapsible.Root
       {...props}
+      render={inList ? <li /> : undefined}
       open={open}
       disabled={disabled}
       onOpenChange={(next) => { if (controlled === undefined) setInner(next); onOpenChange?.(next); }}
@@ -53,8 +58,70 @@ export function DisclosureRow({ title, mark, meta, children, wrap = false, open:
         <span className="basalt-disclosure-chevron" aria-hidden="true"><ControlIcon icon={open ? ChevronDownGlyph : ChevronRightGlyph} size={16} /></span>
       </BaseCollapsible.Trigger>
       <BaseCollapsible.Panel className="basalt-disclosure-panel" hiddenUntilFound={hiddenUntilFound}>
-        <div className="basalt-disclosure-detail">{children}</div>
+        <div className="basalt-disclosure-detail">{inList ? <InDisclosureList.Provider value={false}>{children}</InDisclosureList.Provider> : children}</div>
       </BaseCollapsible.Panel>
     </BaseCollapsible.Root>
+  );
+}
+
+// ---- A disclosure in prose ----
+// A line in running text that opens to its detail (cimip-gaps-3 T3, 7a): not a log row. Base UI's Collapsible: a button with `aria-expanded` and
+// `aria-controls`; the closed detail is out of the accessibility tree unless `hiddenUntilFound`. The trigger hugs its words: the core chevron leads in a
+// 16px seat one line tall (to the end while closed, mirrored right to left, down while open, by the rotation morph), then the title, which always wraps,
+// at 500 in primary at the size of where it sits. Hover lifts the chevron to primary and underlines the title; no wash. At least 28 tall (44 on touch, as
+// real height), the control ring at +2. The detail is indented to the title's edge, space-2 under it.
+
+export interface DisclosureProps extends Omit<React.ComponentProps<"div">, "title" | "onChange"> {
+  /** The line that opens. It always wraps and is never cut. */
+  title: React.ReactNode;
+  children: React.ReactNode;
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  disabled?: boolean;
+  /** Keep the closed detail in the document for find-in-page, as `DisclosureRow`'s. */
+  hiddenUntilFound?: boolean;
+}
+
+/** A line in prose that opens to its detail. See the note above. A page that is mostly closed disclosures is an `Accordion` or a `DisclosureList`. */
+export function Disclosure({ title, children, open: controlled, defaultOpen = false, onOpenChange, disabled, hiddenUntilFound, className, ...props }: DisclosureProps) {
+  const [inner, setInner] = React.useState(defaultOpen);
+  const open = controlled ?? inner;
+  return (
+    <BaseCollapsible.Root
+      {...props}
+      open={open}
+      disabled={disabled}
+      onOpenChange={(next) => { if (controlled === undefined) setInner(next); onOpenChange?.(next); }}
+      className={join("basalt-prose-disclosure", className)}
+    >
+      <BaseCollapsible.Trigger className="basalt-prose-disclosure-trigger" onPointerEnter={() => void loadFlight()} onFocus={() => void loadFlight()}>
+        <span className="basalt-prose-disclosure-chevron" aria-hidden="true"><ControlIcon icon={open ? ChevronDownGlyph : ChevronRightGlyph} size={16} /></span>
+        <span className="basalt-prose-disclosure-title">{title}</span>
+      </BaseCollapsible.Trigger>
+      <BaseCollapsible.Panel className="basalt-prose-disclosure-panel" hiddenUntilFound={hiddenUntilFound}>
+        <div className="basalt-prose-disclosure-detail">{children}</div>
+      </BaseCollapsible.Panel>
+    </BaseCollapsible.Root>
+  );
+}
+
+// ---- A list of disclosure rows ----
+
+export interface DisclosureListProps extends React.ComponentProps<"ul"> {
+  /** `DisclosureRow`s. Name the list (`aria-label` or `aria-labelledby`). */
+  children: React.ReactNode;
+}
+
+/**
+ * `DisclosureRow`s as one ruled list on its parent's surface (cimip-gaps-3 T3, 7b): a `ul` with no rim, level or fill, each row an `li`, a divider between
+ * items (never above the first or below the last). A row is at least 40 tall (44 on touch), its words on the list's line; hover and focus stay the row's own.
+ * If any row has a mark, every row keeps the mark's seat. The rimmed form is a `PanelList` holding `<li><DisclosureRow /></li>`.
+ */
+export function DisclosureList({ className, children, ...props }: DisclosureListProps) {
+  return (
+    <ul {...props} className={join("basalt-disclosure-list", className)}>
+      <InDisclosureList.Provider value={true}>{children}</InDisclosureList.Provider>
+    </ul>
   );
 }

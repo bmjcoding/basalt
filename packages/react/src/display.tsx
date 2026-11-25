@@ -15,6 +15,9 @@ import { StatusSizeContext } from "./status-size";
 import type { StatusSize } from "./status-size";
 import type { Side } from "./types";
 import { join } from "./utils";
+import { warnRun } from "./run-warn";
+
+declare const process: { env: { NODE_ENV?: string } };
 
 export { Kbd } from "./kbd";
 
@@ -368,15 +371,82 @@ export function TableBody(props: React.ComponentProps<"tbody">) {
   return <tbody {...props} />;
 }
 
-type TableRowProps = React.ComponentProps<"tr"> & { selected?: boolean };
+export type TableRowProps = React.ComponentProps<"tr"> & {
+  selected?: boolean;
+  /**
+   * A press on the row follows its link: the one marked `data-row-opener`, else the first link or button in its row head, else its first link. The link
+   * stays the one keyboard and screen-reader control; the row gets no role and no `tabindex`. Only a plain primary press is handed over: a modified or
+   * middle click, a drag, a text selection, a press on another control or on a cut cell stay what they are, and the row never opens a window itself.
+   */
+  linked?: boolean;
+};
+
+/** The element a linked row's press goes to, in the order `TableRow linked` names. */
+function rowOpener(row: HTMLTableRowElement): HTMLElement | null {
+  return (
+    row.querySelector<HTMLElement>("[data-row-opener]") ??
+    row.querySelector<HTMLElement>(':scope > th[scope="row"] :is(a[href], button:not(:disabled))') ??
+    row.querySelector<HTMLElement>("a[href]")
+  );
+}
+
+/** What a press on keeps for itself: a control, a field, an editable region, or a cut cell (which reads, and does not open). */
+const OWN_PRESS = 'a[href], button, input, select, textarea, label, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="checkbox"], [role="switch"], [role="menuitem"], [data-cut]';
+
+/** How far the pointer may travel between press and release for the press to still open the row (a drag past it selects or scrolls). */
+const ROW_SLOP = 6;
 
 /**
  * A body or header row. It is memoised, so an app that keeps a row's props and children the same between renders re-renders only
  * the row that changed (one tick in a table of a thousand rows renders one row, not a thousand). Props that are new objects every
  * render (an inline `style`, a new `children` element) defeat it, as for any memoised component.
  */
-export const TableRow: React.NamedExoticComponent<TableRowProps> = /* @__PURE__ */ React.memo(function TableRow({ selected, ...props }: TableRowProps) {
-  return <tr {...props} aria-selected={selected} data-selected={selected ? "" : undefined} />;
+export const TableRow: React.NamedExoticComponent<TableRowProps> = /* @__PURE__ */ React.memo(function TableRow({ selected, linked, onPointerDown, onClick, ref, ...props }: TableRowProps) {
+  const from = React.useRef<{ x: number; y: number } | null>(null);
+  const warned = React.useRef(false);
+  const node = React.useRef<HTMLTableRowElement | null>(null);
+  const setRef = React.useCallback(
+    (element: HTMLTableRowElement | null) => {
+      node.current = element;
+      if (typeof ref === "function") ref(element);
+      else if (ref) (ref as React.MutableRefObject<HTMLTableRowElement | null>).current = element;
+    },
+    [ref],
+  );
+  React.useLayoutEffect(() => {
+    // The opener is marked, so the style sheet can lift its underline while the row is hovered (it is found by order, which a selector cannot say).
+    const row = node.current;
+    if (!linked || !row) return undefined;
+    const opener = rowOpener(row);
+    opener?.setAttribute("data-row-opens", "");
+    return () => opener?.removeAttribute("data-row-opens");
+  });
+  if (!linked) return <tr {...props} ref={setRef} onPointerDown={onPointerDown} onClick={onClick} aria-selected={selected} data-selected={selected ? "" : undefined} />;
+  const down = (event: React.PointerEvent<HTMLTableRowElement>) => {
+    onPointerDown?.(event);
+    from.current = { x: event.clientX, y: event.clientY };
+  };
+  const click = (event: React.MouseEvent<HTMLTableRowElement>) => {
+    onClick?.(event);
+    const start = from.current;
+    from.current = null;
+    if (event.defaultPrevented || event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const target = event.target as Element;
+    const row = event.currentTarget;
+    const opener = rowOpener(row);
+    if (!opener) {
+      if (process.env.NODE_ENV !== "production" && !warned.current) { warned.current = true; warnRun("TableRow", "`linked` found no link to follow: mark one `data-row-opener`, or put a link in the row's head."); }
+      return;
+    }
+    if (opener.contains(target)) return;
+    const owner = target.closest(OWN_PRESS);
+    if (owner && row.contains(owner)) return;
+    if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) >= ROW_SLOP) return;
+    const selection = row.ownerDocument.getSelection();
+    if (selection && !selection.isCollapsed) return;
+    opener.click();
+  };
+  return <tr {...props} ref={setRef} onPointerDown={down} onClick={click} aria-selected={selected} data-selected={selected ? "" : undefined} data-linked="" />;
 });
 
 export interface TableHeadProps extends Omit<React.ComponentProps<"th">, "onClick"> {
@@ -431,13 +501,25 @@ export function TableHead({ numeric, sort, onSortChange, firstSort, explainer, c
  * row's own fill, so the washes run through it. It has no band and never sorts. When the table pins a column, the row
  * header is the pinned name column.
  */
-export const TableRowHead: React.NamedExoticComponent<React.ComponentProps<"th">> = /* @__PURE__ */ React.memo(function TableRowHead({ className, ...props }: React.ComponentProps<"th">) {
-  return <th scope="row" {...props} className={className} />;
+export interface TableRowHeadProps extends React.ComponentProps<"th"> {
+  /** The name wraps whole instead of one cut line: see `TableCell wrap`. */
+  wrap?: boolean;
+}
+
+export const TableRowHead: React.NamedExoticComponent<TableRowHeadProps> = /* @__PURE__ */ React.memo(function TableRowHead({ wrap, className, ...props }: TableRowHeadProps) {
+  return <th scope="row" {...props} data-wrap={wrap ? "" : undefined} className={className} />;
 });
 
 export interface TableCellProps extends React.ComponentProps<"td"> {
   numeric?: boolean;
   mono?: boolean;
+  /**
+   * The cell wraps whole instead of one cut line, and the row grows: the row's height is a floor (40, 32 compact, 44 comfortable and on touch), and a
+   * wrapped cell has the padding a one-line row has round its line, so one line is exactly the row. It is never cut, so it is no focus stop and opens no
+   * plate. For a column of sentences, rules or paths, on every cell of that column or none, given the remainder or at least `size-select-min`; a
+   * fixed-form column (a number, a date, a time, a status) never wraps. `numeric` wins: a numeric cell stays one line.
+   */
+  wrap?: boolean;
   /**
    * No reading was taken: the cell says "Not observed" in tertiary ink, with no mark, ending on the numbers' edge in a numeric
    * column. It is not zero (`0` is a digit in primary) and not empty (an empty string stays blank). Children replace the words:
@@ -447,9 +529,10 @@ export interface TableCellProps extends React.ComponentProps<"td"> {
 }
 
 /** A cell. It is memoised like `TableRow`: a cell whose props and children are the same as last time does not render again. */
-export const TableCell: React.NamedExoticComponent<TableCellProps> = /* @__PURE__ */ React.memo(function TableCell({ numeric, mono, notObserved, className, children, ...props }: TableCellProps) {
+export const TableCell: React.NamedExoticComponent<TableCellProps> = /* @__PURE__ */ React.memo(function TableCell({ numeric, mono, wrap, notObserved, className, children, ...props }: TableCellProps) {
+  if (process.env.NODE_ENV !== "production" && numeric && wrap) warnRun("TableCell", "`numeric` and `wrap` were both given: a number is one line, so the cell does not wrap.");
   return (
-    <td {...props} data-numeric={numeric ? "" : undefined} data-mono={mono ? "" : undefined} data-not-observed={notObserved ? "" : undefined} className={className}>
+    <td {...props} data-numeric={numeric ? "" : undefined} data-mono={mono ? "" : undefined} data-wrap={wrap && !numeric ? "" : undefined} data-not-observed={notObserved ? "" : undefined} className={className}>
       {notObserved && children === undefined ? "Not observed" : children}
     </td>
   );

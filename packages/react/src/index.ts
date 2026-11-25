@@ -65,7 +65,7 @@ export {
   Tooltip,
   TooltipProvider,
 } from "./display";
-export type { BadgePairProps, BadgeProps, BadgeStatus, CardTitleProps, ChoiceCardGroupProps, ChoiceCardProps, SortDirection, TableCallProps, TableCellProps, TableColumn, TableDensity, TableEmptyProps, TableHeadProps, TableProps, TableScrollHintProps, TooltipProps, TooltipProviderProps } from "./display";
+export type { BadgePairProps, BadgeProps, BadgeStatus, CardTitleProps, ChoiceCardGroupProps, ChoiceCardProps, SortDirection, TableCallProps, TableCellProps, TableColumn, TableDensity, TableEmptyProps, TableHeadProps, TableProps, TableRowHeadProps, TableRowProps, TableScrollHintProps, TooltipProps, TooltipProviderProps } from "./display";
 export { TableHeadExplainer } from "./table-explainer";
 export type { TableHeadExplainerProps } from "./table-explainer";
 export { sortRows } from "./table-sort";
@@ -156,8 +156,8 @@ export { ReleaseNotes } from "./release-notes";
 export type { ReleaseAudience, ReleaseBuildRow, ReleaseBump, ReleaseEntryRecord, ReleaseEntryType, ReleaseNotesProps, ReleaseRecord, ReleaseWords } from "./release-notes";
 export { ReleaseIndex } from "./release-index";
 export type { ReleaseIndexProps } from "./release-index";
-export { DisclosureRow } from "./disclosure-row";
-export type { DisclosureRowProps } from "./disclosure-row";
+export { Disclosure, DisclosureList, DisclosureRow } from "./disclosure-row";
+export type { DisclosureListProps, DisclosureProps, DisclosureRowProps } from "./disclosure-row";
 export { ActivityList, ActivityStep } from "./activity-list";
 export type { ActivityListProps, ActivityStatus, ActivityStepProps } from "./activity-list";
 export { Elapsed, Presence } from "./presence";
