@@ -70,6 +70,13 @@ Markup your script builds (a `.row`) isn't seen: add `<!-- basalt:use rows -->` 
 - **diagram-zoom** `.diagram`: added for you, with `dialog`; `"zoom": false` drops Expand.
 - **diagram-export** `"export": true`: added for you; SVG and PNG downloads in the foot.
 - **diagram-text** `"variant": "text"`: added for you; a sequence in box-drawing art, else its transcript.
+- **diagram-scale** `"type": "gantt"`: added for you with a gantt or a timeline; arithmetic only.
+- **diagram-gantt** `"type": "gantt"`: added for you; no dependency lines (`after` is written in the row), a bar never widened.
+- **diagram-matrix** `"type": "kanban"`: added for you (and journey, service-blueprint, story-map); read-only, an empty cell in words.
+- **diagram-timeline** `"type": "timeline"`: added for you; `at` is an instant with its offset, breaks are yours alone.
+- **diagram-schedule** `"type": "schedule"`: added for you; write durations and `after`, never a number.
+- **diagram-state** `"type": "state"`: added for you; `event`, `guard`, `action`, never a `label`.
+- **diagram-deployment** `"type": "deployment"`: added for you; `environment` is required, artifacts are rows.
 - **sparkline** `.sparkline`: JSON in `script[data-sparkline]`; one line, no axes or series (that is a `chart`).
 - **palette** `data-open-palette`, `Basalt.init({ palette })`: `keys` is an array, `['⌘', 'S']`: ⌘, ⌃ or ⌥ plus one key.
 - **command-list** `.command-list`: the script builds it; items are the palette's; ⌘K goes to the palette when the page has one.
