@@ -42,8 +42,8 @@ export interface RunStageProps {
 }
 
 const DRAWN: Record<"list" | "rail", Record<StageState, boolean>> = {
-  list: { queued: true, running: true, success: false, failed: true, skipped: true, canceled: true, retrying: true },
-  rail: { queued: false, running: false, success: false, failed: true, skipped: true, canceled: true, retrying: true },
+  list: { queued: true, running: true, success: false, failed: true, skipped: true, canceled: true, retrying: true, warning: true },
+  rail: { queued: false, running: false, success: false, failed: true, skipped: true, canceled: true, retrying: true, warning: true },
 };
 
 /** Whether a slot holds something drawn: `null`, `false`, `true` and "" (what `cond && <Button />` leaves) are nothing, as React draws them. */
@@ -76,7 +76,7 @@ export function useFocusHome(present: number, home: React.RefObject<HTMLElement 
 }
 
 /** The words a rail node draws by default, each held in its status seat. */
-const RAIL_WORDS = { failed: STAGE_WORDS.failed, skipped: STAGE_WORDS.skipped, canceled: STAGE_WORDS.canceled, retrying: STAGE_WORDS.retrying };
+const RAIL_WORDS = { failed: STAGE_WORDS.failed, skipped: STAGE_WORDS.skipped, canceled: STAGE_WORDS.canceled, retrying: STAGE_WORDS.retrying, warning: STAGE_WORDS.warning };
 
 /** One stage. In a `StageList` a row; in a `StageRail` a node. */
 export function RunStage({ name, state, word, meta, start, end, format, spoken, detail, action, className }: RunStageProps) {

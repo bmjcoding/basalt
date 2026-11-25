@@ -2,7 +2,8 @@
 // Component can read them (test/server-modules.test.mjs).
 
 /** A stage's or a step's state. The words are the app's (`word`); these are the marks. */
-export type StageState = "queued" | "running" | "success" | "failed" | "skipped" | "canceled" | "retrying";
+/** `warning` is an ending that is not a pass and not a failure (cimip-gaps-3 T2): its word is the app's ("Expired", "Timed out", "Partial"). */
+export type StageState = "queued" | "running" | "success" | "failed" | "skipped" | "canceled" | "retrying" | "warning";
 
 /** The default word for each state, US English. An app may change any of them. */
 export const STAGE_WORDS: Readonly<Record<StageState, string>> = {
@@ -13,6 +14,7 @@ export const STAGE_WORDS: Readonly<Record<StageState, string>> = {
   skipped: "Skipped",
   canceled: "Canceled",
   retrying: "Retrying",
+  warning: "Warning",
 };
 
 export type Moment = Date | number;

@@ -64,8 +64,8 @@ export interface RunTimelineProps {
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
-  /** The toggle's words. Left out: "Show 5 earlier steps", "Show 5 earlier steps, 1 failed", and open, "Hide earlier steps". */
-  toggleLabel?: (earlier: number, failed: number, open: boolean) => string;
+  /** The toggle's words. Left out: "Show 5 earlier steps", "Show 5 earlier steps, 1 failed, 1 warning", and open, "Hide earlier steps". `warned` counts the rolled steps that ended with a warning. */
+  toggleLabel?: (earlier: number, failed: number, open: boolean, warned: number) => string;
   className?: string;
   /** `RunStep` rows, oldest first, append-only. */
   children: React.ReactNode;
@@ -74,15 +74,15 @@ export interface RunTimelineProps {
 /** Running, retrying and waiting (queued) never roll, and nothing after them does. */
 const unfinished = (state: StageState | undefined) => state === "queued" || state === "running" || state === "retrying";
 /** Drawn in a full step: every state's word but running's and passed's, and any word the app gives. */
-const DRAWN_FULL: Record<StageState, boolean> = { queued: true, running: false, success: false, failed: true, skipped: true, canceled: true, retrying: true };
-/** Drawn in a tail row: failed, skipped and canceled (queued, running and retrying never roll), and any word the app gives. */
-const DRAWN_TAIL: Record<StageState, boolean> = { queued: false, running: false, success: false, failed: true, skipped: true, canceled: true, retrying: false };
+const DRAWN_FULL: Record<StageState, boolean> = { queued: true, running: false, success: false, failed: true, skipped: true, canceled: true, retrying: true, warning: true };
+/** Drawn in a tail row: failed, skipped, canceled and warning (queued, running and retrying never roll), and any word the app gives. */
+const DRAWN_TAIL: Record<StageState, boolean> = { queued: false, running: false, success: false, failed: true, skipped: true, canceled: true, retrying: false, warning: true };
 
 interface StepPlace { tail: boolean; depth: number }
 const StepPlaceContext = React.createContext<StepPlace>({ tail: false, depth: 0 });
 
-const defaultToggle = (earlier: number, failed: number, open: boolean) =>
-  open ? "Hide earlier steps" : `Show ${earlier} earlier ${earlier === 1 ? "step" : "steps"}${failed ? `, ${failed} failed` : ""}`;
+const defaultToggle = (earlier: number, failed: number, open: boolean, warned: number) =>
+  open ? "Hide earlier steps" : `Show ${earlier} earlier ${earlier === 1 ? "step" : "steps"}${failed ? `, ${failed} failed` : ""}${warned ? `, ${warned} ${warned === 1 ? "warning" : "warnings"}` : ""}`;
 
 /** One step of a run. See `RunTimeline`. */
 export function RunStep({ state, mark, word, children, meta, start, end, format, spoken, detail, action, className }: RunStepProps) {
@@ -168,6 +168,7 @@ export function RunTimeline({ label, keep: keepProp, minRows, timeScale = "secon
   if (held() && rolled > lastRolled.current) rolled = lastRolled.current;
   lastRolled.current = rolled;
   const failed = steps.slice(0, rolled).filter((step) => step.props.state === "failed").length;
+  const warned = steps.slice(0, rolled).filter((step) => step.props.state === "warning").length;
   // Whether the reader is at the end is theirs to say: a scroll the window made itself (following, or keeping a control still) and a scroll
   // while a roll is in flight (its transforms are clipped, but its rows are still landing) never change it. A reader's scroll does, read
   // from geometry when it happens, and so does a scroll the reader made in the same task as an arrival (read just before the change).
@@ -350,7 +351,7 @@ export function RunTimeline({ label, keep: keepProp, minRows, timeScale = "secon
       <div className="basalt-run-steps-toggle-line">
         {rolled > 0 || open ? (
           <TextButton quiet id={toggleId} className="basalt-run-steps-toggle" aria-expanded={open} aria-controls={listId} iconEnd={open ? ChevronUpGlyph : ChevronDownGlyph} onClick={() => setOpen(!open)}>
-            {toggleLabel(rolled, failed, open)}
+            {toggleLabel(rolled, failed, open, warned)}
           </TextButton>
         ) : null}
       </div>

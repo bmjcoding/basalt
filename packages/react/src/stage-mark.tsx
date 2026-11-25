@@ -2,6 +2,7 @@ import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
 import { CircleIcon } from "@phosphor-icons/react/dist/csr/Circle";
 import { MinusCircleIcon } from "@phosphor-icons/react/dist/csr/MinusCircle";
 import { ProhibitIcon } from "@phosphor-icons/react/dist/csr/Prohibit";
+import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
 import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
@@ -45,6 +46,8 @@ function Glyph({ state, size }: { state: StageState; size: 16 | 20 | 24 }) {
     case "failed": return <Icon icon={XCircleIcon} size={size} />;
     case "skipped": return <Icon icon={MinusCircleIcon} size={size} />;
     case "canceled": return <Icon icon={ProhibitIcon} size={size} />;
+    // An ending with a warning (cimip-gaps-3 T2): the outline triangle in status-warning.
+    case "warning": return <Icon icon={WarningIcon} size={size} />;
   }
 }
 

@@ -4490,6 +4490,8 @@
   .basalt-run-mark-face:is([data-state="running"], [data-state="retrying"]) { color: var(--basalt-text-primary); }
   .basalt-run-mark-face[data-state="failed"] { color: var(--basalt-status-danger); }
   .basalt-run-mark-face:is([data-state="skipped"], [data-state="canceled"]) { color: var(--basalt-text-tertiary); }
+  /* An ending with a warning: the outline triangle in status-warning (a mark, 3:1 on every level; its word is never warning ink). */
+  .basalt-run-mark-face[data-state="warning"] { color: var(--basalt-status-warning); }
   /* A change of state crossfades in the one seat: both marks stand, the old fading out as the new fades in, over duration-fast on ease-out. It is
      opacity alone, so reduced motion keeps it; the hold lands it at once (the component draws one face), and print draws the new face alone. */
   .basalt-run-mark-face[data-entering] { animation: basalt-fade-in var(--basalt-duration-fast) var(--basalt-ease-out) both; }
@@ -4569,6 +4571,7 @@
   .basalt-run-stage:is([data-state="queued"], [data-state="skipped"], [data-state="canceled"]) .basalt-run-stage-name { color: var(--basalt-text-secondary); }
   .basalt-run-stage:is([data-state="running"], [data-state="retrying"]) .basalt-run-stage-word { color: var(--basalt-text-primary); }
   .basalt-run-stage[data-state="failed"] .basalt-run-stage-word { color: var(--basalt-status-danger); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-run-stage[data-state="warning"] .basalt-run-stage-word { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
   .basalt-run-stage:is([data-state="queued"], [data-state="skipped"], [data-state="canceled"]) .basalt-run-stage-word { color: var(--basalt-text-tertiary); }
   .basalt-run-stage-meta { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); white-space: nowrap; }
   .basalt-run-stage-meta:empty { display: none; }
@@ -4619,6 +4622,7 @@
   .basalt-run-stage-status .basalt-run-stage-word { display: block; min-width: 0; max-inline-size: 100%; color: var(--basalt-text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .basalt-run-rail .basalt-run-stage[data-state="failed"] .basalt-run-stage-word { color: var(--basalt-status-danger); font-weight: var(--basalt-font-weight-medium); }
   .basalt-run-rail .basalt-run-stage[data-state="retrying"] .basalt-run-stage-word { color: var(--basalt-text-primary); }
+  .basalt-run-rail .basalt-run-stage[data-state="warning"] .basalt-run-stage-word { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
   /* A link: a horizontal 1px border-input track from space-2 past one mark to space-2 before the next, and a text-secondary fill that grows from the
      inline start over duration-slower on ease-out when its stage passes, and empties at once if it runs again. It repeats the check before it. */
   .basalt-run-stage-link { position: absolute; inset-block-start: 50%; inset-inline-start: calc(50% + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-2)); inline-size: calc(100% - var(--basalt-size-icon-sm) - var(--basalt-space-4)); border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-input); }
@@ -4668,6 +4672,9 @@
   .basalt-terminal .basalt-code-line[data-kind="stage"][data-state="done"] .basalt-terminal-mark { color: var(--basalt-text-secondary); }
   .basalt-terminal .basalt-code-line[data-kind="stage"]:is([data-state="skipped"], [data-state="canceled"]) .basalt-terminal-mark { color: var(--basalt-text-tertiary); }
   .basalt-terminal .basalt-code-line[data-kind="stage"][data-state="failed"] :is(.basalt-terminal-mark, .basalt-code-text) { color: var(--basalt-status-danger); }
+  /* A stage that ended with a warning: the triangle in status-warning in the gutter, the word first in primary at 500. */
+  .basalt-terminal .basalt-code-line[data-kind="stage"][data-state="warning"] .basalt-terminal-mark { color: var(--basalt-status-warning); }
+  .basalt-terminal .basalt-code-line[data-kind="stage"][data-state="warning"] .basalt-terminal-word { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
   .basalt-terminal-stage { display: flex; justify-content: space-between; gap: var(--basalt-space-4); }
   .basalt-code-pre[data-stages] > .basalt-code-lines { width: 100%; }
   .basalt-terminal-duration { flex: none; }
@@ -4827,6 +4834,8 @@
     .basalt-run-step[data-tail] .basalt-run-step-sentence { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .basalt-run-step[data-tail] .basalt-run-step-meta { line-height: var(--basalt-text-xs-line-height); }
     .basalt-run-step[data-tail][data-state="failed"] :is(.basalt-run-step-mark, .basalt-run-step-word) { color: var(--basalt-status-danger); }
+    /* A warning in the tail: its word takes the row's ink and the triangle keeps its colour. */
+    .basalt-run-step[data-tail][data-state="warning"] :is(.basalt-run-step-mark, .basalt-run-step-mark .basalt-run-mark-face) { color: var(--basalt-status-warning); }
     @media not ((prefers-contrast: more) or (forced-colors: active)) {
       .basalt-run-steps > .basalt-run-step[data-tail][data-state="failed"] :is(.basalt-run-step-mark, .basalt-run-step-word) { color: color-mix(in srgb, var(--basalt-status-danger) calc(var(--basalt-opacity-recede-danger) * 100%), transparent); }
       .basalt-run-steps > .basalt-run-step[data-tail]:not([data-depth="1"]) > .basalt-run-step-line { color: var(--basalt-text-secondary); }

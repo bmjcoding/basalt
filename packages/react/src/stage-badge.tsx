@@ -19,7 +19,7 @@ import { join } from "./utils";
 
 export interface StageBadgeProps {
   state: StageState;
-  /** The words, by state. Left out, "Queued", "Running", "Passed", "Failed", "Skipped", "Canceled", "Retrying". The app writes an attempt ("Retrying, 2 of 3"). */
+  /** The words, by state. Left out, "Queued", "Running", "Passed", "Failed", "Skipped", "Canceled", "Retrying", "Warning". The app writes an attempt ("Retrying, 2 of 3"). */
   words?: Partial<Record<StageState, string>>;
   /** `outline` in a run's head; `plain` in a list or a table (a dot and a word, never a pill a row). */
   variant?: "outline" | "plain";
@@ -29,7 +29,7 @@ export interface StageBadgeProps {
 }
 
 const STATUS: Record<StageState, BadgeStatus | undefined> = {
-  queued: "pending", running: undefined, success: "success", failed: "danger", skipped: "neutral", canceled: "neutral", retrying: undefined,
+  queued: "pending", running: undefined, success: "success", failed: "danger", skipped: "neutral", canceled: "neutral", retrying: undefined, warning: "warning",
 };
 
 /** A face in the seat. `settled` once its entry has run (or it arrived under the hold), so a release never plays an entry again. */
