@@ -64,8 +64,8 @@
   "Combobox": 164926,
   "CommandBlock": 4923,
   "CommandList": 34036,
-  "CommandMenu": 89083,
-  "Composer": 53317,
+  "CommandMenu": 89329,
+  "Composer": 53442,
   "CopyButton": 19373,
   "CopyGlyph": 2884,
   "Countdown": 3016,
@@ -345,12 +345,12 @@
   "Text": 922,
   "TextButton": 11393,
   "TextMorph": 4681,
-  "Textarea": 27597,
+  "Textarea": 27723,
   "ThemeChoiceControl": 4794,
   "ThemeMenu": 206519,
   "TimeChart": 48163,
   "TimelineDiagram": 130716,
-  "ToastProvider": 93510,
+  "ToastProvider": 93558,
   "Toolbar": 22915,
   "ToolbarButton": 32730,
   "ToolbarGroup": 21467,
@@ -442,8 +442,8 @@
   }
  },
  "package": {
-  "bytes": 1046804,
-  "gzip": 349573
+  "bytes": 1047151,
+  "gzip": 349682
  },
  "styles": {
   "bytes": 511997,

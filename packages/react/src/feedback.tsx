@@ -56,22 +56,32 @@ export interface TextareaProps extends Omit<React.ComponentProps<"textarea">, "c
  * @internal
  */
 export function useFitToText(field: React.RefObject<HTMLTextAreaElement | null>, on: boolean, value: unknown) {
+  const fitNow = React.useRef<(() => void) | null>(null);
   React.useLayoutEffect(() => {
     const element = field.current;
     if (!on || !element || typeof CSS === "undefined" || CSS.supports("field-sizing", "content")) return undefined;
+    // The inline height the field had before it followed its text, given back when it stops (autosize turned off, or the field unmounting).
+    const before = element.style.height;
     const fit = () => {
       element.style.height = "auto";
       element.style.height = `${element.scrollHeight + element.offsetHeight - element.clientHeight}px`;
     };
+    fitNow.current = fit;
     fit();
     const resize = new ResizeObserver(() => fit());
     resize.observe(element);
     element.addEventListener("input", fit);
     return () => {
+      fitNow.current = null;
       resize.disconnect();
       element.removeEventListener("input", fit);
+      element.style.height = before;
     };
-  }, [field, on, value]);
+  }, [field, on]);
+  // A new value from the app (no input event): fit again.
+  React.useLayoutEffect(() => {
+    fitNow.current?.();
+  }, [value]);
 }
 
 export function Textarea({ className, rows = 4, autosize = false, maxRows = 8, id, name, value, defaultValue, disabled, autoFocus, required, readOnly, writing = false, writingEmpty, ref, style, ...props }: TextareaProps) {

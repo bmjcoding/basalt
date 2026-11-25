@@ -7,6 +7,7 @@ import { CommandHints, CommandRowContent, commandRowShape, commandValue } from "
 import { Icon } from "./icon";
 import { BAND_LEVEL, inLevel, MODAL_LEVEL, ModalDepth, ModalHost, useModalLayer, usePanelLevel } from "./layers";
 import { useModalOutside } from "./modal-outside";
+import { isComposingKey } from "./keyboard";
 import { isModKey } from "./platform";
 import { Spinner } from "./spinner";
 import type { IconComponent } from "./types";
@@ -26,14 +27,11 @@ export interface CommandItem {
   keywords?: string[];
   /** A destructive command: shown in the danger colour, as in `Menu`. */
   danger?: boolean;
+  /** Runs when the command is chosen. In a `CommandList` with a `detail` pane there is nothing to run: the pane has the actions. */
+  onSelect?: () => void;
   /**
-   * Runs when the command is chosen. In a `CommandList` with a `detail` pane there is nothing to run: the pane has the actions. In a `CommandMenu` the
-   * menu closes after it, unless the row keeps it open: `keepOpen`, or `false` returned from here (as a handler returns `false` to cancel what follows).
-   */
-  onSelect?: () => void | boolean;
-  /**
-   * In a `CommandMenu`, choosing the row leaves the menu open: a row that opens a list of choices (it changes `groups`, or types a word into a
-   * controlled `search`). `onSelect` can decide each time instead, by returning `false`. A `CommandList` never closes, so it reads neither.
+   * In a `CommandMenu`, choosing the row leaves the menu open (an ordinary row closes it, then runs `onSelect`): a row that opens a list of choices (its
+   * `onSelect` changes `groups`, or types a word into a controlled `search`). A `CommandList` never closes, so it does not read it.
    */
   keepOpen?: boolean;
 }
@@ -56,8 +54,8 @@ export interface CommandMenuProps {
   groups: CommandGroup[];
   placeholder?: string;
   /**
-   * Names the dialog and its search field, as the button that opens it is named ("Find", "Go to"). "Command menu" by default. The field's placeholder is
-   * its hint, not its name.
+   * Names the dialog and its search field, as the button that opens it is named ("Find", "Go to"). Without it the dialog and the loaded field are
+   * "Command menu", and the field drawn while the panel loads is named by its placeholder, as before.
    */
   label?: string;
   /** Names the list of rows (its listbox): "Results", "Pages". "Commands" by default. */
@@ -158,7 +156,7 @@ export function CommandMenu(props: CommandMenuProps) {
  * state, and the review walkthrough passes a fixed one to show the loading and error looks.
  * @internal
  */
-export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Search commands", label = "Command menu", listLabel = "Commands", filter, hints = false, search: controlled, onSearchChange, state, retry }: CommandMenuProps & { state: PanelState; retry: () => void }) {
+export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Search commands", label, listLabel = "Commands", filter, hints = false, search: controlled, onSearchChange, state, retry }: CommandMenuProps & { state: PanelState; retry: () => void }) {
   const layer = useModalLayer();
   const popup = React.useRef<HTMLDivElement>(null);
   const popupRef = useModalOutside<HTMLDivElement>(popup);
@@ -179,29 +177,41 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
     setOwn("");
     heard.current?.("");
   };
-  // Keys typed between the opening and the field taking focus (the app opened the menu from a key, and focus is still in the app's field while the
-  // dialog mounts and moves it) are the search's, not the app's: from the commit that opens the menu, until focus is inside it, a printable key is
-  // taken (kept from the control that had focus) and added to the search.
+  // Keys typed between the opening and focus reaching the menu (the app opened it from a key, and focus is still in the app's field while the dialog
+  // mounts and moves it) are the search's, not the app's: from the commit that opens the menu, a printable key is taken from the control that has focus and
+  // added to the search. It is one handoff an opening: the first time focus is inside the menu (its field, or the error's button) the capture is retired,
+  // and it is not armed again until the menu has closed and opens again, so a dialog opened from the menu, or anything after, types as it should.
   const typed = React.useRef(search);
   typed.current = search;
+  const write = React.useRef(setSearch);
+  write.current = setSearch;
   React.useLayoutEffect(() => {
     if (!open) return undefined;
     const doc = popup.current?.ownerDocument ?? document;
-    const take = (event: KeyboardEvent) => {
-      const host = popup.current;
-      if (host?.contains(doc.activeElement)) {
-        doc.removeEventListener("keydown", take, true);
+    const inside = (node: EventTarget | Element | null) => Boolean(node && popup.current?.contains(node as Node));
+    const retire = () => {
+      doc.removeEventListener("keydown", take, true);
+      doc.removeEventListener("focusin", arrived, true);
+    };
+    function arrived(event: FocusEvent) {
+      if (inside(event.target)) retire();
+    }
+    function take(event: KeyboardEvent) {
+      if (inside(doc.activeElement)) {
+        retire();
         return;
       }
-      if (event.defaultPrevented || event.isComposing || event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.defaultPrevented || isComposingKey(event) || event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) return;
       event.preventDefault();
       event.stopPropagation();
       typed.current += event.key;
-      setSearch(typed.current);
-    };
+      write.current(typed.current);
+    }
+    if (inside(doc.activeElement)) return undefined;
     doc.addEventListener("keydown", take, true);
-    return () => doc.removeEventListener("keydown", take, true);
-  }, [open, setSearch]);
+    doc.addEventListener("focusin", arrived, true);
+    return retire;
+  }, [open]);
   const Panel = state.status === "ready" ? state.Panel : null;
   return (
     <ModalDepth.Provider value={layer.depth}>
@@ -209,11 +219,11 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
       <BaseDialog.Root open={open} onOpenChange={onOpenChange} onOpenChangeComplete={closed}>
         <BaseDialog.Portal>
           <BaseDialog.Backdrop className="basalt-dialog-backdrop basalt-command-backdrop" style={{ zIndex: layer.backdrop }} />
-          <BaseDialog.Popup ref={popupRef} className="basalt-dialog basalt-command" data-level={MODAL_LEVEL} style={{ zIndex: layer.popup }} aria-label={label}>
+          <BaseDialog.Popup ref={popupRef} className="basalt-dialog basalt-command" data-level={MODAL_LEVEL} style={{ zIndex: layer.popup }} aria-label={label ?? "Command menu"}>
             {inLevel(
               MODAL_LEVEL,
               Panel ? (
-                <Panel groups={groups} placeholder={placeholder} label={label} listLabel={listLabel} filter={filter} hints={hints} onOpenChange={onOpenChange} search={search} onSearchChange={setSearch} />
+                <Panel groups={groups} placeholder={placeholder} label={label ?? "Command menu"} listLabel={listLabel} filter={filter} hints={hints} onOpenChange={onOpenChange} search={search} onSearchChange={setSearch} />
               ) : state.status === "error" ? (
                 // The alert is the sentence alone: the buttons are not read out with it. A browser keeps a failed
                 // file for the life of the page, so after a second failure Reload page comes first and has focus.
@@ -238,7 +248,7 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
                   <input
                     className="basalt-command-input"
                     placeholder={placeholder}
-                    aria-label={label}
+                    aria-label={label ?? placeholder}
                     aria-describedby={loadingId}
                     autoComplete="off"
                     autoCorrect="off"

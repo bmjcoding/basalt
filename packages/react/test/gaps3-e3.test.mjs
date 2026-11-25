@@ -24,11 +24,12 @@ const labels = (page) => page.evaluate(() => [...document.querySelectorAll("[cmd
 
 const RECIPES = `
 const RECIPES = [{ label: "Recipes", commands: [
-  { id: "soup", label: "Tomato soup", onSelect: () => { window.ran = "soup"; } },
-  { id: "pie", label: "Apple pie", onSelect: () => { window.ran = "pie"; } },
-  { id: "bread", label: "Plain bread", keepOpen: true, onSelect: () => { window.ran = "bread"; } },
-  { id: "jam", label: "Plum jam", onSelect: () => { window.ran = "jam"; return false; } },
+  { id: "soup", label: "Tomato soup", onSelect: () => { window.log.push("ran:soup"); } },
+  { id: "pie", label: "Apple pie", onSelect: () => { window.log.push("ran:pie"); } },
+  { id: "bread", label: "Plain bread", keepOpen: true, onSelect: () => { window.log.push("ran:bread"); } },
+  { id: "jam", label: "Plum jam", onSelect: async () => { window.log.push("ran:jam"); } },
 ] }];
+window.log = [];
 `;
 
 describe("CommandMenu", () => {
@@ -49,11 +50,28 @@ describe("CommandMenu", () => {
     assert.deepEqual(await names(`label="Find" listLabel="Results"`), { dialog: "Find", field: "Find", list: "Results" });
   });
 
-  test("filter={false} shows every row the app gives, in its order; a filter function scores and orders them", async () => {
+  test("while the panel loads, the field is named by its placeholder without a label (today's name), and by the label with one", async () => {
+    const first = async (props) => {
+      const { page } = await open(`${RECIPES}
+// The first search field drawn is the loading one: its name is read as it is inserted.
+new MutationObserver((_, watcher) => {
+  const field = document.querySelector(".basalt-command-input");
+  if (field && window.firstName === undefined) { window.firstName = field.getAttribute("aria-label"); window.firstLoading = !field.hasAttribute("cmdk-input"); watcher.disconnect(); }
+}).observe(document.body, { subtree: true, childList: true });
+${render(`<B.CommandMenu open onOpenChange={() => {}} groups={RECIPES} ${props} />`)}`);
+      await page.waitForSelector("[cmdk-item]");
+      const got = await page.evaluate(() => ({ name: window.firstName, loading: window.firstLoading }));
+      await page.close();
+      return got;
+    };
+    assert.deepEqual(await first(`placeholder="Find a recipe"`), { name: "Find a recipe", loading: true });
+    assert.deepEqual(await first(`placeholder="Find a recipe" label="Find"`), { name: "Find", loading: true });
+  });
+
+  test("filter={false} shows every row the app gives, in its order; a filter function shows, orders and lights from one set of scores", async () => {
     const fixture = (filter) => `${RECIPES}
 function App() {
   const [search, setSearch] = React.useState("");
-  window.type = setSearch;
   return <B.CommandMenu open onOpenChange={() => {}} groups={RECIPES} search={search} onSearchChange={setSearch} ${filter} />;
 }
 ${render("<App />")}`;
@@ -73,31 +91,53 @@ ${render("<App />")}`;
       await page.fill("[cmdk-input]", "p");
       await settle(page);
       assert.deepEqual(await labels(page), ["Plain bread", "Plum jam"], "Apple pie and Tomato soup score 0");
+      assert.equal(await lit(page), "Plain bread");
       await page.close();
     }
   });
 
-  test("a row closes the menu, unless it says keepOpen or its onSelect returns false", async () => {
+  test("a scorer that changes while the menu is open: what is shown, its order and the lit row all follow the new scores at once", async () => {
+    const { page } = await open(`${RECIPES}
+const BY_START = (c, s) => (c.label.toLowerCase().startsWith(s) ? 2 : 0);
+const BY_WORD = (c, s) => (c.label.toLowerCase().split(" ").some((w) => w.startsWith(s)) ? (c.id === "pie" ? 3 : 1) : 0);
+function App() {
+  const [search, setSearch] = React.useState("p");
+  const [scorer, setScorer] = React.useState(() => BY_START);
+  window.byWord = () => setScorer(() => BY_WORD);
+  return <B.CommandMenu open onOpenChange={() => {}} groups={RECIPES} search={search} onSearchChange={setSearch} filter={scorer} />;
+}
+${render("<App />")}`);
+    await page.waitForSelector("[cmdk-item]");
+    await settle(page);
+    assert.deepEqual(await labels(page), ["Plain bread", "Plum jam"]);
+    assert.equal(await lit(page), "Plain bread");
+    await page.evaluate(() => window.byWord());
+    await settle(page);
+    assert.deepEqual(await labels(page), ["Apple pie", "Plain bread", "Plum jam"], "Apple pie now matches, and scores highest");
+    assert.equal(await lit(page), "Apple pie");
+    await page.close();
+  });
+
+  test("an ordinary row closes the menu, then runs (an async handler too); a keepOpen row only runs", async () => {
     const { page } = await open(`${RECIPES}
 function App() {
   const [shown, setShown] = React.useState(true);
-  window.reopen = () => setShown(true);
-  return <B.CommandMenu open={shown} onOpenChange={setShown} groups={RECIPES} />;
+  return <B.CommandMenu open={shown} onOpenChange={(next) => { window.log.push("open:" + next); setShown(next); }} groups={RECIPES} />;
 }
 ${render("<App />")}`);
     const choose = async (label) => {
       await page.waitForSelector("[cmdk-item]");
+      await page.evaluate(() => { window.log = []; });
       await page.locator("[cmdk-item]", { hasText: label }).click();
       await settle(page);
-      return page.evaluate(() => ({ ran: window.ran, open: !!document.querySelector(".basalt-command[role='dialog']") }));
+      return page.evaluate(() => ({ log: window.log, open: !!document.querySelector(".basalt-command[role='dialog']") }));
     };
-    assert.deepEqual(await choose("Plain bread"), { ran: "bread", open: true }, "keepOpen");
-    assert.deepEqual(await choose("Plum jam"), { ran: "jam", open: true }, "onSelect returned false");
-    assert.deepEqual(await choose("Tomato soup"), { ran: "soup", open: false }, "an ordinary row closes it");
+    assert.deepEqual(await choose("Plain bread"), { log: ["ran:bread"], open: true }, "keepOpen");
+    assert.deepEqual(await choose("Plum jam"), { log: ["open:false", "ran:jam"], open: false }, "closed first, then ran; its promise changes nothing");
     await page.close();
   });
 
-  test("rows that arrive light the first row until the reader moves the light; new words light it again", async () => {
+  test("rows that arrive light the first row until the reader moves the light; a key that moves nothing is not a move; new words light it again", async () => {
     const { page } = await open(`
 const BUILD = (names) => [{ label: "Builds", commands: names.map((n) => ({ id: n, label: n })) }];
 function App() {
@@ -109,6 +149,9 @@ ${render("<App />")}`);
     await page.waitForSelector("[cmdk-item]");
     await settle(page);
     assert.equal(await lit(page), "main #212");
+    // PageDown and Home here change nothing cmdk lights (Home is already on the first row): neither is the reader moving the light.
+    await page.keyboard.press("PageDown");
+    await page.keyboard.press("Home");
     await page.evaluate(() => window.arrive(["release #9", "main #212", "main #211"]));
     await settle(page);
     assert.equal(await lit(page), "release #9", "a row arriving above takes the light");
@@ -125,27 +168,72 @@ ${render("<App />")}`);
     await page.close();
   });
 
-  test("keys typed between opening and the field taking focus go to the search, not the control that had focus", async () => {
-    const { page } = await open(`${RECIPES}
+  const OPENER = (extra = "") => `${RECIPES}
 function App() {
   const [shown, setShown] = React.useState(false);
+  window.hold = false;
   return <>
-    <input id="message" onKeyDown={(e) => { if (e.key === "k" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); setShown(true); } }} />
-    <B.CommandMenu open={shown} onOpenChange={setShown} groups={RECIPES} />
+    <input id="message" onBlur={(e) => { if (window.hold) e.target.focus(); }} onKeyDown={(e) => { if (e.key === "k" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); setShown(true); } }} />
+    <B.CommandMenu open={shown} onOpenChange={setShown} groups={RECIPES} ${extra} />
   </>;
 }
-${render("<App />")}`);
+${render("<App />")}`;
+  const openFromMessage = async (page) => {
     await page.focus("#message");
-    // One burst: the shortcut and the words, with no wait for the dialog to mount or move focus.
     await page.keyboard.down("Control");
     await page.keyboard.press("k");
     await page.keyboard.up("Control");
+  };
+
+  test("keys typed between opening and the field taking focus go to the search, not the control that had focus", async () => {
+    const { page } = await open(OPENER());
+    await openFromMessage(page);
+    // One burst after the shortcut, with no wait for the dialog to mount or move focus.
     await page.keyboard.type("pie", { delay: 0 });
     await page.waitForSelector("[cmdk-input]");
     await settle(page);
     assert.equal(await page.inputValue("#message"), "", "nothing reached the field that had focus");
     assert.equal(await page.inputValue(".basalt-command-input"), "pie");
     assert.equal(await page.evaluate(() => document.activeElement?.classList.contains("basalt-command-input")), true);
+    await page.close();
+  });
+
+  test("while focus is held at the opener, the keys still go to the search; once the menu's field has focus the capture is gone", async () => {
+    const { page } = await open(OPENER());
+    await page.evaluate(() => { window.hold = true; });
+    await openFromMessage(page);
+    await page.waitForSelector("[cmdk-input]");
+    await page.keyboard.type("jam", { delay: 20 });
+    assert.equal(await page.inputValue("#message"), "");
+    assert.equal(await page.inputValue(".basalt-command-input"), "jam");
+    await page.evaluate(() => { window.hold = false; });
+    await page.focus(".basalt-command-input");
+    await page.keyboard.type(" pot");
+    assert.equal(await page.inputValue(".basalt-command-input"), "jam pot", "the field types for itself");
+    await page.close();
+  });
+
+  test("a dialog opened from the menu types into its own field: the capture never takes its keys", async () => {
+    const { page } = await open(`
+function App() {
+  const [shown, setShown] = React.useState(true);
+  const [naming, setNaming] = React.useState(false);
+  const groups = [{ label: "Builds", commands: [{ id: "tag", label: "Tag a build", keepOpen: true, onSelect: () => setNaming(true) }] }];
+  return <>
+    <B.CommandMenu open={shown} onOpenChange={setShown} groups={groups} />
+    <B.Dialog open={naming} onOpenChange={setNaming}>
+      <B.DialogContent><B.DialogTitle>Tag</B.DialogTitle><input id="tag-name" aria-label="Tag name" autoFocus /></B.DialogContent>
+    </B.Dialog>
+  </>;
+}
+${render("<App />")}`);
+    await page.waitForSelector("[cmdk-item]");
+    await page.keyboard.press("Enter");
+    await page.waitForSelector("#tag-name");
+    await page.focus("#tag-name");
+    await page.keyboard.type("release-9");
+    assert.equal(await page.inputValue("#tag-name"), "release-9");
+    assert.equal(await page.inputValue(".basalt-command-input"), "", "the menu's search took none of it");
     await page.close();
   });
 });
@@ -255,6 +343,55 @@ ${render("<App />")}`;
     assert.equal(r.window - r.stack, 16, "the phone's stack hangs full width from the bar");
     await page.close();
   });
+
+  // A column the app swaps and slides: `which` picks the element the ref is on, `shift` slides it sideways at the same width, `late` mounts it after the toast.
+  const moving = `
+function Show() {
+  const toast = B.useToast();
+  React.useEffect(() => { toast.show({ title: "Saved the recipe", timeout: 0 }); }, []);
+  return null;
+}
+function App() {
+  const column = React.useRef(null);
+  const [which, setWhich] = React.useState(window.__late ? "none" : "a");
+  const [shift, setShift] = React.useState(0);
+  window.use = setWhich;
+  window.slide = setShift;
+  return <div style={{ position: "relative" }}>
+    {which === "a" ? <main ref={column} id="column" style={{ width: 600, marginLeft: shift }}>words</main> : null}
+    {which === "b" ? <section ref={column} id="column" style={{ width: 420, marginLeft: 80 }}>other words</section> : null}
+    <B.ToastProvider column={column}><Show /></B.ToastProvider>
+  </div>;
+}
+${render("<App />")}`;
+  const gap = (page) => page.evaluate(() => { const c = document.getElementById("column"); return c ? Math.round(c.getBoundingClientRect().right - document.querySelector(".basalt-toast-viewport").getBoundingClientRect().right) : null; });
+  test("a column mounted after the provider is found, and the stack moves to it", async () => {
+    const { page } = await open(`window.__late = true;${moving}`);
+    await page.waitForSelector(".basalt-toast");
+    const r = await right(page);
+    assert.equal(r.window - r.stack, 16, "no column yet: the window's edge");
+    await page.evaluate(() => window.use("a"));
+    await settle(page);
+    assert.equal(await gap(page), 16);
+    await page.close();
+  });
+  test("a column replaced by another element is followed", async () => {
+    const { page } = await open(moving);
+    await page.waitForSelector(".basalt-toast");
+    assert.equal(await gap(page), 16);
+    await page.evaluate(() => window.use("b"));
+    await settle(page);
+    assert.equal(await gap(page), 16, "the new column's edge");
+    await page.close();
+  });
+  test("a column that moves sideways at the same width is followed", async () => {
+    const { page } = await open(moving);
+    await page.waitForSelector(".basalt-toast");
+    await page.evaluate(() => window.slide(200));
+    await settle(page);
+    assert.equal(await gap(page), 16);
+    await page.close();
+  });
 });
 
 describe("LoadingShape and ShareBar", () => {
@@ -313,6 +450,23 @@ describe("Textarea autosize", () => {
     for (const line of ["Stir", "Season", "Serve"]) { await page.keyboard.press("Shift+Enter"); await page.keyboard.type(line); }
     assert.equal(await height(), start + 2 * style.line, "capped at four lines");
     assert.ok(await page.evaluate(() => { const t = document.getElementById("t"); return t.scrollHeight > t.clientHeight; }), "then it scrolls");
+    await page.close();
+  });
+  test("in a browser that cannot size a field to its content, turning autosize off gives back the inline height the field had", async () => {
+    const { page } = await open(`
+// The measured fallback: this browser is told it has no field-sizing.
+const supports = CSS.supports.bind(CSS);
+CSS.supports = (...args) => (String(args[0]).includes("field-sizing") ? false : supports(...args));
+function App() {
+  const [auto, setAuto] = React.useState(true);
+  window.setAuto = setAuto;
+  return <div style={{ width: 400 }}><B.Textarea id="t" aria-label="Method" autosize={auto} rows={2} style={{ height: "123px" }} defaultValue={"Heat the pan\\nAdd the oil\\nAdd the onion"} /></div>;
+}
+${render("<App />")}`);
+    assert.notEqual(await page.evaluate(() => document.getElementById("t").style.height), "123px", "measured while autosize is on");
+    await page.evaluate(() => window.setAuto(false));
+    await settle(page);
+    assert.equal(await page.evaluate(() => document.getElementById("t").style.height), "123px");
     await page.close();
   });
   test("without autosize nothing changes: the resize handle and the rows given", async () => {

@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 
+import { nodeSpecifier, rewriteSpecifiers } from "../declaration-specifiers.mjs";
 import { pkg } from "./support.mjs";
 
 const dist = path.join(pkg, "dist");
@@ -30,4 +31,44 @@ test("the index re-exports the core glyphs by a specifier Node resolves", () => 
   assert.match(index, /export \* from "\.\/glyph-set\.js";/);
   const set = fs.readFileSync(path.join(dist, "glyph-set.d.ts"), "utf8");
   assert.match(set, /export \{ CheckGlyph \} from "\.\/glyphs\/check\.js";/);
+});
+
+test("the build's rule rewrites real module specifiers only: a comment's example, a string and a non-module file are left as written", () => {
+  const source = [
+    '/** An example: `import file from "./guide"` stays as it is. */',
+    'import type { A } from "./a";',
+    'import "./side";',
+    'export * from "./set";',
+    'export { B,',
+    '  C } from "./b";',
+    'export declare const d: typeof import("./d");',
+    '// export * from "./not-code";',
+    'export declare const e = "export * from \'./a string\'";',
+    'export declare const f: string; /* import x from "./also-not" */',
+    'import svg from "./mark.svg?raw";',
+  ].join("\n");
+  const seen = [];
+  const out = rewriteSpecifiers(source, (name) => { seen.push(name); return name.includes("?") ? null : `${name}.js`; });
+  assert.deepEqual(seen.sort(), ["./a", "./b", "./d", "./mark.svg?raw", "./set", "./side"]);
+  assert.equal(out, [
+    '/** An example: `import file from "./guide"` stays as it is. */',
+    'import type { A } from "./a.js";',
+    'import "./side.js";',
+    'export * from "./set.js";',
+    'export { B,',
+    '  C } from "./b.js";',
+    'export declare const d: typeof import("./d.js");',
+    '// export * from "./not-code";',
+    'export declare const e = "export * from \'./a string\'";',
+    'export declare const f: string; /* import x from "./also-not" */',
+    'import svg from "./mark.svg?raw";',
+  ].join("\n"));
+});
+
+test("the build's resolver: a sibling's declaration, a folder's index, a file that is not a module, and a name that is nowhere fails", () => {
+  const resolve = nodeSpecifier(fs, path, dist, "index.d.ts");
+  assert.equal(resolve("./glyph-set"), "./glyph-set.js");
+  assert.equal(resolve("./glyphs/check"), "./glyphs/check.js");
+  assert.equal(resolve("../brand/blacksand/mark.svg?raw"), null);
+  assert.throws(() => resolve("./no-such-module"), /no declaration in dist/);
 });

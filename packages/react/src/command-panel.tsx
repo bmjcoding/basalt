@@ -13,7 +13,7 @@ import { Icon } from "./icon";
 import { BAND_LEVEL } from "./layers";
 import { Kbd } from "./kbd";
 import { GlidePlate } from "./plate";
-import { useApplePlatform, useShortcutsVisible } from "./keyboard";
+import { isComposingKey, useApplePlatform, useShortcutsVisible } from "./keyboard";
 import { ariaShortcut, shortcutKeys } from "./shortcut";
 import { join } from "./utils";
 
@@ -34,35 +34,59 @@ export function commandFilter(value: string, search: string, keywords?: string[]
  * cleared, so they stayed in the order the last search left them. The order is React's instead: rows by score, groups by their best row, ties in the
  * order given. cmdk still hides the rows that do not match, with the same scorer, and has nothing left to move.
  */
-export function orderGroups(groups: CommandGroup[], search: string, filter?: CommandFilter): CommandGroup[] {
-  if (!search || filter === false) return groups;
-  const scoreOf = filter ?? ((command: CommandItem, words: string) => commandFilter(commandValue(command), words, keywordsOf(command)));
+export function orderGroups(groups: CommandGroup[], search: string): CommandGroup[] {
+  if (!search) return groups;
+  return rank(groups, (command) => commandFilter(commandValue(command), search, keywordsOf(command)), false);
+}
+
+/** Rows by score, highest first, groups by their best row, ties in the order given; with `drop`, the rows that score 0 and the groups left empty go. */
+function rank(groups: CommandGroup[], scoreOf: (command: CommandItem) => number, drop: boolean): CommandGroup[] {
   const scored = groups.map((group) => {
-    const rows = group.commands.map((command) => ({ command, score: scoreOf(command, search) }));
+    const rows = group.commands.map((command) => ({ command, score: scoreOf(command) })).filter((row) => !drop || row.score > 0);
     const best = rows.reduce((top, row) => Math.max(top, row.score), 0);
     return { group: { ...group, commands: [...rows].sort((a, b) => b.score - a.score).map((row) => row.command) }, best };
   });
-  return scored.sort((a, b) => b.best - a.best).map((entry) => entry.group);
+  return scored.filter((entry) => !drop || entry.group.commands.length > 0).sort((a, b) => b.best - a.best).map((entry) => entry.group);
 }
 
 /**
- * The row the menu lights when its rows change: the first that is shown, in the order drawn. With nothing typed, or with the app's own order, every row
- * is shown; otherwise a row is shown while it scores above 0.
+ * The rows a `CommandMenu` draws, in the order it draws them. Basalt's own scorer: every row, ordered (`orderGroups`), and cmdk hides those that score 0
+ * with the same scorer. The app's order (`filter={false}`): the rows as given. An app's scorer: scored once here, and only the rows above 0 are drawn, so
+ * what is shown, its order and the first row all come from the same scores, whatever the scorer was a render ago (cmdk is told not to filter).
  */
-function firstShown(ordered: CommandGroup[], search: string, filter: CommandFilter | undefined): string {
-  for (const group of ordered) {
+function shownGroups(groups: CommandGroup[], search: string, filter: CommandFilter | undefined): CommandGroup[] {
+  if (!search || filter === false) return groups;
+  if (!filter) return orderGroups(groups, search);
+  return rank(groups, (command) => filter(command, search), true);
+}
+
+/** The row the menu lights when its rows change: the first one drawn and shown. Only Basalt's own scorer draws rows that cmdk then hides. */
+function firstShown(shown: CommandGroup[], search: string, filter: CommandFilter | undefined): string {
+  for (const group of shown) {
     for (const command of group.commands) {
-      if (!search || filter === false) return commandValue(command);
-      const score = filter ? filter(command, search) : commandFilter(commandValue(command), search, keywordsOf(command));
-      if (score > 0) return commandValue(command);
+      if (!search || filter !== undefined || commandFilter(commandValue(command), search, keywordsOf(command)) > 0) return commandValue(command);
     }
   }
   return "";
 }
 
-/** The keys with which cmdk moves through its rows (its vim keys included): after one of them the reader has chosen where the light is. */
-const MOVES = new Set(["ArrowDown", "ArrowUp", "Home", "End", "PageDown", "PageUp"]);
-const moves = (event: React.KeyboardEvent) => MOVES.has(event.key) || (event.ctrlKey && ["n", "j", "p", "k"].includes(event.key));
+/** Whether a key is one cmdk moves the light with (the arrows, Home, End, and its Ctrl N, J, P and K). */
+function navigates(event: React.KeyboardEvent): boolean {
+  switch (event.key) {
+    case "ArrowDown":
+    case "ArrowUp":
+    case "Home":
+    case "End":
+      return true;
+    case "n":
+    case "j":
+    case "p":
+    case "k":
+      return event.ctrlKey;
+    default:
+      return false;
+  }
+}
 
 const keywordsOf = (command: CommandItem) => (command.description ? [...(command.keywords ?? []), command.description] : command.keywords);
 
@@ -113,11 +137,24 @@ export function CommandPanel({ groups, placeholder, label, listLabel, filter, hi
   useActiveDescendant(list, input);
   // the footer is described to a screen reader only while it is drawn: hidden on a touch device with no keyboard
   const chipsShow = useShortcutsVisible();
-  const ordered = orderGroups(groups, search, filter);
+  const ordered = shownGroups(groups, search, filter);
   // The lit row is held here, so it can follow the rows. cmdk lights the first row when the words change, and keeps whatever is lit when rows arrive
   // (rows from a server would land above a lit row lower down); until the reader moves the light, the first row shown is lit whenever the rows change.
   const [lit, setLit] = React.useState("");
+  const litNow = React.useRef(lit);
+  litNow.current = lit;
+  // The reader moved the light only when a key cmdk moves it with, or the pointer over a row, really changed the lit row: `reading` holds the lit row
+  // from just before such a key or move, for the rest of that event, and a change to another row while it is held is the reader's.
   const moved = React.useRef(false);
+  const reading = React.useRef<{ before: string } | null>(null);
+  const hold = () => {
+    reading.current = { before: litNow.current };
+    window.setTimeout(() => { reading.current = null; }, 0);
+  };
+  const light = (next: string) => {
+    if (reading.current && next !== reading.current.before) moved.current = true;
+    setLit(next);
+  };
   const first = firstShown(ordered, search, filter);
   const shownRows = ordered.map((group) => group.commands.map(commandValue).join("\u0000")).join("\u0001");
   const searched = React.useRef(search);
@@ -130,43 +167,28 @@ export function CommandPanel({ groups, placeholder, label, listLabel, filter, hi
     if (!moved.current && first && first !== lit) setLit(first);
     // Only a change of the rows or the words decides (`lit` is left out): the light itself moving is cmdk's or the reader's.
   }, [shownRows, search, first]);
-  // cmdk asks the app's scorer about a row by its value; the row is found again from that value.
-  const byValue = React.useMemo(() => {
-    const map = new Map<string, CommandItem>();
-    for (const group of groups) for (const command of group.commands) map.set(commandValue(command), command);
-    return map;
-  }, [groups]);
-  const score = typeof filter === "function"
-    ? (value: string, words: string) => {
-        const command = byValue.get(value);
-        return command ? filter(command, words) : 0;
-      }
-    : commandFilter;
+  // An ordinary row closes the menu, then runs, as it always has; a row that keeps the menu open only runs.
   const choose = (command: CommandItem) => {
-    let result: void | boolean = undefined;
-    try {
-      result = command.onSelect?.();
-    } finally {
-      // A row that throws still closes the menu, as it did before it could keep it open.
-      if (!command.keepOpen && result !== false) onOpenChange(false);
-    }
+    if (!command.keepOpen) onOpenChange(false);
+    command.onSelect?.();
   };
   return (
     <Command
       label={label}
       loop
-      filter={score}
-      shouldFilter={filter !== false}
+      filter={commandFilter}
+      // Only Basalt's own scorer is cmdk's: the app's order and the app's scorer are drawn as they are (`shownGroups`).
+      shouldFilter={filter === undefined}
       value={lit}
-      onValueChange={setLit}
-      onKeyDownCapture={(event) => { if (moves(event)) moved.current = true; }}
+      onValueChange={light}
+      onKeyDownCapture={(event) => { if (navigates(event) && !isComposingKey(event.nativeEvent)) hold(); }}
     >
       <div className="basalt-command-search" data-level={BAND_LEVEL}>
         <Icon icon={SearchGlyph} size={16} />
         <Command.Input ref={input} className="basalt-command-input" placeholder={placeholder} aria-label={label} aria-describedby={hints && chipsShow ? hintId : undefined} value={search} onValueChange={setSearch} autoFocus />
         <span className="basalt-command-slot" aria-hidden="true" />
       </div>
-      <Command.List ref={list} className="basalt-command-list" label={listLabel} onPointerMove={(event) => { if (event.pointerType !== "touch" && (event.target as Element).closest?.("[cmdk-item]")) moved.current = true; }}>
+      <Command.List ref={list} className="basalt-command-list" label={listLabel} onPointerMoveCapture={(event) => { if (event.pointerType !== "touch") hold(); }}>
         <GlidePlate />
         <Command.Empty className="basalt-command-empty">No commands match.</Command.Empty>
         {ordered.map((group) => (

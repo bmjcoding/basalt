@@ -307,7 +307,8 @@ export interface ToastProviderProps {
   actionWords?: (label: string) => string;
   /**
    * The column the toasts belong to, for an app whose window holds more than one (a conversation beside a panel): the stack's right edge keeps space-4
-   * inside this element's right edge, as it does inside the window's without one. Measured as the column and the window change size. The stylesheet's
+   * inside this element's right edge, as it does inside the window's without one. Read again after each render of the stack and once a frame while a
+   * toast is shown, so a column that mounts later, is replaced or moves is followed. The stylesheet's
    * `--basalt-toast-right` says the same without a measure (the distance from the window's right edge). Under 720 the stack hangs full width from the
    * bar, and neither is read.
    */
@@ -383,29 +384,28 @@ function ToastAnnouncer({ controller }: { controller: Controller }) {
 /** Whether the stack is hovered or focused (Base UI's `expanded`), which holds every clock. */
 const ExpandedContext = /* @__PURE__ */ React.createContext(false);
 
-/** How far the column's right edge is from the window's, in CSS pixels, kept as the column and the window change size; undefined without a column. */
-function useColumnRight(column: React.RefObject<HTMLElement | null> | undefined) {
+/**
+ * How far the column's right edge is from the window's, in CSS pixels; undefined without a column (or while its ref holds nothing). The ref is read again
+ * after every commit of the stack, and once a frame while a toast is shown, so a column mounted after the provider, a column replaced by another, and a
+ * column that moves sideways at the same width are all followed. Nothing runs while no toast is shown: the next toast measures before it is drawn.
+ */
+function useColumnRight(column: React.RefObject<HTMLElement | null> | undefined, shown: boolean) {
   const [right, setRight] = React.useState<number | undefined>(undefined);
-  React.useLayoutEffect(() => {
+  const update = React.useCallback(() => {
     const element = column?.current;
-    if (!element) {
-      setRight(undefined);
-      return undefined;
-    }
-    const root = element.ownerDocument.documentElement;
     // The fixed stack's right is measured from the viewport's edge, which is the root's client width (a classic scrollbar is outside it).
-    const measure = () => setRight(Math.max(0, Math.round(root.clientWidth - element.getBoundingClientRect().right)));
-    measure();
-    const sizes = new ResizeObserver(measure);
-    sizes.observe(element);
-    sizes.observe(root);
-    const view = element.ownerDocument.defaultView;
-    view?.addEventListener("resize", measure);
-    return () => {
-      sizes.disconnect();
-      view?.removeEventListener("resize", measure);
-    };
+    const next = element?.isConnected ? Math.max(0, Math.round(element.ownerDocument.documentElement.clientWidth - element.getBoundingClientRect().right)) : undefined;
+    setRight((was) => (was === next ? was : next));
   }, [column]);
+  React.useLayoutEffect(update);
+  React.useEffect(() => {
+    if (!shown || !column) return undefined;
+    let frame = window.requestAnimationFrame(function follow() {
+      update();
+      frame = window.requestAnimationFrame(follow);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [shown, column, update]);
   return right;
 }
 
@@ -413,7 +413,8 @@ function ToastStack({ column }: { column?: React.RefObject<HTMLElement | null> }
   const away = useAway();
   // The stack is fixed to the window's bottom: while an on-screen keyboard is up it sits above the keyboard.
   useScreenKeyboardLayout();
-  const right = useColumnRight(column);
+  const { toasts } = BaseToast.useToastManager();
+  const right = useColumnRight(column, toasts.length > 0);
   return (
     <BaseToast.Viewport
       className="basalt-toast-viewport"
