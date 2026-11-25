@@ -65,7 +65,7 @@ Markup your script builds (a `.row`) isn't seen: add `<!-- basalt:use rows -->` 
 - **terminal** `.terminal`: with `.code`; lines are `span[data-kind]`; the script draws the gutter.
 - **runs** `.run-stages`, `.run-rail`, `.run-steps`, `.run-mark`: write every state's word; no counter.
 - **chart** `.chart`: JSON in `script[data-chart]`; `null` is a day not observed, never zero; needs a `summary`.
-- **diagram** `.diagram`: JSON in `script[data-diagram]`; sides only to change the default; needs a `summary`.
+- **diagram** `.diagram`: JSON in `script[data-diagram]`; sides only to change a default; needs a `summary`; a line's state is label text, never a kind or colour.
 - **diagram-motion** `"motion": "animated"`: added for you, with `loops`; a flow line needs a label; one mover a figure.
 - **diagram-zoom** `.diagram`: added for you, with `dialog`; `"zoom": false` drops Expand.
 - **diagram-export** `"export": true`: added for you; SVG and PNG downloads in the foot.
