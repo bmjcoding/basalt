@@ -19,6 +19,11 @@ export interface OptionChip {
    * screen-reader user hears why. It cannot be chosen by a click, by Space or by an arrow key landing on it.
    */
   unavailable?: string;
+  /**
+   * How many this value holds, drawn after the label in tertiary figures (cimip-gaps-3 t4, item 7). Zero is a value and is drawn, and it disables nothing;
+   * an unavailable chip still draws the count it is given. Every counted chip holds the group's widest figure (`countSeat`), so a count that changes moves no chip.
+   */
+  count?: number;
 }
 
 export interface OptionChipsProps extends PartProps<"fieldset", "defaultValue" | "value" | "onChange" | "children" | "name"> {
@@ -35,7 +40,15 @@ export interface OptionChipsProps extends PartProps<"fieldset", "defaultValue" |
   required?: boolean;
   /** Show how many values there are after the legend, small and tertiary (hidden from assistive technology). Default true. */
   count?: boolean;
+  /** The largest count a chip may show: its figures are every counted chip's seat. Default: the largest `count` given. */
+  countSeat?: number;
+  /** What is said for a chip's count ("18 jobs"), after its label. Default: the figure. */
+  countLabel?: (count: number) => string;
 }
+
+let figures: Intl.NumberFormat | undefined;
+/** A count as it is drawn: en-US grouping. Built on first use, so loading the module does nothing. */
+const figure = (n: number) => (figures ??= new Intl.NumberFormat("en-US")).format(n);
 
 /**
  * Base UI's arrow-key order skips an `aria-disabled` radio, and an unavailable chip must be reached (so its words are heard). The arrow keys are
@@ -64,9 +77,12 @@ function arrowKeys(event: React.KeyboardEvent<HTMLElement>) {
  * seat that every chip reserves; the chosen chip is the selected wash in primary ink with a check in its seat, and its edge does not change.
  * It is a fieldset with a legend, one tab stop and the arrow keys, as a radio group is. A value that cannot be chosen takes `unavailable`.
  */
-export function OptionChips({ legend, options, value, defaultValue, onValueChange, name, disabled = false, required, count = true, className, ...props }: OptionChipsProps) {
+export function OptionChips({ legend, options, value, defaultValue, onValueChange, name, disabled = false, required, count = true, countSeat, countLabel, className, ...props }: OptionChipsProps) {
   const fieldsetDisabled = useFieldsetDisabled();
   const legendId = React.useId();
+  const counts = options.flatMap((option) => (option.count === undefined ? [] : [option.count]));
+  // The seat's figures: the widest drawn form among the largest given (or `countSeat`) and every count, since a minus sign or a grouping comma is a character too.
+  const seat = counts.length ? [countSeat ?? Math.max(...counts), ...counts].map(figure).reduce((a, b) => (b.length > a.length ? b : a)) : "";
   return (
     <BaseRadioGroup
       {...(props as object)}
@@ -99,6 +115,15 @@ export function OptionChips({ legend, options, value, defaultValue, onValueChang
           >
             <span className="basalt-option-chip-seat" aria-hidden="true"><Icon icon={CheckGlyph} /></span>
             <span className="basalt-option-chip-label">{option.label}</span>
+            {option.count !== undefined ? (
+              <>
+                <span className="basalt-visually-hidden">{`, ${countLabel ? countLabel(option.count) : figure(option.count)}`}</span>
+                <span className="basalt-option-chip-figure" aria-hidden="true">
+                  <span>{figure(option.count)}</span>
+                  <span className="basalt-option-chip-figure-seat">{seat}</span>
+                </span>
+              </>
+            ) : null}
             {option.unavailable ? (
               <span className="basalt-option-chip-note">
                 <DotSep spaced />

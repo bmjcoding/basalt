@@ -5,6 +5,7 @@ import * as React from "react";
 import type { ControlSize } from "./button";
 import { FieldGroupContext } from "./field-group";
 import { formGridPlacement } from "./form-grid";
+import { ReserveErrorsContext } from "./field-reserve";
 import type { FormGridPlacement } from "./form-grid";
 import type { ChangeDetails, PartProps, ValidateActions } from "./types";
 import { withClass } from "./utils";
@@ -90,15 +91,89 @@ export interface FieldProps extends Omit<PartProps<"div">, "children">, FormGrid
   description?: React.ReactNode;
   /** An error message, shown and announced when the field is invalid. */
   error?: React.ReactNode;
+  /**
+   * Hold the error's room: the hint and the error share one seat under the control, so an error moves nothing (cimip-gaps-3 t4, item 1).
+   * `true` holds the taller of the hint, one line, and the `error` given when it is a string. A list holds every known message too. Strings only:
+   * a sizer is text and never an element. While the error shows, the hint does not (it leaves the control's description), so the error states
+   * the fix and repeats any format the hint held. Not for a hint that must stay (a link, a control, a standing instruction): that field keeps
+   * the two-line form. Off by default; a `Form`'s or a `FormGrid`'s `reserveErrors` sets it for the fields inside, and this, `false` included, wins.
+   */
+  reserveError?: boolean | readonly string[];
   /** The control, usually an `Input`. */
   children: React.ReactNode;
+}
+
+declare const process: { env: { NODE_ENV?: string } };
+let warnedFocusableHint = false;
+const FOCUSABLE = "a[href], button, input, select, textarea, iframe, summary, [tabindex], [contenteditable]";
+
+interface FieldFootProps {
+  /** Base UI's validity for the field: false while it fails. */
+  valid: boolean | null;
+  id: string;
+  description: React.ReactNode;
+  error: React.ReactNode;
+  invalid: boolean | undefined;
+  disabled: boolean | undefined;
+  reserve: true | readonly string[];
+  required: boolean;
+  requiredLabel: string;
+  children: React.ReactNode;
+}
+
+/**
+ * The reserved form of a field's foot: the description, the error and the sizers in one grid cell (`basalt-field-foot`). The one seen is the error while it
+ * shows, else the description; the rest are unseen and keep their room. The unseen description is a plain span, so it leaves `aria-describedby`.
+ */
+function ReservedField({ valid, id, description, error, invalid, disabled, reserve, required, requiredLabel, children }: FieldFootProps) {
+  // What Base UI's error shows for: the app's `invalid`, or a failed validation while the field is enabled. With no `error` there is nothing to show, and the hint stays.
+  const erring = Boolean(error) && (invalid === true || (valid === false && !disabled));
+  // The incoming line fades in, but only after the first swap: a page's first paint does not fade its hints in.
+  const [initial] = React.useState(erring);
+  const [swapped, setSwapped] = React.useState(false);
+  if (!swapped && erring !== initial) setSwapped(true);
+  const group = React.useMemo(() => ({
+    labelId: `${id}-label`,
+    descriptionId: description && !erring ? `${id}-description` : undefined,
+    errorId: erring ? `${id}-error` : undefined,
+    required,
+    requiredLabel,
+    invalid: Boolean(invalid),
+  }), [id, description, erring, invalid, required, requiredLabel]);
+  const sizers = [...new Set([...(typeof error === "string" && !erring ? [error] : []), ...(Array.isArray(reserve) ? reserve : [])])];
+  const foot = React.useRef<HTMLDivElement | null>(null);
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === "production" || warnedFocusableHint) return;
+    if (foot.current?.querySelector(".basalt-field-description")?.querySelector(FOCUSABLE)) {
+      warnedFocusableHint = true;
+      console.warn("Basalt Field: a `reserveError` field's description holds a link or a control, which the error would hide; give that field the two-line form (no `reserveError`)");
+    }
+  });
+  return (
+    <>
+      <FieldGroupContext.Provider value={group}>
+        <FieldRequiredContext.Provider value={required}>{children}</FieldRequiredContext.Provider>
+      </FieldGroupContext.Provider>
+      <div ref={foot} className="basalt-field-foot" data-swapped={swapped ? "" : undefined}>
+        {description ? (
+          erring
+            ? <span className="basalt-field-description" data-unseen="" aria-hidden="true" inert>{description}</span>
+            : <BaseField.Description id={group.descriptionId} className="basalt-field-description">{description}</BaseField.Description>
+        ) : null}
+        {error ? <BaseField.Error id={`${id}-error`} className="basalt-field-error" match={invalid ? true : undefined}>{error}</BaseField.Error> : null}
+        {sizers.map((text) => <span key={text} className="basalt-field-sizer" aria-hidden="true" inert>{text}</span>)}
+      </div>
+    </>
+  );
 }
 
 /**
  * A labelled form field: label, control, description and error, wired together. A control that is a group (a `SegmentedControl`) is named by the label, with "Required" said after
  * it in a required field, and described by the description and, while the field is `invalid`, the error. In a `FormGrid` it takes `column`, `row` and `rows`.
  */
-export function Field({ label, required, optional, requiredLabel = "Required", optionalLabel = "Optional", labelAction, description, error, children, className, style, column, row, rows, ...props }: FieldProps) {
+export function Field({ label, required, optional, requiredLabel = "Required", optionalLabel = "Optional", labelAction, description, error, reserveError: reserveOwn, children, className, style, column, row, rows, ...props }: FieldProps) {
+  const reserveDefault = React.useContext(ReserveErrorsContext);
+  const reserve = reserveOwn ?? reserveDefault ?? false;
   const necessity = required ? requiredLabel : optional ? optionalLabel : null;
   const id = React.useId();
   const group = React.useMemo(() => ({
@@ -119,11 +194,21 @@ export function Field({ label, required, optional, requiredLabel = "Required", o
   return (
     <BaseField.Root {...props} {...place} style={typeof style === "function" ? (state) => ({ ...place.style, ...style(state) }) : { ...place.style, ...style }} className={withClass("basalt-field", className)}>
       {labelAction ? <div className="basalt-field-label-row">{labelElement}{labelAction}</div> : labelElement}
+      {reserve !== false ? (
+        <BaseField.Validity>
+          {(state) => (
+            <ReservedField valid={state.validity.valid} id={id} description={description} error={error} invalid={props.invalid} disabled={props.disabled} reserve={reserve} required={Boolean(required)} requiredLabel={requiredLabel}>
+              {children}
+            </ReservedField>
+          )}
+        </BaseField.Validity>
+      ) : <>
       <FieldGroupContext.Provider value={group}>
         <FieldRequiredContext.Provider value={Boolean(required)}>{children}</FieldRequiredContext.Provider>
       </FieldGroupContext.Provider>
       {description ? <BaseField.Description id={group.descriptionId} className="basalt-field-description">{description}</BaseField.Description> : null}
       {error ? <BaseField.Error id={group.errorId} className="basalt-field-error" match={props.invalid ? true : undefined}>{error}</BaseField.Error> : null}
+      </>}
     </BaseField.Root>
   );
 }

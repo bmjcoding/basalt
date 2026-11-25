@@ -11,6 +11,7 @@ import { MinusGlyph } from "./glyphs/minus";
 import { PlusGlyph } from "./glyphs/plus";
 import { IconButton, type ControlSize } from "./button";
 import { useInRequiredField } from "./field-group";
+import { ReserveErrorsContext } from "./field-reserve";
 import { FieldsetDisabledProvider, useFieldsetDisabled } from "./fieldset-context";
 import { Icon } from "./icon";
 import { GlidePlate } from "./plate";
@@ -35,9 +36,16 @@ export type FormProps<Values extends Record<string, unknown> = Record<string, un
    * ends the wait and is raised again, so say why in the app. On by default; `false` submits every time.
    */
   waitForAnswer?: boolean;
+  /** The default `reserveError` of the fields inside: each holds its error's room under the control, shared with its hint. A field's own `reserveError` (`false` included) wins. */
+  reserveErrors?: boolean;
 };
 
-export function Form<Values extends Record<string, unknown> = Record<string, unknown>>({ className, onSubmit, onFormSubmit, waitForAnswer = true, ref, ...props }: FormProps<Values>) {
+export function Form<Values extends Record<string, unknown> = Record<string, unknown>>({ reserveErrors, ...rest }: FormProps<Values>) {
+  const form = <FormBody<Values> {...rest} />;
+  return reserveErrors === undefined ? form : <ReserveErrorsContext.Provider value={reserveErrors}>{form}</ReserveErrorsContext.Provider>;
+}
+
+function FormBody<Values extends Record<string, unknown> = Record<string, unknown>>({ className, onSubmit, onFormSubmit, waitForAnswer = true, ref, ...props }: Omit<FormProps<Values>, "reserveErrors">) {
   const own = React.useRef<HTMLFormElement | null>(null);
   const [waiting, setWaiting] = React.useState(0);
   const now = React.useRef(0);
