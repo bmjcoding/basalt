@@ -50,6 +50,11 @@ export interface DiagramViewerProps {
   summary: React.ReactNode;
   /** "Expand": focus returns to it when the viewer closes. */
   opener: React.RefObject<HTMLButtonElement | null>;
+  /**
+   * The popup of the Basalt modal the figure sits in (layers.ts, ModalHost), or none on the page. Opened from a modal, the viewer is written into its popup:
+   * at the end of the body it would be outside the modal, where everything is inert, and every control in it dead.
+   */
+  host?: React.RefObject<HTMLElement | null> | null;
   onClose: () => void;
 }
 
@@ -58,7 +63,7 @@ const EMPTY: ZoomState = { zoom: 1, level: 100, fit: 1, min: 1, max: 4, atMin: f
 /** A length token's value in CSS pixels, read from a probe the stage holds. */
 const probeWidth = (stage: HTMLElement | null, which: string) => stage?.querySelector<HTMLElement>(`.${P}-probe[data-probe="${which}"]`)?.offsetWidth ?? 0;
 
-export function DiagramViewer({ kit, actions, Actions, spec, component, source, summary, opener, onClose }: DiagramViewerProps) {
+export function DiagramViewer({ kit, actions, Actions, spec, component, source, summary, opener, host, onClose }: DiagramViewerProps) {
   const { Figure: DiagramFigure, Kbd, buildModel, figureKey, figureList, hintEntries, toHtml, inLevel, measureFigure } = kit;
   // The viewer's figure is still (9.7): no entrance, flow, mover or run, so no motion code is loaded for it.
   const still = React.useMemo<DiagramSpec>(() => ({ ...spec, motion: "still" }), [spec]);
@@ -157,6 +162,8 @@ export function DiagramViewer({ kit, actions, Actions, spec, component, source, 
   const closing = React.useRef(false);
   const onCloseRef = React.useRef(onClose);
   onCloseRef.current = onClose;
+  // Where the dialog is written: the modal's popup, read once as the viewer opens (the modal is open, so it is there), else the body.
+  const [into] = React.useState<HTMLElement | null>(() => host?.current ?? null);
   const close = React.useCallback(() => {
     const d = dialogRef.current;
     if (!d || closing.current) return;
@@ -200,11 +207,17 @@ export function DiagramViewer({ kit, actions, Actions, spec, component, source, 
     d.addEventListener("click", onClick);
     d.addEventListener("click", onLink);
     d.addEventListener("keydown", onKey);
-    return () => { clearTimeout(timer); d.removeEventListener("transitionend", onEntered); d.removeEventListener("close", onClose); d.removeEventListener("pointerdown", onDown); d.removeEventListener("click", onClick); d.removeEventListener("click", onLink); d.removeEventListener("keydown", onKey); if (d.open) d.close(); };
-  }, [opener, close]);
+    // In a modal, the viewer closes as the modal starts to close (Base UI marks its popup `data-closed`), so the two leave together, and the native modal
+    // is gone before the modal returns focus to its trigger (which the viewer would hold inert). Unmounted with it, the cleanup below closes it too.
+    const parent = into ? new MutationObserver(() => { if (into.hasAttribute("data-closed")) close(); }) : null;
+    if (into) parent?.observe(into, { attributes: true, attributeFilter: ["data-closed"] });
+    return () => { parent?.disconnect(); clearTimeout(timer); d.removeEventListener("transitionend", onEntered); d.removeEventListener("close", onClose); d.removeEventListener("pointerdown", onDown); d.removeEventListener("click", onClick); d.removeEventListener("click", onLink); d.removeEventListener("keydown", onKey); if (d.open) d.close(); };
+  }, [opener, close, into]);
 
   return createPortal(
-    <dialog ref={dialogRef} className={`basalt-dialog ${P}-viewer`} data-form="" data-level={1} aria-labelledby={titleId} aria-describedby={descId}>
+    // In a modal, Esc closes the viewer alone (the browser's cancel): the key goes no further, so the modal's own dismissal, a React handler on its popup and
+    // a listener on the document, never sees it. On the page it travels as it always has.
+    <dialog ref={dialogRef} className={`basalt-dialog ${P}-viewer`} data-form="" data-level={1} aria-labelledby={titleId} aria-describedby={descId} onKeyDown={into ? stopEscape : undefined}>
       {inLevel(1, <>
         <header className="basalt-sheet-head">
           <div className="basalt-sheet-head-text">
@@ -266,7 +279,9 @@ export function DiagramViewer({ kit, actions, Actions, spec, component, source, 
         </footer>
       </>)}
     </dialog>,
-    document.body,
+    into ?? document.body,
   );
 }
+
+const stopEscape = (event: React.KeyboardEvent) => { if (event.key === "Escape") event.stopPropagation(); };
 
