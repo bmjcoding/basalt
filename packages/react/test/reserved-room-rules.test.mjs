@@ -244,11 +244,11 @@ describe("Markup", () => {
     const countId = head.match(/id="([^"]+)" class="basalt-filter-count"/)[1];
     assert.ok(out.includes(`aria-describedby="${countId}"`), "the count is the group's description");
   });
-  test("Composer renders its status inside the actions row, and the live region with no status", () => {
+  test("Composer renders its status inside the actions row, and the live region with no status (off until focus is in the composer: statusLive)", () => {
     const none = html(h(B.Composer, { label: "Message", onSend() {} }));
-    assert.match(none, /<div class="basalt-composer-actions"><div class="basalt-composer-start"><p class="basalt-composer-status" aria-live="polite"><\/p><\/div>/);
+    assert.match(none, /<div class="basalt-composer-actions"><div class="basalt-composer-start"><p class="basalt-composer-status" aria-live="off"><\/p><\/div>/);
     const typing = html(h(B.Composer, { label: "Message", onSend() {}, status: "Ada is typing", actions: h(B.IconButton, { icon: B.PlusGlyph ?? (() => null), label: "Attach" }) }));
-    assert.match(typing, /<div class="basalt-composer-start"><div class="basalt-composer-extra">[\s\S]*?<\/div><p class="basalt-composer-status" aria-live="polite">Ada is typing<\/p><\/div>/);
+    assert.match(typing, /<div class="basalt-composer-start"><div class="basalt-composer-extra">[\s\S]*?<\/div><p class="basalt-composer-status" aria-live="off">Ada is typing<\/p><\/div>/);
   });
   test("Button with count renders the seat and the pill", () => {
     assert.match(html(h(B.Button, { count: 3 }, "Cart")), /<span class="basalt-button-count" aria-hidden="true"><span>3<\/span><\/span>/);

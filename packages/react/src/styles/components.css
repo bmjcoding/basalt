@@ -1596,6 +1596,8 @@
     font: var(--basalt-font-weight-semibold) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans);
     letter-spacing: var(--basalt-text-lg-tracking);
   }
+  /* The title is where a page change lands focus (`useRouteFocus`, tabindex −1, not a stop): nothing operates it, so no ring. */
+  .basalt-app-title:focus { outline: none; }
   /* Facts under the title (AppHeader facts): one line at 13/18 in secondary ink, joined by dots and cut with an ellipsis. The title
      and the line are 26 + 18 = 44 together, centred in the bar's row like a 44 target. Only primary and secondary ink sit on the
      smoked bar. */
@@ -1609,12 +1611,14 @@
     color: var(--basalt-text-secondary);
     font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans);
     letter-spacing: var(--basalt-text-sm-tracking);
+    --basalt-dot-line-wrap: nowrap;
   }
   /* A fact in another face or box (inline code, a plain status badge) would set its own baseline and grow the line: each sits at the
      line's top, so the line is its own line height (18) whatever it holds. Its height is never fixed: under a reader's text spacing
      (WCAG 1.4.12) the line grows with its line height and nothing is clipped; it stays one line, cut at its end, and the bar's
      centring takes the difference. */
-  .basalt-app-facts > .basalt-dot-line > * { vertical-align: top; }
+  .basalt-app-facts > .basalt-dot-line > *,
+  .basalt-app-facts > .basalt-dot-line > .basalt-dot-keep > * { vertical-align: top; }
 
   /* The brand slot: the 32px header lockup in a target at least 44 by 44 (a mark with no word is 32 wide, so the link keeps 44 and the mark stays at its
      start, drawing nothing new). Identity, not a nav item: no wash. */
@@ -4276,6 +4280,10 @@
 
   /* stylelint-disable-next-line unit-disallowed-list -- the standard screen-reader-only clip; not a design length */
   .basalt-visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  /* Words that are read and not drawn, kept in the line's text: a dot's ", ", a count's ", 3 times". An absolute box is a block, and a text scan
+     (`innerText`) and a name built from the content put a space on each side of a block ("A , B"); text at size 0 stays inline and adds no width,
+     no height (line-height 0) and nothing to paint. Size 0 is exempt from a reader's minimum font size, in Chromium and WebKit alike. */
+  .basalt-said { font-size: 0; line-height: 0; }
 
   /* The hidden form input of Basalt's own controls (see src/mirror.ts). Base UI fixes it to the viewport with an inline style, and Chrome gives
      every fixed element a layer of its own: with a checkbox in each row of a 1,000-row table that was 47% of the time to tick a row (88% at 5,000).
@@ -8346,9 +8354,16 @@
   /* A dot-separated line (DotSep, DotLine): the words are joined by a visually hidden ", " that is read, and the dot is drawn here, with an empty alternative so it is not. The second
      declaration is the dot as a plain string for a browser that does not take the alternative; it keeps the first. `spaced` draws the spaces the words around it would have carried. */
   .basalt-dot-sep::before { content: "·"; content: "·" / ""; }
-  /* The hidden ", " keeps its space where it ends the line's text, so the name reads "In design, Pilot planned" and not "In design,Pilot planned". */
-  .basalt-dot-sep > .basalt-visually-hidden { white-space: pre; }
-  .basalt-dot-sep[data-spaced]::before { content: " · "; content: " · " / ""; }
+  /* The spaced dot never starts a line: its own spaces do not wrap, so the dot stays with the word before it and a wrapped line starts with the
+     next word (the break comes after the read ", "). The leading space is an ordinary one, so where the dot starts a box (a flex item) it is
+     dropped as before. */
+  .basalt-dot-sep[data-spaced]::before { content: " · "; content: " · " / ""; white-space: nowrap; }
+  /* An inline block (a badge, a chip) has a break after it whatever follows, unless its parent does not wrap: DotLine holds such a fact and its
+     dot in one span that does not wrap, and gives the fact itself, and the read ", " after the dot, the line's own wrapping back. A line that
+     does not wrap (a one-line ellipsis) says so to its facts with `--basalt-dot-line-wrap: nowrap`. */
+  .basalt-dot-keep { white-space: nowrap; }
+  .basalt-dot-keep > :first-child,
+  .basalt-dot-keep > .basalt-dot-sep > .basalt-said { white-space: var(--basalt-dot-line-wrap, normal); }
   .basalt-date-age-seat { justify-items: start; }
 
   /* ---- Status bar (D14b; V7, R6): a 44px foot from 720, fixed (56 plus the safe area) under it ---- */

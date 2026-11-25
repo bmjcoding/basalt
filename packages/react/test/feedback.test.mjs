@@ -405,7 +405,7 @@ describe("Toast: what a screen reader hears", () => {
     await page.close();
   });
 
-  test("no interactive child is inside a live region, and the stack is a named region that is not live (F6 reaches it)", async () => {
+  test("no interactive child is inside a live region, and the stack is a named region that is not live (F6 reaches the toast's action)", async () => {
     const { page } = await fixturePage(browser, provider(), { theme: "dark" });
     await show(page, { title: "Deleted", action: { label: "Undo" } });
     await toasts(page).first().waitFor();
@@ -415,9 +415,9 @@ describe("Toast: what a screen reader hears", () => {
     }));
     assert.equal(read.interactive, 0);
     assert.deepEqual(read.viewport, { role: "region", name: "Notifications", live: "off" });
-    // F6 puts focus on the region
+    // F6 goes through the region to the newest toast's action (cimip-gaps-3 E2), as the spoken "Press F6 to reach it" says
     await page.keyboard.press("F6");
-    assert.equal(await page.evaluate(() => document.activeElement?.className), "basalt-toast-viewport");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Undo");
     await page.close();
   });
 

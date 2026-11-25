@@ -3,6 +3,7 @@ import * as React from "react";
 import { Switch } from "./choice";
 import { Kbd } from "./kbd";
 import { useApplePlatform } from "./keyboard";
+import { isOverlayOpen } from "./overlay-open";
 import { ariaShortcut, shortcutKeys } from "./shortcut";
 import { join } from "./utils";
 
@@ -67,7 +68,7 @@ export interface ShortcutBinding {
 }
 
 export interface UseShortcutsOptions {
-  /** Binds nothing while false (a dialog is open, a command line has the keys). Default true. */
+  /** Binds nothing while false (a command line has the keys). Default true. An open dialog, sheet or menu needs no flag: its keys are its own. */
   enabled?: boolean;
 }
 
@@ -85,7 +86,7 @@ const EDITABLE = 'input, textarea, select, [role="textbox"], [role="combobox"], 
 /**
  * Binds single keys at the app level. A key with Command, Control or Alt held is not a single key and is left to the browser and to the
  * app's own shortcuts; a key typed in a field, and anything inside an element marked `data-own-keys` (a part that handles its own keys,
- * as a listbox does), is ignored too. While the stored choice is off (`useSingleKeys`) no key is bound, `?` included, so give the
+ * as a listbox does), is ignored too, and so is every key while a dialog, sheet, popover, the command menu or a menu is open (a toast does not count). While the stored choice is off (`useSingleKeys`) no key is bound, `?` included, so give the
  * help dialog a visible opener that is not a single key. Each bound control carries `aria-keyshortcuts` (`keyshortcuts(key)`).
  */
 export function useShortcuts(bindings: readonly ShortcutBinding[], { enabled = true }: UseShortcutsOptions = {}): ShortcutsState {
@@ -100,6 +101,8 @@ export function useShortcuts(bindings: readonly ShortcutBinding[], { enabled = t
       const target = event.target instanceof Element ? event.target : null;
       // `isContentEditable` is the element's real editing state: it covers `plaintext-only` and an editing state inherited from an ancestor.
       if (target?.closest(EDITABLE) || (target instanceof HTMLElement && target.isContentEditable) || target?.closest("[data-own-keys]")) return;
+      // The page's keys are the page's: none runs from inside, or over, an open dialog, sheet, popover, command menu or menu (a toast is not one).
+      if (isOverlayOpen(document)) return;
       const binding = latest.current.find((b) => b.key === event.key);
       if (!binding) return;
       event.preventDefault();

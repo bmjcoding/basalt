@@ -409,6 +409,17 @@ function useColumnRight(column: React.RefObject<HTMLElement | null> | undefined,
   return right;
 }
 
+/**
+ * F6 lands on the newest toast's action, as the spoken hint says ("Undo is available. Press F6 to reach it."). Base UI's F6 focuses the stack's region,
+ * the one way a key reaches it (it is not a tab stop); a press on its background is not a key, and is not focus-visible. From the region, focus goes on to
+ * the action of the newest toast that has one (the stack is newest first); with none it stays on the region, as before. Tab, Shift+Tab and the way back
+ * to the page are Base UI's.
+ */
+function toAction(event: React.FocusEvent<HTMLDivElement>) {
+  const region = event.currentTarget;
+  if (event.target === region && region.matches(":focus-visible")) region.querySelector<HTMLElement>(".basalt-toast:not([data-ending-style]):not([inert]) .basalt-toast-action")?.focus({ preventScroll: true });
+}
+
 function ToastStack({ column }: { column?: React.RefObject<HTMLElement | null> }) {
   const away = useAway();
   // The stack is fixed to the window's bottom: while an on-screen keyboard is up it sits above the keyboard.
@@ -422,6 +433,7 @@ function ToastStack({ column }: { column?: React.RefObject<HTMLElement | null> }
       data-away={away ? "" : undefined}
       // The stack is a named region for F6, but not a live one: the text-only regions above announce the results.
       aria-live="off"
+      onFocus={toAction}
       render={(props, state) => (
         <ExpandedContext.Provider value={state.expanded}>
           <div {...props} />
@@ -525,6 +537,10 @@ function ToastItem({ toast, front, swipe }: { toast: ReturnType<typeof BaseToast
   return (
     <BaseToast.Root
       toast={toast}
+      // A toast is a named group, not a dialog: Base UI's root says `dialog` (`alertdialog` when urgent) without being modal, and an app asking
+      // "is a dialog open" would count every toast. It keeps its name, its description and its place in the tab order.
+      role="group"
+      aria-modal={undefined}
       swipeDirection={[...swipe]}
       data-level={1}
       data-toast-id={toast.id}
@@ -547,7 +563,8 @@ function ToastItem({ toast, front, swipe }: { toast: ReturnType<typeof BaseToast
             {data.count > 1 ? (
               <>
                 <span className="basalt-toast-count" aria-hidden="true">×{data.count}</span>
-                <span className="basalt-visually-hidden">, {data.count} times</span>
+                {/* Read in place and drawn at no size, so the title's text reads "Saved, 2 times" and not "Saved , 2 times". */}
+                <span className="basalt-said">, {data.count} times</span>
               </>
             ) : null}
           </BaseToast.Title>
