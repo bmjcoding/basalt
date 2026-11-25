@@ -1783,7 +1783,7 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
 - Its order is the chart's: the title and source, the drawing, the key, the key hint, the summary (a required `figcaption`), then
   "View as list" and the list, with "Expand" beside "View as list".
 - **The title** is the figure's name, at `CardTitle`'s size: `text-base` at 600 in primary ink (14/20), at every `heading` level.
-  `heading` (2 to 6, 3 by default) places the title in the page's outline and changes no size. A figure's title is not a section's
+  `heading` (2 to 6, 3 by default) places the title in the page's outline and changes no size. The size is what Basalt's own styles give: a page that sizes bare heading elements with unlayered rules resizes the title too, as it would any Basalt part drawn as a heading, so size a page's headings by class or with `Heading`, or keep element rules in a layer ordered before `basalt`. A figure's title is not a section's
   heading and is not sized to match the headings beside it, so on a page with larger headings it is smaller than they are. A chart's
   title is still `text-md` (BACKLOG, the chart title's size). (DECISIONS 386.)
 - **The list's sub-headings** ("Parts", "Connections", "Participants", "Messages", a schema table's name) are one level under the
