@@ -997,6 +997,17 @@ function stopNoun(m: Model): string {
   return m.type === "architecture" ? "a part" : m.type === "sequence" ? "a participant" : m.type === "schema" ? "a table" : "a step";
 }
 
+/**
+ * A card's role, where it is a picture named by its sentence (G18 of the console's log): at rest an image; as a focus stop (it traces on focus and the
+ * arrows move from it) a button described as its stop's noun ("part", "task"), so a focus stop has an interactive role and is said as what it is, its
+ * sentence unchanged. A link card is the link, and takes neither. The type modules' cards take it too.
+ */
+export function cardRole(m: Model, href: string | undefined, tabindex: number | undefined): VAttrs {
+  if (href) return {};
+  if (tabindex === undefined) return { role: "img" };
+  return { role: "button", "aria-roledescription": stopNoun(m).replace(/^an? /, "") };
+}
+
 // ============================================================================================================================================
 // The markup tree
 // ============================================================================================================================================
@@ -1437,7 +1448,7 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
     "data-mark": n.mark ? n.mark.id ?? "" : undefined,
     "data-level": ctx.level,
     style: style.join(";"),
-    role: images && !n.href ? "img" : undefined,
+    ...(images ? cardRole(m, n.href, tabbable) : {}),
     "aria-label": images || n.href ? nodeSentence(m, n) : undefined,
     tabindex: tabbable,
   },
@@ -1862,7 +1873,9 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   (m.ext ? m.ext.traces?.(m, drawn) : hasStops(m, dyn) && m.type !== "sequence" || (drawn && m.type === "sequence")) ? h("p", { class: `${P}-tap-hint`, "aria-hidden": "true" }, `Tap ${stopNoun(m)} to highlight its lines. Tap it again to clear.`) : null,
   h("div", { class: `${P}-foot` }, { slot: "toggle" }),
   h("div", { id: ids.list, class: `${P}-list`, hidden: !dyn.open }, listTree(P, m)),
-  h("span", { id: ids.keys, class: o.hiddenClass }, o.viewer ? `${keysSentence(m, drawn)} ${o.viewer}` : keysSentence(m, drawn)),
+  // The keys sentence is the drawing's description alone (G17 of the console's log): hidden, so a page of figures does not read it in its flow once a
+  // figure; aria-describedby reads a hidden element it names. The key hint on screen is hidden from assistive technology.
+  h("span", { id: ids.keys, class: o.hiddenClass, hidden: true }, o.viewer ? `${keysSentence(m, drawn)} ${o.viewer}` : keysSentence(m, drawn)),
   h("figcaption", { id: ids.summary, class: `${P}-summary` }, { slot: "summary" }));
 }
 

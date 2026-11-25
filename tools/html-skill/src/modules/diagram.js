@@ -29,7 +29,8 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
       source: escapeHtml(String(spec.source || '')),
       summary: escapeHtml(String(spec.summary || '')),
       hint: hintEntries(model).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + escapeHtml(e.words) + '</span>'; }).join(''),
-      toggle: '<button type="button" class="btn diagram-toggle" data-variant="secondary" data-size="sm" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="' + escapeHtml(base) + '-list"><span>' + (open ? 'Hide the list' : 'View as list') + '</span></button>',
+      // Named for its figure (G17 of the console's log): the words shown, then the title, as React's; the words lead the name (WCAG 2.5.3).
+      toggle: '<button type="button" class="btn diagram-toggle" data-variant="secondary" data-size="sm" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="' + escapeHtml(base) + '-list" aria-labelledby="' + escapeHtml(base) + '-toggle-words ' + escapeHtml(base) + '-title"><span id="' + escapeHtml(base) + '-toggle-words">' + (open ? 'Hide the list' : 'View as list') + '</span></button>',
     };
   }
 

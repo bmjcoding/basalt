@@ -848,13 +848,13 @@
         "art",
         "kbd"
       ],
-      "budget": 159400,
+      "budget": 159800,
       "usage": 5900,
       "builds": [
         "kbd"
       ],
       "usageReason": "DECISIONS 359: 5100 to 5900 for one line naming the new shapes of data (state, deployment, schedule, a dependency figure, a data flow's decision) and the type modules that draw the rest.",
-      "budgetReason": " DECISIONS 359 (diagram batch D, wave 1): 148204 to 155366 bytes (+7162, +4.8%): the type-module seam, the isolates on every author string, the dependency and swimlane folds and their CSS. The schedule, the state and the deployment are modules of their own (diagram-schedule, diagram-state, diagram-deployment), so a page pays for the types it draws. Cap 148700 to 155500. The run-edge ruling (run-edge/ruling.md): 155394 to 156279 bytes (+885) for the clear band beside a box's edge, the refusal under space-2 a lane and the row a box starts on standing space-4 lower; cap 155500 to 156400 (the owner approved the raise, DECISIONS 378). Merged with #146 (Esc on a trace stops at the figure; a drawn sequence speaks its routes): 156495 bytes, cap 156400 to 156600. DECISIONS 383, item 3 (#148: a turn-back clear of a box edge, its label in a gap row): 157384 to 159366 bytes (+1982); cap 157500 to 159400."
+      "budgetReason": " DECISIONS 359 (diagram batch D, wave 1): 148204 to 155366 bytes (+7162, +4.8%): the type-module seam, the isolates on every author string, the dependency and swimlane folds and their CSS. The schedule, the state and the deployment are modules of their own (diagram-schedule, diagram-state, diagram-deployment), so a page pays for the types it draws. Cap 148700 to 155500. The run-edge ruling (run-edge/ruling.md): 155394 to 156279 bytes (+885) for the clear band beside a box's edge, the refusal under space-2 a lane and the row a box starts on standing space-4 lower; cap 155500 to 156400 (the owner approved the raise, DECISIONS 378). Merged with #146 (Esc on a trace stops at the figure; a drawn sequence speaks its routes): 156495 bytes, cap 156400 to 156600. DECISIONS 383, item 3 (#148: a turn-back clear of a box edge, its label in a gap row): 157384 to 159366 bytes (+1982); cap 157500 to 159400. cimip-gaps-3 (the console log G17 and G18, DECISIONS 385): View as list and Expand named for their figure, a focus stop a described button (cardRole), the viewer list under its h2: 159366 to 159575 bytes, cap 159400 to 159800."
     },
     "diagram-motion": {
       "classes": [
@@ -912,13 +912,14 @@
         "dialog-form",
         "sheet"
       ],
-      "budget": 18000,
+      "budget": 18200,
       "usage": 900,
       "builds": [
         "dialog",
         "dialog-form",
         "sheet"
-      ]
+      ],
+      "budgetReason": " cimip-gaps-3 (the console log G17 and G18, DECISIONS 385): View as list and Expand named for their figure, a focus stop a described button (cardRole), the viewer list under its h2: 17951 to 18138 bytes, cap 18000 to 18200."
     },
     "diagram-export": {
       "text": [
@@ -990,9 +991,9 @@
         "diagram",
         "diagram-scale"
       ],
-      "budget": 18400,
+      "budget": 18700,
       "usage": 1250,
-      "budgetReason": "DECISIONS 359: a new module, 17961 bytes at its first build; The first review round's fixes: 18297 bytes; cap 18400."
+      "budgetReason": "DECISIONS 359: a new module, 17961 bytes at its first build; The first review round's fixes: 18297 bytes; cap 18400. cimip-gaps-3 (the console log G17 and G18, DECISIONS 385): View as list and Expand named for their figure, a focus stop a described button (cardRole), the viewer list under its h2: 18297 to 18559 bytes, cap 18400 to 18700."
     },
     "diagram-matrix": {
       "classes": [
@@ -1099,9 +1100,9 @@
         "diagram",
         "diagram-scale"
       ],
-      "budget": 18700,
+      "budget": 19000,
       "usage": 800,
-      "budgetReason": "DECISIONS 359: a new module, 18264 bytes at its first build; The first review round's fixes: 18508 bytes; cap 18700."
+      "budgetReason": "DECISIONS 359: a new module, 18264 bytes at its first build; The first review round's fixes: 18508 bytes; cap 18700. cimip-gaps-3 (the console log G17 and G18, DECISIONS 385): View as list and Expand named for their figure, a focus stop a described button (cardRole), the viewer list under its h2: 18508 to 18770 bytes, cap 18700 to 19000."
     },
     "diagram-schedule": {
       "classes": [

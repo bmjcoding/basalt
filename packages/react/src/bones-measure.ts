@@ -24,7 +24,8 @@ interface Measured extends Bone {
   text?: boolean;
 }
 
-const CONTROL = 'button, [role="button"], [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="combobox"]:not(input), select, .basalt-badge, [data-bone="box"]';
+// A diagram's card is a button only as a focus stop (its role, G18): it is drawn as its words, as it was as a picture, never as one control's box.
+const CONTROL = 'button, [role="button"]:not(.basalt-diagram-node), [role="tab"], [role="switch"], [role="checkbox"], [role="radio"], [role="combobox"]:not(input), select, .basalt-badge, [data-bone="box"]';
 const MEDIA = "img, svg, video, canvas, picture";
 const FIELD = "input, textarea";
 // Attributes that differ between two drawings for reasons other than the data: React's ids and what refers to them, layout measured in effects.

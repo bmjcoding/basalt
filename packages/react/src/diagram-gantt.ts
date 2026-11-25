@@ -3,7 +3,7 @@
 // stacked with tracks, stacked in words. The scale is diagram-scale's; everything drawn on it is this module's. GanttDiagram hands it to the engine on the
 // spec, so an app that draws an architecture bundles none of it. Nothing runs at load. The implementation has not been reviewed.
 
-import { h, iso, own, rectOf, sentence, svgA, txt } from "./diagram-core";
+import { cardRole, h, iso, own, rectOf, sentence, svgA, txt } from "./diagram-core";
 import type { DiagramSpec, DiagramTypeExt, Dyn, ExtBuildKit, ExtBuilt, ExtMeasureKit, Geo, Measured, MNode, Model, VElement, VNode } from "./diagram-core";
 import { dateWords, datesWords, dayLadder, dayNumber, numberLadder, scaleMap, ticks, yearOf } from "./diagram-scale";
 import type { ScaleTick } from "./diagram-scale";
@@ -219,12 +219,12 @@ function drawing(P: string, m: Model, dyn: Dyn, level?: number): VNode[] {
     const s = r2(frac(p, t.a) * 100), w = r2(frac(p, t.b) * 100 - frac(p, t.a) * 100);
     // A row whose range holds today ends its range line with today's label, in the stack in words (the CSS shows it there only).
     const holdsToday = hasToday && p.today! >= t.a && p.today! <= t.b;
+    const tabindex = stops ? (dyn.stop === t.id ? 0 : -1) : dyn.keep === t.id ? -1 : undefined;
     out.push(h(t.href ? "a" : "div", {
       class: `${P}-node ${P}-gantt-row`,
       href: t.href, target: t.href && t.blank ? "_blank" : undefined, rel: t.href && t.blank ? "noopener noreferrer" : undefined, "data-link": t.href ? (t.blank ? "external" : "") : undefined,
       "data-node": t.id, "data-focal": t.focal ? "" : undefined, "data-level": level,
-      role: t.href ? undefined : "img", "aria-label": writeSentence(m, n),
-      tabindex: stops ? (dyn.stop === t.id ? 0 : -1) : dyn.keep === t.id ? -1 : undefined,
+      ...cardRole(m, t.href, tabindex), "aria-label": writeSentence(m, n), tabindex,
     },
     h("span", { class: `${P}-gantt-words` },
       h("span", { class: `${P}-name` }, iso(t.name)),

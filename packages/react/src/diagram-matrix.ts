@@ -3,7 +3,7 @@
 // DOM for both forms switched by the engine's --_drawn, an empty cell that holds its track and says so in words. Their components hand this module to the
 // engine on the spec, so an app that draws an architecture bundles none of it. Nothing runs at load. The implementation has not been reviewed.
 
-import { h, iso, lineSwatch, rectOf, sentence, svgA, txt } from "./diagram-core";
+import { cardRole, h, iso, lineSwatch, rectOf, sentence, svgA, txt } from "./diagram-core";
 import type { DiagramLineKind, DiagramSpec, DiagramTypeExt, Dyn, ExtBuildKit, ExtBuilt, ExtMeasureKit, Geo, GLine, Measured, MEdge, MNode, Model, Pt, Tokens, VAttrs, VChild, VElement, VNode } from "./diagram-core";
 
 // ============================================================================================================================================
@@ -54,7 +54,7 @@ const stopIndex = (dyn: Dyn, id: string) => (dyn.layout && !dyn.bare ? (dyn.stop
 function stop(P: string, m: Model, n: MNode, dyn: Dyn, level: number | undefined, extra: VAttrs, ...kids: VChild[]): VElement {
   return h(n.href ? "a" : "div", {
     class: `${P}-node`, ...linkAttrs(n.href, n.blank), "data-node": n.id, "data-focal": n.focal ? "" : undefined, "data-level": level,
-    role: n.href ? undefined : "img", "aria-label": m.ext!.sentence!(m, n), tabindex: stopIndex(dyn, n.id), ...extra,
+    ...cardRole(m, n.href, stopIndex(dyn, n.id)), "aria-label": m.ext!.sentence!(m, n), tabindex: stopIndex(dyn, n.id), ...extra,
   }, ...kids);
 }
 /** A node's own words: its kind line, its name and its detail, as the shipped node writes them. */
