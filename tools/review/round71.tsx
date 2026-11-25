@@ -1,5 +1,5 @@
 // Round 71: time, runs and stamps (cimip-gaps-3, batch E1; engineering, the owner's handoff, DECISIONS 385). The only pixels that change by default are a
-// fault's: a rail or list at the minutes or hours scale wrote tenths of a second under a minute; it now writes whole seconds. The rest are opt-in props
+// fault's: a rail at the minutes scale wrote tenths of a second under a minute; it now draws whole seconds (its datetime keeps the tenth). The rest are opt-in props
 // that draw nothing until an app gives them (`RunTimer`/`RunStage`/`RunStep` `spoken`, `RunStage`/`RunStep` `format`, `SourceStamp timeZoneName`,
 // `Sparkline format`). Not reviewed; the browser tests are written and not run (DECISIONS 359).
 //
@@ -73,10 +73,10 @@ function Lines() {
 }
 
 const DECISIONS = [
-  "A fault (cimip-gaps-3 sort A3): at timeScale=\"minutes\" (and \"hours\") a time under a minute is whole seconds (\"41 s\", PT41S), by the second; the seconds scale keeps its tenths. formatRunTime takes the scale.",
+  "A fault (cimip-gaps-3 sort A3): a StageRail given timeScale=\"minutes\" draws a time under a minute in whole seconds (\"41 s\"), by the second, its datetime still to the tenth (PT41.3S). Lists, timelines, standalone timers and a rail whose scale grew keep their tenths.",
   "RunTimer spoken: the drawn figure is hidden from assistive technology and the spoken words are read once in its place, never a live region; datetime stays the ISO duration; the held, hidden and started-at forms are unchanged; the seat follows format, never spoken.",
   "RunStage and RunStep forward format and spoken to their one timer, in a list, on a rail and in a timeline's full step and tail row.",
-  "SourceStamp's datetime is an instant (\"2026-11-24T15:55:17-06:00\"); timeZoneName writes the zone's name inside its time, after a no-break space, so it is in the stamp's accessible name.",
+  "SourceStamp's datetime is the instant in UTC (\"2026-11-24T21:55:17.000Z\"), the drawn clock the zone's; timeZoneName writes the zone's name inside its time, after a no-break space, so it is in the stamp's accessible name.",
   "Sparkline format writes the latest value, both ends of the scale and the image's name. Left out, whole numbers as today.",
   "Not reviewed. Engineering inside the agreed design; the browser tests are written and not run (DECISIONS 359).",
 ];

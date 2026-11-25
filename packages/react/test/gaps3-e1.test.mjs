@@ -1,5 +1,6 @@
 // cimip-gaps-3, batch E1 (time, runs and stamps; engineering): `format` and `spoken` forwarded through RunStage and RunStep in every presentation with no
-// extra timer; a rail at the minutes scale writes whole seconds; SourceStamp's `datetime` is an instant and `timeZoneName` writes the zone inside its
+// extra timer, and the spoken words kept fresh; a rail given the minutes scale draws whole seconds, its `datetime` kept to the tenth; SourceStamp's
+// `datetime` is the UTC instant (`toISOString`) and `timeZoneName` writes the zone inside its
 // `time`; PeriodStepper says nothing on arrival and speaks a change once; Sparkline's `format`. Chromium on Playwright's fake clock where a timer runs,
 // built package, real stylesheet. The formatters are read from `dist` under Node.
 import assert from "node:assert/strict";
@@ -9,7 +10,7 @@ import { pathToFileURL } from "node:url";
 
 import { fixturePage, launch, pkg, settle } from "./support.mjs";
 
-const { formatStamp, stampInstant, zoneName } = await import(pathToFileURL(path.join(pkg, "dist", "time-format.js")).href);
+const { formatStamp, zoneName } = await import(pathToFileURL(path.join(pkg, "dist", "time-format.js")).href);
 
 let browser;
 before(async () => { browser = await launch(); });
@@ -82,13 +83,13 @@ describe("format and spoken through RunStage and RunStep", () => {
 });
 
 describe("StageRail at the minutes scale", () => {
-  test("a node under a minute writes whole seconds, by the second, never tenths (A11Y-W3)", async () => {
+  test("a node under a minute draws whole seconds, by the second, never tenths, its datetime still to the tenth (A11Y-W3)", async () => {
     const page = await open(render(`<B.StageRail label="Approval stages" timeScale="minutes">
       <B.RunStage name="Asked" state="success" start={0} end={1_500} />
       <B.RunStage name="Approval" state="running" start={10_000 - 4_900} />
     </B.StageRail>`));
     let r = await timers(page);
-    assert.deepEqual(r.map((x) => [x.drawn, x.iso]), [["1 s", "PT1S"], ["4 s", "PT4S"]]);
+    assert.deepEqual(r.map((x) => [x.drawn, x.iso]), [["1 s", "PT1.5S"], ["4 s", "PT4.9S"]]);
     await page.clock.runFor(300);
     r = await timers(page);
     assert.equal(r[1].drawn, "5 s");
@@ -96,35 +97,38 @@ describe("StageRail at the minutes scale", () => {
     assert.equal((await timers(page))[1].drawn, "5 s", "no change inside the second");
   });
 
-  test("at the seconds scale a rail keeps its tenths", async () => {
-    const page = await open(render(`<B.StageRail label="Build stages"><B.RunStage name="Build" state="success" start={0} end={1_500} /><B.RunStage name="Ship" state="queued" /></B.StageRail>`));
-    assert.equal((await timers(page))[0].drawn, "1.5 s");
+  test("a rail given the seconds scale keeps its tenths, also once a long stage has grown its scale to minutes", async () => {
+    const page = await open(render(`<B.StageRail label="Build stages"><B.RunStage name="Build" state="success" start={0} end={1_500} /><B.RunStage name="Test" state="success" start={0} end={130_000} /><B.RunStage name="Ship" state="queued" /></B.StageRail>`));
+    await page.clock.runFor(100);
+    const r = await timers(page);
+    assert.deepEqual([r[0].drawn, r[0].iso], ["1.5 s", "PT1.5S"]);
+    assert.equal(r[1].drawn, "2 min 10 s");
   });
 });
 
 describe("SourceStamp", () => {
-  test("stampInstant: the wall clock with its offset (Z at UTC), one moment in every zone; zoneName in the style asked; formatStamp unchanged", () => {
+  test("zoneName in the style asked; formatStamp unchanged", () => {
     const at = Date.UTC(2026, 10, 24, 21, 55, 17, 600);
     assert.deepEqual(formatStamp(at, { timeZone: "America/Chicago" }), { text: "15:55:17", dateTime: "2026-11-24T15:55:17" }, "the wall clock, as before");
-    assert.equal(stampInstant(at, { timeZone: "America/Chicago" }), "2026-11-24T15:55:17-06:00");
-    assert.equal(stampInstant(at, { timeZone: "UTC" }), "2026-11-24T21:55:17Z");
-    assert.equal(stampInstant(at, { timeZone: "Asia/Kolkata" }), "2026-11-25T03:25:17+05:30");
-    assert.equal(stampInstant(Date.UTC(2026, 6, 1, 12), { timeZone: "America/Chicago" }), "2026-07-01T07:00:00-05:00", "summer time");
-    for (const zone of ["America/Chicago", "UTC", "Asia/Kolkata", "America/St_Johns"]) assert.equal(Date.parse(stampInstant(at, { timeZone: zone })), Math.floor(at / 1000) * 1000, `${zone}: one moment`);
     assert.equal(zoneName(at, "short", { timeZone: "America/Chicago" }), "CST");
     assert.equal(zoneName(Date.UTC(2026, 6, 1, 12), "short", { timeZone: "America/Chicago" }), "CDT");
     assert.equal(zoneName(at, "shortOffset", { timeZone: "Europe/Berlin" }), "GMT+1");
   });
 
-  test("the stamp's datetime is an instant, and timeZoneName writes the zone inside its time and in its accessible name", async () => {
-    const at = Date.UTC(2026, 10, 24, 21, 55, 17);
+  test("the stamp's datetime is the UTC instant, and timeZoneName writes the zone inside its time and in its accessible name", async () => {
+    const at = Date.UTC(2026, 10, 24, 21, 55, 17, 600);
     const page = await open(render(`<>
       <span id="plain"><B.SourceStamp source="weather" state="answered" at={${at}} timeZone="America/Chicago" /></span>
       <span id="zoned"><B.SourceStamp source="weather" state="answered" at={${at}} timeZone="America/Chicago" timeZoneName="short" onOpen={() => {}} /></span>
+      <span id="old"><B.SourceStamp source="archive" state="answered" at={${Date.UTC(1880, 0, 1, 12)}} timeZone="America/Chicago" /></span>
     </>`), { clock: false });
-    const r = await page.evaluate(() => ["#plain", "#zoned"].map((s) => { const t = document.querySelector(`${s} time`); return [t.getAttribute("datetime"), t.textContent.replace(/\u00a0/g, "_")]; }));
-    assert.deepEqual(r, [["2026-11-24T15:55:17-06:00", "15:55:17"], ["2026-11-24T15:55:17-06:00", "15:55:17 CST"]]);
-    assert.equal(await page.locator("#zoned button").evaluate((b) => b.textContent.replace(/\u00a0/g, " ")), "Source: weather 15:55:17 CST. Open the request.");
+    const r = await page.evaluate(() => ["#plain", "#zoned"].map((s) => { const t = document.querySelector(`${s} time`); return [t.getAttribute("datetime"), t.textContent]; }));
+    assert.deepEqual(r, [["2026-11-24T21:55:17.600Z", "15:55:17"], ["2026-11-24T21:55:17.600Z", "15:55:17\u00a0CST"]], "the zone after a no-break space; the drawn clock the zone's");
+    // A zone whose offset then was not whole minutes (Chicago's local mean time, -5:50:36 before 1883) still names the exact instant.
+    assert.equal(await page.locator("#old time").getAttribute("datetime"), "1880-01-01T12:00:00.000Z");
+    const button = page.getByRole("button", { name: /^Source: weather 15:55:17\sCST\. Open the request\.$/ });
+    assert.equal(await button.count(), 1, "a button, its accessible name holding the zone next to the time");
+    assert.equal(await button.locator("time").count(), 1);
   });
 });
 

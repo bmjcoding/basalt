@@ -18,16 +18,9 @@ export const STAGE_WORDS: Readonly<Record<StageState, string>> = {
 export type Moment = Date | number;
 export type RunTimeScale = "seconds" | "minutes" | "hours";
 
-/**
- * A length of work as a person reads it ("12.3 s", "12 min 34 s", "12 hr 34 min", "3 days"), and its ISO 8601 duration. US English. Under a minute it
- * is tenths at the seconds scale (the default) and whole seconds ("45 s") at the minutes or hours scale, whose seats count in whole units.
- */
-export function formatRunTime(ms: number, { scale = "seconds" }: { scale?: RunTimeScale } = {}): { text: string; dateTime: string } {
+/** A length of work as a person reads it ("12.3 s", "12 min 34 s", "12 hr 34 min", "3 days"), and its ISO 8601 duration. US English. */
+export function formatRunTime(ms: number): { text: string; dateTime: string } {
   const t = Number.isFinite(ms) ? Math.max(0, ms) : 0;
-  if (t < 60_000 && scale !== "seconds") {
-    const s = Math.floor(t / 1000);
-    return { text: `${s} s`, dateTime: `PT${s}S` };
-  }
   if (t < 60_000) {
     // Tenths, cut and never rounded up: 59.96 s is "59.9 s", never "60.0 s".
     const tenths = Math.floor(t / 100);

@@ -17,7 +17,8 @@ export interface SparklineProps {
   empty?: string;
   /**
    * Writes a reading: the latest value, the scale's ends and the value read with the label ("0.4%", "12 ms"). It is given the eased value while the
-   * scale moves, so it decides its own rounding. Left out, whole numbers ("2,440").
+   * scale moves, so it decides its own rounding. Left out, as before: the latest value is grouped with the decimals it has ("2,440", "1.25"), the
+   * image's name says the plain number ("1.25") and the scale's ends are whole numbers ("0", "2,440").
    */
   format?: (value: number) => string;
   className?: string;

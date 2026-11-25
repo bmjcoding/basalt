@@ -12,7 +12,7 @@ declare const process: { env: { NODE_ENV?: string } };
 
 // ---- A run's time (DECISIONS 316, 1.9) ----
 // Tabular figures in Geist Mono at text-xs, tertiary, a `time` element with an ISO duration, never a live region. Under a minute it is "12.3 s" and
-// changes every 100ms (at the minutes or hours scale "45 s", by the second: those seats count in whole units); to an hour "12 min 34 s", by the second; to a day "12 hr 34 min", by the minute; then "3 days". One shared interval, made by
+// changes every 100ms (on a rail at the minutes scale "45 s", by the second, its `dateTime` still to the tenth); to an hour "12 min 34 s", by the second; to a day "12 hr 34 min", by the minute; then "3 days". One shared interval, made by
 // its first reader and cleared with its last: nothing runs at import. It stands in one `Reserve` cell as wide as the longest form its scale can show,
 // end-aligned, never empty, so a column of times is one width from the first frame.
 
@@ -37,20 +37,22 @@ function subscribe(listener: () => void) {
 }
 
 // ---- one scale for a list's timers
-interface ScaleContext { scale: RunTimeScale; grow: (scale: RunTimeScale) => void }
+interface ScaleContext { scale: RunTimeScale; whole: boolean; grow: (scale: RunTimeScale) => void }
 const RunTimeScaleContext = React.createContext<ScaleContext | null>(null);
 
 /**
  * A list's one scale for all its timers (`StageList`, `StageRail`, `RunTimeline`). A time that outgrows it is still written whole; every seat in the
- * list widens together, once, and development warns. `cap` is the widest the list allows (a rail stops at minutes).
+ * list widens together, once, and development warns. `cap` is the widest the list allows (a rail stops at minutes). `whole` draws a time under a minute
+ * in whole seconds ("45 s"), its `dateTime` kept to the tenth: a rail given the minutes scale.
  */
-export function useRunTimeScale(given: RunTimeScale, cap: RunTimeScale = "hours") {
+export function useRunTimeScale(given: RunTimeScale, cap: RunTimeScale = "hours", whole = false) {
   const [grown, setGrown] = React.useState<RunTimeScale>(given);
   const scale = ORDER[grown] > ORDER[given] ? grown : given;
   const value = React.useMemo<ScaleContext>(() => ({
     scale,
+    whole,
     grow: (needed) => setGrown((was) => (ORDER[needed] > ORDER[was] && ORDER[needed] <= ORDER[cap] ? needed : was)),
-  }), [scale, cap]);
+  }), [scale, cap, whole]);
   return { scale, provide: (children: React.ReactNode) => <RunTimeScaleContext.Provider value={value}>{children}</RunTimeScaleContext.Provider> };
 }
 
@@ -130,8 +132,8 @@ export function RunTimer({ start, end, carried = 0, since, scale: own = "seconds
   const held = loopsHeld || inPrint;
   const running = start !== undefined && end === undefined;
   const [now, setNow] = React.useState(() => Date.now());
-  // The shared interval asks every 100ms; the timer draws again only when its written figure changes (every 100ms under a minute, by the
-  // second to an hour, by the minute after).
+  // The shared interval asks every 100ms; the timer draws again only when its written figure or its spoken words change (every 100ms under a
+  // minute, by the second to an hour, by the minute after, or as often as `spoken` changes).
   const textAt = React.useRef<(t: number) => string>(() => "");
   const shown = React.useRef("");
   React.useEffect(() => {
@@ -144,10 +146,14 @@ export function RunTimer({ start, end, carried = 0, since, scale: own = "seconds
 
   const from = start === undefined ? undefined : new Date(start).getTime();
   const ms = from === undefined ? 0 : (end === undefined ? now : new Date(end).getTime()) - from + carried;
-  const length = formatRunTime(ms, { scale });
-  const text = from === undefined ? "\u00a0" : format ? format(ms) : length.text;
-  textAt.current = (t) => { if (from === undefined) return "\u00a0"; const at = (end === undefined ? t : new Date(end).getTime()) - from + carried; return format ? format(at) : formatRunTime(at, { scale }).text; };
-  shown.current = text;
+  const length = formatRunTime(ms);
+  const whole = list?.whole === true;
+  const draw = (at: number) => (format ? format(at) : whole && at < 60_000 ? `${Math.floor(Math.max(0, at) / 1000)} s` : formatRunTime(at).text);
+  const text = from === undefined ? "\u00a0" : draw(ms);
+  // What the tick compares: the drawn figure and, when given, the spoken words, so neither goes stale while the other holds.
+  const spokenKey = (at: number) => (spoken ? `\u0000${spoken(at)}` : "");
+  textAt.current = (t) => { if (from === undefined) return "\u00a0"; const at = (end === undefined ? t : new Date(end).getTime()) - from + carried; return draw(at) + spokenKey(at); };
+  shown.current = from === undefined ? text : text + spokenKey(ms);
 
   // A time that outgrows its scale is written whole; the list widens every seat together.
   const needed = from === undefined ? scale : scaleFor(ms);

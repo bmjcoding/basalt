@@ -200,27 +200,18 @@ test("a head's seat holds today's held form and not the dated one; a run started
   assert.match(plain(await text(page, "#head")), /^Started [A-Z][a-z]{2} \d{1,2}, \d{4}, \d{1,2}:\d\d [AP]M$/, "a start in another year says its year");
 });
 
-// ---- cimip-gaps-3 E1: whole units at the minutes scale, and the spoken form beside `format`
-describe("whole units at the minutes and hours scales", () => {
-  test("formatRunTime writes whole seconds under a minute at the minutes or hours scale, and is unchanged from a minute", () => {
-    for (const scale of ["minutes", "hours"]) {
-      assert.deepEqual(formatRunTime(0, { scale }), { text: "0 s", dateTime: "PT0S" });
-      assert.deepEqual(formatRunTime(45_900, { scale }), { text: "45 s", dateTime: "PT45S" }, "cut, never rounded up");
-      assert.deepEqual(formatRunTime(59_999, { scale }), { text: "59 s", dateTime: "PT59S" });
-      assert.deepEqual(formatRunTime(754_000, { scale }), formatRunTime(754_000));
-      assert.deepEqual(formatRunTime(45_240_000, { scale }), formatRunTime(45_240_000));
-    }
-    assert.deepEqual(formatRunTime(45_900, { scale: "seconds" }), { text: "45.9 s", dateTime: "PT45.9S" }, "the seconds scale keeps tenths");
-  });
-
-  test("a running timer at the minutes scale counts whole seconds, by the second", async () => {
-    const page = await open(RUN(`<span id="m"><B.RunTimer start={10_000 - 4_500} scale="minutes" /></span>`));
-    assert.equal(await text(page, "#m"), "4 s");
-    assert.equal(await page.evaluate(() => document.querySelector("#m time").getAttribute("datetime")), "PT4S");
-    await page.clock.runFor(400);
-    assert.equal(await text(page, "#m"), "4 s", "no tenths");
-    await page.clock.runFor(200);
-    assert.equal(await text(page, "#m"), "5 s");
+// ---- cimip-gaps-3 E1: the spoken form beside `format`; whole seconds are a minutes-scale rail's alone (gaps3-e1.test.mjs)
+describe("tenths stay outside a minutes-scale rail", () => {
+  test("a standalone timer at the minutes scale, and a list whose scale grew, keep their tenths and their dateTime's", async () => {
+    const page = await open(RUN(`<>
+      <span id="alone"><B.RunTimer start={10_000 - 4_500} scale="minutes" /></span>
+      <B.StageList label="Grown"><B.RunStage name="Short" state="success" start={0} end={1_500} /><B.RunStage name="Long" state="success" start={0} end={754_000} /></B.StageList>
+    </>`));
+    assert.equal(await text(page, "#alone"), "4.5 s");
+    await page.clock.runFor(100);
+    assert.equal(await text(page, "#alone"), "4.6 s", "by the tenth");
+    const short = await page.evaluate(() => { const t = document.querySelector(".basalt-run-stage time"); return [t.querySelector("[data-on]").textContent, t.getAttribute("datetime")]; });
+    assert.deepEqual(short, ["1.5 s", "PT1.5S"], "a sibling of a time that grew the list's scale is unchanged");
   });
 });
 
@@ -241,6 +232,19 @@ describe("spoken", () => {
     const tree = await page.locator("#t").ariaSnapshot();
     assert.equal((tree.match(/3 minutes 4 seconds/g) ?? []).length, 1, tree);
     assert.doesNotMatch(tree, /3m 4s/, "the drawn form is not read beside it");
+  });
+
+  test("a second passes: the drawn figure holds, the spoken words follow, and nothing is announced", async () => {
+    const page = await open(`${CIMIP_LIKE}
+const minutes = (ms) => Math.floor(ms / 60_000) + "m";
+${RUN(`<span id="t"><B.RunTimer start={10_000 - 184_000} scale="minutes" format={minutes} spoken={long} /></span>`)}`);
+    const read = () => page.evaluate(() => { const t = document.querySelector("#t time"); return [t.querySelector("[data-on]").textContent, t.querySelector(":scope > .basalt-visually-hidden").textContent]; });
+    assert.deepEqual(await read(), ["3m", "3 minutes 4 seconds"]);
+    await page.clock.runFor(1_000);
+    assert.deepEqual(await read(), ["3m", "3 minutes 5 seconds"], "the spoken words never go stale while the drawn figure holds");
+    const live = await page.evaluate(() => { const t = document.querySelector("#t time"); return t.querySelectorAll("[aria-live],[role=status],[role=log],[role=alert]").length + (t.closest("[aria-live],[role=status],[role=log],[role=alert]") ? 1 : 0); });
+    assert.equal(live, 0, "never a live region");
+    assert.equal(((await page.locator("#t").ariaSnapshot()).match(/3 minutes 5 seconds/g) ?? []).length, 1);
   });
 
   test("the seat follows the drawn formatter, never the spoken one", async () => {

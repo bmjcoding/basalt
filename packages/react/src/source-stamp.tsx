@@ -4,7 +4,7 @@ import { StatusLine } from "./filter-result";
 import { Reserve } from "./reserve";
 import { Spinner } from "./spinner";
 import { TextButton } from "./text-button";
-import { formatStamp, stampInstant, zoneName } from "./time-format";
+import { formatStamp, zoneName } from "./time-format";
 import type { TimeZoneNameStyle } from "./time-format";
 import { join } from "./utils";
 
@@ -53,8 +53,8 @@ function Mark({ state }: { state: SourceStatus }) {
 export function SourceStamp({ source, state, at, timeZone, timeZoneName, locale, onOpen, className, ...props }: SourceStampProps) {
   const when = at !== undefined && (state === "answered" || state === "stale") ? at : undefined;
   const zone = when !== undefined && timeZoneName ? zoneName(when, timeZoneName, { timeZone, locale }) : "";
-  // `datetime` is the instant (with its offset), so the stamp names one moment wherever it is read.
-  const time = when !== undefined ? <time dateTime={stampInstant(when, { timeZone })} className="basalt-time">{formatStamp(when, { timeZone, locale }).text}{zone ? `\u00a0${zone}` : null}</time> : null;
+  // `datetime` is the instant in UTC (`toISOString`), so the stamp names one moment wherever it is read; the drawn clock stays the zone's.
+  const time = when !== undefined ? <time dateTime={new Date(when).toISOString()} className="basalt-time">{formatStamp(when, { timeZone, locale }).text}{zone ? `\u00a0${zone}` : null}</time> : null;
   const words =
     state === "asking" ? <>asking {source}</>
     : state === "idle" ? <>{source}, not asked yet</>
@@ -96,7 +96,7 @@ const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
  * skeleton. Both sentences stand in one cell (`Reserve`), so the band keeps its height, and the failure is said once, politely.
  */
 export function SourceStateWords({ what, state, tried, why, timeZone, locale, onRetry, alternative, className, ...props }: SourceStateWordsProps) {
-  const stamp = tried !== undefined ? { text: formatStamp(tried, { timeZone, locale }).text, instant: stampInstant(tried, { timeZone }) } : null;
+  const stamp = tried !== undefined ? { text: formatStamp(tried, { timeZone, locale }).text, instant: new Date(tried).toISOString() } : null;
   const detail = stamp ? <> (tried <time dateTime={stamp.instant} className="basalt-time">{stamp.text}</time>{why ? `: ${why}` : ""})</> : why ? <> ({why})</> : null;
   return (
     <p {...props} className={join("basalt-source-state", className)} data-state={state}>

@@ -3085,7 +3085,7 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   it ("Show 5 earlier steps", "Show 5 earlier steps, 1 failed"; open, "Hide earlier steps") holds its line from the first frame and opens the
   whole record in full form. Hover and focus lift the tail to its first step. Nothing here speaks.
 - **`RunTimer`.** Geist Mono at `text-xs`, tertiary, tabular, a `time` with an ISO duration, never a live region: "12.3 s" under a minute
-  (every 100ms; whole seconds, "45 s", by the second, at a minutes or hours scale), "12 min 34 s" to an hour, "12 hr 34 min" to a day, then "3 days". One shared interval. Its seat is one `Reserve` cell as wide as its scale's longest form and never empty, the figure end-aligned in a column, centred under a rail's node and
+  (every 100ms; on a rail given the minutes scale, whole seconds, "45 s", by the second, its `datetime` still to the tenth), "12 min 34 s" to an hour, "12 hr 34 min" to a day, then "3 days". One shared interval. Its seat is one `Reserve` cell as wide as its scale's longest form and never empty, the figure end-aligned in a column, centred under a rail's node and
   start-aligned right after a `Terminal` head's state word (under 480px of the `Terminal`'s own width a head with a run's time is two rows:
   the title and the copy button on its end edge, then the state and its time from the title's start edge, `space-2` between the lines and `space-3`
   under the status, 70px at 390 and 320); a list sets one scale for all its timers. A run's head seat also holds today's held form
@@ -3206,7 +3206,7 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
   "Mmm 00 00:00 PM" in `en-US`).
 - **The source stamp** (`SourceStamp`; V5, V6, R8): four 8px shapes as drawn (filled, half-filled, hollow, a cross) and Basalt's braille for "asking", all in one 8 by 10 seat, with a word
   always; the "just landed" flash is dropped. Source first, time to the second and 24-hour, no middle dot ("github 18:52:07"); `Stat` is unchanged. V5 had no majority, so option (a) stands.
-  Its `time`'s `datetime` is an instant, with the zone's offset ("2026-11-24T15:55:17-06:00", `Z` at UTC); `timeZoneName` writes the zone's name inside the
+  Its `time`'s `datetime` is the instant in UTC ("2026-11-24T21:55:17.000Z"), the drawn clock the zone's; `timeZoneName` writes the zone's name inside the
   `time`, after a no-break space ("github 18:52:07 CST"), so it is in the stamp's accessible name.
   **Waiting and unreachable** (`SourceStateWords`): words only, both sentences in one `Reserve` cell, the failure said once through `StatusLine`, "Ask again" a `TextButton`.
 - **The status bar** (`StatusBar`; V7, R6, R7). A 44px foot from 720, fixed under it (56 plus the safe area). A message the app has also logged goes after 5000ms; any other stays until
