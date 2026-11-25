@@ -10,7 +10,7 @@ import { createRequire } from "node:module";
 import { after, before, describe, test } from "node:test";
 
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
-import { pkg } from "../../../packages/react/test/support.mjs";
+import { fixturePage as reactFixture, pkg } from "../../../packages/react/test/support.mjs";
 import { launch, openHtml } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
@@ -152,4 +152,43 @@ describe("the skill: the rest of the foot names its figure (G17)", () => {
     assert.deepEqual(errors, []);
     await context.close();
   });
+});
+
+describe("the list's heads match React's, whatever tag they are drawn as (cimip-gaps-3)", () => {
+  // The skill's core types h1 to h4 by tag (tracking on h3, balance on h1 to h4); a list's heads are headings of whatever level the title sets, so a
+  // figure with heading 2 (its heads h3) took h3's tracking in the skill and not in React, and so did the viewer's h3 heads. They inherit both now, as
+  // React's do. The page's list and the viewer's, at heading 2 and 3.
+  const read = (page, P) => page.evaluate((P) => [...document.querySelectorAll(`.${P}-list-head, .${P}-list-group`)].map((el) => {
+    const cs = getComputedStyle(el);
+    return `${el.closest("dialog") ? "viewer" : "page"} ${el.className.replace(/^.*-(list-\w+).*$/, "$1")} ${el.tagName} ${cs.letterSpacing} ${cs.textWrapMode} ${cs.textWrapStyle}`;
+  }).map((s) => s.replace(/ H\d /, " ")), P);
+  for (const heading of [2, 3]) {
+    test(`heading ${heading}: the skill's heads compute React's letter-spacing and text-wrap, on the page and in the viewer`, async () => {
+      const specs = { "fig-a": { ...A.architecture, heading }, "fig-d": { ...A.sequence, heading } };
+      const skillHtml = compose(`<title>Heads</title><main style="max-width:1104px;margin:0 auto;padding:16px"><h1>Heads</h1>${Object.entries(specs).map(([id, spec]) => `<figure class="diagram" id="${id}"><script type="application/json" data-diagram>${JSON.stringify(spec).replace(/</g, "\\u003c")}</script></figure>`).join("")}</main>`).html;
+      const skill = await openHtml(browser, skillHtml, { scheme: "dark", width: 1136 });
+      const react = await reactFixture(browser, `import a from "./test/fixtures/cimip-diagrams-b.json";
+        createRoot(document.getElementById("root")).render(<main style={{ width: 1104 }}><h1>Heads</h1><B.ArchitectureDiagram id="fig-a" {...a.architecture} heading={${heading}} /><B.SequenceDiagram id="fig-d" {...a.sequence} heading={${heading}} /></main>);`, { theme: "dark", standards: true, viewport: { width: 1136, height: 900 } });
+      const both = [[skill.page, "diagram", (id) => `#${id} .diagram-expand`, "dialog.diagram-viewer .diagram-viewer-end .diagram-toggle"], [react.page, "basalt-diagram", (id) => `#${id} .basalt-diagram-expand`, "dialog.basalt-diagram-viewer .basalt-diagram-toggle"]];
+      const got = [];
+      for (const [page, P, expand, toggle] of both) {
+        await page.waitForFunction((P) => [...document.querySelectorAll(`figure.${P}`)].every((f) => f.dataset.layout), P);
+        const lines = await read(page, P);
+        for (const id of Object.keys(specs)) {
+          await page.locator(expand(id)).click();
+          await page.waitForSelector(`dialog.${P}-viewer[open] figure.${P}[data-layout]`);
+          await page.locator(toggle).click();
+          await page.waitForSelector(`dialog.${P}-viewer .${P}-viewer-list`);
+          lines.push(...(await read(page, P)).filter((l) => l.startsWith("viewer")));
+          await page.keyboard.press("Escape");
+          await page.waitForSelector(`dialog.${P}-viewer`, { state: "detached" });
+        }
+        got.push(lines);
+      }
+      assert.ok(got[0].length > 6, JSON.stringify(got[0]));
+      assert.deepEqual(got[0], got[1]);
+      await skill.context.close();
+      await react.page.close();
+    });
+  }
 });
