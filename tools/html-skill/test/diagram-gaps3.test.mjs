@@ -122,3 +122,21 @@ describe("the skill: the viewer's outline", () => {
     await context.close();
   });
 });
+
+describe("the skill: the rest of the foot names its figure (G17)", () => {
+  test("Pause animations, Clear highlight, Download SVG and Download PNG: the words shown, then the title", async () => {
+    const M = JSON.parse(fs.readFileSync(path.join(pkg, "test", "fixtures", "diagram-motion.json"), "utf8"));
+    const page0 = compose(`<title>Foot</title><main style="max-width:1104px;margin:0 auto;padding:16px"><figure class="diagram" id="fig-m"><script type="application/json" data-diagram>${JSON.stringify({ ...M.kit, export: true }).replace(/</g, "\\u003c")}</script></figure></main>`).html;
+    const { page, context, errors } = await openHtml(browser, page0, { scheme: "dark", width: 1136, touch: true });
+    await page.waitForSelector(`#fig-m .${P}-pause`);
+    await page.waitForSelector(`#fig-m .${P}-clear`);
+    const t = await title(page, "fig-m");
+    const names = (await tree(page)).filter((n) => n.role === "button").map((n) => n.name);
+    for (const words of ["Pause animations", "Clear highlight", "Download SVG", "Download PNG", "View as list", "Expand"]) {
+      assert.equal(names.filter((n) => n === `${words} ${t}`).length, 1, `"${words} ${t}" in ${JSON.stringify(names)}`);
+    }
+    assert.deepEqual(await page.locator(`#fig-m .${P}-download`).allInnerTexts(), ["Download SVG", "Download PNG"]);
+    assert.deepEqual(errors, []);
+    await context.close();
+  });
+});

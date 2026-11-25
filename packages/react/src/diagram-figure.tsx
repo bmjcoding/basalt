@@ -655,12 +655,12 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
   // "Clear highlight" (1.5): last in the foot, mounted whenever the figure is on touch and can be traced, aria-disabled until a trace is up. A text
   // sequence (its art or its transcript) has no lines a tap traces, so it has none, as in the skill, which mounts it only for a figure drawn with lines.
   const clear = !viewer && !model.text && (onTouch || touched) && ink ? (
-    <button type="button" className="basalt-button basalt-diagram-clear" data-variant="secondary" data-size="sm" aria-disabled={touchTrace ? undefined : true} data-disabled={touchTrace ? undefined : ""} onClick={() => { if (touchTrace) setTouchTrace(null); }}>
-      <span className="basalt-button-label">Clear highlight</span>
+    <button type="button" className="basalt-button basalt-diagram-clear" data-variant="secondary" data-size="sm" aria-labelledby={`${base}-clear-words ${titleId}`} aria-disabled={touchTrace ? undefined : true} data-disabled={touchTrace ? undefined : ""} onClick={() => { if (touchTrace) setTouchTrace(null); }}>
+      <span id={`${base}-clear-words`} className="basalt-button-label">Clear highlight</span>
     </button>
   ) : null;
   // An app's actions (the foot decision): after Basalt's own controls and before "Clear highlight". A press settles a running entrance before onSelect.
   const own = Actions && actions ? <Actions actions={actions} viewer={false} component={component} describedBy={titleId} onPress={settle} context={() => ({ figure: figRef.current!, viewer: false, layout: layoutInfo() })} /> : null;
-  const foot = <>{toggle}{expand}{Foot && controller ? <Foot controller={controller} /> : null}{own}{clear}</>;
+  const foot = <>{toggle}{expand}{Foot && controller ? <Foot controller={controller} base={base} titleId={titleId} /> : null}{own}{clear}</>;
   return toReact(tree, { source, summary, hint, toggle: foot }, inkProp, root) as React.ReactElement;
 }

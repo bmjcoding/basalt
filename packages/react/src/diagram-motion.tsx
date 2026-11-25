@@ -17,15 +17,16 @@ const RUN_STOP = "Stop the run";
  * The foot's motion controls (1.9, 1.10), after "View as list": the run button, where the sequence names `run` and lines are drawn, and "Pause
  * animations", the page's hold (`LoopsToggle`'s button form at the small size), where the figure can loop. Each is a secondary small button, at least 44px on touch.
  */
-export function MotionFoot({ controller }: { controller: MotionController }) {
+export function MotionFoot({ controller, base, titleId }: { controller: MotionController; base: string; titleId: string }) {
   const state = React.useSyncExternalStore(controller.subscribe, controller.state, controller.state);
+  // Each names its figure (G17 of cimip-gaps-3): its own words (the button itself, referenced), then the title.
   return (
     <>
       {state.runShown ? (
-        <Button variant="secondary" size="sm" className="basalt-diagram-play" onClick={() => controller.toggleRun()}>{state.running ? RUN_STOP : RUN_PLAY}</Button>
+        <Button variant="secondary" size="sm" className="basalt-diagram-play" id={`${base}-play`} aria-labelledby={`${base}-play ${titleId}`} onClick={() => controller.toggleRun()}>{state.running ? RUN_STOP : RUN_PLAY}</Button>
       ) : null}
       {state.canLoop ? (
-        <LoopsToggleButton size="sm" className="basalt-diagram-pause" />
+        <LoopsToggleButton size="sm" className="basalt-diagram-pause" id={`${base}-pause`} labelledBy={`${base}-pause ${titleId}`} />
       ) : null}
     </>
   );

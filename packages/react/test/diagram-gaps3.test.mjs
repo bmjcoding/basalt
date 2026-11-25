@@ -159,3 +159,21 @@ describe("the viewer's outline", () => {
     });
   }
 });
+
+describe("the rest of the foot names its figure (G17)", () => {
+  test("Pause animations and Clear highlight: the words shown, then the title; the words on screen are unchanged", async () => {
+    const { page, errors } = await fixturePage(browser, `import m from "./test/fixtures/diagram-motion.json";
+      createRoot(document.getElementById("root")).render(<main style={{ width: 1104 }}><B.ArchitectureDiagram id="fig-m" {...m.kit} /></main>);`,
+    { theme: "dark", standards: true, viewport: { width: 1136, height: 900 }, hasTouch: true, isMobile: true });
+    await page.waitForSelector(`#fig-m .${P}-pause`);
+    await page.waitForSelector(`#fig-m .${P}-clear`);
+    const t = await title(page, "fig-m");
+    const names = (await tree(page)).filter((n) => n.role === "button").map((n) => n.name);
+    assert.equal(names.filter((n) => n === `Pause animations ${t}`).length, 1, JSON.stringify(names));
+    assert.equal(names.filter((n) => n === `Clear highlight ${t}`).length, 1, JSON.stringify(names));
+    assert.equal(await page.locator(`#fig-m .${P}-pause`).innerText(), "Pause animations");
+    assert.equal(await page.locator(`#fig-m .${P}-clear`).innerText(), "Clear highlight");
+    assert.deepEqual(errors, []);
+    await page.close();
+  });
+});

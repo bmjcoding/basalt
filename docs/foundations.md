@@ -1967,8 +1967,8 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   described by the summary and a sentence about the keys (hidden, so a page of figures never reads it in its flow; the hint on screen is
   hidden from assistive technology). Each node is named by a sentence that says what it is, where it sits, and what it connects from
   and to: a focus stop is a `role="button"` described as its stop's noun (`aria-roledescription="part"`), and a card that is not a stop
-  (before script) a `role="img"` (G17 and G18 of cimip-gaps-3, DECISIONS 385). "View as list" and "Expand" are named by their words, then
-  the figure's title. → ↓ ← ↑ move to the nearest part in that direction: first a part in the same row
+  (before script) a `role="img"` (G17 and G18 of cimip-gaps-3, DECISIONS 385). Basalt's foot buttons are named by their words, then the
+  figure's title; an app's action keeps its own name and is described by the title. → ↓ ← ↑ move to the nearest part in that direction: first a part in the same row
   or column, then the lowest of tracks along the arrow plus twice the tracks across it. The rule runs on a part's column and rows,
   never on its measured centre, and a figure whose parts cannot all be reached that way keeps the author's order. Stacked, the keys
   are the author's order. Home and End the ends, Esc clears. No live region. The SVG is `aria-hidden`. A layout change keeps focus on the same node, and never moves it, even into a stack with no stops.

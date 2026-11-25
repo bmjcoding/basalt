@@ -877,7 +877,7 @@
         "toggle",
         "glyph"
       ],
-      "budget": 30450,
+      "budget": 30800,
       "usage": 1450,
       "builds": [
         "loops",
@@ -886,7 +886,8 @@
       ],
       "glyphs": [
         "pause"
-      ]
+      ],
+      "budgetReason": " cimip-gaps-3 (the console log G17, DECISIONS 385): the foot buttons named for their figure (their words, then the title): 30440 to 30621 bytes, cap 30450 to 30800."
     },
     "diagram-zoom": {
       "classes": [
@@ -931,8 +932,9 @@
       "requires": [
         "diagram"
       ],
-      "budget": 12850,
-      "usage": 760
+      "budget": 13100,
+      "usage": 760,
+      "budgetReason": " cimip-gaps-3 (the console log G17, DECISIONS 385): the foot buttons named for their figure (their words, then the title): 12811 to 12969 bytes, cap 12850 to 13100."
     },
     "diagram-text": {
       "text": [

@@ -130,6 +130,9 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
         clearBtn.setAttribute('data-variant', 'secondary');
         clearBtn.setAttribute('data-size', 'sm');
         clearBtn.innerHTML = '<span>Clear highlight</span>';
+        // Named for its figure (G17 of cimip-gaps-3): its words, then the title, as React's.
+        clearBtn.firstChild.id = base + '-clear-words';
+        clearBtn.setAttribute('aria-labelledby', base + '-clear-words ' + base + '-title');
         clearBtn.addEventListener('click', function () { if (touchTrace) { touchTrace = null; retrace(); } });
         // Last of the controls; a download's note (the diagram-export module's) stays under them, the last thing in the foot.
         foot.insertBefore(clearBtn, foot.querySelector(':scope > .diagram-export-note'));
