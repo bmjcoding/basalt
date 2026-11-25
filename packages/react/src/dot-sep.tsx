@@ -37,9 +37,10 @@ export interface DotLineProps extends Omit<React.ComponentProps<"span">, "childr
  * A status line: its children, joined by a dot ("In design · Pilot planned"). Read, it is "In design, Pilot planned". Every dot-separated line Basalt draws is built from the same
  * `DotSep`, so it reads the same.
  *
- * Where the line wraps, a dot stays with the fact before it, a fact drawn as an inline block (a badge) included: each element fact and its dot are held in one span
- * (`basalt-dot-keep`) that does not wrap between them, while the fact itself wraps as the line does. A line that never wraps (one line cut with an ellipsis) sets
- * `--basalt-dot-line-wrap: nowrap` on itself or a parent, so its facts do not wrap either; `AppHeader`'s facts do.
+ * Where the line wraps, a dot stays with the end of the fact before it and the next line starts with a fact, a fact drawn as an inline block (a badge) included.
+ * Each fact but the last is held with its dot in a span that does not wrap (`basalt-dot-keep`), and the fact sits in a box-less span (`display: contents`) that
+ * gives it the line's own wrapping back, so a fact of words, or of several spans, wraps as the line does and only the dot is glued to its end. A line that never
+ * wraps (one line cut with an ellipsis) sets `--basalt-dot-line-wrap: nowrap` on itself or a parent; `AppHeader`'s facts do.
  */
 export function DotLine({ children, className, ...props }: DotLineProps) {
   const items = React.Children.toArray(children);
@@ -48,16 +49,10 @@ export function DotLine({ children, className, ...props }: DotLineProps) {
     <span {...props} className={join("basalt-dot-line", className)}>
       {items.map((item, index) => {
         const key = React.isValidElement(item) && item.key !== null ? item.key : index;
-        // A keyed fragment around one fact (AppHeader's) is that fact.
-        const fact = React.isValidElement<{ children?: React.ReactNode }>(item) && item.type === React.Fragment ? item.props.children : item;
-        // Words (a string, a number) keep their dot by the dot's own spaces; an element may be an inline block, which only a parent that does not wrap holds.
-        if (index < last && React.isValidElement(fact) && fact.type !== React.Fragment) return <span key={key} className="basalt-dot-keep">{fact}<DotSep spaced /></span>;
-        return (
-          <React.Fragment key={key}>
-            {item}
-            {index < last ? <DotSep spaced /> : null}
-          </React.Fragment>
-        );
+        if (index === last) return <React.Fragment key={key}>{item}</React.Fragment>;
+        // An inline block has a break after it whatever follows, unless the box it sits in does not wrap: the keep is that box (the fact's span has none of
+        // its own), and the fact's words and spans take the line's wrapping from the span around them.
+        return <span key={key} className="basalt-dot-keep"><span className="basalt-dot-fact">{item}</span><DotSep spaced /></span>;
       })}
     </span>
   );

@@ -12,7 +12,8 @@ export interface UseFocusNetOptions {
  * An opt-in focus net for the whole app. When the control that had focus is removed by the app's own state (a row decided, a form answered, a
  * callout dismissed, a dialog whose opener has gone) and focus falls to nothing (the document's body) with no dialog, sheet or menu open, focus lands
  * on the page's landing place: usually its title (`AppHeader`'s `titleRef`), the same place `useRouteFocus` lands on. A reader who clicks the
- * page's background, or a focus the app moves itself, is left alone: only a focus lost with its control is caught. Use it once, in the shell.
+ * page's background, or a focus the app moves itself, is left alone: only a focus lost with its control, while the control held it, is caught (a control
+ * left on purpose and removed later is not). Use it once, in the shell.
  */
 export function useFocusNet(target: FocusPlace, { enabled = true }: UseFocusNetOptions = {}): void {
   const aim = React.useRef(target);
@@ -25,6 +26,16 @@ export function useFocusNet(target: FocusPlace, { enabled = true }: UseFocusNetO
     let frame = 0;
     const track = (event: FocusEvent) => {
       if (event.target instanceof Element) last = event.target;
+    };
+    // Focus left the control for nothing: a press on the page's background. (A window losing focus keeps its active element, so it is not this.) Once the
+    // events have settled, a control still in the document was left on purpose, and its later removal is not a lost focus: it is forgotten. A control
+    // removed while it held focus is gone by then, and is kept for the catch.
+    const left = (event: FocusEvent) => {
+      const control = last;
+      if (event.relatedTarget !== null || control === null || event.target !== control) return;
+      queueMicrotask(() => {
+        if (last === control && control.isConnected && doc.activeElement !== control) last = null;
+      });
     };
     const lost = () => {
       const active = doc.activeElement;
@@ -44,10 +55,12 @@ export function useFocusNet(target: FocusPlace, { enabled = true }: UseFocusNetO
     });
     watch.observe(doc.body, { childList: true, subtree: true });
     doc.addEventListener("focusin", track, true);
+    doc.addEventListener("focusout", left, true);
     return () => {
       cancelAnimationFrame(frame);
       watch.disconnect();
       doc.removeEventListener("focusin", track, true);
+      doc.removeEventListener("focusout", left, true);
     };
   }, [enabled]);
 }

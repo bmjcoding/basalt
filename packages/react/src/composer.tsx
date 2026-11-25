@@ -49,8 +49,8 @@ export interface ComposerProps extends Omit<React.ComponentProps<"div">, "onChan
    */
   status?: React.ReactNode;
   /**
-   * When a change of `status` is spoken. `"focus"` (the default): while focus is in the composer (the field, its actions or Send), so "Ana is typing"
-   * reaches the person who is writing and not one reading the page around it. `"always"`: whenever it changes, for a status every reader needs. `"off"`:
+   * When a change of `status` is spoken. `"focus"` (the default): while the field has focus, so "Ana is typing" reaches the person who is
+   * writing and not one reading the page around it. `"always"`: whenever it changes, for a status every reader needs. `"off"`:
    * never; the line is still there to read.
    */
   statusLive?: "focus" | "always" | "off";
@@ -68,10 +68,10 @@ export interface ComposerProps extends Omit<React.ComponentProps<"div">, "onChan
 
 /**
  * A message field with its send action. The field has an accessible name and no visible label; it grows with its text up to `maxRows` and
- * then scrolls. The row under it holds the app's `actions`, the `status` (a polite live region while focus is in the composer) and Send (primary, the row's last). A key sends by pressing Send, so a send is guarded by the button's own wait. With `mentions`, the
+ * then scrolls. The row under it holds the app's `actions`, the `status` (a polite live region while the field has focus) and Send (primary, the row's last). A key sends by pressing Send, so a send is guarded by the button's own wait. With `mentions`, the
  * trigger opens a picker of names while focus stays in the field.
  */
-export function Composer({ label, value, defaultValue = "", onValueChange, onSend, sendKey = "Enter", sendLabel = "Send", waitForAnswer = true, placeholder, rows = 2, maxRows = 8, actions, status, statusLive = "focus", mentions, disabled = false, inputRef, textareaProps, className, style, onFocus, onBlur, ...props }: ComposerProps) {
+export function Composer({ label, value, defaultValue = "", onValueChange, onSend, sendKey = "Enter", sendLabel = "Send", waitForAnswer = true, placeholder, rows = 2, maxRows = 8, actions, status, statusLive = "focus", mentions, disabled = false, inputRef, textareaProps, className, style, ...props }: ComposerProps) {
   const [inner, setInner] = React.useState(defaultValue);
   const text = value !== undefined ? value : inner;
   const own = React.useRef<HTMLTextAreaElement | null>(null);
@@ -80,9 +80,9 @@ export function Composer({ label, value, defaultValue = "", onValueChange, onSen
   const latest = React.useRef(text);
   latest.current = text;
   const empty = text.trim() === "";
-  // Whether focus is in the composer: its status is spoken only then, by default.
-  const [inside, setInside] = React.useState(false);
-  const live = statusLive === "always" || (statusLive === "focus" && inside);
+  // Whether the field has focus: the status is spoken only then, by default.
+  const [writing, setWriting] = React.useState(false);
+  const live = statusLive === "always" || (statusLive === "focus" && writing);
   const min = Math.max(1, rows);
   const max = Math.max(min, maxRows);
 
@@ -148,12 +148,6 @@ export function Composer({ label, value, defaultValue = "", onValueChange, onSen
       className={join("basalt-composer", className)}
       style={{ ...style, "--_rows": min, "--_max-rows": max } as React.CSSProperties}
       data-disabled={disabled ? "" : undefined}
-      onFocus={(event) => { onFocus?.(event); setInside(true); }}
-      onBlur={(event) => {
-        onBlur?.(event);
-        // Within the composer (the field to Send) is still inside.
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setInside(false);
-      }}
     >
       <Textarea
         {...textareaProps}
@@ -167,6 +161,8 @@ export function Composer({ label, value, defaultValue = "", onValueChange, onSen
         className="basalt-composer-field"
         onChange={(event) => { textareaProps?.onChange?.(event); change(event.currentTarget.value); }}
         onKeyDown={onKeyDown}
+        onFocus={(event) => { textareaProps?.onFocus?.(event); setWriting(true); }}
+        onBlur={(event) => { textareaProps?.onBlur?.(event); setWriting(false); }}
       />
       {mentions ? mentions(own) : null}
       <div className="basalt-composer-actions">

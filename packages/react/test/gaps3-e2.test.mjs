@@ -1,12 +1,13 @@
 // cimip-gaps-3, batch E2: focus, keys and live regions (engineering; no pixel at rest).
 //
-// 1  Toast: a toast is a named group, not a dialog; F6 lands on the newest toast's action.
-// 2  Composer: the status is a polite live region only while focus is in the composer (statusLive).
+// 1  Toast: a toast is a named group, not a dialog; F6 lands on the action the spoken hint promised (else the newest toast's).
+// 2  Composer: the status is a polite live region only while the field has focus (statusLive).
 // 3  DotSep and DotLine: the text reads "A, B" (no space before the comma); a wrapped line never starts with the dot, beside an inline-block fact too;
 //    the same for a notification group's ", 3 times" and StreamQuote's caption.
 // 4  Focus: route focus wins over a closing dialog's; scroll={false}; a late target; the title read late; AppHeader's titleRef; SkipLink onSkip and a
 //    function target; NotificationCenter initialFocus; useFocusNet.
-// 5  Keys: useShortcuts runs nothing while a dialog is open; isHardwareKey and useShortcutsVisible are exported; SearchField onOpen.
+// 5  Keys: useShortcuts runs nothing from a key pressed inside a dialog, menu or listbox; isOverlayOpen counts only a drawn popup; isHardwareKey and
+//    useShortcutsVisible are exported; SearchField onOpen.
 //
 // Written while tests are paused (DECISIONS 359): not run yet.
 
@@ -36,7 +37,8 @@ async function nameOf(page, selector) {
 
 // ---- 1: Toast ----
 
-const TOASTS = render(`<B.ToastProvider><Demo /></B.ToastProvider>`, `function Demo() { const t = B.useToast(); React.useEffect(() => { window.t = t; }, [t]); return <main style={{ padding: 16 }}><button id="page">On the page</button></main>; }`);
+// "k" on the page focuses the stack's region from script inside a key press: the keyboard-originated focus Base UI's F6 makes.
+const TOASTS = render(`<B.ToastProvider><Demo /></B.ToastProvider>`, `function Demo() { const t = B.useToast(); React.useEffect(() => { window.t = t; }, [t]); return <main style={{ padding: 16 }}><button id="page" onKeyDown={(e) => { if (e.key === "k") document.querySelector(".basalt-toast-viewport").focus(); }}>On the page</button><p id="blank" style={{ height: 200 }}>Background</p></main>; }`);
 
 describe("1: a toast is a group, and F6 reaches its action", () => {
   for (const theme of THEMES) {
@@ -72,25 +74,57 @@ describe("1: a toast is a group, and F6 reaches its action", () => {
         assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Undo", "the newest toast that has an action");
       } finally { await page.close(); }
     });
+
+    test(`${theme}: F6 lands on the action the hint promised last: A running, B with Undo, then A fails with Retry, and F6 reaches Retry`, async () => {
+      const { page } = await fixturePage(browser, TOASTS, { theme });
+      try {
+        await page.locator("#page").focus();
+        await page.evaluate(() => { window.a = window.t.show({ title: "Uploading the menu", running: true }); });
+        await page.evaluate(() => window.t.show({ title: "Order 4127 canceled", action: { label: "Undo", onClick: () => {} } }));
+        await page.evaluate(() => window.t.update(window.a, { title: "Upload failed", status: "danger", action: { label: "Retry", onClick: () => {} } }));
+        await page.getByRole("button", { name: "Retry" }).waitFor();
+        await page.keyboard.press("F6");
+        assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Retry", "the action the last hint named, not the first in the stack");
+      } finally { await page.close(); }
+    });
+
+    test(`${theme}: the region focused after a pointer press stays on the region; focused from a key press it goes on to the action`, async () => {
+      const { page } = await fixturePage(browser, TOASTS, { theme });
+      try {
+        await page.evaluate(() => window.t.show({ title: "File deleted", action: { label: "Undo", onClick: () => {} } }));
+        await page.locator(".basalt-toast-action").waitFor();
+        await page.locator("#blank").click();
+        await page.evaluate(() => document.querySelector(".basalt-toast-viewport").focus());
+        assert.equal(await page.evaluate(() => document.activeElement?.classList.contains("basalt-toast-viewport")), true, "not focus-visible: the background press moves nothing");
+        await page.locator("#page").focus();
+        await page.keyboard.press("k");
+        assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Undo", "focus-visible: on to the action");
+      } finally { await page.close(); }
+    });
   }
 });
 
 // ---- 2: Composer ----
 
-const COMPOSER = render(`<main style={{ padding: 16, width: 600 }}><button id="away">Away</button><B.Composer id="c1" label="Message the team" status="Ana is typing" onSend={() => {}} /><B.Composer id="c2" label="Reply" statusLive="always" status="Saved" onSend={() => {}} /></main>`);
+// A draft in the first field, so Send is enabled and a stop after it.
+const COMPOSER = render(`<main style={{ padding: 16, width: 600 }}><button id="away">Away</button><B.Composer id="c1" label="Message the team" defaultValue="On my way" status="Ana is typing" onSend={() => {}} /><B.Composer id="c2" label="Reply" statusLive="always" status="Saved" onSend={() => {}} /></main>`);
 
 describe("2: the composer's status is spoken while the reader is writing", () => {
   for (const theme of THEMES) {
-    test(`${theme}: aria-live is off at rest, polite while focus is in the composer (field or Send), off again after; "always" is always polite`, async () => {
+    test(`${theme}: aria-live is off at rest, polite while the field has focus, off on Send and away; "always" is always polite`, async () => {
       const { page } = await fixturePage(browser, COMPOSER, { theme });
       try {
         const live = (id) => page.locator(`#${id} .basalt-composer-status`).getAttribute("aria-live");
+        const at = () => page.evaluate(() => document.activeElement?.matches("#c1 textarea") ? "field" : document.activeElement?.matches("#c1 .basalt-composer-send") ? "send" : document.activeElement?.id || document.activeElement?.tagName);
         assert.equal(await live("c1"), "off");
         await page.locator("#c1 textarea").focus();
+        assert.equal(await at(), "field");
         assert.equal(await live("c1"), "polite");
         await page.keyboard.press("Tab");
-        assert.equal(await live("c1"), "polite", "still inside on the way to Send");
+        assert.equal(await at(), "send", "Send is enabled by the draft and is the next stop");
+        assert.equal(await live("c1"), "off", "on Send the reader is not in the field");
         await page.locator("#away").focus();
+        assert.equal(await at(), "away");
         assert.equal(await live("c1"), "off");
         assert.equal(await live("c2"), "polite");
       } finally { await page.close(); }
@@ -104,25 +138,25 @@ const LINES = render(`<main style={{ padding: 16 }}>
   <p id="text"><B.DotLine>{"In design"}{"Pilot planned"}</B.DotLine></p>
   <p id="wrap" style={{ width: 0 }}><B.DotLine>{"Alpha beta"}{"Delta"}</B.DotLine></p>
   <p id="badge" style={{ width: 0 }}><B.DotLine><B.Badge>Alpha beta</B.Badge>{"Delta"}</B.DotLine></p>
+  <p id="long" style={{ width: 120 }}><B.DotLine><Long />{"Delta"}</B.DotLine></p>
+  <p id="spans" style={{ width: 120 }}><B.DotLine><Spans />{"Delta"}</B.DotLine></p>
   <B.AppHeader id="head" title="Orders" facts={[<B.Badge key="b" status="success">Shipped</B.Badge>, "A long fact that does not fit beside the others at all", "Three"]} />
   <B.StreamQuote id="quote" cite="Dana asked" time="4:02 PM">How long is the queue?</B.StreamQuote>
-  <B.NotificationList id="list" entries={[{ id: "g", title: "Deploy finished", time: "now", entries: [{ id: "a", title: "One", time: "now" }, { id: "b", title: "Two", time: "now" }, { id: "c", title: "Three", time: "now" }] }]} />
-</main>`);
+  <div id="list"><B.NotificationList entries={[{ id: "g", title: "Deploy finished", time: "now", entries: [{ id: "a", title: "One", time: "now" }, { id: "b", title: "Two", time: "now" }, { id: "c", title: "Three", time: "now" }] }]} /></div>
+</main>`, `function Long() { return "One two three four five six seven eight nine ten eleven twelve"; }
+function Spans() { return <><span>One two three</span> <span>four five six</span> <span>seven eight nine</span></>; }`);
 
-/** The first line's top of the element, and the top of the line that holds the separator's dot (the separator's first box). */
+/** The top of the first fact's last line box, of the separator's dot, and of the next fact, with the line narrowed to the first fact plus a few pixels. */
 const lines = (page, selector) => page.evaluate((selector) => {
   const line = document.querySelector(selector);
-  // Narrowed to the first fact plus a few pixels: the dot cannot fit beside it.
-  const first = line.querySelector(".basalt-dot-line").firstChild;
   const range = document.createRange();
-  range.selectNodeContents(first);
-  const firstRects = [...(first.nodeType === 3 ? range.getClientRects() : first.getClientRects())];
-  line.style.width = `${Math.ceil(Math.max(...firstRects.map((r) => r.width))) + 4}px`;
-  const rects = first.nodeType === 3 ? [...range.getClientRects()] : [...first.getClientRects()];
+  // The fact's span has no box of its own: its contents' boxes are measured.
+  range.selectNodeContents(line.querySelector(".basalt-dot-fact"));
+  line.style.width = `${Math.ceil(Math.max(...[...range.getClientRects()].map((r) => r.width))) + 4}px`;
+  const fact = [...range.getClientRects()];
   const sep = line.querySelector(".basalt-dot-sep");
-  const next = line.querySelector(".basalt-dot-line").lastChild;
-  range.selectNodeContents(next);
-  return { factEnd: Math.round(rects.at(-1).top), dot: Math.round(sep.getClientRects()[0].top), next: Math.round([...(next.nodeType === 3 ? range.getClientRects() : next.getClientRects())][0].top) };
+  range.selectNodeContents(line.querySelector(".basalt-dot-line").lastChild);
+  return { factEnd: Math.round(fact.at(-1).top), dot: Math.round(sep.getClientRects()[0].top), next: Math.round(range.getClientRects()[0].top) };
 }, selector);
 
 describe("3: dot-separated text reads as words, and the dot keeps to the fact before it", () => {
@@ -134,7 +168,7 @@ describe("3: dot-separated text reads as words, and the dot keeps to the fact be
         assert.equal(await nameOf(page, "#text"), "In design, Pilot planned");
         assert.equal(await page.locator("#text").ariaSnapshot(), "- paragraph: In design, Pilot planned");
         assert.match(await page.locator("#quote figcaption").evaluate((el) => el.innerText), /^Dana asked, 4:02 ?\s?PM$/);
-        assert.match(await page.locator("#list .basalt-notification-title").first().evaluate((el) => el.innerText), /^Deploy finished, 3 times$/);
+        assert.match(await page.locator("#list .basalt-notification-list .basalt-notification-title").first().evaluate((el) => el.innerText), /^Deploy finished, 3 times$/);
       } finally { await page.close(); }
     });
 
@@ -149,12 +183,24 @@ describe("3: dot-separated text reads as words, and the dot keeps to the fact be
       } finally { await page.close(); }
     });
 
+    test(`${theme}: a fact of words from a component, or of several spans, still wraps as the line does: nothing is wider than 120`, async () => {
+      const { page } = await fixturePage(browser, LINES, { theme, viewport: { width: 390, height: 900 } });
+      try {
+        for (const selector of ["#long", "#spans"]) {
+          const box = await page.locator(selector).evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth, height: el.getBoundingClientRect().height }));
+          assert.ok(box.scroll <= box.client, `${selector}: ${JSON.stringify(box)}`);
+          assert.ok(box.height > 40, `${selector}: it wrapped onto several lines (${box.height})`);
+        }
+      } finally { await page.close(); }
+    });
+
     test(`${theme}: AppHeader's facts stay one line cut with an ellipsis at 390 (the kept fact does not wrap inside)`, async () => {
       const { page } = await fixturePage(browser, LINES, { theme, viewport: { width: 390, height: 900 } });
       try {
-        const box = await page.locator("#head .basalt-app-facts").evaluate((el) => ({ height: el.getBoundingClientRect().height, line: parseFloat(getComputedStyle(el).lineHeight), keeps: el.querySelectorAll(".basalt-dot-keep").length }));
-        assert.equal(box.keeps, 1, "the badge and its dot are held together");
-        assert.ok(box.height <= box.line + 0.5, `one line: ${JSON.stringify(box)}`);
+        const box = await page.locator("#head .basalt-app-facts").evaluate((el) => ({ height: el.getBoundingClientRect().height, scroll: el.scrollHeight, line: parseFloat(getComputedStyle(el).lineHeight), keeps: el.querySelectorAll(".basalt-dot-keep").length }));
+        assert.equal(box.keeps, 2, "each fact but the last is held with its dot");
+        // The badge sits on the line's top and may be taller than the 18px line (as on main); what matters is one line, not two.
+        assert.ok(box.height < 2 * box.line && box.scroll <= box.height + 0.5, `one line: ${JSON.stringify(box)}`);
       } finally { await page.close(); }
     });
   }
@@ -163,6 +209,8 @@ describe("3: dot-separated text reads as words, and the dot keeps to the fact be
 // ---- 4: Focus ----
 
 const ROUTES = render(`<App />`, `
+// A page that focuses its own field a frame after it mounts: its focus stands (no popup was open, so nothing is held).
+function Own() { const r = React.useRef(null); React.useEffect(() => { const f = requestAnimationFrame(() => r.current?.focus()); return () => cancelAnimationFrame(f); }, []); return <input id="own" ref={r} aria-label="Name" />; }
 window.scrolls = 0; const scrollTo = window.scrollTo.bind(window); window.scrollTo = (...a) => { window.scrolls++; scrollTo(...a); };
 function App() {
   const [route, setRoute] = React.useState("home");
@@ -180,6 +228,7 @@ function App() {
     <>
       <B.AppHeader title={"Page " + route} titleRef={title} actions={<button id="opener" onClick={() => setOpen(true)}>Find</button>} />
       {route === "late" && late ? <h2 tabIndex={-1} ref={lateTitle} id="late">Late</h2> : null}
+      {route === "form" ? <Own /> : null}
       <B.Dialog open={open} onOpenChange={setOpen}>
         <B.DialogContent finalFocus={() => document.getElementById("opener")}>
           <B.DialogTitle>Find</B.DialogTitle>
@@ -232,6 +281,26 @@ describe("4a: route focus", () => {
       } finally { await page.close(); }
     });
 
+    test(`${theme}: with no popup open, the new page's own focus a frame later stands`, async () => {
+      const { page } = await fixturePage(browser, ROUTES, { theme });
+      try {
+        await page.evaluate(() => window.go("form"));
+        await page.waitForFunction(() => document.activeElement?.id === "own");
+        await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(done)))));
+        assert.equal(await page.evaluate(() => document.activeElement?.id), "own");
+      } finally { await page.close(); }
+    });
+
+    test(`${theme}: a late title is landed on however late it comes (no deadline), and not after a new page`, async () => {
+      const { page } = await fixturePage(browser, ROUTES, { theme });
+      try {
+        await page.evaluate(() => window.go("late"));
+        await page.waitForTimeout(1500);
+        await page.evaluate(() => window.arrive());
+        await page.waitForFunction(() => document.activeElement?.id === "late");
+      } finally { await page.close(); }
+    });
+
     test(`${theme}: a late title is not landed on once the reader has pressed a key`, async () => {
       const { page } = await fixturePage(browser, ROUTES, { theme });
       try {
@@ -246,7 +315,8 @@ describe("4a: route focus", () => {
   }
 });
 
-const SKIPS = render(`<><B.SkipLink id="by-id" target="main" onSkip={(el) => { window.skipped = el?.id ?? null; }} /><B.SkipLink id="by-fn" target={() => document.querySelector(".waiting")}>Skip to the first waiting row</B.SkipLink><main id="main"><p>Intro</p><div className="waiting" id="row">First waiting</div></main></>`);
+// A router that makes every same-origin link a history entry, listening on the document (as many do): a press the link handled in place never reaches it.
+const SKIPS = render(`<><B.SkipLink id="by-id" target="main" onSkip={(el) => { window.skipped = el?.id ?? null; }} /><B.SkipLink id="by-fn" target={() => document.querySelector(".waiting")}>Skip to the first waiting row</B.SkipLink><main id="main"><p>Intro</p><div className="waiting" id="row">First waiting</div></main></>`, `document.addEventListener("click", (e) => { const a = e.target.closest?.("a"); if (!a || e.defaultPrevented) return; e.preventDefault(); history.pushState({}, "", a.getAttribute("href")); window.routed = (window.routed ?? 0) + 1; });`);
 
 describe("4b: SkipLink handled in place", () => {
   for (const theme of THEMES) {
@@ -263,6 +333,7 @@ describe("4b: SkipLink handled in place", () => {
         assert.equal(await page.evaluate(() => document.activeElement?.id), "row");
         assert.equal(await page.locator("#row").getAttribute("tabindex"), "-1", "made able to take focus");
         assert.deepEqual(await page.evaluate(() => [location.hash, history.length]), before);
+        assert.equal(await page.evaluate(() => window.routed), undefined, "the document's router never saw the press");
       } finally { await page.close(); }
     });
   }
@@ -284,14 +355,15 @@ describe("4c: NotificationCenter initialFocus", () => {
 
 const NET = render(`<App />`, `function App() {
   const title = React.useRef(null);
-  const [rows, setRows] = React.useState(["a", "b"]);
+  const [rows, setRows] = React.useState(["a", "b", "c"]);
+  window.remove = (r) => setRows((all) => all.filter((x) => x !== r));
   B.useFocusNet(title);
   return <><h1 tabIndex={-1} ref={title} id="title">Queue</h1>{rows.map((r) => <button key={r} id={"decide-" + r} onClick={() => setRows((all) => all.filter((x) => x !== r))}>Decide {r}</button>)}<p id="blank" style={{ height: 200 }}>Background</p></>;
 }`);
 
 describe("4d: useFocusNet", () => {
   for (const theme of THEMES) {
-    test(`${theme}: a focused control removed by the app lands focus on the title; a click on the background does not`, async () => {
+    test(`${theme}: a focused control removed by the app lands focus on the title; a click on the background, and that control's removal later, do not`, async () => {
       const { page } = await fixturePage(browser, NET, { theme });
       try {
         await page.locator("#decide-a").focus();
@@ -301,6 +373,10 @@ describe("4d: useFocusNet", () => {
         await page.locator("#blank").click();
         await page.waitForTimeout(100);
         assert.equal(await page.evaluate(() => document.activeElement === document.body), true, "the reader's own click is left alone");
+        await page.evaluate(() => window.remove("b"));
+        await page.locator("#decide-b").waitFor({ state: "detached" });
+        await page.waitForTimeout(100);
+        assert.equal(await page.evaluate(() => document.activeElement === document.body), true, "a control left on purpose and removed later pulls nothing");
       } finally { await page.close(); }
     });
   }
@@ -308,10 +384,14 @@ describe("4d: useFocusNet", () => {
 
 // ---- 5: Keys ----
 
+// An app's own non-modal dialog in the page, a dialog mounted but hidden, and a popup open elsewhere (in a portal, as Base UI draws one).
 const KEYS = render(`<App />`, `function App() {
   const [open, setOpen] = React.useState(false);
   B.useShortcuts([{ key: "j", description: "Next", run: () => { window.ran = (window.ran ?? 0) + 1; } }]);
-  return <><button id="page">Page</button><B.Dialog open={open} onOpenChange={setOpen}><B.DialogTrigger id="open">Open</B.DialogTrigger><B.DialogContent><B.DialogTitle>Help</B.DialogTitle><button id="inside">Inside</button></B.DialogContent></B.Dialog>
+  return <><button id="page">Page</button>
+    <div role="dialog" aria-label="Filters" id="own-dialog"><button id="in-own">Apply</button></div>
+    <div data-base-ui-portal=""><div role="dialog" aria-label="Hidden" hidden><button>Hidden</button></div></div>
+    <div data-base-ui-portal="" id="elsewhere"></div><B.Dialog open={open} onOpenChange={setOpen}><B.DialogTrigger id="open">Open</B.DialogTrigger><B.DialogContent><B.DialogTitle>Help</B.DialogTitle><button id="inside">Inside</button></B.DialogContent></B.Dialog>
     <B.SearchField label="Search this room" value={window.q ?? ""} onValueChange={(v) => { window.q = v; }} onOpen={(v) => { window.opened = [...(window.opened ?? []), v]; }} onSubmit={() => { window.submitted = true; }} /></>;
 }`);
 
@@ -328,6 +408,44 @@ describe("5: keys", () => {
         await page.keyboard.press("j");
         assert.equal(await page.evaluate(() => window.ran), 1, "not from inside the dialog");
         assert.equal(await page.evaluate(() => B.isOverlayOpen()), true);
+      } finally { await page.close(); }
+    });
+
+    test(`${theme}: an app's own non-modal role="dialog" keeps its keys; a hidden mounted dialog blocks nothing; back on the page with a popup open elsewhere, the key runs`, async () => {
+      const { page } = await fixturePage(browser, KEYS, { theme });
+      try {
+        await page.locator("#in-own").focus();
+        await page.keyboard.press("j");
+        assert.equal(await page.evaluate(() => window.ran), undefined, "inside the app's own dialog");
+        await page.locator("#page").focus();
+        await page.keyboard.press("j");
+        assert.equal(await page.evaluate(() => window.ran), 1, "the hidden dialog does not block the page");
+        assert.equal(await page.evaluate(() => B.isOverlayOpen()), false, "a hidden popup and an in-page dialog are not open over the page");
+        await page.evaluate(() => { const pop = document.createElement("div"); pop.setAttribute("role", "dialog"); pop.textContent = "A popover"; document.getElementById("elsewhere").append(pop); });
+        assert.equal(await page.evaluate(() => B.isOverlayOpen()), true);
+        await page.locator("#page").focus();
+        await page.keyboard.press("j");
+        assert.equal(await page.evaluate(() => window.ran), 2, "a key pressed on the page runs while a popover is open elsewhere");
+      } finally { await page.close(); }
+    });
+
+    test(`${theme}: isOverlayOpen counts a popup only while it is drawn: not hidden, not display: none, not inert, not closed for good`, async () => {
+      const { page } = await fixturePage(browser, KEYS, { theme });
+      try {
+        const states = await page.evaluate(() => {
+          const pop = document.createElement("div");
+          pop.setAttribute("role", "dialog");
+          pop.textContent = "Popup";
+          document.getElementById("elsewhere").append(pop);
+          const read = () => B.isOverlayOpen();
+          const out = { drawn: read() };
+          pop.style.display = "none"; out.none = read(); pop.style.display = "";
+          pop.setAttribute("inert", ""); out.inert = read(); pop.removeAttribute("inert");
+          pop.setAttribute("data-closed", ""); pop.setAttribute("data-ending-style", ""); out.closing = read();
+          pop.removeAttribute("data-ending-style"); out.closed = read();
+          return out;
+        });
+        assert.deepEqual(states, { drawn: true, none: false, inert: false, closing: true, closed: false });
       } finally { await page.close(); }
     });
 

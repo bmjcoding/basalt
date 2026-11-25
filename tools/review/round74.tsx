@@ -55,7 +55,7 @@ function Toasts({ state }: { state: string }) {
     // The shot after F6: the key itself cannot be pressed from here, so focus goes where F6 now takes it.
     if (state === "after-f6") window.setTimeout(() => document.querySelector<HTMLElement>(".basalt-toast-action")?.focus({ focusVisible: true } as FocusOptions), 400);
   }, [state, toast]);
-  return <p style={label}>Two toasts, the newer without an action. F6 lands on Undo, the newest action.</p>;
+  return <p style={label}>Two toasts, the newer without an action. F6 lands on Undo, the action the hint named.</p>;
 }
 
 function Title({ state }: { state: string }) {
@@ -81,7 +81,7 @@ export const ROUND_74: Round = {
       intro: "The same lines in columns of three widths: today's (on a phone, above) and this build's. Where a line wraps at a dot, the dot ends the line and the next starts with a word, beside a badge too.",
       decisions: [
         "A spaced dot's own spaces do not wrap, so it keeps to the word before it; where it starts a box (a flex item) its leading space is still dropped.",
-        "DotLine holds an element fact (a badge, drawn as an inline block, after which a browser may always break) and its dot in one span that does not wrap; the fact itself wraps as the line does. A line that never wraps sets --basalt-dot-line-wrap: nowrap (AppHeader's facts).",
+        "DotLine holds each fact and its dot in one span that does not wrap, the fact in a box-less span (display: contents) that wraps as the line does, so after a badge (an inline block, after which a browser may always break) the dot stays too, and only the dot is glued to the fact's end. A line that never wraps sets --basalt-dot-line-wrap: nowrap (AppHeader's facts).",
         "The read \", \" is inline text drawn at no size (basalt-said), so the text reads \"Ready, Order 4127, Pickup at 9:30\" with no space before a comma; nothing about it is drawn.",
         NOT_REVIEWED,
       ],
@@ -92,8 +92,8 @@ export const ROUND_74: Round = {
     },
     {
       id: "toast-f6",
-      name: "F6 lands on the newest toast's action",
-      intro: "The spoken hint says \"Undo is available. Press F6 to reach it.\" F6 used to stop on the stack's region; it now goes on to the newest action, which draws its own control ring.",
+      name: "F6 lands on the action the hint promised",
+      intro: "The spoken hint says \"Undo is available. Press F6 to reach it.\" F6 used to stop on the stack's region; it now goes on to the action of the toast whose action was announced last (else the newest toast's), which draws its own control ring.",
       decisions: [
         "With no toast that has an action, F6 lands on the region as before, and the region's ring on the front toast (DECISIONS 156) is unchanged.",
         "The toast's root is a named group, not a dialog: it never counts as an open dialog (isOverlayOpen), so single keys and the focus net carry on while a toast shows.",

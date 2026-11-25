@@ -1618,7 +1618,8 @@
      (WCAG 1.4.12) the line grows with its line height and nothing is clipped; it stays one line, cut at its end, and the bar's
      centring takes the difference. */
   .basalt-app-facts > .basalt-dot-line > *,
-  .basalt-app-facts > .basalt-dot-line > .basalt-dot-keep > * { vertical-align: top; }
+  .basalt-app-facts > .basalt-dot-line > .basalt-dot-keep > *,
+  .basalt-app-facts > .basalt-dot-line > .basalt-dot-keep > .basalt-dot-fact > * { vertical-align: top; }
 
   /* The brand slot: the 32px header lockup in a target at least 44 by 44 (a mark with no word is 32 wide, so the link keeps 44 and the mark stays at its
      start, drawing nothing new). Identity, not a nav item: no wash. */
@@ -8358,11 +8359,14 @@
      next word (the break comes after the read ", "). The leading space is an ordinary one, so where the dot starts a box (a flex item) it is
      dropped as before. */
   .basalt-dot-sep[data-spaced]::before { content: " · "; content: " · " / ""; white-space: nowrap; }
-  /* An inline block (a badge, a chip) has a break after it whatever follows, unless its parent does not wrap: DotLine holds such a fact and its
-     dot in one span that does not wrap, and gives the fact itself, and the read ", " after the dot, the line's own wrapping back. A line that
-     does not wrap (a one-line ellipsis) says so to its facts with `--basalt-dot-line-wrap: nowrap`. */
+  /* An inline block (a badge, a chip) has a break after it whatever follows, unless the box it sits in does not wrap: DotLine holds each fact and
+     its dot in one span that does not wrap. The fact's own span has no box (display: contents), so an inline block in it sits in the keep's box,
+     while its words and spans inherit the line's wrapping from it: a fact of words or of several spans wraps as the line does, and only the dot is
+     glued to its end. The read ", " after the dot takes the line's wrapping too, so the next fact can start a line. A line that does not wrap (a
+     one-line ellipsis) says so with `--basalt-dot-line-wrap: nowrap`. */
   .basalt-dot-keep { white-space: nowrap; }
-  .basalt-dot-keep > :first-child,
+  .basalt-dot-fact { display: contents; }
+  .basalt-dot-fact,
   .basalt-dot-keep > .basalt-dot-sep > .basalt-said { white-space: var(--basalt-dot-line-wrap, normal); }
   .basalt-date-age-seat { justify-items: start; }
 
