@@ -125,7 +125,7 @@ export interface TimeChartProps extends Omit<React.ComponentProps<"figure">, "ch
    */
   lane?: { span: readonly [number, number]; children: (geometry: ChartLaneGeometry) => React.ReactNode; below?: (geometry: ChartLaneGeometry) => React.ReactNode };
   /**
-   * Pressing a day, or Enter on the focused day, calls this with its index (the phase chart opens that day's week). A day stays an image with a roving tab stop; a
+   * Pressing a day, or Enter on the focused day, calls this with its index (the phase chart opens that day's week). A day stays a grid's cell with a roving tab stop; a
    * pointer still only picks. `activateHint` says what Enter does, in the key legend ("opens the week").
    */
   onDayActivate?: (index: number) => void;
@@ -625,8 +625,10 @@ export function TimeChart({
         />
       ) : null}
       {layout ? (
+        // A grid of one row whose cells are the days (G18): a day is a focus stop in a roving set the arrow keys move through, which is a grid's cell; an image is not a focus
+        // stop. The grid is still said as a chart, and each day as its sentence. The row has no box: the days are placed on the grid's own box.
         <div
-          role="group"
+          role="grid"
           aria-roledescription="chart"
           aria-labelledby={titleId}
           aria-describedby={`${captionId} ${keysId}`}
@@ -638,11 +640,12 @@ export function TimeChart({
           }}
           onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocusWithin(false); }}
         >
+          <div role="row">
           {Array.from({ length: n }, (_, i) => (
             <div
               key={i}
               ref={(element) => { dayRefs.current[i] = element; }}
-              role="img"
+              role="gridcell"
               tabIndex={i === stop ? 0 : -1}
               aria-label={sentences[i]}
               data-i={i}
@@ -651,6 +654,7 @@ export function TimeChart({
               style={{ left: layout.x0 + i * layout.slot, top: layout.top, width: layout.slot, height: layout.plotH }}
             />
           ))}
+          </div>
         </div>
       ) : null}
       <span id={keysId} className="basalt-visually-hidden">Arrow keys move a day, Page Up and Page Down a week, Home and End to the ends.{onDayActivate && activateHint ? ` Enter ${activateHint}.` : ""}</span>

@@ -295,7 +295,7 @@
       '<div class="chart-head"><' + heading + ' id="' + titleId + '" class="chart-title">' + esc(o.title || '') + '</' + heading + '>' + (o.source ? '<p class="chart-source">' + esc(o.source) + '</p>' : '') + '</div>' +
       '<div class="chart-key"><p class="chart-date">' + reserves(dateForms) + '<span data-part="date"></span></p><ul class="chart-legend" aria-label="Key">' + legend + '</ul></div>' +
       '<div class="chart-plot"><span class="chart-ruler" aria-hidden="true"></span><div class="chart-svg-host"></div>' +
-      '<div role="group" aria-roledescription="chart" aria-labelledby="' + titleId + '" aria-describedby="' + captionId + ' ' + keysId + '" class="chart-days"></div>' +
+      '<div role="grid" aria-roledescription="chart" aria-labelledby="' + titleId + '" aria-describedby="' + captionId + ' ' + keysId + '" class="chart-days"><div role="row"></div></div>' +
       '<span id="' + keysId + '" class="visually-hidden">Arrow keys move a day, Page Up and Page Down a week, Home and End to the ends.</span></div>' +
       '<p class="chart-hint" data-kbd-hint="" aria-hidden="true"><span>' + kbdChip('←') + ' ' + kbdChip('→') + ' a day</span><span>' + kbdChip('PgUp') + ' ' + kbdChip('PgDn') + ' a week</span><span>' + kbdChip('Home') + ' ' + kbdChip('End') + ' the ends</span></p>' +
       '<div class="chart-foot"><button type="button" class="btn chart-toggle" data-variant="secondary" data-size="sm" aria-expanded="false" aria-controls="' + tableId + '"><span>View as table</span></button></div>' +
@@ -311,14 +311,16 @@
     var toggle = figure.querySelector('.chart-toggle');
     var tableEl = figure.querySelector('.chart-table');
 
+    /* A grid of one row whose cells are the days, as React's (G18): a focus stop needs a widget role, and an image is not one. The row has no box. */
+    var dayRow = daysEl.firstChild;
     var dayEls = [];
     for (var di = 0; di < n; di++) {
       var dayEl = document.createElement('div');
-      dayEl.setAttribute('role', 'img');
+      dayEl.setAttribute('role', 'gridcell');
       dayEl.className = 'chart-day';
       dayEl.setAttribute('data-i', di);
       dayEl.setAttribute('aria-label', daySentence(c, di));
-      daysEl.appendChild(dayEl);
+      dayRow.appendChild(dayEl);
       dayEls.push(dayEl);
     }
 

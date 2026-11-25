@@ -723,19 +723,22 @@ describe("Chart direct labels and narrow", () => {
 // Keyboard and screen readers
 
 describe("Chart keyboard", () => {
-  test("the plot is one tab stop: a group named by the chart, with a focusable image a day and roving tabindex", async () => {
+  test("the plot is one tab stop: a grid said as a chart, one row, a focusable cell a day and roving tabindex (G18: no focus stop without a widget role)", async () => {
     const { page } = await chartPage();
     const group = page.locator(".basalt-chart-days");
-    assert.equal(await group.getAttribute("role"), "group");
+    assert.equal(await group.getAttribute("role"), "grid");
+    assert.equal(await group.locator(':scope > [role="row"]').count(), 1, "the grid owns one row, which owns the days");
+    assert.equal(await group.locator('[role="row"] > [role="gridcell"]').count(), 28);
+    assert.equal(await group.locator('[role="row"]').evaluate((el) => el.getBoundingClientRect().height), 0, "the row has no box of its own");
     assert.equal(await group.getAttribute("aria-roledescription"), "chart");
     assert.equal(await group.evaluate((el) => document.getElementById(el.getAttribute("aria-labelledby")).textContent), "Sleep");
     assert.ok((await group.getAttribute("aria-describedby")).split(" ").length === 2);
     assert.equal(await group.locator('[tabindex="0"]').count(), 1, "one tab stop");
-    assert.equal(await group.locator('[role="img"]').count(), 28);
+    assert.equal(await group.locator('[role="img"]').count(), 0);
     assert.equal(await group.locator('[tabindex="-1"]').count(), 27);
     // from the page's start: the plot's one stop, then the next control; never a second day
     await page.keyboard.press("Tab");
-    assert.equal(await page.evaluate(() => document.activeElement.getAttribute("role")), "img");
+    assert.equal(await page.evaluate(() => document.activeElement.getAttribute("role")), "gridcell");
     await page.keyboard.press("Tab");
     assert.equal(await page.evaluate(() => document.activeElement.tagName), "BUTTON", "Tab leaves the plot; nothing is trapped");
     await page.close();

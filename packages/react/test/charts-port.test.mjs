@@ -414,9 +414,9 @@ for (const theme of THEMES) {
       assert.deepEqual(await box(page.locator(".basalt-phase-calls")), lane);
     });
 
-    test("a press on a day opens its week, and so does Enter on the focused day; days stay images with one tab stop and there is no live region", async () => {
+    test("a press on a day opens its week, and so does Enter on the focused day; days stay grid cells with one tab stop and there is no live region", async () => {
       const { page } = await scenePage({ scene: "phase" }, { theme });
-      assert.equal(await page.locator(".basalt-chart-day[role=img]").count(), 84);
+      assert.equal(await page.locator(".basalt-chart-day[role=gridcell]").count(), 84);
       assert.equal(await page.locator(".basalt-chart-day[tabindex='0']").count(), 1);
       assert.equal(await main(page).locator("[aria-live]").count(), 0);
       const day = await box(page.locator(".basalt-chart-day").nth(30));
