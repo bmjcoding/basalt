@@ -4656,6 +4656,54 @@
     .basalt-run-stage-fill { border-color: CanvasText; }
   }
 
+  /* A clock in a stage's seat (cimip-gaps-3 T2, 3a): when the stage started, as a person reads a clock: sans (never mono), tabular, text-xs, tertiary, in
+     one Reserve cell as wide as the locale's widest clock (and, in a list with a stage on another day, its widest date), end-aligned in a list and
+     centred on a rail, so nothing moves. It does not tick and does not hide under the hold. */
+  .basalt-run-clock { display: inline-grid; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .basalt-run-clock > .basalt-reserve { justify-items: end; }
+  .basalt-run-stage-status .basalt-run-clock > .basalt-reserve { justify-items: center; }
+
+  /* A stage's own disclosure (3d). In a list the line is the button: no wash, the inks lift on hover (secondary and tertiary to the next step up), the
+     control ring at +2 with radius 6, 44 tall on touch; the core chevron at 16 after the time, right to down. When any stage folds, every row keeps the
+     chevron's seat (space-2 after the time), so the times stay one column. */
+  .basalt-run-stage-end { display: inline-flex; align-items: center; gap: var(--basalt-space-2); }
+  .basalt-run-stage-chevron { display: inline-grid; flex: none; place-items: center; inline-size: var(--basalt-size-icon-sm); block-size: var(--basalt-size-icon-sm); color: var(--basalt-text-secondary); }
+  button.basalt-run-stage-line { inline-size: 100%; margin: 0; padding-inline: 0; border: 0; border-radius: var(--basalt-radius-sm); background: none; color: inherit; font: inherit; letter-spacing: inherit; text-align: start; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  button.basalt-run-stage-line :is(.basalt-run-stage-name, .basalt-run-stage-word, .basalt-run-stage-meta, .basalt-run-timer, .basalt-run-clock, .basalt-run-stage-chevron) { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  button.basalt-run-stage-line:hover :is(.basalt-run-stage-name, .basalt-run-stage-chevron) { color: var(--basalt-text-primary); }
+  button.basalt-run-stage-line:hover :is(.basalt-run-stage-meta, .basalt-run-timer, .basalt-run-clock) { color: var(--basalt-text-secondary); }
+  .basalt-run-stage:is([data-state="queued"], [data-state="skipped"], [data-state="canceled"]) button.basalt-run-stage-line:hover .basalt-run-stage-word { color: var(--basalt-text-secondary); }
+  button.basalt-run-stage-line:focus-visible, .basalt-run-stage-node:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
+    button.basalt-run-stage-line { min-block-size: var(--basalt-size-tap-min); }
+  }
+
+  /* On a rail the node (mark, name and seat; never the link) is the button, laid out as the node: no wash, the name carries TextButton's underline (1px
+     border-input at size-underline-offset) and its hover lifts it to the ink, the ring at +2 with radius 6, 44 by 44 at least on touch. The link is the
+     li's own child, at the mark row's centre line, so it draws where it did. */
+  .basalt-run-rail > .basalt-run-stage[data-collapsible] { position: relative; }
+  .basalt-run-rail > .basalt-run-stage[data-collapsible] > .basalt-run-stage-link { inset-block-start: calc(var(--basalt-space-6) / 2); }
+  .basalt-run-stage-node { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: start; inline-size: 100%; min-inline-size: 0; margin: 0; padding: 0; border: 0; border-radius: var(--basalt-radius-sm); background: none; color: inherit; font: inherit; letter-spacing: inherit; text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .basalt-run-stage-node .basalt-run-stage-label { text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-run-stage-node:hover .basalt-run-stage-label { text-decoration-color: currentColor; }
+  .basalt-run-stage-node:hover .basalt-run-stage-name { color: var(--basalt-text-primary); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
+    .basalt-run-stage-node { min-block-size: var(--basalt-size-tap-min); min-inline-size: min(100%, var(--basalt-size-tap-min)); }
+  }
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px); a container query cannot read a custom property */
+  @container (width < 480px) {
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) > .basalt-run-stage[data-collapsible] { display: block; padding-block: 0; }
+    .basalt-run-rail:is([data-count="5"], [data-count="6"]) .basalt-run-stage-node { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr) auto; align-items: center; justify-items: stretch; column-gap: var(--basalt-space-3); padding-block: var(--basalt-space-2); text-align: start; }
+  }
+  /* The rail's popover: the stage's name as its title, its word and time on one line, then the detail and its action, at most size-popover-max. */
+  .basalt-run-stage-pop-state { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--basalt-space-2); margin: var(--basalt-space-1) 0 var(--basalt-space-2); color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-run-stage-pop .basalt-run-stage-detail-body { padding: 0; }
+  .basalt-run-stage-pop .basalt-run-stage-word { color: var(--basalt-text-primary); }
+  .basalt-run-stage-pop[data-state="failed"] .basalt-run-stage-word { color: var(--basalt-status-danger); font-weight: var(--basalt-font-weight-medium); }
+  .basalt-run-stage-pop[data-state="warning"] .basalt-run-stage-word { font-weight: var(--basalt-font-weight-medium); }
+
   /* Progress's value takes tabular figures and the room of "100%", end-aligned, so a run's bar never moves its value as it counts (DECISIONS 316, 1.5). */
   .basalt-progress > .basalt-progress-head > .basalt-progress-value { display: inline-grid; justify-items: end; }
   .basalt-progress > .basalt-progress-head > .basalt-progress-value::before { content: "100%"; block-size: 0; overflow: hidden; visibility: hidden; }
