@@ -4012,8 +4012,25 @@
   .basalt-sparkline { display: flex; flex-direction: column; gap: var(--basalt-space-2); min-width: 0; }
   .basalt-sparkline-head, .basalt-sparkline-axis { display: flex; justify-content: space-between; gap: var(--basalt-space-2); }
   .basalt-sparkline-label { font-weight: var(--basalt-font-weight-medium); }
-  .basalt-sparkline svg { width: 100%; height: var(--basalt-space-16); color: var(--basalt-text-secondary); }
+  /* The plot (cimip-gaps-3 T2, items 5 and 12): the scale is a gutter at the plot's start, the peak at its top edge and the floor at its bottom edge, text-xs,
+     chart-axis, tabular, end-aligned, as wide as its wider label and space-2 from the plot. Under it, when there are `times`, a 16px lane space-1 below
+     (the first moment at the start, the last at the end, the midpoint centred when the three stay 56px apart), then the marks' key space-1 below. The
+     line keeps its ink and weight; no baseline, gridline or fill, and no line through the plot. */
+  .basalt-sparkline-body { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: var(--basalt-space-2); min-width: 0; }
+  .basalt-sparkline-scale { display: flex; flex-direction: column; justify-content: space-between; grid-column: 1; grid-row: 1; block-size: var(--basalt-space-16); color: var(--basalt-chart-axis); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); font-variant-numeric: tabular-nums; text-align: end; white-space: nowrap; }
+  .basalt-sparkline-plot { grid-column: 2; grid-row: 1; min-width: 0; }
+  .basalt-sparkline-plot svg { display: block; width: 100%; height: var(--basalt-space-16); overflow: visible; color: var(--basalt-text-secondary); }
   .basalt-sparkline-line { fill: none; stroke: currentColor; stroke-width: var(--basalt-size-hairline); stroke-linecap: round; stroke-linejoin: round; }
+  /* A mark: a chart marker on the line (the first a diamond, the second a square), 8px, chart-observed, ringed size-cut in the surface's colour. */
+  .basalt-sparkline-mark { --_cut: var(--_surface, var(--basalt-surface-page)); fill: var(--basalt-chart-observed); stroke: var(--_cut); paint-order: stroke; }
+  .basalt-sparkline-key .basalt-sparkline-mark { stroke: none; }
+  .basalt-sparkline-times { position: relative; display: flex; justify-content: space-between; grid-column: 2; block-size: var(--basalt-space-4); margin-block-start: var(--basalt-space-1); color: var(--basalt-chart-axis); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-space-4); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .basalt-sparkline-times-middle { position: absolute; inset-inline-start: 50%; transform: translateX(-50%); }
+  .basalt-sparkline-times-middle:dir(rtl) { transform: translateX(50%); }
+  .basalt-sparkline-times[data-crowded] > .basalt-sparkline-times-middle { visibility: hidden; }
+  .basalt-sparkline-key { display: flex; flex-wrap: wrap; column-gap: var(--basalt-space-3); grid-column: 2; margin-block-start: var(--basalt-space-1); color: var(--basalt-text-secondary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); font-variant-numeric: tabular-nums; }
+  .basalt-sparkline-key-item { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); }
+  .basalt-sparkline-key-mark { display: block; flex: none; inline-size: var(--basalt-size-chart-mark); block-size: var(--basalt-size-chart-mark); }
   .basalt-sparkline[data-loading] .basalt-sparkline-line { animation: basalt-breathe var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite alternate; }
   .basalt-sparkline-empty { margin: 0; color: var(--basalt-text-secondary); }
   .basalt-sparkline-axis { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); font-variant-numeric: tabular-nums; }
@@ -4086,9 +4103,12 @@
   }
   /* A gliding ticker is already easing its value in script; the strip follows that clock and never starts its own. */
   .basalt-ticker[data-glide] .basalt-ticker-strip { transition: none; }
-  /* stylelint-disable-next-line unit-disallowed-list -- one line of a digit strip is 1em, the digit's own font size, whatever size the number is set in; a fixed-length token cannot follow it */
-  .basalt-ticker-strip > span { display: inline-block; height: 1em; line-height: 1; vertical-align: top; }
+  /* The digits are generated content (cimip-gaps-3 T2, item 5): a strip's ten lines and a character that is not a digit are drawn by the stylesheet, a plain
+     `content` first and then the form with an empty alternative (as DotSep's), so the only text in the DOM is the ticker's text: textContent, innerText,
+     find-in-page, copy and a snapshot hold the value once. A space keeps its width (white-space: pre). */
+  .basalt-ticker-strip::before { content: "0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9"; content: "0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9" / ""; display: inline-block; line-height: 1; white-space: pre; vertical-align: top; }
   .basalt-ticker-char { line-height: 1; vertical-align: top; }
+  .basalt-ticker-char::before { content: attr(data-ch); content: attr(data-ch) / ""; white-space: pre; }
   .basalt-tabular { font-variant-numeric: tabular-nums; }
 
   /* ---- Skeleton ---- */
@@ -6616,6 +6636,7 @@
     .basalt-chart-span { transition: none; }
   }
   @media (forced-colors: active) {
+    .basalt-sparkline-mark { forced-color-adjust: none; fill: CanvasText; stroke: Canvas; }
     .basalt-chart[data-lit] .basalt-chart-svg :is(.basalt-chart-bar, .basalt-chart-mark):not([data-so-far]) { fill: CanvasText; }
     .basalt-chart[data-lit] .basalt-chart-svg .basalt-chart-line, .basalt-chart[data-lit] .basalt-chart-svg :is(.basalt-chart-bar, .basalt-chart-mark)[data-so-far] { stroke: CanvasText; }
     .basalt-chart-reading { fill: CanvasText; }
