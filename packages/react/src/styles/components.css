@@ -4704,6 +4704,32 @@
   .basalt-run-stage-pop[data-state="failed"] .basalt-run-stage-word { color: var(--basalt-status-danger); font-weight: var(--basalt-font-weight-medium); }
   .basalt-run-stage-pop[data-state="warning"] .basalt-run-stage-word { font-weight: var(--basalt-font-weight-medium); }
 
+  /* StagePlace (cimip-gaps-3 T2, 3b): where a sequence is, by position only. Pills size-track tall, full radius, space-0-5 apart: passed 10px solid
+     text-secondary, the current 14px solid text-primary, after it 10px with a 1px border-input edge and no fill. With no long pill (not started, or done)
+     its extra space-1 is held at the mark's end, so the words start at one x in every row. Then space-2, the label (text-sm, 400, primary, one line, cut)
+     and the count (text-xs, tertiary, tabular, as wide as "total of total"). An advance moves the long pill (the widths and inks) over duration-slow on
+     ease-out; at once under reduced motion and the hold. */
+  .basalt-stage-place { display: inline-flex; align-items: center; gap: var(--basalt-space-2); max-inline-size: 100%; min-inline-size: 0; vertical-align: middle; font-family: var(--basalt-font-family-sans); }
+  .basalt-stage-place-pills { display: inline-flex; flex: none; gap: var(--basalt-space-0-5); transition: padding var(--basalt-duration-slow) var(--basalt-ease-out); }
+  .basalt-stage-place:not([data-long]) .basalt-stage-place-pills { padding-inline-end: var(--basalt-space-1); }
+  .basalt-stage-place-pill { box-sizing: border-box; flex: none; inline-size: var(--basalt-space-2-5); block-size: var(--basalt-size-track); border: var(--basalt-size-hairline) solid transparent; border-radius: var(--basalt-radius-full); background: var(--basalt-text-secondary); transition: inline-size var(--basalt-duration-slow) var(--basalt-ease-out), background-color var(--basalt-duration-slow) var(--basalt-ease-out), border-color var(--basalt-duration-slow) var(--basalt-ease-out); }
+  .basalt-stage-place-pill[data-form="current"] { inline-size: var(--basalt-space-3-5); background: var(--basalt-text-primary); }
+  .basalt-stage-place-pill[data-form="empty"] { border-color: var(--basalt-border-input); background: transparent; }
+  .basalt-stage-place-track { box-sizing: border-box; position: relative; flex: none; inline-size: var(--basalt-space-12); block-size: var(--basalt-size-track); overflow: hidden; border: var(--basalt-size-hairline) solid var(--basalt-border-input); border-radius: var(--basalt-radius-full); }
+  .basalt-stage-place-fill { position: absolute; inset: calc(-1 * var(--basalt-size-hairline)); background: var(--basalt-text-primary); transform: scaleX(var(--_fill)); transform-origin: left; transition: transform var(--basalt-duration-slow) var(--basalt-ease-out); }
+  .basalt-stage-place-fill:dir(rtl) { transform-origin: right; }
+  .basalt-stage-place-label { min-inline-size: 0; overflow: hidden; color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); white-space: nowrap; text-overflow: ellipsis; }
+  .basalt-stage-place-count { display: inline-grid; flex: none; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .basalt-stage-place-count > * { grid-area: 1 / 1; }
+  .basalt-stage-place-count-widest { visibility: hidden; }
+  @media (prefers-reduced-motion: reduce) { .basalt-stage-place :is(.basalt-stage-place-pills, .basalt-stage-place-pill, .basalt-stage-place-fill) { transition: none; } }
+  :root[data-loops="held"] .basalt-stage-place :is(.basalt-stage-place-pills, .basalt-stage-place-pill, .basalt-stage-place-fill) { transition: none; }
+  @media (forced-colors: active) {
+    .basalt-stage-place-pill, .basalt-stage-place-fill { forced-color-adjust: none; background: CanvasText; }
+    .basalt-stage-place-pill[data-form="empty"] { border-color: CanvasText; background: transparent; }
+    .basalt-stage-place-track { border-color: CanvasText; }
+  }
+
   /* Progress's value takes tabular figures and the room of "100%", end-aligned, so a run's bar never moves its value as it counts (DECISIONS 316, 1.5). */
   .basalt-progress > .basalt-progress-head > .basalt-progress-value { display: inline-grid; justify-items: end; }
   .basalt-progress > .basalt-progress-head > .basalt-progress-value::before { content: "100%"; block-size: 0; overflow: hidden; visibility: hidden; }
