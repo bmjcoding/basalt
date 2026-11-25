@@ -90,9 +90,22 @@ describe("the skill: a card's role (G18)", () => {
       for (const [tag, role, rd] of cards) assert.deepEqual([role, rd], tag === "a" ? [null, null] : ["button", noun], `${id}`);
     }
     await page.addScriptTag({ content: axeSource });
-    const found = await page.evaluate(async () => (await globalThis.axe.run(document, { runOnly: { type: "rule", values: ["focus-order-semantics", "aria-roledescription", "aria-allowed-role", "nested-interactive", "button-name", "label-content-name-mismatch"] }, resultTypes: ["violations"] }))
+    const found = await page.evaluate(async () => (await globalThis.axe.run(document, { runOnly: { type: "rule", values: ["focus-order-semantics", "aria-roledescription", "aria-allowed-role", "nested-interactive", "button-name"] }, resultTypes: ["violations"] }))
       .violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`));
     assert.deepEqual(found, []);
+    // axe's experimental label-content-name-mismatch is not asserted (the lead's ruling, cimip-gaps-3): a card is named by its sentence, which begins with
+    // its own visible name ("Browser, client. ..."), what a speech user says and voice control matches; the eyebrow word on the card ("client") is in the
+    // name too. The rule compares the card's whole visible text in screen order and flags the order. The spoken sentence stays; hiding the card's words
+    // from assistive technology would hide the signal from the checker and fix nothing for a speech user. What is asserted is the part that matters:
+    const names = await page.locator(`.${P}-node`).evaluateAll((els, P) => els.map((el) => {
+      const shown = el.querySelector(`.${P}-name, .${P}-tname`);
+      return { name: (el.getAttribute("aria-label") ?? "").replace(/\s+/g, " ").trim(), shown: (shown?.textContent ?? "").replace(/\s+/g, " ").trim() };
+    }), P);
+    assert.ok(names.length > 10, `${names.length} cards`);
+    for (const { name, shown } of names) {
+      assert.ok(shown, `a card shows its name (${name})`);
+      assert.ok(name.startsWith(shown), `"${name}" begins with the card's visible name "${shown}"`);
+    }
     assert.deepEqual(errors, []);
     await context.close();
   });
