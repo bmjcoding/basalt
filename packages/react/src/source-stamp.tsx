@@ -32,8 +32,8 @@ export interface SourceStampProps extends Omit<React.ComponentProps<"span">, "ch
   onOpen?: () => void;
 }
 
-/** The mark of a source's state in an 8 by 10 seat: four 8px shapes as drawn, and braille for asking. Shape and word, never colour alone. */
-function Mark({ state }: { state: SourceStatus }) {
+/** The mark of a source's state in an 8 by 10 seat: four 8px shapes as drawn, and braille for asking. Shape and word, never colour alone. `StaleNote` draws the stale one. */
+export function Mark({ state }: { state: SourceStatus }) {
   if (state === "asking") return <Spinner variant="braille" size={16} />;
   return (
     <svg className="basalt-source-mark" viewBox="0 0 8 8" width="8" height="8" aria-hidden="true" focusable="false" data-state={state}>

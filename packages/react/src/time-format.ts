@@ -139,3 +139,21 @@ export function formatElapsed(since: Date | number, now: Date | number = new Dat
   if (h > 0) return { text: min ? `${h} hr ${min} min` : `${h} hr`, dateTime: `PT${h}H${min ? `${min}M` : ""}` };
   return { text: `${min} min`, dateTime: `PT${min}M` };
 }
+
+/**
+ * The time left to a moment in words (cimip-gaps-3 T2, 4b): "in under 1 min" in the last minute, "in 12 min", "in 2 hr 15 min" or "in 2 hr", "in 1 day" or
+ * "in 3 days", and `null` once it has passed. Rounded down, so the words never promise more time than there is ("in 12 min" with 12 min 41 s left; never
+ * "in 0 min"). `dateTime` is the real time left to the second ("PT12M41S"), whatever the words round to. US English, `formatElapsed`'s unit words.
+ */
+export function formatUntil(to: Date | number, now: Date | number = new Date()) {
+  const s = Math.floor((new Date(to).getTime() - new Date(now).getTime()) / 1000);
+  if (!Number.isFinite(s) || s <= 0) return null;
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const dateTime = `P${d ? `${d}D` : ""}T${h}H${m}M${s % 60}S`.replace("PT0H", "PT").replace(/^PT0M/, "PT");
+  if (s < 60) return { text: "in under 1 min", dateTime };
+  if (d > 0) return { text: `in ${d} ${d === 1 ? "day" : "days"}`, dateTime };
+  if (h > 0) return { text: m ? `in ${h} hr ${m} min` : `in ${h} hr`, dateTime };
+  return { text: `in ${m} min`, dateTime };
+}

@@ -8505,6 +8505,15 @@
   .basalt-source-state { margin: 0; color: var(--basalt-text-secondary); }
   .basalt-source-state > .basalt-reserve { display: grid; }
   .basalt-time { font-variant-numeric: tabular-nums; }
+  .basalt-countdown[data-form="words"] { font-family: var(--basalt-font-family-sans); }
+  /* The stale line (cimip-gaps-3 T2, 4c): the stale mark in a seat centred on the first line, space-1-5, the app's sentence at text-sm, 400, secondary; the
+     action space-2 after the words, on its own line when it does not fit. No fill, rim, level or margin. */
+  .basalt-stale-note { margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+  .basalt-stale-note[data-action] { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--basalt-space-2); }
+  .basalt-stale-note-line { display: flex; align-items: flex-start; gap: var(--basalt-space-1-5); min-width: 0; margin: 0; }
+  .basalt-stale-note-mark { display: grid; flex: none; place-items: center; block-size: var(--basalt-text-sm-line-height); color: currentColor; }
+  .basalt-stale-note-words { min-width: 0; text-wrap: pretty; }
+  @media (forced-colors: active) { .basalt-stale-note { color: CanvasText; } }
   .basalt-countdown .basalt-reserve { display: inline-grid; }
   .basalt-date-age { display: inline-flex; align-items: baseline; gap: var(--basalt-space-2); }
   .basalt-date-age-age { color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
