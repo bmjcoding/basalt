@@ -1359,8 +1359,9 @@
   .basalt-nav-label {
     display: inline-flex;
     flex-direction: column;
-    font: var(--basalt-font-weight-regular) var(--basalt-text-xl-size) / var(--basalt-text-xl-line-height) var(--basalt-font-family-sans);
-    letter-spacing: var(--basalt-text-xl-tracking);
+    /* 18/26 (text-lg), never larger than the app title it sits beside (DECISIONS, cimip-gaps-3 t6). */
+    font: var(--basalt-font-weight-regular) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-lg-tracking);
     white-space: nowrap;
   }
   /* The label reserves its 600 width, so becoming current never moves the pill's far edge. */

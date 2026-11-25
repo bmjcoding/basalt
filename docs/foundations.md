@@ -1252,7 +1252,8 @@ labels, and `aria-current="page"` on the current link.
 
 - **The item** is a link whose row is the column, so the target is the whole row, and a pill inside it that hugs its
   content. The pill is 48 tall and fully round, 12 before the glyph and 20 after the label, with the glyph at 24 and the
-  label at 20/28 (`text-xl`), 16 between them. Glyph and label are both primary ink at rest. Each row carries 2px above and
+  label at 18/26 (`text-lg`), 16 between them: never larger than the app title it sits beside (the title is 600 always, a label 400
+  until it is current). Glyph and label are both primary ink at rest. Each row carries 2px above and
   below its pill, so neighbouring rows touch and a pointer crossing between them never leaves a row. The column keeps at
   least `space-1-5` of inline padding so the focus ring never clips.
 - **Hover** is the hugging pill at the selected wash (9% white, 7% black; `#171717` over the dark page and `#e8e8e8` over the
@@ -1381,7 +1382,7 @@ Under 720 the links and the primary action leave the bar; the brand, `LoopsToggl
   loops toggle has no such row, and nothing else in the menu moves. The HTML skill's narrow menu has the same row (DECISIONS 148): when its bar has a `[data-loops-toggle]`, the first row after the band is the pressed-toggle button "Pause animations". (Decided by the council, DECISIONS 143, 2 to 1; the implementation hasn't been reviewed.) The list unrolls beneath from the
   band's edge. It is as tall as its content and scrolls inside at the viewport's height (`overscroll-behavior: contain`); the page
   under it does not scroll.
-- **Its rows** are `Nav` rows without a glyph (`NavItem` takes `icon` optionally): the 48px pill at 20/28, primary at rest, the
+- **Its rows** are `Nav` rows without a glyph (`NavItem` takes `icon` optionally): the 48px pill at 18/26, primary at rest, the
   current row at 600, each row at least `space-1-5` from the sheet's edge so a ring never clips. The bar's one action sits at the
   foot, full width, 44px.
 - **Focus:** on open, focus lands on Close. Escape, the scrim, Close or a link closes it, and focus goes back to Menu. Widening past

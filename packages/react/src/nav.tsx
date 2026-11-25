@@ -16,7 +16,7 @@ const NavContext = /* @__PURE__ */ React.createContext(false);
 const NavSizeContext = /* @__PURE__ */ React.createContext<NavSize>("md");
 
 /**
- * `md`: the app's navigation, a 48px pill at 20/28 with a 24 glyph. `sm`: a second, quieter list under it (recent items,
+ * `md`: the app's navigation, a 48px pill at 18/26 (`text-lg`) with a 24 glyph. `sm`: a second, quieter list under it (recent items,
  * saved views, a workspace's projects), a 32px pill at 13/18 with a 16 glyph.
  */
 export type NavSize = "md" | "sm";
@@ -36,7 +36,7 @@ export interface NavProps extends Omit<React.ComponentProps<"nav">, "aria-label"
    */
   collapsed?: boolean;
   /**
-   * `md` (default): the app's navigation, a 48px pill at 20/28 with the glyph at 24. `sm`: a second list under it, a 32px pill at
+   * `md` (default): the app's navigation, a 48px pill at 18/26 (`text-lg`) with the glyph at 24. `sm`: a second list under it, a 32px pill at
    * 13/18 (`text-sm`) with the glyph at 16, the same hover, glide, current page and ring. Compact steps it to 28; on touch it is 44.
    */
   size?: NavSize;
@@ -84,7 +84,7 @@ export function NavGroup({ label, className, children, ...props }: NavGroupProps
 export interface NavItemProps extends Omit<React.ComponentProps<"a">, "children"> {
   /**
    * The item's glyph: a core glyph (`HomeGlyph`), drawn at 24 (16 in a `size="sm"` list) and in its selected form when the item is current. Leave it
-   * out for a row of words alone (the site header's narrow menu): the same 48px pill at 20/28, with no glyph and no seat for
+   * out for a row of words alone (the site header's narrow menu): the same 48px pill at 18/26, with no glyph and no seat for
    * one. The rail needs glyphs, so a list that collapses gives every item one.
    */
   icon?: IconComponent;
