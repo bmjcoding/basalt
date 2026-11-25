@@ -478,7 +478,9 @@ test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async
   // 41,750 (main's) to 42,200 in DECISIONS 336, then 42,550 with the open items' ruling (the shared copy state, copy-result.ts, and the close on a refused icon-only copy): its copies are hung, its words form keeps its words with the done seat, and a refused copy shows the close.
   // cimip-gaps-3 E1 (DECISIONS 246): RunTimer's `spoken` and its fresh-words tick add 313. E5: with the shared chunk gone (diagram-actions built on its own, build.mjs)
   // Terminal measures 42,889 (43,011 on main), so the limit is 43,050 to 42,900. It was 42,570 before PR #143, already 20 over the old 42,550.
-  assert.ok(bytes < 42_900, `Terminal bundle is ${bytes} bytes`);
+  // cimip-gaps-3 t6: CodeLine draws a line number's column (CodeBlock lineNumbers), which Terminal shares: measured with this file's graph() at 42,889 on
+  // origin/main ac962cec and 43,007 on the t6 head (+118), so the limit rises by the increase, 42,900 to 43,018.
+  assert.ok(bytes < 43_018, `Terminal bundle is ${bytes} bytes`);
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
 });
