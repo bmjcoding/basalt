@@ -6600,6 +6600,14 @@
   /* The seven-day strip is at most 240px: space-24 times 2.5 (foundations: "a seven-day strip at most 240px"). The scale has no 240 step, and it is not the chart plot's height (size-chart-plot), so it is written from the space token. */
   .basalt-coverage[data-form="week"] .basalt-coverage-cells { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--basalt-space-1); height: auto; width: min(100%, calc(var(--basalt-space-24) * 2.5)); }
   .basalt-coverage[data-form="week"] .basalt-coverage-cell { aspect-ratio: 1; border-radius: var(--basalt-radius-sm); }
+  /* A day with an event (cimip-gaps-3 T2, item 6): a size-dot disc in text-primary centred under its cell, in a lane size-dot tall space-1 below the cells
+     (the strip's gap is space-2-5, so the lane takes it down by its own height and space-1), held whenever any day has one. Where a cell is narrower than
+     the dot the mark is as wide as its cell, so neighbours never overlap. No colour, no tone. The words' event sentence starts with the same dot. */
+  .basalt-coverage-events { display: grid; grid-template-columns: repeat(var(--_n), minmax(0, 1fr)); column-gap: var(--basalt-space-0-5); block-size: var(--basalt-size-dot); margin-block-start: calc(var(--basalt-space-1) - var(--basalt-space-2-5)); }
+  .basalt-coverage[data-form="week"] .basalt-coverage-events { grid-template-columns: repeat(7, minmax(0, 1fr)); column-gap: var(--basalt-space-1); width: min(100%, calc(var(--basalt-space-24) * 2.5)); }
+  .basalt-coverage-event { justify-self: center; inline-size: min(var(--basalt-size-dot), 100%); block-size: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); }
+  .basalt-coverage-event[data-on] { background: var(--basalt-text-primary); }
+  .basalt-coverage-key { display: inline-block; inline-size: var(--basalt-size-dot); block-size: var(--basalt-size-dot); margin-inline-end: var(--basalt-space-1-5); border-radius: var(--basalt-radius-full); background: var(--basalt-text-primary); vertical-align: middle; }
   .basalt-coverage-words { margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; text-wrap: pretty; }
 
   /* A marks row: one kind of reading across a run of days, in the form of the thing measured. The heights glide over duration-slow; it is drawn at rest. */
@@ -6654,6 +6662,7 @@
     .basalt-share-value, .basalt-share-name, .basalt-coverage-words, .basalt-phase-open, .basalt-phase-open b { color: CanvasText; }
     .basalt-coverage-cell { forced-color-adjust: none; background: CanvasText; }
     .basalt-coverage-cell[data-missing] { background: var(--_hatch); }
+    .basalt-coverage-event[data-on], .basalt-coverage-key { forced-color-adjust: none; background: CanvasText; }
     .basalt-coverage, .basalt-marks { --_hatch: repeating-linear-gradient(45deg, GrayText 0 var(--basalt-size-hairline), transparent var(--basalt-size-hairline) var(--basalt-size-hatch-pitch)); }
     /* The pills' own gradient (above) has two more classes than the rule that sets every mark to CanvasText: this one matches it, so the pills are CanvasText too. */
     .basalt-marks[data-kind="pills"] .basalt-marks-mark { background: CanvasText; }
