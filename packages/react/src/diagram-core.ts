@@ -1320,9 +1320,14 @@ function sequenceSteps(ctx: TreeContext, m: Model): VElement {
     // A self-call goes to the end side, the start side on the last participant: logical, so mirrored right to left (1.7).
     const last = self && (m.rtl ? ca !== 1 : ca === m.nodes.length);
     const word = kindWord(m, s.kind);
+    // Drawn, the route is the lines (its row is not drawn), so the words a reader hears are written beside it, unseen: a space after the number and the
+    // route's own sentence ("Agent to Room · A request"), the stacked row's words in the same order. Stacked, the row itself is read and these are not.
+    const spoken = (text: string) => h("span", { class: `${P}-spoken ${ctx.hidden}` }, text);
+    const from = a?.short ?? s.from, to = b?.short ?? s.to, tail = word ? ` · ${word}` : "";
     list.c.push(h("li", { class: `${P}-msg`, "data-kind": s.kind, "data-from": s.from, "data-to": s.to, "data-self": self ? (last ? "start" : "end") : undefined, style: `--_a:${Math.min(ca, cb)};--_b:${Math.max(ca, cb) + 1}` },
-      h("span", { class: `${P}-said` }, h("span", { class: `${P}-num` }, String(s.n)), h("span", { class: `${P}-mlabel` }, s.label)),
-      h("span", { class: `${P}-route` }, a?.short ?? s.from, " ", h("span", { class: `${P}-to` }, inlineArrow(P, s.kind), h("span", { class: ctx.hidden }, " to "), " ", b?.short ?? s.to, word ? ` · ${word}` : "")),
+      h("span", { class: `${P}-said` }, h("span", { class: `${P}-num` }, String(s.n)), spoken(" "), h("span", { class: `${P}-mlabel` }, s.label)),
+      spoken(` ${from} to ${to}${tail}`),
+      h("span", { class: `${P}-route` }, from, " ", h("span", { class: `${P}-to` }, inlineArrow(P, s.kind), h("span", { class: ctx.hidden }, " to "), " ", to, tail)),
       s.note ? h("span", { class: `${P}-note` }, s.note) : null));
   }
   return h("div", { class: `${P}-steps` }, root);
