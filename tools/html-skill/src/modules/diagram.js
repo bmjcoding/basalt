@@ -223,8 +223,9 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
       var node = nodeOf(event.target);
       if (!node || event.defaultPrevented) return;
       settle();
-      // In the viewer Esc always closes the dialog, traced or not (DECISIONS 310, 9.8).
-      if (event.key === 'Escape') { if (!viewer && (focusTrace || hoverTrace || touchTrace)) { event.preventDefault(); focusTrace = hoverTrace = touchTrace = null; retrace(); } return; }
+      // In the viewer Esc always closes the dialog, traced or not (DECISIONS 310, 9.8). Elsewhere an Esc that clears a trace is the figure's alone: it
+      // goes no further (and cancels the browser's close), so a dialog or sheet round the figure stays open, and the next Esc, with nothing traced, closes it.
+      if (event.key === 'Escape') { if (!viewer && (focusTrace || hoverTrace || touchTrace)) { event.preventDefault(); event.stopPropagation(); focusTrace = hoverTrace = touchTrace = null; retrace(); } return; }
       if (!hasStops(model, state)) return;
       var to = keyTarget(model, node.getAttribute('data-node'), event.key, state.layout === 'drawn');
       if (!to) return;
