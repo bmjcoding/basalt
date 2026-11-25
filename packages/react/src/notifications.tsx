@@ -27,10 +27,10 @@ export type NotificationStatus = ToastStatus | "pending";
 export interface NotificationEntry {
   /** Stable, for the list's keys. */
   id: string;
-  /** What happened, in one line: "Deploy finished". It is cut with an ellipsis if it is long; the whole text is still read. A group's title names who and what ("Sam, Priya and Marcus mentioned you"); Basalt adds the count. */
-  title: string;
-  /** A secondary line: what it was about ("api, production"). */
-  description?: string;
+  /** What happened, in one line: "Deploy finished". It is cut with an ellipsis if it is long; the whole text is still read. A group's title names who and what ("Sam, Priya and Marcus mentioned you"); Basalt adds the count. Words, or phrasing markup that holds them (a reference kept whole by a no-break span, a `<code>`): it sits inside the entry's link or button, so nothing interactive. */
+  title: React.ReactNode;
+  /** A secondary line: what it was about ("api, production"). Words, or phrasing markup, as `title`. */
+  description?: React.ReactNode;
   /** The time, as the app writes it ("2m ago", "Yesterday"). Basalt does not format dates. A group's time is its newest entry's. */
   time: string;
   /** The same moment for machines, as `<time datetime>`. */

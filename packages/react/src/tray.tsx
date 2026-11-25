@@ -29,6 +29,16 @@ export interface TrayProps extends Omit<React.ComponentProps<"section">, "childr
    * to the tray itself while it has rows, and is left to the browser after.
    */
   returnFocus?: FocusTarget;
+  /**
+   * Whether the phone's sheet is open, for an app that opens it itself (a notice's action that names what waits): pass it with `onOpenChange`. Left out,
+   * the band opens it. There is a sheet only under 720 and while a row waits: from 720 the rows are in the tray and `open` draws nothing more.
+   */
+  open?: boolean;
+  /**
+   * Called as the sheet opens and closes: the band, Esc or Close, and the tray closing it by itself (its last waiting row answered, or the window
+   * grown past 720 while it was open).
+   */
+  onOpenChange?: (open: boolean) => void;
   /** `TrayRow`s, most pressing first, as direct children (a fragment is looked through). */
   children?: React.ReactNode;
 }
@@ -112,13 +122,21 @@ function useRowFocus(boxes: () => Array<HTMLElement | null>, keys: string, retur
  * `AppShell` `foot`), or at the head of a page. It names itself with `label`; it is not a live region: say a new row aloud through the app's
  * one `StatusLine`. With no rows it draws nothing.
  */
-export function Tray({ label, summary, showLabel = "Show", closeLabel = "Close", returnFocus, className, children, ...props }: TrayProps) {
+export function Tray({ label, summary, showLabel = "Show", closeLabel = "Close", returnFocus, open: openProp, onOpenChange, className, children, ...props }: TrayProps) {
   const level = usePanelLevel();
   const phone = useMediaQuery(`(width < ${breakpoint.md}px)`);
   const rows = rowsOf(children);
   const gathered = rows.filter((row) => !row.props.stay);
   const count = gathered.length;
-  const [open, setOpen] = React.useState(false);
+  const [own, setOwn] = React.useState(false);
+  const controlled = openProp !== undefined;
+  const open = controlled ? openProp : own;
+  const heard = React.useRef(onOpenChange);
+  heard.current = onOpenChange;
+  const setOpen = React.useCallback((next: boolean) => {
+    if (!controlled) setOwn(next);
+    heard.current?.(next);
+  }, [controlled]);
   const panel = React.useRef<HTMLElement | null>(null);
   const sheet = React.useRef<HTMLDivElement | null>(null);
   // Each row carries its key, so the row that held focus is found by identity, not by place.
@@ -132,10 +150,15 @@ export function Tray({ label, summary, showLabel = "Show", closeLabel = "Close",
   // The sheet closing because its last row left sends focus to the app's field; any other close (Esc, Close) returns to the band that opened it.
   const emptied = React.useRef(false);
   emptied.current = count === 0;
-  // The last row that waited is answered, or the window grew past 720: the sheet closes by itself, and its focus goes to the field.
+  // The last row that waited is answered, or the window grew past 720 while the sheet was shown: the sheet closes by itself, and its focus goes to the
+  // field. Only a sheet that was shown closes for the width: the first render reads no width yet (it is the server's), so an app that opens the sheet
+  // from its first render on a phone keeps it open.
+  const shown = open && phone && count > 0;
+  const wasShown = React.useRef(false);
   React.useEffect(() => {
-    if (open && (count === 0 || !phone)) setOpen(false);
-  }, [open, count, phone]);
+    if (open && (count === 0 || (!phone && wasShown.current))) setOpen(false);
+    wasShown.current = shown;
+  }, [open, count, phone, shown, setOpen]);
   if (rows.length === 0) return null;
   const finalFocus = () => (emptied.current ? resolve(returnFocus) : null) ?? (band.current?.isConnected ? band.current : true);
   return (
@@ -154,7 +177,7 @@ export function Tray({ label, summary, showLabel = "Show", closeLabel = "Close",
         </>
       ))}
       {phone ? (
-        <Sheet open={open} onOpenChange={setOpen}>
+        <Sheet open={shown} onOpenChange={setOpen}>
           <SheetContent side="bottom" ref={sheet} className="basalt-tray-sheet" finalFocus={finalFocus}>
             <SheetHeader closeLabel={closeLabel}>
               <SheetTitle>{label}</SheetTitle>

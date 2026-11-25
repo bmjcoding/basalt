@@ -3210,14 +3210,18 @@
 
   /* Bottom right, inset space-4 (more where a notch or the home indicator needs it). Under 720 the stack hangs from the top instead
      (DECISIONS 274; the end of this sheet): full width, space-2 under the bar, so it never takes the tap meant for a form's last action. */
+  /* An app whose toasts belong to a column, not the window, places the stack by that column's right edge: `--basalt-toast-right` (on the root, or set by
+     ToastProvider's `column`) is the distance from the window's right edge to the column's, and the stack keeps space-4 inside it as it does inside the
+     window's. Unset, it is 0. Under 720 the stack hangs full width from the bar and it is not read. */
   .basalt-toast-viewport {
     --_inset: max(var(--basalt-space-4), env(safe-area-inset-left), env(safe-area-inset-right));
+    --_end: max(calc(var(--basalt-toast-right, var(--basalt-space-0)) + var(--basalt-space-4)), env(safe-area-inset-right));
     position: fixed;
-    right: max(var(--basalt-space-4), env(safe-area-inset-right));
+    right: var(--_end);
     bottom: max(var(--basalt-space-4), env(safe-area-inset-bottom));
     z-index: var(--basalt-layer-toast);
     /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
-    width: min(var(--basalt-size-toast-width), calc(100vw - 2 * var(--_inset)));
+    width: min(var(--basalt-size-toast-width), calc(100vw - var(--_inset) - max(var(--_inset), var(--_end))));
   }
   .basalt-toast-viewport:focus { outline: none; }
 
@@ -3705,6 +3709,16 @@
     line-height: var(--basalt-text-base-line-height);
     resize: vertical;
   }
+  /* `autosize`: the field grows with its text, a line at a time, from --_rows to --_max-rows (set by the component), then scrolls, as the composer's field
+     does (below); it never takes a resize handle, since its height is the text's. */
+  .basalt-input.basalt-textarea[data-autosize] {
+    --_line: var(--basalt-text-base-line-height);
+    resize: none;
+    field-sizing: content;
+    min-height: calc(var(--_line) * var(--_rows, 4) + var(--basalt-space-4));
+    max-height: calc(var(--_line) * var(--_max-rows, 8) + var(--basalt-space-4));
+    overflow-y: auto;
+  }
 
   /* ---- Composer, Mention and MentionPicker (cimip-gaps-2, B3) ----
      A composer is the textarea, a row of actions under it with Send last, and a status line under that. The field has no visible label
@@ -3831,7 +3845,8 @@
   .basalt-callout[data-status="warning"] .basalt-callout-icon { color: var(--basalt-status-warning); }
   .basalt-callout[data-status="danger"] .basalt-callout-icon { color: var(--basalt-status-danger); }
   .basalt-callout-body { flex: 1; min-width: 0; }
-  .basalt-callout-title { font-weight: var(--basalt-font-weight-medium); }
+  /* A title drawn as a heading (`heading`) takes the title's type: the heading's own margin and size are the browser's, never the callout's. */
+  .basalt-callout-title { margin: 0; font: inherit; font-weight: var(--basalt-font-weight-medium); }
   /* danger also colours its title, so it reads at a glance; success and warning titles stay primary */
   .basalt-callout[data-status="danger"] .basalt-callout-title { color: var(--basalt-status-danger); }
   .basalt-callout-text { margin-top: var(--basalt-space-0-5); color: var(--basalt-text-secondary); }
@@ -4154,6 +4169,9 @@
     /* Above anything the shape layers itself (a sticky band is layer-sticky); the root is isolated, so it never rises over the page. */
     z-index: 2147483647;
     inset: var(--basalt-space-0);
+    /* Every bone of the current drawing lies inside the region's box: one measured in the shape's earlier, taller layout, or a leaving bone over content
+       shorter than the shape, is cut at the region's end for the frame it is out of date, and never makes the page longer. */
+    overflow: clip;
     pointer-events: none;
   }
   .basalt-bones-layer { visibility: hidden; }
@@ -6384,8 +6402,11 @@
   .basalt-share[data-size="md"] .basalt-share-bar { min-width: var(--basalt-space-3); }
   .basalt-share-bar { width: 100%; height: var(--basalt-space-2); margin-bottom: var(--basalt-space-2); border-radius: var(--basalt-radius-full); background: var(--basalt-chart-observed); }
   .basalt-share[data-size="md"] .basalt-share-bar { height: var(--basalt-space-3); }
-  .basalt-share-value { color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
-  .basalt-share-name { max-width: 100%; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); overflow-wrap: anywhere; }
+  /* A part is as wide as its words at least (min-width: auto), so its words never break inside a word: the share is one line, and the name wraps only
+     between words (a word that could break anywhere let that width fall to one letter: "Wor / kin / g"). Set, not inherited, so a page's own
+     overflow-wrap does not reach in. */
+  .basalt-share-value { color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .basalt-share-name { max-width: 100%; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); overflow-wrap: normal; word-break: normal; }
 
   /* A coverage strip: a cell a day, lit when recorded, Basalt's hatch when not, the missing dates in words. */
   .basalt-coverage, .basalt-marks { --_hatch: repeating-linear-gradient(45deg, var(--basalt-chart-missing) 0 var(--basalt-size-hairline), transparent var(--basalt-size-hairline) var(--basalt-size-hatch-pitch)); }
@@ -8528,7 +8549,9 @@
   .basalt-stream-message,
   .basalt-stream-note { display: grid; grid-template-columns: var(--basalt-size-control-md) minmax(0, 1fr); column-gap: var(--basalt-space-3); align-items: start; }
   .basalt-stream-gutter { display: flex; justify-content: center; min-width: 0; color: var(--basalt-text-secondary); }
-  .basalt-stream-body { display: grid; min-width: 0; }
+  /* The text column declares its start room: the gutter's gap (space-3), so a ghost `Button edge="start"` in a message's words hangs into the gap as far as
+     its inset, never across the avatar's column. Its end is the message's own, so the room there is whatever the stream's container declares. */
+  .basalt-stream-body { display: grid; min-width: 0; --basalt-edge-room-start: var(--basalt-space-3); }
   .basalt-stream-head { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--basalt-space-2); min-height: var(--basalt-text-base-line-height); min-width: 0; }
   .basalt-stream-author { min-width: 0; overflow-wrap: anywhere; color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
   .basalt-stream-time { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -9129,6 +9152,7 @@
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the stack hangs from the bar */
   @media (width < 720px) {
     :is(:root, :root[data-screen-keyboard]) .basalt-toast-viewport {
+      --_end: max(var(--basalt-space-4), env(safe-area-inset-right));
       top: max(max(var(--basalt-space-4), env(safe-area-inset-top)), calc(var(--_cover-top, var(--basalt-space-0)) + var(--basalt-viewport-top, var(--basalt-space-0)) + var(--basalt-space-2)));
       bottom: auto;
     }

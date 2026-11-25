@@ -83,7 +83,7 @@ export type { ToastAction, ToastApi, ToastHome, ToastProviderProps, ToastOptions
 export { NotificationCenter, NotificationCentre, NotificationList } from "./notifications";
 export type { NotificationCenterProps, NotificationCentreProps, NotificationEntry, NotificationListProps, NotificationStatus } from "./notifications";
 export { CommandList, CommandMenu } from "./command";
-export type { Command, CommandGroup, CommandListProps, CommandMenuProps } from "./command";
+export type { Command, CommandFilter, CommandGroup, CommandListProps, CommandMenuProps } from "./command";
 export { Sparkline } from "./sparkline";
 export type { SparklineProps } from "./sparkline";
 export { Accordion, AccordionItem, Callout, CodeBlock, Popover, PopoverClose, PopoverContent, PopoverDescription, PopoverTitle, PopoverTrigger, Progress, Skeleton, Textarea, createPopoverHandle } from "./feedback";

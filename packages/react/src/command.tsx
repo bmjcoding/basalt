@@ -26,9 +26,24 @@ export interface CommandItem {
   keywords?: string[];
   /** A destructive command: shown in the danger colour, as in `Menu`. */
   danger?: boolean;
-  /** Runs when the command is chosen. In a `CommandList` with a `detail` pane there is nothing to run: the pane has the actions. */
-  onSelect?: () => void;
+  /**
+   * Runs when the command is chosen. In a `CommandList` with a `detail` pane there is nothing to run: the pane has the actions. In a `CommandMenu` the
+   * menu closes after it, unless the row keeps it open: `keepOpen`, or `false` returned from here (as a handler returns `false` to cancel what follows).
+   */
+  onSelect?: () => void | boolean;
+  /**
+   * In a `CommandMenu`, choosing the row leaves the menu open: a row that opens a list of choices (it changes `groups`, or types a word into a
+   * controlled `search`). `onSelect` can decide each time instead, by returning `false`. A `CommandList` never closes, so it reads neither.
+   */
+  keepOpen?: boolean;
 }
+
+/**
+ * How a `CommandMenu` matches and orders its rows. `false`: the app filters and orders them itself, and every row it gives is shown, in its order. A
+ * function: the row's score for the search, called only while something is typed, as cmdk's scorer is; above 0 it is shown, and rows (and groups, by
+ * their best row) are ordered by it, highest first, ties in the order given.
+ */
+export type CommandFilter = false | ((command: CommandItem, search: string) => number);
 
 export interface CommandGroup {
   label: string;
@@ -40,6 +55,18 @@ export interface CommandMenuProps {
   onOpenChange: (open: boolean) => void;
   groups: CommandGroup[];
   placeholder?: string;
+  /**
+   * Names the dialog and its search field, as the button that opens it is named ("Find", "Go to"). "Command menu" by default. The field's placeholder is
+   * its hint, not its name.
+   */
+  label?: string;
+  /** Names the list of rows (its listbox): "Results", "Pages". "Commands" by default. */
+  listLabel?: string;
+  /**
+   * How the rows are matched and ordered: Basalt's own scorer by default (the label and id first, then the keywords and description). `false` for the
+   * app's own order (rows from a server, already ranked), or a function that scores a row (`CommandFilter`).
+   */
+  filter?: CommandFilter;
   /** Show a footer naming the keys (↵ Run, Esc Close). Off by default: they're universal. */
   hints?: boolean;
   /**
@@ -131,7 +158,7 @@ export function CommandMenu(props: CommandMenuProps) {
  * state, and the review walkthrough passes a fixed one to show the loading and error looks.
  * @internal
  */
-export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Search commands", hints = false, search: controlled, onSearchChange, state, retry }: CommandMenuProps & { state: PanelState; retry: () => void }) {
+export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Search commands", label = "Command menu", listLabel = "Commands", filter, hints = false, search: controlled, onSearchChange, state, retry }: CommandMenuProps & { state: PanelState; retry: () => void }) {
   const layer = useModalLayer();
   const popup = React.useRef<HTMLDivElement>(null);
   const popupRef = useModalOutside<HTMLDivElement>(popup);
@@ -152,6 +179,29 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
     setOwn("");
     heard.current?.("");
   };
+  // Keys typed between the opening and the field taking focus (the app opened the menu from a key, and focus is still in the app's field while the
+  // dialog mounts and moves it) are the search's, not the app's: from the commit that opens the menu, until focus is inside it, a printable key is
+  // taken (kept from the control that had focus) and added to the search.
+  const typed = React.useRef(search);
+  typed.current = search;
+  React.useLayoutEffect(() => {
+    if (!open) return undefined;
+    const doc = popup.current?.ownerDocument ?? document;
+    const take = (event: KeyboardEvent) => {
+      const host = popup.current;
+      if (host?.contains(doc.activeElement)) {
+        doc.removeEventListener("keydown", take, true);
+        return;
+      }
+      if (event.defaultPrevented || event.isComposing || event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) return;
+      event.preventDefault();
+      event.stopPropagation();
+      typed.current += event.key;
+      setSearch(typed.current);
+    };
+    doc.addEventListener("keydown", take, true);
+    return () => doc.removeEventListener("keydown", take, true);
+  }, [open, setSearch]);
   const Panel = state.status === "ready" ? state.Panel : null;
   return (
     <ModalDepth.Provider value={layer.depth}>
@@ -159,11 +209,11 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
       <BaseDialog.Root open={open} onOpenChange={onOpenChange} onOpenChangeComplete={closed}>
         <BaseDialog.Portal>
           <BaseDialog.Backdrop className="basalt-dialog-backdrop basalt-command-backdrop" style={{ zIndex: layer.backdrop }} />
-          <BaseDialog.Popup ref={popupRef} className="basalt-dialog basalt-command" data-level={MODAL_LEVEL} style={{ zIndex: layer.popup }} aria-label="Command menu">
+          <BaseDialog.Popup ref={popupRef} className="basalt-dialog basalt-command" data-level={MODAL_LEVEL} style={{ zIndex: layer.popup }} aria-label={label}>
             {inLevel(
               MODAL_LEVEL,
               Panel ? (
-                <Panel groups={groups} placeholder={placeholder} hints={hints} onOpenChange={onOpenChange} search={search} onSearchChange={setSearch} />
+                <Panel groups={groups} placeholder={placeholder} label={label} listLabel={listLabel} filter={filter} hints={hints} onOpenChange={onOpenChange} search={search} onSearchChange={setSearch} />
               ) : state.status === "error" ? (
                 // The alert is the sentence alone: the buttons are not read out with it. A browser keeps a failed
                 // file for the life of the page, so after a second failure Reload page comes first and has focus.
@@ -188,7 +238,7 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
                   <input
                     className="basalt-command-input"
                     placeholder={placeholder}
-                    aria-label={placeholder}
+                    aria-label={label}
                     aria-describedby={loadingId}
                     autoComplete="off"
                     autoCorrect="off"

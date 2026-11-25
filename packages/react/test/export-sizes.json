@@ -38,7 +38,7 @@
   "COPIED_MS": 35,
   "CSPProvider": 449,
   "CalendarGlyph": 2974,
-  "Callout": 11751,
+  "Callout": 11775,
   "CaptionedColumn": 350,
   "CaptionedColumns": 285,
   "Card": 463,
@@ -64,8 +64,8 @@
   "Combobox": 164926,
   "CommandBlock": 4923,
   "CommandList": 34036,
-  "CommandMenu": 88557,
-  "Composer": 53074,
+  "CommandMenu": 89083,
+  "Composer": 53317,
   "CopyButton": 19373,
   "CopyGlyph": 2884,
   "Countdown": 3016,
@@ -223,7 +223,7 @@
   "ReflowItem": 470,
   "Refreshing": 1911,
   "ReleaseIndex": 30827,
-  "ReleaseNotes": 67918,
+  "ReleaseNotes": 67942,
   "Reserve": 441,
   "Reveal": 20409,
   "RoutesGlyph": 3009,
@@ -345,12 +345,12 @@
   "Text": 922,
   "TextButton": 11393,
   "TextMorph": 4681,
-  "Textarea": 27069,
+  "Textarea": 27597,
   "ThemeChoiceControl": 4794,
   "ThemeMenu": 206519,
   "TimeChart": 48163,
   "TimelineDiagram": 130716,
-  "ToastProvider": 92987,
+  "ToastProvider": 93510,
   "Toolbar": 22915,
   "ToolbarButton": 32730,
   "ToolbarGroup": 21467,
@@ -362,7 +362,7 @@
   "TooltipProvider": 97618,
   "TrashGlyph": 2906,
   "TravelSpinner": 2100,
-  "Tray": 91576,
+  "Tray": 91779,
   "TrayRow": 502,
   "TrendsGlyph": 2924,
   "VersionLink": 1973,
@@ -442,11 +442,11 @@
   }
  },
  "package": {
-  "bytes": 1045301,
-  "gzip": 349027
+  "bytes": 1046804,
+  "gzip": 349573
  },
  "styles": {
-  "bytes": 511421,
-  "gzip": 65456
+  "bytes": 511997,
+  "gzip": 65549
  }
 }

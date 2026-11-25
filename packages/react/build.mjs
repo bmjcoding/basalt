@@ -323,6 +323,28 @@ for (const file of fs.readdirSync(dist, { recursive: true }).filter((f) => f.end
 
 execFileSync(path.join(path.dirname(require.resolve("typescript/package.json")), "bin", "tsc"), ["-p", here], { stdio: "inherit" });
 
+// The declarations name their siblings as the source does, with no extension ("./glyph-set"), which a bundler's resolution finds and Node's does not: an
+// app type-checked under `moduleResolution: "node16"` or `"nodenext"` cannot follow `export * from "./glyph-set"`, so it can't name a glyph (an unresolved
+// named re-export only goes untyped). Every relative specifier in dist's declarations is written as Node needs it: "./x.js" for dist/x.d.ts, and
+// "./x/index.js" for a folder. One that names nothing in dist fails the build, as a declaration that points nowhere would fail an app.
+{
+  const declarations = fs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".d.ts"));
+  const specifier = /(\bfrom\s*|\bimport\s*\(\s*|^\s*import\s*)(["'])(\.{1,2}\/[^"']*)\2/gm;
+  for (const file of declarations) {
+    const at = path.dirname(path.join(dist, file));
+    const source = fs.readFileSync(path.join(dist, file), "utf8");
+    const written = source.replace(specifier, (whole, lead, quote, name) => {
+      const target = path.resolve(at, name);
+      if (fs.existsSync(`${target}.d.ts`)) return `${lead}${quote}${name}.js${quote}`;
+      if (fs.existsSync(path.join(target, "index.d.ts"))) return `${lead}${quote}${name.replace(/\/$/, "")}/index.js${quote}`;
+      // A file that is not a module of ours (an SVG read as text, "./x.js" already written whole) is named as it is.
+      if (/[?#]/.test(name) || /\.[a-z0-9]+$/i.test(path.basename(name))) return whole;
+      throw new Error(`${file} names ${name}, which has no declaration in dist`);
+    });
+    if (written !== source) fs.writeFileSync(path.join(dist, file), written);
+  }
+}
+
 // The two head scripts as files (dist/head/theme.js and dist/head/loops.js), for an app whose content policy forbids an inline script (`script-src 'self'`): it
 // serves the file from its own origin and loads it with a plain `<script src>` in `<head>` (no `async`, `defer` or `type="module"`, which would run it after the
 // first frame). Each file is the exported string itself, character for character (test/content-policy.test.mjs), so the two forms never drift.
