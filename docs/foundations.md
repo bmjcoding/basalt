@@ -2650,8 +2650,9 @@ fallback when the picture is missing. The one set of company files Basalt ships 
 `Stepper` (back and next through a short flow) and not `Pagination`. The buttons are `IconButton`s, ghost, 32px, the core `chevron-left` and `chevron-right`
 (`Pagination`'s), `space-1` from the label. The label is `text-base` at 500 in primary, centred, tabular, on one line, in a seat of at least `space-32` (128px).
 **At the first or last period the button stops but keeps focus** (`aria-disabled`, `focusableWhenDisabled`), so a keyboard user is not dropped. **With no periods** (the
-whole span shown) both buttons are `visibility: hidden` and keep their room, so nothing moves. **It is spoken once:** the label is shown at once and a polite
-status line says its words, with a hidden prefix ("Week 8, build, "), after it has held still for 400ms, so six presses in a second speak once. **Under 640px of
+whole span shown) both buttons are `visibility: hidden` and keep their room, so nothing moves. **It is spoken once:** the label is shown at once and, when it changes after the stepper mounts, a polite
+status line says its words, with a hidden prefix ("Week 8, build, "), after it has held still for 400ms, so six presses in a second speak once. The period a
+page arrives on is read in place and never announced (the live line starts empty). **Under 640px of
 the app's container** it takes its own row under the tabs: full width, the buttons at the ends, 52px tall, `space-2` of inline padding, a `border-divider` line above (DECISIONS 167), each button at
 least 44 by 44. The buttons are a press, an explicit act, so WCAG 3.2.2 is not engaged.
 
@@ -3087,7 +3088,7 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   it ("Show 5 earlier steps", "Show 5 earlier steps, 1 failed"; open, "Hide earlier steps") holds its line from the first frame and opens the
   whole record in full form. Hover and focus lift the tail to its first step. Nothing here speaks.
 - **`RunTimer`.** Geist Mono at `text-xs`, tertiary, tabular, a `time` with an ISO duration, never a live region: "12.3 s" under a minute
-  (every 100ms), "12 min 34 s" to an hour, "12 hr 34 min" to a day, then "3 days". One shared interval. Its seat is one `Reserve` cell as wide as its scale's longest form and never empty, the figure end-aligned in a column, centred under a rail's node and
+  (every 100ms; on a rail given the minutes scale, whole seconds, "45 s", by the second, its `datetime` still to the tenth), "12 min 34 s" to an hour, "12 hr 34 min" to a day, then "3 days". One shared interval. Its seat is one `Reserve` cell as wide as its scale's longest form and never empty, the figure end-aligned in a column, centred under a rail's node and
   start-aligned right after a `Terminal` head's state word (under 480px of the `Terminal`'s own width a head with a run's time is two rows:
   the title and the copy button on its end edge, then the state and its time from the title's start edge, `space-2` between the lines and `space-3`
   under the status, 70px at 390 and 320); a list sets one scale for all its timers. A run's head seat also holds today's held form
@@ -3208,6 +3209,8 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
   "Mmm 00 00:00 PM" in `en-US`).
 - **The source stamp** (`SourceStamp`; V5, V6, R8): four 8px shapes as drawn (filled, half-filled, hollow, a cross) and Basalt's braille for "asking", all in one 8 by 10 seat, with a word
   always; the "just landed" flash is dropped. Source first, time to the second and 24-hour, no middle dot ("github 18:52:07"); `Stat` is unchanged. V5 had no majority, so option (a) stands.
+  Its `time`'s `datetime` is the instant in UTC ("2026-11-24T21:55:17.000Z"), the drawn clock the zone's; `timeZoneName` writes the zone's name inside the
+  `time`, after a no-break space ("github 18:52:07 CST"), so it is in the stamp's accessible name.
   **Waiting and unreachable** (`SourceStateWords`): words only, both sentences in one `Reserve` cell, the failure said once through `StatusLine`, "Ask again" a `TextButton`.
 - **The status bar** (`StatusBar`; V7, R6, R7). A 44px foot from 720, fixed under it (56 plus the safe area). A message the app has also logged goes after 5000ms; any other stays until
   replaced or cleared with Esc. An error carries XCircle in a 16px seat and danger ink and is said through an assertive region that is in the page before the text. The slot reserves its

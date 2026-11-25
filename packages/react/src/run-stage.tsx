@@ -30,6 +30,10 @@ export interface RunStageProps {
   /** When this attempt started, and ended: the stage's own time. */
   start?: Moment;
   end?: Moment;
+  /** Writes the stage's time, in a list and on a rail (see `RunTimer`'s `format`): its seat's width follows it. */
+  format?: (ms: number) => string;
+  /** Says the stage's time, when the drawn form is short for the ear (see `RunTimer`'s `spoken`). */
+  spoken?: (ms: number) => string;
   /** What opens under a list's stage: a failure's reason, what waits. A `p` is the reason, a `strong` its loud words, a `small` its fact. A rail ignores it. */
   detail?: React.ReactNode;
   /** The detail's one action: a `Button` whose `onClick` returns the app's promise ("Retry", "Approve"). A rail ignores it. */
@@ -75,12 +79,12 @@ export function useFocusHome(present: number, home: React.RefObject<HTMLElement 
 const RAIL_WORDS = { failed: STAGE_WORDS.failed, skipped: STAGE_WORDS.skipped, canceled: STAGE_WORDS.canceled, retrying: STAGE_WORDS.retrying };
 
 /** One stage. In a `StageList` a row; in a `StageRail` a node. */
-export function RunStage({ name, state, word, meta, start, end, detail, action, className }: RunStageProps) {
+export function RunStage({ name, state, word, meta, start, end, format, spoken, detail, action, className }: RunStageProps) {
   const kind = React.useContext(RunStagesContext) ?? "list";
   const said = word ?? STAGE_WORDS[state];
   const drawn = DRAWN[kind][state];
   const nameRef = React.useRef<HTMLSpanElement>(null);
-  const timer = <RunTimer start={start} end={end} whenHeld="hidden" />;
+  const timer = <RunTimer start={start} end={end} format={format} spoken={spoken} whenHeld="hidden" />;
 
   // The detail keeps what it last held while it closes, so it closes over its own content and never over nothing.
   const hasAction = rendered(action);

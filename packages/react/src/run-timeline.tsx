@@ -40,6 +40,10 @@ export interface RunStepProps {
   meta?: React.ReactNode;
   start?: Moment;
   end?: Moment;
+  /** Writes the step's time, in a full step and a tail row (see `RunTimer`'s `format`): its seat's width follows it. */
+  format?: (ms: number) => string;
+  /** Says the step's time, when the drawn form is short for the ear (see `RunTimer`'s `spoken`). */
+  spoken?: (ms: number) => string;
   /** What is drawn under a full step, never behind a disclosure: a command to approve, a reason. Hidden in the tail. */
   detail?: React.ReactNode;
   /** The step's action ("Approve"): a `Button` whose `onClick` returns the app's promise. */
@@ -81,7 +85,7 @@ const defaultToggle = (earlier: number, failed: number, open: boolean) =>
   open ? "Hide earlier steps" : `Show ${earlier} earlier ${earlier === 1 ? "step" : "steps"}${failed ? `, ${failed} failed` : ""}`;
 
 /** One step of a run. See `RunTimeline`. */
-export function RunStep({ state, mark, word, children, meta, start, end, detail, action, className }: RunStepProps) {
+export function RunStep({ state, mark, word, children, meta, start, end, format, spoken, detail, action, className }: RunStepProps) {
   const { tail, depth } = React.useContext(StepPlaceContext);
   const said = word ?? (state ? STAGE_WORDS[state] : undefined);
   const drawn = word !== undefined || (state !== undefined && (tail ? DRAWN_TAIL : DRAWN_FULL)[state]);
@@ -101,7 +105,7 @@ export function RunStep({ state, mark, word, children, meta, start, end, detail,
           <span className="basalt-run-step-meta">
             {meta !== undefined ? <span className="basalt-run-step-result">{meta}</span> : null}
             {meta !== undefined && state !== undefined ? <DotSep spaced className="basalt-run-step-dot" /> : null}
-            {state !== undefined ? <RunTimer start={start} end={end} whenHeld="hidden" /> : null}
+            {state !== undefined ? <RunTimer start={start} end={end} format={format} spoken={spoken} whenHeld="hidden" /> : null}
           </span>
         ) : null}
       </div>
