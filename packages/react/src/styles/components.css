@@ -3820,6 +3820,30 @@
   .basalt-popover-title { margin: 0; font-size: var(--basalt-text-base-size); font-weight: var(--basalt-font-weight-semibold); }
   .basalt-popover-description { margin: var(--basalt-space-1) 0 0; color: var(--basalt-text-secondary); }
   .basalt-popover-trigger:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* A count and the names it counts (cimip-gaps-3 T2, item 10). The trigger is TextButton in the surrounding text's size and ink, the count tabular, the
+     chevron at 16 turning when open. The panel: size-menu-min to size-popover-max, no padding of its own: a title (text-base, 600) over a divider, the
+     filter band from ten names, the list scrolling inside size-popup-max-height with space-1-5 round it (a ring is never cut), and the foot. */
+  .basalt-count-names { display: inline; }
+  .basalt-count-names-trigger { font-size: inherit; line-height: inherit; color: inherit; font-variant-numeric: tabular-nums; }
+  .basalt-count-names-trigger > .basalt-icon { transition: transform var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-count-names-trigger[data-open] > .basalt-icon { transform: rotate(180deg); }
+  .basalt-popover.basalt-count-names-panel { display: flex; flex-direction: column; min-width: var(--basalt-size-menu-min); padding: 0; overflow: hidden; }
+  .basalt-count-names-title { flex: none; padding: var(--basalt-space-3) var(--basalt-space-4); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); outline: none; }
+  .basalt-popover.basalt-count-names-panel .basalt-count-names-band { flex: none; margin: 0; }
+  .basalt-count-names-list { flex: 1 1 auto; min-height: 0; max-height: var(--basalt-size-popup-max-height); margin: 0; padding: var(--basalt-space-1-5); overflow-y: auto; overscroll-behavior: contain; list-style: none; }
+  .basalt-count-names-item { margin: 0; padding: var(--basalt-space-1-5) var(--basalt-space-2); color: var(--basalt-text-primary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); overflow-wrap: anywhere; }
+  .basalt-count-names-detail { display: block; color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
+  /* A linked name is a focusable row: 32 tall (44 on touch), the hover wash, the control ring at +2; its detail lifts to secondary on the wash. */
+  .basalt-count-names-item[data-linked] { padding: 0; }
+  .basalt-count-names-row { display: flex; flex-direction: column; justify-content: center; min-height: var(--basalt-size-control-md); padding: var(--basalt-space-1-5) var(--basalt-space-2); border-radius: var(--basalt-radius-sm); color: inherit; text-decoration: none; outline: none; -webkit-tap-highlight-color: transparent; }
+  @media (hover: hover) { .basalt-count-names-row:hover { background: var(--basalt-state-hover); } .basalt-count-names-row:hover .basalt-count-names-detail { color: var(--basalt-text-secondary); } }
+  .basalt-count-names-row:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-count-names-row .basalt-external { color: var(--basalt-text-secondary); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) { .basalt-count-names-row { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
+  .basalt-count-names-none { margin: 0; padding: var(--basalt-space-3) var(--basalt-space-4); color: var(--basalt-text-secondary); }
+  .basalt-count-names-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--basalt-space-1) var(--basalt-space-3); padding: var(--basalt-space-2) var(--basalt-space-4); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
+  @media (prefers-reduced-motion: reduce) { .basalt-count-names-trigger > .basalt-icon { transition: none; } }
 
   /* ---- Callout ---- */
 

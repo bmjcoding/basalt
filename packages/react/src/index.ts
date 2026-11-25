@@ -140,6 +140,8 @@ export type { ReserveProps } from "./reserve";
 export { Meter } from "./meter";
 export type { MeterProps } from "./meter";
 export { Stat, Stats } from "./stat";
+export { CountNames } from "./count-names";
+export type { CountName, CountNamesProps } from "./count-names";
 export type { StatProps, StatsProps } from "./stat";
 export { LogFields, LogLine } from "./log-fields";
 export type { LogField, LogFieldsInput, LogLineProps } from "./log-fields";
