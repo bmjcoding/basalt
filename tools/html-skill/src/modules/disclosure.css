@@ -12,6 +12,25 @@
   @media (forced-colors: active) { .disclosure::after, details > summary::after { forced-color-adjust: none; } }
   @media (pointer: coarse), (width < %bp-md%) { .disclosure, details > summary { min-height: var(--basalt-size-tap-min); } }
 
+  /* ---- The prose form (React's Disclosure, cimip-gaps-3 T3, 7a): data-prose on button.disclosure or on details ----
+     The trigger hugs its words; the chevron leads in a 16px seat one line tall, secondary, to the end while closed (mirrored right to left) and down while open; the title
+     is 500 in primary at the size of where it sits and wraps. Hover lifts the chevron and underlines the words; no wash. At least 28 tall (44 on touch), the ring at +2,
+     radius 6 (8 at 44). The detail (the next element, or the details' content) is indented to the words' edge, space-2 under them. */
+  :is(.disclosure[data-prose], details[data-prose] > summary) { box-sizing: border-box; display: inline-flex; align-items: flex-start; width: fit-content; max-width: 100%; min-height: var(--basalt-size-control-sm); padding: max(var(--basalt-space-0), calc((var(--basalt-size-control-sm) - 1lh) / 2)) 0; gap: var(--basalt-space-2); border-radius: var(--basalt-radius-sm); font: inherit; font-weight: var(--basalt-font-weight-medium); color: var(--basalt-text-primary); overflow-wrap: anywhere; text-decoration: underline; text-decoration-color: transparent; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  /* The row's own chevron (the core chevron-down mask), moved to lead and turned: to the end while closed (mirrored right to left), down while open. */
+  :is(.disclosure[data-prose], details[data-prose] > summary)::after { order: -1; margin-inline-start: 0; height: 1lh; background: var(--basalt-text-secondary); mask-size: var(--basalt-size-icon-sm); transform: rotate(-90deg); transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  :is(.disclosure[data-prose], details[data-prose] > summary):dir(rtl)::after { transform: rotate(90deg); }
+  :is(.disclosure[data-prose][aria-expanded="true"], details[data-prose][open] > summary)::after { transform: none; }
+  @media (hover: hover) {
+    :is(.disclosure[data-prose], details[data-prose] > summary):hover { text-decoration-color: currentColor; }
+    :is(.disclosure[data-prose], details[data-prose] > summary):hover::after { background: var(--basalt-text-primary); }
+  }
+  .disclosure[data-prose] + * { margin-block-start: var(--basalt-space-2); padding-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-2)); }
+  details[data-prose] > :not(summary) { padding-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-2)); }
+  details[data-prose] > summary + * { margin-block-start: var(--basalt-space-2); }
+  @media (pointer: coarse), (width < %bp-md%) { :is(.disclosure[data-prose], details[data-prose] > summary) { min-height: var(--basalt-size-tap-min); padding-block: max(var(--basalt-space-0), calc((var(--basalt-size-tap-min) - 1lh) / 2)); border-radius: var(--basalt-radius-md); } }
+  @media (forced-colors: active) { :is(.disclosure[data-prose], details[data-prose] > summary)::after { background: CanvasText; } }
+
   /* ---- Show all (DECISIONS 152, D6): the rest of a list opens in place ----
      A button[data-disclosure][data-reveal] controls a root; each .reveal under it is a grid whose one track goes 0fr to 1fr over duration-slow on ease-out, and
      back at 0.75 on ease-in. Its .reveal-clip keeps space-2 of room beside the rows so a ring is whole, and lets go once the opening is done (data-settled).

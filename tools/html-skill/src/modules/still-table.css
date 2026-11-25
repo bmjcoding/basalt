@@ -22,9 +22,16 @@
      hover (after the tooltip's wait) or focus: a level-3 plate with the rim, shadow-overlay and radius 8, its text on the pixel the cell's starts on. It is aria-hidden; opened by the
      keyboard it carries the control ring at +2, and after Esc the cell shows its own. Under reduced motion it only fades; it never scales. */
   table[data-fixed] :is(td, th)[data-cut]:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
-  .cell-peek { box-sizing: border-box; position: fixed; z-index: var(--basalt-layer-tooltip); display: flex; align-items: center; width: max-content; border: var(--basalt-size-hairline) solid var(--basalt-border-rim); border-top-color: var(--basalt-border-rim-top); border-radius: var(--basalt-radius-md); background: var(--basalt-surface-3); box-shadow: var(--basalt-shadow-overlay); white-space: normal; overflow-wrap: break-word; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity calc(var(--basalt-duration-base) * 0.75) var(--basalt-ease-in), visibility var(--basalt-duration-instant) linear calc(var(--basalt-duration-base) * 0.75); }
-  .cell-peek[data-open] { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity var(--basalt-duration-base) var(--basalt-ease-out); }
-  .cell-peek[data-focus] { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+
+  /* ---- A cell that wraps (React's TableCell wrap, cimip-gaps-3 T3, 1): data-wrap on a td or a body th[scope="row"] ----
+     The row is at least its density's height; a wrapped cell has the padding a one-line row has round its line, (row - 18) / 2 (11 at 40, 7 compact, 13 comfortable and on
+     touch), so one line is exactly the row. Every cell keeps the middle alignment. It is never cut (no ellipsis, no stop, no plate); the colgroup still sets every width. */
+  .table-wrap { --_row-h: var(--basalt-size-table-row); }
+  .table-wrap[data-row-density="compact"] { --_row-h: var(--basalt-size-control-md); }
+  .table-wrap[data-row-density="comfortable"] { --_row-h: var(--basalt-size-tap-min); }
+  @media (pointer: coarse), (width < %bp-md%) { .table-wrap, .table-wrap[data-row-density] { --_row-h: var(--basalt-size-tap-min); } }
+  table[data-fixed] :is(td, tbody th[scope="row"])[data-wrap] { padding-block: calc((var(--_row-h, var(--basalt-size-table-row)) - var(--basalt-text-sm-line-height)) / 2); white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; }
+  table[data-fixed] :is(td, th)[data-wrap] > a { white-space: normal; overflow: visible; text-overflow: clip; }
 
   /* ---- The sort control: the whole header cell is the button (DECISION 84) ----
      still-table.js writes the button around the header's words. It fills the cell, so the label sits exactly where a plain header's label does and a press
@@ -113,7 +120,6 @@
   .table-wrap[data-scrolled] table[data-pinned="3"] tr:not([data-empty]) > :nth-child(3)::after { opacity: 1; }
 
   @media (forced-colors: active) {
-    .cell-peek { background: Canvas; border-color: CanvasText; }
     /* A pinned column's divider, and the sort seat: system colours. */
     table[data-pinned="1"] tr:not([data-empty]) > :nth-child(1)::after,
     table[data-pinned="2"] tr:not([data-empty]) > :nth-child(2)::after,

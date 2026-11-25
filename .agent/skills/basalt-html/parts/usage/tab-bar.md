@@ -18,3 +18,4 @@ The phone tab bar (React's `TabBar`): an app's destinations under 720, glyph ove
 - `.tab-bar-dot` says something is new; its words follow, visually hidden. Counts are spoken, never drawn.
 - Inside `.app-shell` give the shell `data-tabbar`: its content pads past the bar. On its own, pad your content's bottom by `calc(var(--basalt-bottom-offset) + var(--basalt-space-6))`, as the shell does. compose adds `viewport-fit=cover` for the safe area.
 - In an app with a version, More's last row is the same `.version-link` in `div.tab-bar-version`, after the sheet's `.nav`.
+- `data-dot-kind="direct"` on the cell rings its dot: something new is addressed to the reader (a mention); its words say so (", 3 unread, 1 for you"). The filled glyph still means the current page only.
