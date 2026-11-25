@@ -296,9 +296,10 @@
      hint, `.prose` or `.small` keeps its inline links as they are. The brand, the skip link and the footer's links always count.
      `.tap` opts any other link in. The negative block margin makes the link's margin box one line tall, so a linked row sits
      exactly like an unlinked one: only the hit box grows (1lh is the link's own line height). A control that sizes itself
-     (.btn, .row, .tab, .disclosure, and the site footer's links, a flex column 44 tall of their own as React's) is left alone. */
+     (.btn, .row, .tab, .disclosure, the site footer's links, a flex column 44 tall of their own as React's, and a diagram's linked card, a box of
+     its own taller than 44 whose margin is its stack's gap) is left alone. */
   @media (pointer: coarse), (width < %bp-md%) {
-    a:not(.btn, .row, .tab, .disclosure, .brand, .skip-link, :is(p, li, .prose, .small, .hint, .error, .callout-body) a),
+    a:not(.btn, .row, .tab, .disclosure, .brand, .skip-link, .diagram-node, :is(p, li, .prose, .small, .hint, .error, .callout-body) a),
     nav a:not(.btn, .site-footer-links-host a),
     .footer a,
     .tap {
@@ -309,8 +310,8 @@
     }
     .skip-link { display: inline-flex; align-items: center; min-height: var(--basalt-size-tap-min); }
     /* A link shorter than 44px wide ("Go") is still a 44 by 44 target: a box with no content, centred on the link and at least 44 wide, is part of the link, so its width and its line do not change. */
-    :is(a:not(.btn, .row, .tab, .disclosure, .brand, .skip-link, .topbar-links a, :is(p, li, .prose, .small, .hint, .error, .callout-body) a), .tap) { position: relative; }
-    :is(a:not(.btn, .row, .tab, .disclosure, .brand, .skip-link, .topbar-links a, :is(p, li, .prose, .small, .hint, .error, .callout-body) a), .tap)::after { content: ""; position: absolute; inset-block: 0; left: 50%; width: max(100%, var(--basalt-size-tap-min)); transform: translateX(-50%); }
+    :is(a:not(.btn, .row, .tab, .disclosure, .brand, .skip-link, .diagram-node, .topbar-links a, :is(p, li, .prose, .small, .hint, .error, .callout-body) a), .tap) { position: relative; }
+    :is(a:not(.btn, .row, .tab, .disclosure, .brand, .skip-link, .diagram-node, .topbar-links a, :is(p, li, .prose, .small, .hint, .error, .callout-body) a), .tap)::after { content: ""; position: absolute; inset-block: 0; left: 50%; width: max(100%, var(--basalt-size-tap-min)); transform: translateX(-50%); }
     /* Links stacked one per line in a column (.stack): a 44px box would reach into its neighbour's line and take taps meant for its words. Each
        gives up the side that meets a neighbour (its box is its line there) and keeps its words where they were; React raises the words instead. */
     .stack > a:not(.btn, .row, .tab, .disclosure):has(+ a) { margin-block-end: 0; min-height: calc((var(--basalt-size-tap-min) + 1lh) / 2); align-items: flex-end; }
