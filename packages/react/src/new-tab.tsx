@@ -42,9 +42,9 @@ export function NewTabGlyph({ size = 16 }: { size?: IconSize }) {
   );
 }
 
-/** The spoken half of the cue: visually hidden, inside the link, after the label. */
-export function NewTabWords({ label }: { label?: string }) {
-  return <span className="basalt-visually-hidden">{newTabWords(label)}</span>;
+/** The spoken half of the cue: visually hidden, inside the link, after the label. `id` lets a name built from `aria-labelledby` end with it (a `Stat`'s link). */
+export function NewTabWords({ label, id }: { label?: string; id?: string }) {
+  return <span id={id} className="basalt-visually-hidden">{newTabWords(label)}</span>;
 }
 
 /**

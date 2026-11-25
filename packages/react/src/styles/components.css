@@ -4424,6 +4424,28 @@
   .basalt-stat-value { margin: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-2xl-size) / var(--basalt-text-2xl-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-2xl-tracking); font-variant-numeric: tabular-nums; }
   .basalt-stat-note { margin: 0; color: var(--basalt-text-secondary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
   .basalt-stat-source { margin: auto 0 0; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+  /* A stat that links (cimip-gaps-3 T2, item 2): the link is round the figure in its dd and stretched over the cell (its ::after, inset 0, at every pointer),
+     so label, figure, note and source are one target. The core arrow at 20 after the figure, space-2 away, secondary (16 beside missing words); external
+     for a new tab. Hover anywhere lifts the label and the arrow to primary: nothing travels, no underline, wash, box or press scale. The control ring at +2
+     round the cell, radius 6. */
+  .basalt-stat[data-linked] { position: relative; }
+  .basalt-stat-link { color: inherit; text-decoration: none; outline: none; -webkit-tap-highlight-color: transparent; }
+  .basalt-stat-link::after { content: ""; position: absolute; inset: 0; border-radius: var(--basalt-radius-sm); }
+  .basalt-stat-link:focus-visible::after { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-stat-cue { display: inline-grid; place-items: center; margin-inline-start: var(--basalt-space-2); color: var(--basalt-text-secondary); vertical-align: middle; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-stat[data-linked] .basalt-stat-label { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-stat[data-linked]:hover :is(.basalt-stat-label, .basalt-stat-cue) { color: var(--basalt-text-primary); }
+  /* A value not observed: the words at text-base, 400, tertiary, on the figure's baseline inside its 30px line, so notes and sources stay level across a row. */
+  .basalt-stat-missing { color: var(--basalt-text-tertiary); font-weight: var(--basalt-font-weight-regular); font-size: var(--basalt-text-base-size); letter-spacing: normal; }
+  /* The hint: Phosphor Info at 16 in a 20px seat, space-1 after the label's words, secondary at rest and primary on hover, the control ring at +2. The label's
+     line stays 18px (the seat overhangs it by a pixel each way); on touch a 44 by 44 hit box with no change to layout. Above the stretched link. */
+  .basalt-stat-hint { position: relative; z-index: 1; display: inline-grid; place-items: center; inline-size: var(--basalt-size-icon-md); block-size: var(--basalt-size-icon-md); margin-block: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-icon-md)) / 2); margin-inline-start: var(--basalt-space-1); padding: 0; border: 0; border-radius: var(--basalt-radius-xs); background: none; color: var(--basalt-text-secondary); vertical-align: top; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-stat-hint:hover { color: var(--basalt-text-primary); }
+  .basalt-stat-hint:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
+    .basalt-stat-hint::before { content: ""; position: absolute; top: 50%; left: 50%; /* physical: it is centred, in either direction */ width: var(--basalt-size-tap-min); height: var(--basalt-size-tap-min); transform: translate(-50%, -50%); }
+  }
 
   /* The gutter shared by a CodeBlock with a prompt and the Terminal: 16px plus space-2 at the start of every line, holding a prompt, a
      status mark, or nothing. It is chrome: nothing in it can be selected, and the prompt is aria-hidden. */
