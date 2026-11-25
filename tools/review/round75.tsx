@@ -12,6 +12,7 @@ import * as React from "react";
 import {
   Button,
   Card,
+  CardContent,
   CodeBlock,
   CommandList,
   CommandMenu,
@@ -60,7 +61,7 @@ const RECIPES: CommandGroup[] = [
 // The app ranked these for "sha" and says what matched.
 const MATCHED: CommandGroup[] = [
   { label: "Results", commands: [
-    { id: "share", label: "Share recipe", icon: CoreSet.SendGlyph, unavailable: "Sign in to share a recipe with another cook.", matches: { label: [[0, 3]], unavailable: [[29, 32]] }, onSelect: () => {} },
+    { id: "share", label: "Share recipe", icon: CoreSet.SendGlyph, unavailable: "Sign in to share a recipe with another cook.", matches: { label: [[0, 3]], unavailable: [[11, 14]] }, onSelect: () => {} },
     { id: "shallot", label: "Shallot tart", description: "Shallots, butter and thyme", matches: { label: [[0, 3]], description: [[0, 3]] }, onSelect: () => {} },
     { id: "wash", label: "Wash the shared bowls", danger: true, matches: { label: [[9, 12]] }, onSelect: () => {} },
   ] },
@@ -284,6 +285,7 @@ function Rich() {
   return (
     <div style={{ display: "grid", gap: "var(--basalt-space-6)" }}>
       <Card>
+        <CardContent>
         <Prose>
           <RichText>
             <p>Fold the butter in <strong>cold</strong>, and <em>never</em> let it melt. If the dough tears, rest it for <code>20 minutes</code> and try again.</p>
@@ -299,8 +301,9 @@ function Rich() {
             <p>The full card is at <a href="#card">the recipe box</a>.</p>
           </RichText>
         </Prose>
+        </CardContent>
       </Card>
-      <div style={{ maxWidth: 560 }}>
+      <div style={{ maxWidth: 560, minWidth: 0 }}>
         <RichText>
           <p>The flaky check is <code>buildServerPipelineTriggerForTheMainBranchWithEveryCheckAndEveryArtifactKept</code>; it fails when the cache is cold.</p>
           <ol>
@@ -368,15 +371,15 @@ export const ROUND_75: Round = {
       name: "The loop hold and single keys as menu rows, and MenuText",
       intro: "LoopsToggleMenuItem and SingleKeysMenuItem are checkbox rows on the shipped stores. MenuText is a line of words under a group's label that is not a row: tertiary, never lit, never a stop.",
       decisions: [
-        "\"Pause animations\" with the switch's description, which wraps; `description={false}` gives one line (the second menu). \"Single-key shortcuts\" is one line. In a menu, on is a check: never a Switch.",
+        "\"Pause animations\" with the switch's description, which wraps; `description={false}` gives one line (the `second` state, a build server's menu, with MenuText outside any group). \"Single-key shortcuts\" is one line. In a menu, on is a check: never a Switch.",
         "MenuText is 13/18 at 400 in tertiary at the label's edge, space-1 below; it describes its group (aria-describedby), or the menu when it is in none.",
         NOT_REVIEWED,
       ],
       tryIt: ["Press Space on Pause animations: the check shows, the menu stays open, and the page's loops hold."],
-      states: ["forced-colours"],
+      states: ["forced-colours", "second", "second-forced-colours"],
       widths: [1440, 390],
       height: 560,
-      demo: () => <div style={{ display: "flex", gap: "var(--basalt-space-12)", flexWrap: "wrap" }}><MenuRows /><BuildMenu /></div>,
+      demo: ({ state }) => (state === "second" || state === "second-forced-colours" ? <BuildMenu /> : <MenuRows />),
     },
     {
       id: "glyphs",

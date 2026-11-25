@@ -853,6 +853,9 @@
     text-wrap: pretty;
   }
 
+  /* First in a menu (no group label above it), it takes the label's own top room, so it never sits on the rim. */
+  .basalt-menu > :is(.basalt-plate:first-child + .basalt-menu-text, .basalt-menu-text:first-child) { padding-top: var(--basalt-space-2); }
+
   .basalt-menu-trigger { cursor: pointer; }
 
   /* ---- Dialog ---- */
@@ -3574,6 +3577,8 @@
   .basalt-dialog.basalt-command .basalt-command-list[data-none] { padding-block: 0; }
   .basalt-dialog.basalt-command .basalt-command-foot { box-sizing: border-box; min-height: calc(var(--basalt-size-kbd) + 2 * var(--basalt-space-2)); }
   /* While the empty block holds a tab stop the field is no longer the modal's only stop, so its band takes the list's flush-field ring (−2). */
+  /* The band's top corners follow the panel's, so the −2 ring below turns the corner with it and is never cut by the rounded edge. */
+  .basalt-dialog.basalt-command .basalt-command-search { border-start-start-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); border-start-end-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); }
   .basalt-dialog.basalt-command:has(.basalt-command-none :is(a[href], button:not(:disabled), input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"]))) .basalt-command-search:has(.basalt-command-input:focus-visible) {
     outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus);
     outline-offset: calc(-1 * var(--basalt-size-focus-width));
@@ -4927,7 +4932,7 @@
   .basalt-rich-text :where(blockquote) { padding-inline-start: var(--basalt-space-4); color: var(--basalt-text-secondary); }
   .basalt-rich-text :where(hr) { height: 0; border: 0; border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
   .basalt-rich-text :where(p, ul, ol, blockquote, pre, figure, hr, h1, h2, h3, h4, h5, h6, table, dl, div, details) + :where(hr), .basalt-rich-text :where(hr) + :where(p, ul, ol, blockquote, pre, figure, hr, h1, h2, h3, h4, h5, h6, table, dl, div, details) { margin-block-start: var(--basalt-space-4); }
-  .basalt-rich-text :where(pre) { overflow-x: auto; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-size-code-line-height) var(--basalt-font-family-mono); white-space: pre; overflow-wrap: normal; }
+  .basalt-rich-text :where(pre) { contain: inline-size; overflow-x: auto; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-size-code-line-height) var(--basalt-font-family-mono); white-space: pre; overflow-wrap: normal; }
   .basalt-rich-text :where(pre code) { font: inherit; }
   .basalt-rich-text :where(img) { max-inline-size: 100%; height: auto; }
 

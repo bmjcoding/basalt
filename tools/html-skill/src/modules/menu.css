@@ -89,6 +89,7 @@
   .menu-group-label { padding: var(--basalt-space-2) var(--basalt-space-3) var(--basalt-space-0-5); font: var(--basalt-font-weight-medium) var(--bh-xs); color: var(--basalt-text-tertiary); }
   /* A line of words that is not a row (React's MenuText): 13/18 at 400 in tertiary, the label's edge, space-1 below, wrapping inside the menu's 320. Never lit, no plate,
      no stop; the script ties it to its group (or the menu) with aria-describedby. */
+  .menu > :is(.plate:first-child + .menu-text, .menu-text:first-child) { padding-top: var(--basalt-space-2); }
   .menu-text { margin: 0; padding: 0 var(--basalt-space-3) var(--basalt-space-1); font: var(--basalt-font-weight-regular) var(--bh-sm); color: var(--basalt-text-tertiary); overflow-wrap: break-word; text-wrap: pretty; }
 
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {

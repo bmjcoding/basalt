@@ -35,7 +35,7 @@
   .rich-text :where(blockquote) { padding-inline-start: var(--basalt-space-4); color: var(--basalt-text-secondary); }
   .rich-text :where(hr) { height: 0; border: 0; border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
   .rich-text :where(p, ul, ol, blockquote, pre, figure, hr, h1, h2, h3, h4, h5, h6, table, dl, div, details) + :where(hr), .rich-text :where(hr) + :where(p, ul, ol, blockquote, pre, figure, hr, h1, h2, h3, h4, h5, h6, table, dl, div, details) { margin-block-start: var(--basalt-space-4); }
-  .rich-text :where(pre) { overflow-x: auto; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-size-code-line-height) var(--basalt-font-family-mono); white-space: pre; overflow-wrap: normal; }
+  .rich-text :where(pre) { contain: inline-size; overflow-x: auto; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-size-code-line-height) var(--basalt-font-family-mono); white-space: pre; overflow-wrap: normal; }
   .rich-text :where(pre code) { font: inherit; }
   .rich-text :where(img) { max-inline-size: 100%; height: auto; }
 
