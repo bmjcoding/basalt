@@ -7232,16 +7232,29 @@
   .basalt-back-link a:is(:hover, :focus-visible) { color: var(--basalt-text-primary); }
 
   /* The link card: a link round a picture, a heading, a sentence and a state. No rim, no level. */
-  .basalt-link-card { --_arrow: var(--basalt-size-icon-lg); position: relative; display: block; color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); text-decoration: none; }
+  .basalt-link-card { --_arrow: var(--basalt-size-icon-lg); --_title-line: var(--basalt-display-line-height); position: relative; display: block; color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); text-decoration: none; }
   .basalt-link-card-media { position: relative; display: block; height: var(--_basalt-link-card-media-height, auto); overflow: hidden; background: var(--basalt-surface-page); }
   .basalt-link-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--basalt-space-6); padding-block-start: var(--basalt-space-10); }
   .basalt-link-card-title { margin: 0; font-size: var(--basalt-display-size); font-weight: var(--basalt-font-weight-semibold); line-height: var(--basalt-display-line-height); letter-spacing: var(--basalt-display-tracking); text-wrap: balance; overflow-wrap: anywhere; }
-  .basalt-link-card-top > :is(.basalt-go-arrow, .basalt-external) { margin-block-start: calc((var(--basalt-display-line-height) - var(--_arrow)) / 2); }
+  .basalt-link-card-top > :is(.basalt-go-arrow, .basalt-external) { margin-block-start: calc((var(--_title-line) - var(--_arrow)) / 2); }
   .basalt-link-card :is(.basalt-go-arrow, .basalt-external) > .basalt-icon { width: var(--_arrow); height: var(--_arrow); }
   .basalt-link-card-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 var(--basalt-space-8); padding-block-start: var(--basalt-space-5); color: var(--basalt-text-secondary); font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); }
   .basalt-link-card-what { transition: color var(--basalt-duration-base) var(--basalt-ease-out); }
   .basalt-link-card-state { font-variant-numeric: tabular-nums; }
   .basalt-link-card:is(:hover, :focus-visible) .basalt-link-card-what { color: var(--basalt-text-primary); }
+  /* The compact cards (titleSize md and base, cimip-gaps-3 T1), for an app page: the title a step of the scale at 600, a 16px arrow at every width,
+     the arrow still centred on the title's first line from --_title-line, and the foot a step down. The display card is unchanged. */
+  .basalt-link-card[data-title-size] { --_arrow: var(--basalt-size-icon-sm); }
+  .basalt-link-card[data-title-size] > .basalt-link-card-top { gap: var(--basalt-space-4); padding-block-start: 0; }
+  .basalt-link-card[data-title-size] .basalt-link-card-foot { gap: 0 var(--basalt-space-4); }
+  .basalt-link-card[data-title-size="md"] { --_title-line: var(--basalt-text-md-line-height); }
+  .basalt-link-card[data-title-size="md"] .basalt-link-card-title { font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-link-card[data-title-size="md"] > .basalt-link-card-media + .basalt-link-card-top { padding-block-start: var(--basalt-space-4); }
+  .basalt-link-card[data-title-size="md"] .basalt-link-card-foot { padding-block-start: var(--basalt-space-2); font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); letter-spacing: var(--basalt-text-base-tracking); }
+  .basalt-link-card[data-title-size="base"] { --_title-line: var(--basalt-text-base-line-height); }
+  .basalt-link-card[data-title-size="base"] .basalt-link-card-title { font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); letter-spacing: var(--basalt-text-base-tracking); }
+  .basalt-link-card[data-title-size="base"] > .basalt-link-card-media + .basalt-link-card-top { padding-block-start: var(--basalt-space-3); }
+  .basalt-link-card[data-title-size="base"] .basalt-link-card-foot { padding-block-start: var(--basalt-space-1); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); letter-spacing: var(--basalt-text-sm-tracking); }
 
   /* The tile: a link round a picture and text, and a foot row beside it, not inside it. */
   .basalt-link-tile { display: flex; flex-direction: column; min-width: 0; font-family: var(--basalt-font-family-sans); }
@@ -7394,8 +7407,16 @@
   }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it a card's arrow is 20px and its foot stacks */
   @media (width < 720px) {
-    .basalt-link-card { --_arrow: var(--basalt-size-icon-md); }
-    .basalt-link-card-foot { display: grid; gap: var(--basalt-space-1); }
+    .basalt-link-card:not([data-title-size]) { --_arrow: var(--basalt-size-icon-md); }
+    .basalt-link-card-foot, .basalt-link-card[data-title-size] .basalt-link-card-foot { display: grid; gap: var(--basalt-space-1); }
+  }
+  /* A compact card can be under 44px tall (20 with a title alone): on a coarse pointer or under 720 its hit area is 44 tall, centred on it, with no change
+     to layout, as a Link on a line of its own. Its words are raised over every box (z-index 1, inside the page's own stacking context; a box is never
+     raised), so in a stack of cards a box only takes the room no card's words are in, and a tap on a card's words is always that card's. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
+    .basalt-link-card[data-title-size]::before { content: ""; position: absolute; inset-inline: 0; top: 50%; height: max(100%, var(--basalt-size-tap-min)); transform: translateY(-50%); }
+    .basalt-link-card[data-title-size] > * { position: relative; z-index: 1; }
   }
 
   /* The copy button with words: both wordings stand in one cell (Reserve), so the button's width is the wider of the two. */
@@ -7612,7 +7633,11 @@
   .basalt-avatar-fallback { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
   .basalt-empty-state { display: flex; flex-direction: column; align-items: center; gap: var(--basalt-space-2); padding: var(--basalt-space-8) var(--basalt-space-4); text-align: center; font-family: var(--basalt-font-family-sans); }
   .basalt-empty-state-icon { color: var(--basalt-text-secondary); margin-bottom: var(--basalt-space-2); }
-  .basalt-empty-state-title { margin: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-medium) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-lg-tracking); }
+  /* The title is a role with its own size, never its level's (cimip-gaps-3 T1): text-base at 500 by default, under an app bar's title and a section's
+     heading at any level, apart from the description by weight and ink; titleSize md (a page's whole content) or lg. */
+  .basalt-empty-state-title { margin: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-medium) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-base-tracking); }
+  .basalt-empty-state-title[data-size="md"] { font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-empty-state-title[data-size="lg"] { font-size: var(--basalt-text-lg-size); line-height: var(--basalt-text-lg-line-height); letter-spacing: var(--basalt-text-lg-tracking); }
   /* stylelint-disable-next-line unit-disallowed-list -- the description's measure in characters of its own font, so it follows the text size; no token holds a width in characters */
   .basalt-empty-state-description { margin: 0; max-width: 42ch; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
   .basalt-empty-state-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--basalt-space-2); margin-top: var(--basalt-space-3); }

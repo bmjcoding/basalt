@@ -149,7 +149,7 @@ extension Basalt {
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.08)
     )
 
-    /// The smoked fill of a sticky header bar (basalt-chrome): the page, #fafafa, at 96% (the owner's midpoint between the first smoke and solid, DECISIONS 146 E), over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, in print. Web only: native bars use the platform bar material or stay opaque.
+    /// The smoked fill of a sticky header bar (basalt-chrome): the page, #fafafa, at 96% (the owner's midpoint between the first smoke and solid, DECISIONS 146 E), over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, under more contrast, in print. Web only: native bars use the platform bar material or stay opaque.
     public static let surfaceChrome = ThemedColor(
       light: RGBA(red: 0.980387, green: 0.980387, blue: 0.980387, alpha: 0.96),
       dark: RGBA(red: 0, green: 0, blue: 0, alpha: 0.925)

@@ -42,17 +42,22 @@ export interface EmptyStateProps extends Omit<React.ComponentProps<"section">, "
   description?: React.ReactNode;
   icon?: IconComponent;
   actions?: React.ReactNode;
-  /** The title's heading level in the page outline; its size stays the same. */
-  headingLevel?: 2 | 3 | 4 | 5 | 6;
+  /** The title's heading level in the page outline; it never sets the size. Level 1 is for a page whose only heading is this one. */
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
+  /**
+   * The title's size, at 500 in primary ink at every level: `"base"` (the default, 14/20) in a panel or a list; `"md"` (16/24) for an empty state that
+   * is a page's whole content under its title; `"lg"` (18/26).
+   */
+  titleSize?: "base" | "md" | "lg";
 }
 
 /** Guidance when a view has no content; never announced as an error on initial load. */
-export function EmptyState({ title, description, icon, actions, headingLevel = 2, children, className, ...props }: EmptyStateProps) {
+export function EmptyState({ title, description, icon, actions, headingLevel = 2, titleSize = "base", children, className, ...props }: EmptyStateProps) {
   const id = React.useId();
   return (
     <section {...props} aria-labelledby={id} className={join("basalt-empty-state", className)}>
       {icon ? <Icon icon={icon} size={24} className="basalt-empty-state-icon" /> : null}
-      {React.createElement(`h${headingLevel}`, { id, className: "basalt-empty-state-title" }, title)}
+      {React.createElement(`h${headingLevel}`, { id, className: "basalt-empty-state-title", "data-size": titleSize === "base" ? undefined : titleSize }, title)}
       {description ? <p className="basalt-empty-state-description">{description}</p> : null}
       {children}
       {actions ? <div className="basalt-empty-state-actions">{actions}</div> : null}

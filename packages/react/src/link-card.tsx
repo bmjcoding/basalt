@@ -18,8 +18,13 @@ const safeRel = (target: string | undefined, rel: string | undefined) =>
 export interface LinkCardProps extends Omit<React.ComponentProps<"a">, "children" | "title" | "media"> {
   /** The card's name: a real heading inside the link. */
   title: React.ReactNode;
-  /** The heading's level in the page outline, 3 by default; its size stays the same at every level. */
+  /** The heading's level in the page outline, 3 by default; it never sets the size (`titleSize` does). */
   titleLevel?: HeadingLevel;
+  /**
+   * The title's size. `"display"` (the default) is the display role, for an editorial page. On an app page, `"md"` (16/24) or `"base"` (14/20), each
+   * 600, with a 16px arrow at every width and the foot a step down; a compact card has a 44px hit area on touch, with no change to layout.
+   */
+  titleSize?: "display" | "md" | "base";
   /**
    * The picture or art above the words, in a window of the card's width. Its height is the app's: set `--_basalt-link-card-media-height`
    * on the card or a parent (the window is as tall as its content until you do). Give the picture its own `alt`.
@@ -35,17 +40,18 @@ export interface LinkCardProps extends Omit<React.ComponentProps<"a">, "children
 
 /**
  * A link round a picture, a heading, a sentence and a state. The whole card is the link. Its arrow, at the heading's end, is the
- * core right arrow (24px, 20 under 720), in secondary ink with the sentence, lifting to primary and travelling 2px on hover and
- * focus. A card with `target="_blank"` draws the new-tab arrow instead, and says so in its name.
+ * core right arrow (24px, 20 under 720; 16 at every width for a compact `titleSize`), in secondary ink with the sentence, lifting to primary and
+ * travelling 2px on hover and focus. A card with `target="_blank"` draws the new-tab arrow instead, and says so in its name.
  */
-export function LinkCard({ title, titleLevel = 3, media, description, state, newTabLabel, className, target, rel, ...props }: LinkCardProps) {
+export function LinkCard({ title, titleLevel = 3, titleSize = "display", media, description, state, newTabLabel, className, target, rel, ...props }: LinkCardProps) {
   const newTab = opensNewTab(target);
+  const compact = titleSize !== "display";
   return (
-    <a {...props} target={target} rel={safeRel(target, rel)} data-new-tab={newTab ? "" : undefined} className={join("basalt-link-card", className)}>
+    <a {...props} target={target} rel={safeRel(target, rel)} data-new-tab={newTab ? "" : undefined} data-title-size={compact ? titleSize : undefined} className={join("basalt-link-card", className)}>
       {media ? <div className="basalt-link-card-media">{media}</div> : null}
       <div className="basalt-link-card-top">
         {heading(titleLevel, "basalt-link-card-title", title)}
-        <EndCue newTab={newTab} size={24} newTabLabel={newTabLabel} />
+        <EndCue newTab={newTab} size={compact ? 16 : 24} newTabLabel={newTabLabel} />
       </div>
       {description || state ? (
         <div className="basalt-link-card-foot">

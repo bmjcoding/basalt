@@ -69,7 +69,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   blurred surface. Dialogs, sheets, menus, popovers, toasts and the command menu stay solid. The
   theme control is in the site footer, never in the bar. Use the class once per viewport;
   translucent layers never stack. Only primary and secondary text sits on it, and it falls
-  back to opaque `surface-page` without `backdrop-filter`, under reduced transparency, in
+  back to opaque `surface-page` without `backdrop-filter`, under reduced transparency, under more contrast, in
   print, and in forced colours (`Canvas`).
 - **Level is position, not importance.** An in-flow surface is its parent plus one, whatever
   its role (a hero or console on the page is level 1, its input band and inner panels level
@@ -175,7 +175,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   at load on a first visit (`duration-figure` 600ms, `duration-stagger` 22ms, at rest on a second visit and under reduced motion); a
   traveller between two resting places on screen uses `ease-in-out` (a leg of 300ms up to 150px, 2ms a pixel above, 600ms from 300px); a
   filtered or sorted list or grid moves what stays by transform and never replaces an item (past 48 items that would move, it lands at once); a number beside a figure never counts up. The hold or printing settles a running entrance at once, and a page change without a reload counts as a load.
-  Under reduced motion, opacity only. See `docs/motion.md`.
+  Under reduced motion, opacity only, and no loop runs. See `docs/motion.md`.
 - **Versions and release notes:** a version is SemVer shown with its ship date ("Version 1.4.0 · Nov 23, 2026"), one link to the
   release notes (`VersionLink`): at the sidebar's foot under the account items, the number alone in the rail, the last row of More's
   sheet on a phone, after the legal line in a site's footer. Nothing marks a release as new, and there is no "What's new" item. A
