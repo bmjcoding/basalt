@@ -673,6 +673,53 @@ for (const theme of THEMES) {
   });
 }
 
+// ---- cimip-gaps-3 T2: the heatmap's four levels, a share bar's status segments, the warning stage mark, and the heatmap's picked disc ----
+//
+// The heat levels alias neutral steps that already exist. Each is a mark, 3:1 on every level; neighbouring levels are an order, not a measure, and are reported,
+// not gated (foundations: the value is in the readout, the cell's name, the key's ranges and the table; in forced colours a level is a shape). The picked disc is
+// chart-observed on the level (its ring is the level's own colour), and the ring must part from each fill: each level on each heat fill.
+
+for (const theme of THEMES) {
+  test(`${theme}: the heat levels are their neutral steps`, () => {
+    const aliases = theme === "dark"
+      ? { "chart-heat-1": "neutral-42", "chart-heat-2": "neutral-59", "chart-heat-3": "neutral-75", "chart-heat-4": "neutral-100" }
+      : { "chart-heat-1": "neutral-52", "chart-heat-2": "neutral-36", "chart-heat-3": "neutral-20", "chart-heat-4": "neutral-9" };
+    for (const [role, alias] of Object.entries(aliases)) assert.deepEqual(color(theme, role), color(theme, alias), `${role} is not ${alias}`);
+  });
+
+  test(`${theme}: each heat level, each status as a share segment and the warning stage mark hold 3:1 on every level`, () => {
+    for (const level of LEVELS) {
+      const under = color(theme, level);
+      for (const role of ["chart-heat-1", "chart-heat-2", "chart-heat-3", "chart-heat-4", "status-success", "status-warning", "status-danger"]) {
+        const r = ratio(over(color(theme, role), under), under);
+        assert.ok(r >= 3, `${theme}: ${role} on ${level} is ${fmt(r)}:1, needs 3:1`);
+      }
+    }
+  });
+
+  test(`${theme}: the heatmap's picked disc holds 3:1 on its level, and its ring (the level's colour) 3:1 on each heat fill`, () => {
+    for (const level of LEVELS) {
+      const under = color(theme, level);
+      const disc = ratio(over(color(theme, "chart-observed"), under), under);
+      assert.ok(disc >= 3, `${theme}: the disc on ${level} is ${fmt(disc)}:1`);
+      for (const heat of ["chart-heat-1", "chart-heat-2", "chart-heat-3", "chart-heat-4"]) {
+        const r = ratio(under, over(color(theme, heat), under));
+        assert.ok(r >= 3, `${theme}: the ring (${level}) on ${heat} is ${fmt(r)}:1, needs 3:1`);
+      }
+    }
+  });
+
+  test(`${theme}: neighbouring heat levels, reported and not gated`, (t) => {
+    const under = color(theme, "surface-1");
+    const fills = ["chart-heat-1", "chart-heat-2", "chart-heat-3", "chart-heat-4"].map((role) => color(theme, role));
+    const steps = fills.slice(1).map((fill, i) => fmt(ratio(fill, fills[i])));
+    t.diagnostic(`${theme}: heat 1→2, 2→3, 3→4 at ${steps.join(", ")}:1 (an order, not a measure)`);
+    // The order holds: each level is further from the page than the one before it.
+    const from = fills.map((fill) => ratio(fill, under));
+    for (let i = 1; i < from.length; i += 1) assert.ok(from[i] > from[i - 1], `${theme}: heat ${i + 1} is not past heat ${i}`);
+  });
+}
+
 // ---- Two-line rows, the command list in the page and the checklist's search band (council item 103) ----
 //
 // A description is tertiary at rest and lifts to secondary on the plate, the hint rule above; a danger row's description keeps its

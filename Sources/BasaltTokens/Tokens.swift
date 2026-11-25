@@ -359,6 +359,30 @@ extension Basalt {
       dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
     )
 
+    /// A heatmap's first level (values above 0, under the first bound). 3:1 on levels 0 to 3; an order, not a measure (cimip-gaps-3 T2).
+    public static let chartHeat1 = ThemedColor(
+      light: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1),
+      dark: RGBA(red: 0.419613, green: 0.419613, blue: 0.419613, alpha: 1)
+    )
+
+    /// A heatmap's second level. 3:1 on levels 0 to 3; neighbouring levels need not be 3:1 against each other.
+    public static let chartHeat2 = ThemedColor(
+      light: RGBA(red: 0.360806, green: 0.360806, blue: 0.360806, alpha: 1),
+      dark: RGBA(red: 0.590479, green: 0.590479, blue: 0.590479, alpha: 1)
+    )
+
+    /// A heatmap's third level. 3:1 on levels 0 to 3.
+    public static let chartHeat3 = ThemedColor(
+      light: RGBA(red: 0.200007, green: 0.200007, blue: 0.200007, alpha: 1),
+      dark: RGBA(red: 0.749072, green: 0.749072, blue: 0.749072, alpha: 1)
+    )
+
+    /// A heatmap's fourth level, which always holds the peak. 3:1 on levels 0 to 3.
+    public static let chartHeat4 = ThemedColor(
+      light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 1)
+    )
+
     /// A diagram's main line and its head, and a traced line (DECISIONS 281). 3:1 or better on levels 0 to 3.
     public static let diagramEdgeMain = ThemedColor(
       light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
