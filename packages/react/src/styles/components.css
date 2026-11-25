@@ -6485,20 +6485,69 @@
   .basalt-phase-open > * { grid-area: 1 / 1; }
   .basalt-phase-open b { margin-inline-end: var(--basalt-space-1-5); color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
 
-  /* A share bar: parts of a whole, one ink, a 4px gap, full radius, each part's share and name under it. */
-  .basalt-share { display: flex; gap: var(--basalt-space-1); width: 100%; min-width: 0; margin: 0; padding: 0; list-style: none; font-family: var(--basalt-font-family-sans); }
-  /* A part is never narrower than its bar's floor (12px on a tally) or its own words, and it takes that width from the others (flex), so the parts and their gaps are always the bar's width. It is the containing block of the visually hidden space between its share and its name (no pixel moves). */
-  .basalt-share-part { position: relative; display: grid; flex: var(--_share) 1 0%; align-content: start; justify-items: start; min-width: auto; }
+  /* A share bar (cimip-gaps-3 T2, items 1 and 13): parts of a whole, a 4px gap, full radius. A part is as long as its share with a floor (8px on sm, 12px on
+     md, space-2 and space-3) taken from the others, so the parts and their gaps are always the bar's width. Its ink is neutral (chart-observed) or a
+     named status. Inline, each part's share and name sit under it on one line each (the script draws this form only when they fit); in the legend form
+     the bar is drawn alone and the words are one wrapping list under it. */
+  .basalt-share { position: relative; display: flex; gap: var(--basalt-space-1); width: 100%; min-width: 0; margin: 0; padding: 0; list-style: none; font-family: var(--basalt-font-family-sans); }
+  .basalt-share-part { position: relative; display: grid; flex: var(--_share) 1 0%; align-content: start; justify-items: start; min-width: var(--basalt-space-2); }
+  .basalt-share[data-size="md"] > .basalt-share-part { min-width: var(--basalt-space-3); }
   /* The hidden space is a 1px box at the part's own corner (the pattern's -1px margin would put it a pixel outside the bar). */
-  .basalt-share-part > .basalt-visually-hidden { margin: 0; }
-  .basalt-share[data-size="md"] .basalt-share-bar { min-width: var(--basalt-space-3); }
-  .basalt-share-bar { width: 100%; height: var(--basalt-space-2); margin-bottom: var(--basalt-space-2); border-radius: var(--basalt-radius-full); background: var(--basalt-chart-observed); }
+  .basalt-share-part .basalt-visually-hidden { margin: 0; }
+  .basalt-share-bar { position: relative; width: 100%; height: var(--basalt-space-2); margin-bottom: var(--basalt-space-2); border-radius: var(--basalt-radius-full); background: var(--basalt-chart-observed); }
   .basalt-share[data-size="md"] .basalt-share-bar { height: var(--basalt-space-3); }
-  /* A part is as wide as its words at least (min-width: auto), so its words never break inside a word: the share is one line, and the name wraps only
-     between words (a word that could break anywhere let that width fall to one letter: "Wor / kin / g"). Set, not inherited, so a page's own
-     overflow-wrap does not reach in. */
+  .basalt-share-bar[data-tone="success"], .basalt-share-swatch[data-tone="success"] { --_ink: var(--basalt-status-success); }
+  .basalt-share-bar[data-tone="warning"], .basalt-share-swatch[data-tone="warning"] { --_ink: var(--basalt-status-warning); }
+  .basalt-share-bar[data-tone="danger"], .basalt-share-swatch[data-tone="danger"] { --_ink: var(--basalt-status-danger); }
+  .basalt-share-bar[data-tone]:not([data-tone="neutral"]) { background: var(--_ink); }
+  /* Inline, the words are one line each and never break inside a word (the script has checked they fit). Set, not inherited, so a page's own wrapping
+     does not reach in. */
+  .basalt-share-item { display: grid; justify-items: start; min-width: 0; max-width: 100%; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-align: start; text-decoration: none; }
   .basalt-share-value { color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .basalt-share-name { max-width: 100%; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); overflow-wrap: normal; word-break: normal; }
+  .basalt-share-name { max-width: 100%; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); white-space: nowrap; overflow-wrap: normal; word-break: normal; }
+  /* The measure: each part's words at their one-line width, read in one layout and put back before paint. */
+  .basalt-share[data-measuring] :is(.basalt-share-value, .basalt-share-name) { width: max-content; max-width: none; white-space: nowrap; }
+
+  /* The legend form: the bar alone (its segments placed in the bar's row from the measured lengths, or from the shares before a measure), then space-2,
+     then one list in the bar's order, items inline and wrapping, space-3 apart and space-1 between lines: a swatch (a pill space-2-5 by size-dot, drawn
+     as a border so forced colours keep it), space-1-5, the share (text-sm, 600, primary, tabular), space-1, the name (text-sm, 400, secondary). An item
+     never breaks between its swatch, its share and its first word; a name wider than the bar wraps between words, never inside one. */
+  .basalt-share[data-form="legend"] { flex-wrap: wrap; column-gap: var(--basalt-space-3); row-gap: var(--basalt-space-1); padding-block-start: calc(var(--basalt-space-2) + var(--basalt-space-2)); }
+  .basalt-share[data-form="legend"][data-size="md"] { padding-block-start: calc(var(--basalt-space-3) + var(--basalt-space-2)); }
+  .basalt-share[data-form="legend"] > .basalt-share-part { position: static; display: block; flex: 0 1 auto; min-width: 0; max-width: 100%; }
+  .basalt-share[data-form="legend"] .basalt-share-bar {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: var(--_start, calc((100% - (var(--_count, 1) - 1) * var(--basalt-space-1)) * var(--_before) / 100 + var(--_index) * var(--basalt-space-1)));
+    width: var(--_length, calc((100% - (var(--_count, 1) - 1) * var(--basalt-space-1)) * var(--_share) / 100));
+    margin: 0;
+  }
+  .basalt-share[data-form="legend"] .basalt-share-item { display: inline-flex; flex-wrap: nowrap; align-items: baseline; position: relative; }
+  .basalt-share-swatch { box-sizing: border-box; flex: none; align-self: center; inline-size: var(--basalt-space-2-5); block-size: var(--basalt-size-dot); margin-inline-end: var(--basalt-space-1-5); border: calc(var(--basalt-size-dot) / 2) solid var(--_ink, var(--basalt-chart-observed)); border-radius: var(--basalt-radius-full); }
+  .basalt-share[data-form="legend"] .basalt-share-value { margin-inline-end: var(--basalt-space-1); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  .basalt-share[data-form="legend"] .basalt-share-name { min-width: 0; white-space: normal; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  /* Which stretch is which: on hover of an item or of its segment, and on focus of an item, a 2px text-primary line shows space-1 under that segment,
+     as long as it, inside the space-2 gap (it takes no room), fading over duration-fast; the item's name lifts to primary. No other segment dims. */
+  .basalt-share[data-form="legend"] .basalt-share-bar::after { content: ""; position: absolute; inset-inline: 0; inset-block-start: calc(100% + var(--basalt-space-1)); block-size: var(--basalt-size-indicator); border-radius: var(--basalt-radius-full); background: var(--basalt-text-primary); opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); pointer-events: none; }
+  .basalt-share[data-form="legend"] > .basalt-share-part:is(:hover, :focus-within) .basalt-share-bar::after { opacity: 1; }
+  .basalt-share[data-form="legend"] > .basalt-share-part:is(:hover, :focus-within) .basalt-share-name { color: var(--basalt-text-primary); }
+
+  /* Parts that act: the name carries TextButton's underline at rest (1px border-input at size-underline-offset), so the target is seen without hover;
+     hover lifts the name to primary and the underline to the ink. No wash, no press scale, no pressed state. Inline, the whole part is the target (its
+     segment and words: the item's box is stretched over the part) and the ring goes round it; in the legend the item is the target and the segments are
+     decoration. The control ring: 2px at +2, radius 6. */
+  .basalt-share-item[data-acts] { cursor: pointer; -webkit-tap-highlight-color: transparent; outline: none; }
+  .basalt-share-item[data-acts] .basalt-share-name { text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); transition: color var(--basalt-duration-fast) var(--basalt-ease-out), text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-share-item[data-acts]:hover .basalt-share-name { color: var(--basalt-text-primary); text-decoration-color: currentColor; }
+  .basalt-share-item[data-acts] .basalt-external { color: var(--basalt-text-secondary); }
+  .basalt-share-item[data-acts]::before { content: ""; position: absolute; inset: 0; border-radius: var(--basalt-radius-sm); }
+  .basalt-share-item[data-acts]:focus-visible::before { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
+    /* A legend item that acts is 44px tall on touch, its words centred and no row gap; a legend that does not act keeps its tight lines. */
+    .basalt-share[data-form="legend"][data-acts] { row-gap: 0; }
+    .basalt-share[data-form="legend"] .basalt-share-item[data-acts] { align-items: center; min-block-size: var(--basalt-size-tap-min); }
+  }
 
   /* A coverage strip: a cell a day, lit when recorded, Basalt's hatch when not, the missing dates in words. */
   .basalt-coverage, .basalt-marks { --_hatch: repeating-linear-gradient(45deg, var(--basalt-chart-missing) 0 var(--basalt-size-hairline), transparent var(--basalt-size-hairline) var(--basalt-size-hatch-pitch)); }
@@ -6556,6 +6605,9 @@
     .basalt-phase-call { color: CanvasText; }
     .basalt-phase-call i, .basalt-phase-calls[data-marks] .basalt-phase-call i { forced-color-adjust: none; background: CanvasText; }
     .basalt-share-bar, .basalt-marks-mark, .basalt-range-marker { forced-color-adjust: none; background: CanvasText; }
+    .basalt-share-bar[data-tone]:not([data-tone="neutral"]) { background: CanvasText; }
+    .basalt-share-swatch { forced-color-adjust: none; border-color: CanvasText; }
+    .basalt-share[data-form="legend"] .basalt-share-bar::after { forced-color-adjust: none; background: Highlight; }
     .basalt-share-value, .basalt-share-name, .basalt-coverage-words, .basalt-phase-open, .basalt-phase-open b { color: CanvasText; }
     .basalt-coverage-cell { forced-color-adjust: none; background: CanvasText; }
     .basalt-coverage-cell[data-missing] { background: var(--_hatch); }
