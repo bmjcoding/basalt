@@ -460,8 +460,8 @@
       "classes": [
         "rich-text"
       ],
-      "budget": 3434,
-      "budgetReason": "cimip-gaps-3 t6 (DECISIONS 385; the skill's budgets are soft): new module, React's RichText: 3434 bytes.",
+      "budget": 3454,
+      "budgetReason": "cimip-gaps-3 t6 (DECISIONS 385; the skill's budgets are soft): new module, React's RichText: 3454 bytes.",
       "usage": 800
     },
     "callout": {
@@ -1394,8 +1394,8 @@
         "popover",
         "glide"
       ],
-      "budget": 9687,
-      "budgetReason": "cimip-gaps-3 t6 (DECISIONS 385; the skill's budgets are soft): MenuText (.menu-text: its CSS, and the script that ties it to its group or the menu): 9150 to 9687 bytes (+537); cap 9150 to 9687. Usage 1998 to 2233.",
+      "budget": 9785,
+      "budgetReason": "cimip-gaps-3 t6 (DECISIONS 385; the skill's budgets are soft): MenuText (.menu-text: its CSS, its top room when it is first in a menu, and the script that ties it to its group or the menu): 9150 to 9785 bytes (+635); cap 9150 to 9785. Usage 1998 to 2233.",
       "usage": 2233,
       "builds": [
         "glide"
