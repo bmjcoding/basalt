@@ -5,7 +5,7 @@ import type { DiagramFigureProps } from "./diagram-figure";
 import type { ArchitectureNode, DiagramFlowEdge, DiagramGroup, DiagramPacket, DiagramPlacement, DiagramUnplaced } from "./diagram-core";
 
 export type { ArchitectureNode, DiagramEdge, DiagramFlowEdge, DiagramGroup, DiagramLegend, DiagramLineKind, DiagramMark, DiagramMotion, DiagramNode, DiagramPacket, DiagramPlacement, DiagramSide, DiagramUnplaced } from "./diagram-core";
-export type { DiagramFigureProps, DiagramLayoutInfo } from "./diagram-figure";
+export type { DiagramAction, DiagramActionContext, DiagramFigureProps, DiagramLayoutInfo } from "./diagram-figure";
 
 interface ArchitectureDiagramBase extends DiagramFigureProps {
   /** The parts, in the author's order: the stacked order, the focus order and the list's. `col` and `row` place each in the drawn layout. */

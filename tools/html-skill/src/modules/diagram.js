@@ -119,7 +119,8 @@ import { applyTrace, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey,
         clearBtn.setAttribute('data-size', 'sm');
         clearBtn.innerHTML = '<span>Clear highlight</span>';
         clearBtn.addEventListener('click', function () { if (touchTrace) { touchTrace = null; retrace(); } });
-        foot.appendChild(clearBtn);
+        // Last of the controls; a download's note (the diagram-export module's) stays under them, the last thing in the foot.
+        foot.insertBefore(clearBtn, foot.querySelector(':scope > .diagram-export-note'));
       } else if (!want && clearBtn) { clearBtn.remove(); clearBtn = null; }
       // "Clear highlight" is last in the foot, after the motion module's buttons, which may be added after it (Neon's P7); never moved while it has focus.
       if (clearBtn && clearBtn !== clearBtn.parentNode.lastElementChild && document.activeElement !== clearBtn) clearBtn.parentNode.appendChild(clearBtn);

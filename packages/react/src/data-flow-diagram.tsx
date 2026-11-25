@@ -5,6 +5,7 @@ import type { DiagramFigureProps } from "./diagram-figure";
 import type { DataFlowLane, DataFlowNode, DiagramFlowEdge, DiagramPacket } from "./diagram-core";
 
 export type { DataFlowLane, DataFlowNode, DiagramEdge, DiagramLegend, DiagramLineKind, DiagramSide } from "./diagram-core";
+export type { DiagramAction, DiagramActionContext } from "./diagram-figure";
 
 export interface DataFlowDiagramProps extends DiagramFigureProps {
   /** The lanes, top to bottom: a node's row is its lane's place here. */

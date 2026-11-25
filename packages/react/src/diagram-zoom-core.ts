@@ -326,6 +326,16 @@ export function attachZoom(host: ZoomHost): ZoomController {
   };
 }
 
+/**
+ * What the zoom fits and scrolls (the one-column ruling, diagrams-cimip): the drawing's own box at 100%, not the width it was laid out in. A drawn column
+ * capped at size-breakpoint-container is narrower than its figure; every other drawing is as wide as it. The height is the figure's, which in the viewer
+ * holds the drawing alone.
+ */
+export function drawnSize(fig: HTMLElement): [number, number] {
+  const drawing = fig.querySelector<HTMLElement>(":scope > [class$='-drawing']");
+  return [drawing?.offsetWidth || fig.offsetWidth, fig.offsetHeight];
+}
+
 /** Brings a focused card into the stage's view by the least distance, `margin` clear of its edges (9.5). */
 export function revealIn(stage: HTMLElement, el: Element, margin: number): void {
   const s = stage.getBoundingClientRect();

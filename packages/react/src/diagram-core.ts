@@ -848,6 +848,9 @@ export interface Dyn {
   pad?: boolean;
   /** A schema's rows with its corridors (DECISIONS 306, 1.1): a grid-template-rows of spacer tracks round the author's rows, set only where a far key is drawn. */
   rows?: string;
+  /** A drawn layout of one column (the one-column ruling, diagrams-cimip): its column's least width, in px. The stylesheet caps the drawing at
+   *  size-breakpoint-container, or at this where it is more, so the cap never takes the track under its minimum. */
+  one?: number;
 }
 
 export interface TreeIds { base: string }
@@ -1548,6 +1551,7 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
     style.push(m.rtl ? `--_gpad:0px 0px 0px ${room}` : `--_gpad:0px ${room} 0px 0px`);
   }
   if (m.type === "schema" && dyn.track) style.push(`--_track:${dyn.track}px`);
+  if (drawn && dyn.one) style.push(`--_one:${dyn.one}px`);
   return h("figure", {
     class: o.className ? `${P} ${o.className}` : P,
     "aria-labelledby": ids.title,
@@ -1796,7 +1800,8 @@ function minimums(m: Model, tk: Tokens, measure: ReturnType<typeof ruler>) {
   // A sequence's columns hold its participants: measured once script runs (the stylesheet before script has only the token floor).
   else if (m.type === "sequence") least = n * track + (n - 1) * s("5");
   else least = n * track + (n - 1) * s("16") + groupReach(m) * s("4");
-  return { track, table, least: Math.max(tk.wide, least) };
+  // `own` is the least width the tracks themselves take, before the drawn layout's floor: for one column, the column's (the one-column ruling).
+  return { track, table, least: Math.max(tk.wide, least), own: Math.ceil(least) };
 }
 
 // ---- Snapping: a 1px line on half pixels, a 2px line on whole ones, in the page's own pixel grid ----
@@ -3047,7 +3052,8 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   if (m.text) return { dyn: { ...current, layout: "stacked", bare: undefined }, geo: null, ink: "", tokens: tk, least: mins.least };
   if (W >= mins.least && !m.unplaced) {
     const drawnTry = (pad: boolean) => {
-      let dd = stopOf({ ...current, ...closed, layout: "drawn", grow: undefined, track: undefined, bare: undefined, pad: pad || undefined, rows: undefined });
+      // One column (not a sequence's participants) is capped before it is measured (the one-column ruling): its least width is written with the layout.
+      let dd = stopOf({ ...current, ...closed, layout: "drawn", grow: undefined, track: undefined, bare: undefined, pad: pad || undefined, rows: undefined, one: m.type !== "sequence" && columnCount(m) === 1 ? mins.own : undefined });
       dd = heightsFor(dd);
       apply(dd);
       let g = drawnGeometry(input(), measure);
@@ -3079,7 +3085,7 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
     if (geo.outside.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: ${names(geo, geo.outside)} would leave the drawing`);
     if (geo.unseated.length) dev && warn?.(`the drawn layout does not fit at ${Math.round(W)}px: no clean seat for ${geo.unseated.map((k) => (m.type === "sequence" ? `message ${k}` : `"${said(m.edges[k]?.label ?? "")}"`)).join(", ")}`);
   }
-  let d = stopOf({ ...current, ...closed, layout: "stacked", heights: undefined, grow: record(), track: m.type === "schema" ? mins.table : undefined, bare: undefined, pad: undefined, rows: undefined });
+  let d = stopOf({ ...current, ...closed, layout: "stacked", heights: undefined, grow: record(), track: m.type === "schema" ? mins.table : undefined, bare: undefined, pad: undefined, rows: undefined, one: undefined });
   d = heightsFor(d);
   apply(d);
   if (m.type === "sequence" || m.type === "schema") return { dyn: d, geo: null, ink: "", tokens: tk, least: mins.least };
@@ -3237,7 +3243,7 @@ export function keyTarget(m: Model, from: string, key: string, drawn = false, rt
 const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "tabindex", "data-stops", "hidden", "data-art"];
 // The figure's grid attributes follow the model too: an automatic figure's direction can change its columns after script (Neon's B8 of the code review).
 const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-motion", "data-first-visit", "data-rtl", "data-cols", "data-reach", "data-gutter", "data-marks"];
-const MANAGED_STYLE = ["--_track", "--_h", "--_ww", "--_gap", "--_ggrow", "--_tl", "--_gpad", "--_gw", "--_mh", "--_rows", "--_row-gap"];
+const MANAGED_STYLE = ["--_track", "--_h", "--_ww", "--_gap", "--_ggrow", "--_tl", "--_gpad", "--_gw", "--_mh", "--_rows", "--_row-gap", "--_one"];
 const absent = (value: VAttrs[string]) => value === undefined || value === null || value === false;
 function pairs(el: Element, v: VElement): boolean {
   if (el.tagName.toLowerCase() !== v.t) return false;

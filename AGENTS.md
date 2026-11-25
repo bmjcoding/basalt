@@ -221,7 +221,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   and where it is drawn differs by part: foundations' table in "Stages and runs" is the rule.
 - **Diagrams:** monochrome; one focal node, inverted. Three lines named by look (main 2px, plain 1px, dashed), and the key says what
   each means. The drawn layout is used only when it fits (640, the track minimums, a clean seat for every label); otherwise stacked, in
-  the author's order, at most 480 wide. Nothing is cut and nothing overlaps at any width. Ports, routes, groups and foreign keys are derived from one
+  the author's order, at most 480 wide. One column is at most 480 wide, drawn or stacked (or its track's least width where that is more), on the start edge. Nothing is cut and nothing overlaps at any width. Ports, routes, groups and foreign keys are derived from one
   record each. A flowchart's shapes have a 3:1 contour. Tracing changes ink, never weight. The words are in the HTML before script.
   Still by default; `motion="animated"` adds an entrance on view (each line draws once, every word at rest, inside five seconds) and,
   where the data names them, a flow line (cuts, only while they move), a pulse (a bead) or a packet (a dot): one mover a figure, loops
@@ -233,7 +233,9 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   draws far keys along a corridor. A sequence may show a participant working (a bar) and frame a run of messages
   (`opt`, `loop`, `alt`: structure, never a panel, every word plated), and may be written as text art, which never hides a line and has no caret.
   Groups nest two deep; four end lanes at most. A card may be a link (the card is the stop; the arrow is the cue). A label breaks only where its
-  author breaks it. Arrow keys are spatial, on tracks. On touch a tap traces and "Clear highlight" clears. In print a figure is untraced and light.
+  author breaks it. Arrow keys are spatial, on tracks. On touch a tap traces and "Clear highlight" clears. The foot's order is fixed ("View as list",
+  "Expand", the run button, "Pause animations", an app's `actions`, "Clear highlight") and it does not print; an app's actions are words-only secondary
+  buttons, never a menu, and follow the figure into the viewer. In print a figure is untraced and light.
   Right to left mirrors the figure, not the words. Automatic layout asks elkjs for a column and a row and nothing else; Basalt routes, and a figure
   is never scaled. elkjs loads on demand or not at all: place at build time. "Expand" opens the viewer: the drawn layout in a dialog (full screen under
   720), laid out at 100% and zoomed by the reader with one transform, from Fit or 100% to 400%, in steps that land at once; it pans by scrolling; it

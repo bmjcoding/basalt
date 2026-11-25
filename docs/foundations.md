@@ -1815,6 +1815,9 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   receiver and kind. A schema is its cards in an auto-fit grid with no lines, because every foreign-key row writes its target. A stacked
   group whose first card is entered by a turn has `space-12` above; its label stays in the first `space-8`. Stacked, a group's label gives
   way to the lines at its top edge: it slides along the edge, on the start side, and is never set over a line that has room to pass.
+- **One column is at most 480 wide, drawn or stacked.** A drawn layout of one column (architecture, flowchart, data flow,
+  schema) is at most `size-breakpoint-container` wide on the start edge, as the stack is, or its track's least width where that
+  is more. The room beside it is open page. Two columns or more share the figure's width.
 - **Several end lines into one card nest:** the line from the outermost lane turns lowest and enters nearest the end edge; each
   line from a lane further in turns `space-5` higher and enters `space-3` further in. Their labels are seated `space-2-5` clear of
   the innermost entry, each on its own turn's height, taken before the half-pixel snap.
@@ -1867,6 +1870,13 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   drawn, the letters set as the tab sets them ("Only if", "Repeats", "One of these"): built in, because they are notation.
 - The summary is required. "View as list" opens the same facts as real lists in the same figure: the parts and connections, a
   flowchart's steps with each exit written once, a data flow's steps, a sequence's messages, a schema's tables.
+- **The foot** holds the figure's controls in one fixed order, `space-2` apart, wrapping from the start edge: "View as list", "Expand",
+  a sequence's run button, "Pause animations", the app's own actions, then "Clear highlight", which is last so that nothing moves when it
+  mounts. Each is a secondary small button with words. **An app's own actions** (`actions`) are the author asking for a control: words
+  only, in the order given, one press each and never a menu, three at most by intent (a development build warns past three, and past 24
+  characters in a label, and draws them as written). Each is busy on its own until its promise settles. They exist once script runs, as
+  "Expand" does, and their code is loaded only by a figure that has some. A press settles a running entrance and hands the action the
+  figure it was pressed in. The foot does not print.
 - The figure's words are in the HTML before script runs, and where scripting is off the list is open. Before script the figure is
   stacked unless it is at least its least width (the track minimums and gaps summed, never under 640); a figure of more than six
   columns is stacked until script.
@@ -1906,13 +1916,17 @@ rim included, with the sheet's head, body and foot. "Expand" is words only. Deci
   size. Under `scale(3)` the figure is the pixels a 3x screen draws.
 - **Fit** is the whole drawing in the stage (padding `space-6`, `space-4` under 720), 200% at most, and is how it opens. The limits
   are Fit or 100%, whichever is less, and 400%. Buttons and keys step through 25, 33, 50, 67, 75, 100, 125, 150, 200, 300 and 400,
-  and a step lands at once. The level is written between the buttons and spoken once it rests.
+  and a step lands at once. The level is written between the buttons and spoken once it rests. The drawing is what is drawn: a
+  one-column figure is fitted and scrolled as its column, not as the width it was laid out in.
 - **Zoom:** "Zoom out", "Zoom in" and "Fit"; `+`, `−` and `0` while focus is in the stage; Ctrl or Command with the wheel and a
   trackpad pinch, about the pointer; two fingers on touch, about their midpoint.
 - **Pan is a scroll:** the stage scrolls both ways. A drag past `space-1`, one finger on touch, the wheel, and the scrolling keys
   with the stage focused. No momentum and no rubber band. A drag does not select.
-- **The foot** holds the figure's key at its real size, the key hint, and "View as list", which puts the list in the stage in
-  place of the drawing.
+- **The foot** holds the figure's key at its real size, then one row: the zoom controls at the start, the key hint, and at the end "View
+  as list", which puts the list in the stage in place of the drawing, and after it the app's own actions (all but those marked
+  `inViewer: false`). The end group wraps and is never cut: it is at the row's end while it shares the row, and starts on the start edge
+  on a row of its own. An action pressed here is handed the viewer's drawing: the drawn layout at 100% whatever the zoom, with the list
+  open or closed. On a phone each row of actions takes 52px from the stage.
 - **Focus** opens on the stage (the flush field's inset ring). Esc always closes, and focus returns to "Expand".
 - **A trace works. Nothing else moves:** no entrance, flow, mover or run plays in the viewer, and the page's figure holds its
   loops while it is open.
@@ -2005,12 +2019,15 @@ over its lifeline; a stacked chip draws the mark before the name.
   the reader's "Background graphics" setting (`print-color-adjust: exact`, with the `-webkit-` form).
 - Forced colours: cardinality marks follow their line; an activation's edge is `CanvasText`; a frame's edges are `GrayText`; a
   linked name is `LinkText`, underlined.
-- Print: a figure prints untraced, in its resting ink, and in the light theme whatever the screen shows.
+- Print: a figure prints untraced, in its resting ink, and in the light theme whatever the screen shows. The foot does not print: no
+  control is drawn on paper, and the list prints only where the reader opened it.
 - Right to left: the figure mirrors and its words do not, drawn and stacked (stacked, the rail and the trunk run down the right, a
   branch is indented from the right, and the end lines and the end gutter are on the left). Identifiers are isolated left to right as
   runs; named sides swap; the arrow keys stay physical; the text art stays left to right.
 - Export: a linked card's arrow is not drawn in a file. A PNG is drawn through an image, so under a content policy `img-src` must allow
   `blob:` or `data:`; where it allows neither, `diagramToPng` rejects with an error that says so and no file is made (the SVG needs neither).
+  The skill's "Download PNG" then says so in a note under the foot's buttons and is switched off; the console names the `img-src` to allow.
+  A figure that is not displayed cannot be measured: the promise rejects with an error that says so and no file is made.
 
 ### Diagram tokens
 

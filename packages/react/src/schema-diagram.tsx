@@ -5,6 +5,7 @@ import type { DiagramFigureProps } from "./diagram-figure";
 import type { SchemaTable, DiagramPlacement, DiagramUnplaced } from "./diagram-core";
 
 export type { DiagramCardinality, DiagramCardinalityPair, DiagramLegend, SchemaColumn, SchemaTable } from "./diagram-core";
+export type { DiagramAction, DiagramActionContext } from "./diagram-figure";
 
 interface SchemaDiagramBase extends DiagramFigureProps {
   /**

@@ -29,6 +29,11 @@ let viewerLoading: Promise<ViewerModule> | undefined;
 /** The viewer (DECISIONS 310, 9.13): a module of its own, with the Dialog it needs, loaded at the Expand button's first hover, focus or touch. */
 const loadViewer = () => (viewerLoading ??= import("./diagram-viewer").catch((error) => { viewerLoading = undefined; throw error; }));
 
+type ActionsModule = typeof import("./diagram-actions");
+let actionsLoading: Promise<ActionsModule> | undefined;
+/** An app's own actions (`actions`): a module of its own, with Button, loaded only by a figure that has some. */
+const loadActions = () => (actionsLoading ??= import("./diagram-actions").catch((error) => { actionsLoading = undefined; throw error; }));
+
 // The figure every diagram shares (DECISIONS 281): the title, the drawing, the key, the key hint, the required summary and "View as list".
 // Not exported from the package: each of the five diagrams is its own module on top of it. The markup is the engine's tree, so it is the
 // HTML skill's markup too; the drawing is measured before the first paint and again when the figure's width changes or its fonts arrive.
@@ -63,6 +68,35 @@ export interface DiagramFigureProps extends Omit<React.ComponentProps<"figure">,
    * `exportMeasuredDiagram(laid.spec, laid.geo, "drawio", { extras: readMeasuredExtras(laid.figure) })`. It draws nothing.
    */
   onLayout?: (laid: DiagramLayoutInfo) => void;
+  /**
+   * The app's own actions, in the foot after Basalt's controls and before "Clear highlight", and in the viewer's foot after "View as list". Words-only
+   * secondary buttons, in the order given, three at most by intent. They exist once script runs, and their code loads only for a figure that has some.
+   */
+  actions?: readonly DiagramAction[];
+}
+
+/** One of the app's own actions in a diagram's foot. */
+export interface DiagramAction {
+  /** The words on the button. Words only. */
+  label: string;
+  /** Names the action across renders (the React key). The label by default; give one if the label can change, so the button and its focus are kept. */
+  id?: string;
+  /** Pressed, with the figure it was pressed in. A returned promise keeps this button busy until it settles (the server rule); a rejection ends it and is raised again. */
+  onSelect: (context: DiagramActionContext) => void | PromiseLike<unknown>;
+  /** `true` keeps it in its seat, disabled, and still a focus stop. Default `false`. */
+  disabled?: boolean;
+  /** `false` leaves it out of the viewer's foot. Default `true`. */
+  inViewer?: boolean;
+}
+
+/** What an action is handed: the figure it was pressed in. */
+export interface DiagramActionContext {
+  /** The figure element: the page's, or the viewer's drawing. What `diagramToSvg` and `diagramToPng` take. */
+  readonly figure: HTMLElement;
+  /** Whether it was pressed in the viewer. */
+  readonly viewer: boolean;
+  /** That figure's layout as `onLayout` reports it (what `exportMeasuredDiagram` takes); `null` where it has no measured geometry. */
+  readonly layout: DiagramLayoutInfo | null;
 }
 
 /** A figure's layout as it is on screen (`onLayout`). */
@@ -141,6 +175,8 @@ export interface DiagramViewerMode {
   onMeasured: (measured: Measured, fig: HTMLElement) => void;
   /** A text sequence (9.3): the figure's width at which the art's widest line just fits; the viewer lays it out at that width. */
   textWidth?: (need: number) => void;
+  /** After every layout with geometry: the figure's layout, as `onLayout` would report it, for an app's action pressed in the viewer. */
+  laid?: (info: DiagramLayoutInfo) => void;
 }
 
 export interface DiagramFigureInternalProps extends DiagramFigureProps {
@@ -150,7 +186,7 @@ export interface DiagramFigureInternalProps extends DiagramFigureProps {
   viewer?: DiagramViewerMode;
 }
 
-export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, entrance: _entrance, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, ...props }: DiagramFigureInternalProps) {
+export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, actions, entrance: _entrance, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, ...props }: DiagramFigureInternalProps) {
   const base = `dg${React.useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const level = usePanelLevel();
   // The key hint is a data-kbd-hint legend, hidden on touch until a hardware key is pressed: this installs the listener that reveals it.
@@ -237,6 +273,14 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
     if (process.env.NODE_ENV !== "production" && model.motion.firstVisit && !props.id) errorOnce('entrance="first-visit" needs an id: without one the entrance plays on every visit');
   }, [model, component, props.id]);
 
+  // The figure's layout as onLayout reports it, from the last measure; null before one, or with no geometry. Everything it reads is in measure's deps.
+  const layoutInfo = (): DiagramLayoutInfo | null => {
+    const fig = figRef.current, m = measured.current;
+    if (!fig || !m?.geo) return null;
+    const placed = auto ? placementFor(dirAt) : undefined;
+    return { spec: placed ? { ...spec, placement: placed } : spec, geo: m.geo, layout: m.dyn.layout === "drawn" ? "drawn" : "stacked", figure: fig };
+  };
+
   const measure = React.useCallback(() => {
     const fig = figRef.current;
     if (!fig) return;
@@ -294,8 +338,9 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
         const trial = buildModel(spec, { rtl, placement: place });
         const t = viewer.measure(fig, trial, P, base, {}, (d) => syncAttributes(fig, figureTree(trial, d, options)));
         if (t.dyn.layout !== "drawn") continue;
-        // Fit as the viewer takes it (whole per cents, 200% at most), so two directions that both fit at 200% tie and the type's own stays.
-        const fit = Math.min(2, Math.floor(Math.min(room.w / fig.offsetWidth, room.h / fig.offsetHeight) * 100 + 1e-6) / 100);
+        // Fit as the viewer takes it (whole per cents, 200% at most, of the drawing's own box: the one-column ruling), so two directions that both fit at 200%
+        // tie and the type's own stays.
+        const fit = Math.min(2, Math.floor(Math.min(room.w / (fig.querySelector<HTMLElement>(`.${P}-drawing`)?.offsetWidth || fig.offsetWidth), room.h / fig.offsetHeight) * 100 + 1e-6) / 100);
         if (fit > best + 1e-6) { best = fit; pick = k; }
       }
       if (pick !== dirAt) { setDirAt(pick); return; }
@@ -336,10 +381,11 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
       const key = `${result.dyn.layout ?? "stacked"}|${JSON.stringify(result.geo)}`;
       if (laidOut.current?.key !== key || laidOut.current.spec !== spec) {
         laidOut.current = { key, spec };
-        const placed = auto ? placementFor(dirAt) : undefined;
-        told({ spec: placed ? { ...spec, placement: placed } : spec, geo: result.geo, layout: result.dyn.layout === "drawn" ? "drawn" : "stacked", figure: fig });
+        told(layoutInfo()!);
       }
     }
+    // The viewer's figure tells the viewer, for an app's action pressed there (onLayout is the page's figure's alone).
+    if (viewer?.laid && result.geo) viewer.laid(layoutInfo()!);
     // The same layout is the same state: a measure that changes nothing renders nothing.
     // (A layout is plain data that the engine builds in one order, so its text is a fair test.)
     if (JSON.stringify(dynRef.current) !== JSON.stringify(result.dyn)) { dynRef.current = result.dyn; setDyn(result.dyn); }
@@ -461,6 +507,18 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
     void fetchViewer().then((mod) => { setOpening(false); if (mod) setViewerOpen(true); });
   };
   const closeViewer = React.useCallback(() => setViewerOpen(false), []);
+  // An app's own actions: their module loads once script runs, only for a figure that has some; until it arrives, and if it cannot, none is drawn.
+  const hasActions = !viewer && Boolean(actions?.length);
+  const [actionsModule, setActionsModule] = React.useState<ActionsModule | null>(null);
+  React.useEffect(() => {
+    if (!hasActions) return undefined;
+    let live = true;
+    loadActions().then((mod) => { if (live) setActionsModule(() => mod); }, (error: unknown) => {
+      if (process.env.NODE_ENV !== "production") warnOnce(component, `the actions could not load (${String(error)})`);
+    });
+    return () => { live = false; };
+  }, [hasActions, component]);
+  const Actions = hasActions ? actionsModule?.DiagramActions : undefined;
   React.useLayoutEffect(() => {
     const fig = figRef.current;
     if (!fig || viewer) return;
@@ -556,7 +614,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
   const inkProp = model.text && !dyn.art ? null : inkHtml;
   // The viewer's figure shows its drawing alone: its head, key, hint and foot are the dialog's.
   if (viewer) return toReact(tree, { source, summary, hint: null, toggle: null }, inkProp, root) as React.ReactElement;
-  // The foot (1.9, and DECISIONS 310, 9.1): "View as list", "Expand", then the run button and "Pause animations", which the motion module draws when it has loaded.
+  // The foot (1.9, and DECISIONS 310, 9.1): "View as list", "Expand", then the run button and "Pause animations", which the motion module draws when it has loaded,
+  // then an app's own actions and "Clear highlight".
   const Foot = motionModule?.MotionFoot;
   const expand = zoom && scripted ? (
     <>
@@ -580,7 +639,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
         {opening ? <span className="basalt-button-spinner" aria-hidden="true"><span className="basalt-spinner" data-variant="ring" style={{ width: 16, height: 16 }}><svg viewBox="0 0 16 16" width={16} height={16} fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeOpacity="0.25" strokeWidth="1.5" /><path d="M8 1.75A6.25 6.25 0 0 1 14.25 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></span></span> : null}
       </button>
       {viewerOpen && viewerModule ? (
-        <viewerModule.DiagramViewer kit={kitOf()} spec={viewerSpec} component={component} source={source} summary={summary} opener={expandRef} onClose={closeViewer} />
+        <viewerModule.DiagramViewer kit={kitOf()} actions={actions} Actions={Actions} spec={viewerSpec} component={component} source={source} summary={summary} opener={expandRef} onClose={closeViewer} />
       ) : null}
     </>
   ) : null;
@@ -591,6 +650,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
       <span className="basalt-button-label">Clear highlight</span>
     </button>
   ) : null;
-  const foot = <>{toggle}{expand}{Foot && controller ? <Foot controller={controller} /> : null}{clear}</>;
+  // An app's actions (the foot decision): after Basalt's own controls and before "Clear highlight". A press settles a running entrance before onSelect.
+  const own = Actions && actions ? <Actions actions={actions} viewer={false} component={component} onPress={settle} context={() => ({ figure: figRef.current!, viewer: false, layout: layoutInfo() })} /> : null;
+  const foot = <>{toggle}{expand}{Foot && controller ? <Foot controller={controller} /> : null}{own}{clear}</>;
   return toReact(tree, { source, summary, hint, toggle: foot }, inkProp, root) as React.ReactElement;
 }

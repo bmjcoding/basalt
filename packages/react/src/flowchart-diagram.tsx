@@ -5,6 +5,7 @@ import type { DiagramFigureProps } from "./diagram-figure";
 import type { DiagramEdge, DiagramShapeLabels, FlowchartNode, DiagramPlacement, DiagramUnplaced } from "./diagram-core";
 
 export type { DiagramEdge, DiagramLegend, DiagramLineKind, DiagramShapeLabels, DiagramSide, FlowchartNode } from "./diagram-core";
+export type { DiagramAction, DiagramActionContext } from "./diagram-figure";
 
 interface FlowchartDiagramBase extends DiagramFigureProps {
   /** The steps in the author's order; the first is the start. A shape carries the type: a step (the default), a decision or a terminal. */
