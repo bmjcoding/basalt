@@ -544,8 +544,10 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
       const node = nodeOf(event.target);
       if (!node || event.defaultPrevented) return;
       settle();
-      // In the viewer Esc always closes the dialog, traced or not (9.8): the figure leaves it to the dialog.
-      if (event.key === "Escape") { if (!viewer && (focusTrace || hoverTrace || touchTrace)) { event.preventDefault(); setFocusTrace(null); setHoverTrace(null); setTouchTrace(null); } return; }
+      // In the viewer Esc always closes the dialog, traced or not (9.8): the figure leaves it to the dialog. Elsewhere an Esc that clears a trace is the
+      // figure's alone: it goes no further, so a modal round the figure (Base UI's dismissal, a React handler on its popup and a listener on the document,
+      // neither of which reads defaultPrevented) stays open, and the next Esc, with nothing traced, closes it.
+      if (event.key === "Escape") { if (!viewer && (focusTrace || hoverTrace || touchTrace)) { event.preventDefault(); event.stopPropagation(); setFocusTrace(null); setHoverTrace(null); setTouchTrace(null); } return; }
       if (!stops) return;
       // The model is mirrored right to left, so the table is already physical.
       const to = keyTarget(model, node.dataset.node!, event.key, dynRef.current.layout === "drawn");

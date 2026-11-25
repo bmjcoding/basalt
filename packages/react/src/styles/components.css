@@ -5365,6 +5365,8 @@
   .basalt-diagram-num { grid-column: 1; color: var(--basalt-text-tertiary); font-variant-numeric: tabular-nums; }
   .basalt-diagram-said .basalt-diagram-num { margin-inline-end: var(--_d-nm, 0); --_d-nm: var(--_drawn) var(--basalt-space-1-5); }
   .basalt-diagram-mlabel { grid-column: 2; color: var(--basalt-text-primary); font-family: var(--basalt-font-family-mono); }
+  /* The words a drawn row is read by (its number's space and its route), unseen; stacked, the row is read and they are gone. The space keeps itself (pre), as DotSep's does. */
+  .basalt-diagram .basalt-diagram-spoken { --_d-sk: var(--_drawn) inline; display: var(--_d-sk, none); white-space: pre; }
   .basalt-diagram-route { --_d-rd: var(--_drawn) none; display: var(--_d-rd, inline-flex); grid-column: 2; align-items: center; column-gap: var(--basalt-space-1); row-gap: 0; flex-wrap: wrap; color: var(--basalt-text-secondary); }
   /* The arrow and the name it points at are one unbreakable item, so a route that wraps breaks before the arrow (the sweep's 66-2). */
   .basalt-diagram-to { display: inline-flex; align-items: center; gap: var(--basalt-space-1); white-space: nowrap; }
