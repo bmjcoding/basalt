@@ -3529,6 +3529,30 @@
   .basalt-notification-group > .basalt-reveal-panel > .basalt-reveal-clip { margin-inline: calc(-1 * var(--basalt-space-1)); padding-inline: var(--basalt-space-1); }
   .basalt-notification-entries { margin: 0; padding: 0; padding-inline-start: calc(var(--basalt-size-dot) + var(--basalt-size-icon-sm) + 2 * var(--basalt-space-2-5)); list-style: none; }
 
+  /* The ringed dot (cimip-gaps-3 T3, 8c): unread and for the reader. The 6px dot inside a 1px ring, 1px apart, 10px across on the plain dot's centre, in primary
+     ink: the ring is a border and the disc a fill inside the padding (never an outline, never a gradient). It never moves, grows its seat or animates: in an
+     entry it reaches 2px into the gaps and the seat keeps its 6px, so reading it moves nothing. */
+  .basalt-notifications-trigger[data-unread][data-direct]::before { box-sizing: border-box; width: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); height: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); padding: var(--basalt-size-hairline); border: var(--basalt-size-hairline) solid currentColor; border-radius: var(--basalt-radius-full); background: currentColor; background-clip: content-box; top: calc(var(--basalt-space-1-5) - 2 * var(--basalt-size-hairline)); right: calc(var(--basalt-space-1-5) - 2 * var(--basalt-size-hairline)); color: var(--basalt-text-primary); }
+  .basalt-notification[data-direct] .basalt-notification-dot { position: relative; background: none; }
+  .basalt-notification[data-direct] .basalt-notification-dot::before { content: ""; position: absolute; inset: calc(-2 * var(--basalt-size-hairline)); box-sizing: border-box; width: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); height: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); padding: var(--basalt-size-hairline); border: var(--basalt-size-hairline) solid currentColor; border-radius: var(--basalt-radius-full); background: currentColor; background-clip: content-box; color: var(--basalt-text-primary); }
+  .basalt-tabbar-dot[data-kind="direct"] { box-sizing: border-box; width: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); height: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); padding: var(--basalt-size-hairline); border: var(--basalt-size-hairline) solid currentColor; border-radius: var(--basalt-radius-full); background: currentColor; background-clip: content-box; top: calc(var(--basalt-space-1) - 2 * var(--basalt-size-hairline)); inset-inline-end: calc(var(--basalt-space-1) - 2 * var(--basalt-size-hairline)); color: var(--basalt-text-primary); }
+  @media (forced-colors: active) {
+    .basalt-notifications-trigger[data-unread][data-direct]::before,
+    .basalt-tabbar-dot[data-kind="direct"],
+    .basalt-notification[data-direct] .basalt-notification-dot::before { forced-color-adjust: none; color: CanvasText; border: var(--basalt-size-hairline) solid CanvasText; background-color: CanvasText; }
+    .basalt-notification[data-direct] .basalt-notification-dot { border: 0; }
+    .basalt-notification[data-direct]:hover .basalt-notification-dot::before { color: HighlightText; border-color: HighlightText; background-color: HighlightText; }
+  }
+
+  /* `wrap` (8a): the title and the line wrap whole; the dot, the mark, the time and a count stay on the title's first line. */
+  .basalt-notifications-list[data-wrap] :is(.basalt-notification-title, .basalt-notification-line) { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; }
+  .basalt-notifications-list[data-wrap] .basalt-notification-head { align-items: flex-start; }
+  .basalt-notifications-list[data-wrap] .basalt-notification-caret { margin-block-start: calc((var(--basalt-text-base-line-height) - var(--basalt-size-icon-sm)) / 2); }
+  /* An action off with its reason (8d): one line (it may wrap) under the head's row (or the foot's), inside the band, from the band's start edge across its width. */
+  .basalt-notifications-head:has(> .basalt-notifications-reason), .basalt-notifications-foot:has(> .basalt-notifications-reason) { flex-wrap: wrap; row-gap: 0; }
+  .basalt-notifications-head:has(> .basalt-notifications-reason) > .basalt-notifications-count { flex-basis: 0; }
+  .basalt-notifications-reason { flex: 0 0 100%; margin: var(--basalt-space-1) 0 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+
   /* The page form (NotificationList): the same head band, without a title, its count lined up with the entries' dots; no rim and no level. */
   .basalt-notification-list > .basalt-notifications-foot { padding: var(--basalt-space-2) var(--basalt-space-1-5); }
   .basalt-notification-list > .basalt-notifications-head { padding-block: var(--basalt-space-2); padding-inline: calc(var(--basalt-space-1-5) + var(--basalt-space-3)) var(--basalt-space-1-5); }
@@ -7645,6 +7669,10 @@
     .basalt-list-band-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--basalt-space-1) var(--basalt-space-2); }
     .basalt-list-band-row > .basalt-list-band-range { display: none; }
     .basalt-list-band-size { margin-inline-start: auto; }
+    /* At one page or none (cimip-gaps-3 T3, 9) the pager is not drawn (no hidden arrows holding 44px seats): the band's own range starts the row, on the gutter, and the page
+       size ends it, on one row. With onePage="size" the page size is alone. */
+    .basalt-list-band[data-whole] .basalt-list-band-row > .basalt-pagination { display: none; }
+    .basalt-list-band[data-whole]:not([data-one-page="size"]) .basalt-list-band-row > .basalt-list-band-range { display: block; }
   }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) {
@@ -7655,12 +7683,20 @@
       .basalt-list-band-size { margin-inline-start: auto; }
       .basalt-list-band-row > .basalt-pagination .basalt-pagination-pages { display: none; }
       .basalt-list-band-row > .basalt-pagination .basalt-pagination-summary { display: inline-block; }
+      /* At one page or none (cimip-gaps-3 T3, 9) the pager is not drawn (no hidden arrows holding 44px seats): the band's own range starts the row, on the gutter, and the page
+         size ends it, on one row. With onePage="size" the page size is alone. */
+      .basalt-list-band[data-whole] .basalt-list-band-row > .basalt-pagination { display: none; }
+      .basalt-list-band[data-whole]:not([data-one-page="size"]) .basalt-list-band-row > .basalt-list-band-range { display: block; }
     }
   }
+  /* onePage="size" in the wide form: the range and the pager keep their seats, unseen, and the page size stays where it is. */
+  .basalt-list-band[data-whole][data-one-page="size"] .basalt-list-band-row > :is(.basalt-list-band-range, .basalt-pagination) { visibility: hidden; }
   /* The count sits in the middle of the room between the arrows: its seat holds the widest form and the text is centred in it (the wide band's own count stays at the start). */
   .basalt-pagination-summary .basalt-list-band-range-seat { justify-items: center; }
   /* The list's foot (DECISIONS 227): under 720, with more than one page, the band's Previous, count and Next again, centred under the rows, with no seat under it. */
   .basalt-list-band-foot { display: none; padding-block: var(--basalt-space-2); }
+  /* keepFootRoom at one page or none: the foot holds its room and draws nothing; its count is hidden with its arrows (the band above says the range). */
+  .basalt-list-band-foot .basalt-pagination[data-whole] .basalt-pagination-summary { visibility: hidden; }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
   @media (width < 720px) {
     .basalt-list-band-foot:not([hidden]) { display: block; }

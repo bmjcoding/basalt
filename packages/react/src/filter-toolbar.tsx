@@ -21,8 +21,11 @@ export interface FilterToolbarProps extends Omit<React.ComponentProps<"div">, "c
    * technology, is in the control's name (WCAG 2.5.3).
    */
   sort?: React.ReactNode;
-  /** The word beside the sort control, shown from 720. */
-  sortLabel?: string;
+  /**
+   * The word beside the sort control, shown from 720. `false` (or `""`) draws no word and no empty span, for a `Select` that shows the word itself
+   * (`valuePrefix="Sort"`). Each option names the field and the direction in words ("Newest first", "Title A to Z"); the list's own order is one of them.
+   */
+  sortLabel?: string | false;
 }
 
 /**
@@ -38,7 +41,7 @@ export function FilterToolbar({ label, kind, search, filter, result, sort, sortL
       {result ? <div className="basalt-filter-toolbar-result">{result}</div> : null}
       {sort ? (
         <div className="basalt-filter-toolbar-sort">
-          <span className="basalt-filter-toolbar-label" aria-hidden="true">{sortLabel}</span>
+          {sortLabel ? <span className="basalt-filter-toolbar-label" aria-hidden="true">{sortLabel}</span> : null}
           {sort}
         </div>
       ) : null}
