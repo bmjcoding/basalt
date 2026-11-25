@@ -140,6 +140,11 @@ export interface AppHeaderProps extends Omit<React.ComponentProps<"header">, "ti
    * header (N1's chrome is solid, DECISIONS 1). There is one smoked surface per viewport, ever.
    */
   solid?: boolean;
+  /**
+   * The title's `h1`, for `useRouteFocus`'s `target`. The `h1` takes `tabIndex={-1}`, so script can land focus on it after a page change (with no
+   * ring: nothing operates it), and it is not a tab stop.
+   */
+  titleRef?: React.Ref<HTMLHeadingElement>;
 }
 
 /**
@@ -147,8 +152,8 @@ export interface AppHeaderProps extends Omit<React.ComponentProps<"header">, "ti
  * actions at the end. On a phone it spans the full width with the same geometry, the primary still in it. Smoked by default;
  * `solid` is the same bar without the layer.
  */
-export function AppHeader({ title, actions, facts, solid = false, className, ...props }: AppHeaderProps) {
-  const heading = <h1 className="basalt-app-title">{title}</h1>;
+export function AppHeader({ title, actions, facts, solid = false, titleRef, className, ...props }: AppHeaderProps) {
+  const heading = <h1 ref={titleRef} tabIndex={-1} className="basalt-app-title">{title}</h1>;
   // A fact that is null, undefined, false or empty is left out with its dot, as DotLine leaves out its own.
   const shown = facts?.filter((fact) => fact !== null && fact !== undefined && fact !== false && fact !== "") ?? [];
   return (

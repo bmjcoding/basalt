@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { ActionShortcut } from "./action-shortcut";
 import { Button } from "./button";
-import { Textarea } from "./feedback";
+import { Textarea, useFitToText } from "./feedback";
 import { isComposingKey } from "./keyboard";
 import { isModKey } from "./platform";
 import { isThenable, useJoinedRef } from "./wait";
@@ -45,9 +45,15 @@ export interface ComposerProps extends Omit<React.ComponentProps<"div">, "onChan
   actions?: React.ReactNode;
   /**
    * Who is typing (`typingStatus`), a draft saved: in the actions row after the app's actions, on a row of its own under them when its words do not fit
-   * beside them. A polite live region, always mounted; with no status no line is held.
+   * beside them. A polite live region, always mounted; with no status no line is held. It is spoken while the reader is writing (`statusLive`).
    */
   status?: React.ReactNode;
+  /**
+   * When a change of `status` is spoken. `"focus"` (the default): while the field has focus, so "Ana is typing" reaches the person who is
+   * writing and not one reading the page around it. `"always"`: whenever it changes, for a status every reader needs. `"off"`:
+   * never; the line is still there to read.
+   */
+  statusLive?: "focus" | "always" | "off";
   /**
    * Names in the field: render the picker for the composer's field, `(field) => <MentionPicker field={field} options={people} />`. The app imports
    * `MentionPicker` itself, so a composer without names never carries it.
@@ -62,10 +68,10 @@ export interface ComposerProps extends Omit<React.ComponentProps<"div">, "onChan
 
 /**
  * A message field with its send action. The field has an accessible name and no visible label; it grows with its text up to `maxRows` and
- * then scrolls. The row under it holds the app's `actions`, the `status` (a polite live region) and Send (primary, the row's last). A key sends by pressing Send, so a send is guarded by the button's own wait. With `mentions`, the
+ * then scrolls. The row under it holds the app's `actions`, the `status` (a polite live region while the field has focus) and Send (primary, the row's last). A key sends by pressing Send, so a send is guarded by the button's own wait. With `mentions`, the
  * trigger opens a picker of names while focus stays in the field.
  */
-export function Composer({ label, value, defaultValue = "", onValueChange, onSend, sendKey = "Enter", sendLabel = "Send", waitForAnswer = true, placeholder, rows = 2, maxRows = 8, actions, status, mentions, disabled = false, inputRef, textareaProps, className, style, ...props }: ComposerProps) {
+export function Composer({ label, value, defaultValue = "", onValueChange, onSend, sendKey = "Enter", sendLabel = "Send", waitForAnswer = true, placeholder, rows = 2, maxRows = 8, actions, status, statusLive = "focus", mentions, disabled = false, inputRef, textareaProps, className, style, ...props }: ComposerProps) {
   const [inner, setInner] = React.useState(defaultValue);
   const text = value !== undefined ? value : inner;
   const own = React.useRef<HTMLTextAreaElement | null>(null);
@@ -74,6 +80,9 @@ export function Composer({ label, value, defaultValue = "", onValueChange, onSen
   const latest = React.useRef(text);
   latest.current = text;
   const empty = text.trim() === "";
+  // Whether the field has focus: the status is spoken only then, by default.
+  const [writing, setWriting] = React.useState(false);
+  const live = statusLive === "always" || (statusLive === "focus" && writing);
   const min = Math.max(1, rows);
   const max = Math.max(min, maxRows);
 
@@ -105,20 +114,8 @@ export function Composer({ label, value, defaultValue = "", onValueChange, onSen
     return undefined;
   };
 
-  // The field grows with its text where the browser can size it (field-sizing); elsewhere it is measured, within the same bounds.
-  React.useLayoutEffect(() => {
-    const field = own.current;
-    if (!field || typeof CSS === "undefined" || CSS.supports("field-sizing", "content")) return undefined;
-    // The stylesheet's least and greatest heights bound it; this only follows the text.
-    const fit = () => {
-      field.style.height = "auto";
-      field.style.height = `${field.scrollHeight + field.offsetHeight - field.clientHeight}px`;
-    };
-    fit();
-    const resize = new ResizeObserver(() => fit());
-    resize.observe(field);
-    return () => resize.disconnect();
-  }, [text]);
+  // The field grows with its text where the browser can size it (field-sizing); elsewhere it is measured, within the same bounds (Textarea's own measure).
+  useFitToText(own, true, text);
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     textareaProps?.onKeyDown?.(event);
@@ -146,7 +143,12 @@ export function Composer({ label, value, defaultValue = "", onValueChange, onSen
     </Button>
   );
   return (
-    <div {...props} className={join("basalt-composer", className)} style={{ ...style, "--_rows": min, "--_max-rows": max } as React.CSSProperties} data-disabled={disabled ? "" : undefined}>
+    <div
+      {...props}
+      className={join("basalt-composer", className)}
+      style={{ ...style, "--_rows": min, "--_max-rows": max } as React.CSSProperties}
+      data-disabled={disabled ? "" : undefined}
+    >
       <Textarea
         {...textareaProps}
         ref={joined}
@@ -159,6 +161,8 @@ export function Composer({ label, value, defaultValue = "", onValueChange, onSen
         className="basalt-composer-field"
         onChange={(event) => { textareaProps?.onChange?.(event); change(event.currentTarget.value); }}
         onKeyDown={onKeyDown}
+        onFocus={(event) => { textareaProps?.onFocus?.(event); setWriting(true); }}
+        onBlur={(event) => { textareaProps?.onBlur?.(event); setWriting(false); }}
       />
       {mentions ? mentions(own) : null}
       <div className="basalt-composer-actions">
@@ -166,7 +170,7 @@ export function Composer({ label, value, defaultValue = "", onValueChange, onSen
             first row. No line is held when there is no status, and the polite region is always mounted (DECISIONS 336, Q4). */}
         <div className="basalt-composer-start">
           {actions ? <div className="basalt-composer-extra">{actions}</div> : null}
-          <p className="basalt-composer-status" aria-live="polite">{status}</p>
+          <p className="basalt-composer-status" aria-live={live ? "polite" : "off"}>{status}</p>
         </div>
         {sendKey === "Mod+Enter" ? <ActionShortcut shortcut="Mod+Enter" className="basalt-composer-send-group">{button}</ActionShortcut> : button}
       </div>

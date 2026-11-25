@@ -496,7 +496,8 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     `aria-keyshortcuts`.
   - **What a screen reader hears.** Only the result, once, from two live regions that hold only text and exist before the
     first toast: assertive for danger, polite for the rest. Running steps are never announced. The visible stack is a
-    named region ("Notifications") that F6 reaches, and is not itself live, so nothing is read twice.
+    named region ("Notifications") and is not itself live, so nothing is read twice. F6 lands on the newest toast's action, as the spoken
+    hint says; with no toast that has one it lands on the region. Each toast is a named group, not a dialog: it never counts as an open dialog.
     While the region itself holds focus, its box draws nothing and the control ring follows the front toast's box at +2, so the next Tab moves the ring 0px, including in forced colours (DECISIONS 156).
   - **The stack.** Three at most, bottom right at `space-4` from the edges; from 720 it stands above what is pinned at the bottom (an app's
     foot, and an on-screen keyboard). **Under 720 it hangs from the bar** (DECISIONS 274, the owner's pick of option B; found by CoachStakk's
@@ -605,8 +606,11 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     is a `div` whose label is the `dt` and whose figure, note and source are `dd`s.
   - **Words joined by a dot** (`DotSep`, `DotLine`; the skill's `.dot-sep`; the wording audit's W8). A status line is words with a middle dot between them ("In design · Pilot planned"). The dot is
     drawn by the stylesheet (`::before`, with an empty alternative text, so it is not read; a plain `content` first for a browser that does not take the alternative), and the words are joined for a
-    screen reader and a text scan by a visually hidden ", " in the same element, so the text and the accessible name both read "In design, Pilot planned" and never "In design · , Pilot planned". The
-    drawing is as it was (the dot, and a space each side where `spaced` is set); `Stat`'s source line, `DateAge`'s age and `OptionChips`' unavailable note are built from the same `DotSep`.
+    screen reader and a text scan by a ", " in the same element, inline and drawn at no size (`basalt-said`), so the text (`innerText` too) and the accessible name both read "In design, Pilot planned" and
+    never "In design · , Pilot planned" or "In design , Pilot planned". The drawing is as it was (the dot, and a space each side where `spaced` is set); `Stat`'s source line, `DateAge`'s age and
+    `OptionChips`' unavailable note are built from the same `DotSep`. Where a line wraps, the dot stays with the word before it and the next line starts with a word: a spaced dot's own
+    spaces do not wrap, and `DotLine` holds each fact and its dot in one span that does not wrap (`basalt-dot-keep`), the fact in a box-less span (`display: contents`) that wraps as the line does,
+    so after an inline block (a badge) the dot stays too and only the dot is glued to the fact's end; a line that never wraps says `--basalt-dot-line-wrap: nowrap` (`AppHeader`'s facts do). A count's spoken ", 3 times" (a toast, a notification group) is the same kind of text.
   - **A value, its unit and its label are words apart.** Where a number and its unit (or a label and its figure) are separate elements with no space between them, a visually hidden space ends the first, so the
     text and the accessible name read "9,586 a day" and not "9,586a day": the `TimeChart`'s headline and its legend rows, `Stat`'s label, figure and note, a `Meter`'s unseen wording and a share bar's figure.
     The hidden space takes no room, so nothing moves; in the skill a value and its unit have a space in the markup or a `.visually-hidden` one.
@@ -1645,8 +1649,9 @@ The plan is secondary ink, never a series, and never carries a marker: a marker 
 
 ### Keyboard and screen readers
 
-- **The plot is one tab stop:** a `role="group"` with `aria-roledescription="chart"`, named by the title and described by the summary
-  and a sentence about the keys. Inside it each day is a focusable `role="img"` with a roving `tabindex`, named by its full sentence:
+- **The plot is one tab stop:** a `role="grid"` with `aria-roledescription="chart"`, named by the title and described by the summary
+  and a sentence about the keys. It owns one `row` with no box of its own, and each day is a focusable `gridcell` in it with a roving
+  `tabindex` (a focus stop needs a widget role; an image is not one), named by its full sentence:
   the day, each series' value or "not observed" and its reason, the plan, and where the value sits against it.
 - **Keys:** ← → a day, Page Up and Page Down a week (Page Up is earlier), Home and End the ends. Tab leaves; nothing is trapped.
 - **No live region.** Moving focus is the announcement, so a hover never talks and nothing is read twice. The SVG is `aria-hidden`.
@@ -1714,7 +1719,7 @@ changes); the implementation hasn't been reviewed. The votes that had no majorit
   text from the first frame. It takes one series, and the legend rows of a chart that does not set it are unchanged, with their reserved widths.
 - **The phase chart** (`PhaseChart`, votes 11, 16 and 17): a `TimeChart` with a trend, the one second plot height (`size-chart-plot-sm`, 96px, fixed at every width), and a
   lane of one choice a week (seven days a choice; lanes of other lengths are in the backlog) on the plot's own axis, with the open week's plate behind both. The chart ships no word for the period (DECISIONS 207):
-  the lane's name, the previous and next buttons, the numbered name (a function of the index), the status line and the Enter hint are required props, each a whole string the product writes, as `PeriodStepper`'s `previousLabel` and `nextLabel` are. A press on a day, or Enter on the focused day, opens its week; the days stay images
+  the lane's name, the previous and next buttons, the numbered name (a function of the index), the status line and the Enter hint are required props, each a whole string the product writes, as `PeriodStepper`'s `previousLabel` and `nextLabel` are. A press on a day, or Enter on the focused day, opens its week; the days stay grid cells
   with a roving tab stop, and there is no live region. The chosen call takes primary ink on the `state-selected` plate with no weight change, and the plate slides over
   `duration-slow` on `ease-out` (3 to 1; none under reduced motion; in forced colours it is a 1px `Highlight` outline). The lane's choices are 44px on touch. Where a week's
   slot is under 44px (twelve choices do not fit a phone), the lane is marks (a changed week's mark is larger) and previous and next controls step through the weeks, with the
@@ -2652,8 +2657,9 @@ fallback when the picture is missing. The one set of company files Basalt ships 
 `Stepper` (back and next through a short flow) and not `Pagination`. The buttons are `IconButton`s, ghost, 32px, the core `chevron-left` and `chevron-right`
 (`Pagination`'s), `space-1` from the label. The label is `text-base` at 500 in primary, centred, tabular, on one line, in a seat of at least `space-32` (128px).
 **At the first or last period the button stops but keeps focus** (`aria-disabled`, `focusableWhenDisabled`), so a keyboard user is not dropped. **With no periods** (the
-whole span shown) both buttons are `visibility: hidden` and keep their room, so nothing moves. **It is spoken once:** the label is shown at once and a polite
-status line says its words, with a hidden prefix ("Week 8, build, "), after it has held still for 400ms, so six presses in a second speak once. **Under 640px of
+whole span shown) both buttons are `visibility: hidden` and keep their room, so nothing moves. **It is spoken once:** the label is shown at once and, when it changes after the stepper mounts, a polite
+status line says its words, with a hidden prefix ("Week 8, build, "), after it has held still for 400ms, so six presses in a second speak once. The period a
+page arrives on is read in place and never announced (the live line starts empty). **Under 640px of
 the app's container** it takes its own row under the tabs: full width, the buttons at the ends, 52px tall, `space-2` of inline padding, a `border-divider` line above (DECISIONS 167), each button at
 least 44 by 44. The buttons are a press, an explicit act, so WCAG 3.2.2 is not engaged.
 
@@ -2689,7 +2695,8 @@ under the list moves whenever the list's height does, drops rows away from the p
   an app with a sticky header of its own inside the pane sets the property in its own CSS). The return waits for the page or size the press asked for, however long the app takes to
   load it, and forgets the press when a filter changes or the app moves somewhere else.
 - **The count** is "1–25 of 214", `text-sm`, secondary, tabular, in a seat as wide as its widest form for the unfiltered total ("888–888 of 888"), so a shorter count moves nothing.
-  It is blank for no matches. The band keeps its rows then: it is the list's fixed head, and nothing above the rows moves.
+  A list read from a server gives the widest count it will show (`seatTotal`) so the seat is drawn before the first answer. A list whose `FilterResult` already says the total
+  drops it from the count (`rangeTotal={false}`: "1–25", in the band and the foot). It is blank for no matches. The band keeps its rows then: it is the list's fixed head, and nothing above the rows moves.
 - **The page size** is a `Select` of the app's sizes (10, 25, 50 and 100 unless it gives others) followed by the words "per page", named by the app's noun and those words ("Orders
   per page"): the visible words are inside the name (WCAG 2.5.3), the noun is the app's. The size a list starts at is the app's too (the examples start at 25; it is not a default),
   and so is whether it remembers the reader's choice. A new size keeps the reader's first row in view (page 3 at 25 per page is page 6 at 10).
@@ -2723,7 +2730,8 @@ scrolling, and if someone physically scrolls up the scroll back up to top goes a
 
 **The list's foot** (under 720, with more than one page). The band's Previous, count and Next again, centred under the rows, with no seat under it (the page's own bottom padding is all that follows;
 DECISIONS 227: the empty seat and the off-centre pager were what the owner objected to). It holds no page size: that is a setting and stays at the top with the filters. It is a `nav` named by the app
-("Order pages, end of list"). It is not drawn from 720 (the band is stuck there), nor with one page or none. A press changes the page, returns the window at once to where the band rests (the band
+("Order pages, end of list"). It is not drawn from 720 (the band is stuck there), nor with one page or none, unless the app holds its room (`keepFootRoom`, opt-in pending the council's decision on the default: its arrows hidden at
+one page, as the band's are, so rows that arrive after the first frame move nothing under the list). A press changes the page, returns the window at once to where the band rests (the band
 under the bar and the first row under it), moves focus to the band's own Previous or Next, and the band's status line says the page once; Back to top goes, since the window moved up.
 
 **The ring fix.** The band's narrow form and the foot set an arrow, the count and the next arrow `space-1` apart, so an arrow's +2 focus ring (2px wide, ending 4px out) touched the count's text. The
@@ -3087,7 +3095,7 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   it ("Show 5 earlier steps", "Show 5 earlier steps, 1 failed"; open, "Hide earlier steps") holds its line from the first frame and opens the
   whole record in full form. Hover and focus lift the tail to its first step. Nothing here speaks.
 - **`RunTimer`.** Geist Mono at `text-xs`, tertiary, tabular, a `time` with an ISO duration, never a live region: "12.3 s" under a minute
-  (every 100ms), "12 min 34 s" to an hour, "12 hr 34 min" to a day, then "3 days". One shared interval. Its seat is one `Reserve` cell as wide as its scale's longest form and never empty, the figure end-aligned in a column, centred under a rail's node and
+  (every 100ms; on a rail given the minutes scale, whole seconds, "45 s", by the second, its `datetime` still to the tenth), "12 min 34 s" to an hour, "12 hr 34 min" to a day, then "3 days". One shared interval. Its seat is one `Reserve` cell as wide as its scale's longest form and never empty, the figure end-aligned in a column, centred under a rail's node and
   start-aligned right after a `Terminal` head's state word (under 480px of the `Terminal`'s own width a head with a run's time is two rows:
   the title and the copy button on its end edge, then the state and its time from the title's start edge, `space-2` between the lines and `space-3`
   under the status, 70px at 390 and 320); a list sets one scale for all its timers. A run's head seat also holds today's held form
@@ -3208,6 +3216,8 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
   "Mmm 00 00:00 PM" in `en-US`).
 - **The source stamp** (`SourceStamp`; V5, V6, R8): four 8px shapes as drawn (filled, half-filled, hollow, a cross) and Basalt's braille for "asking", all in one 8 by 10 seat, with a word
   always; the "just landed" flash is dropped. Source first, time to the second and 24-hour, no middle dot ("github 18:52:07"); `Stat` is unchanged. V5 had no majority, so option (a) stands.
+  Its `time`'s `datetime` is the instant in UTC ("2026-11-24T21:55:17.000Z"), the drawn clock the zone's; `timeZoneName` writes the zone's name inside the
+  `time`, after a no-break space ("github 18:52:07 CST"), so it is in the stamp's accessible name.
   **Waiting and unreachable** (`SourceStateWords`): words only, both sentences in one `Reserve` cell, the failure said once through `StatusLine`, "Ask again" a `TextButton`.
 - **The status bar** (`StatusBar`; V7, R6, R7). A 44px foot from 720, fixed under it (56 plus the safe area). A message the app has also logged goes after 5000ms; any other stays until
   replaced or cleared with Esc. An error carries XCircle in a 16px seat and danger ink and is said through an assertive region that is in the page before the text. The slot reserves its
@@ -3224,10 +3234,14 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
 - **Inline-label rows** (`InlineFields`, `InlineField`; V10, R12): V10 had no majority, so option (a) stands. A label in `size-field-label-inline` (80), then a bare field; each row's bottom line is
   `border-field` (equal to `border-input` outside more contrast, so a field's boundary steps with the others); on focus a real 2px outline at −2 inset round the row; at least 44 tall, a textarea grows its row; 16px on touch.
 - **The Send hint** (`ActionShortcut`; V11): Send stays primary with `aria-keyshortcuts="Meta+Enter"`; the two chips stand beside it as a hint, hidden on touch until a hardware key.
-- **Single-key shortcuts** (`useShortcuts`, `useSingleKeys`, `SingleKeysSwitch`, `ShortcutList`; V12): an app-level hook that ignores keys with a modifier, keys typed in a field and anything inside
-  `[data-own-keys]`, plus a "Single-key shortcuts" Switch in the help dialog (default on, stored lazily as `basalt-keys`; off takes every key, `?` included). The help dialog also has a visible opener that is not a single key.
-- **Route focus** (`useRouteFocus`; X10): after a client-side page change, scroll to the top, set `document.title` and focus the page's title with no ring; a change that came from a control's own
-  value leaves focus on the control (WCAG 3.2.2). The announcement is `StatusLine`.
+- **Single-key shortcuts** (`useShortcuts`, `useSingleKeys`, `SingleKeysSwitch`, `ShortcutList`; V12): an app-level hook that ignores keys with a modifier, keys typed in a field, anything inside
+  `[data-own-keys]` and a key pressed inside a dialog, sheet, popover, the command menu, a menu or a listbox (an app's own `role="dialog"` too; a toast is not one; back on the page the keys run), plus a "Single-key shortcuts" Switch in the help dialog (default on, stored lazily as `basalt-keys`; off takes every key, `?` included). The help dialog also has a visible opener that is not a single key.
+- **Route focus** (`useRouteFocus`; X10): after a client-side page change, scroll to the top (unless `scroll={false}`: a stream that opens at its end, a page reached by Back), set
+  `document.title` and focus the page's title with no ring (`AppHeader`'s `h1` takes `tabIndex={-1}` and `titleRef`); a change that came from a control's own value leaves focus on the control
+  (WCAG 3.2.2). Route focus wins: a popup that is closing (the command menu a page was chosen in) is waited for, and the focus it hands back does not take the reader off the new page
+  (held two frames, only when a popup was open as the page changed, so a page's own focus stands). A title that arrives with the page's data is landed on when it arrives, unless the reader
+  has pressed a key or the pointer, or the page has changed again (no deadline), and `document.title` follows the title the page gives once it has it.
+  `useFocusNet` (opt-in, once in the shell) lands focus on the same place when the focused control is removed and focus falls to nothing with no dialog open. The announcement is `StatusLine`.
 - **Time parts** (`formatStamp`, `formatClock`, `formatDay`, `formatCountdown`, `formatAge`, `Clock`, `Countdown`, `DateAge`; V13, V14; DECISIONS 207): a clock a person reads (`Clock`, `formatClock`, a `Stat`'s time, a day and a clock) follows the locale, so
   12-hour in `en-US` ("6:42 PM", "Nov 7, 8:02 AM"), with a numeric hour; a stamp to the second (`formatStamp`, the session log, `SourceStamp`, `CommandBlock`'s time) is a log's and stays 24-hour ("18:42:07"). Every
   formatter and part that writes a time takes `locale`, default `en-US`, so a server's render and the browser's agree on the hour; `dateTime` attributes stay ISO. A countdown is a length of time, not a clock. A relative age is written only beside its absolute date, never alone and never in a
@@ -3241,7 +3255,8 @@ the lead; the owner sees the pictures before merge). Every part serves any app w
 
 - **The composer** (`Composer`). The field is Basalt's `Textarea` with an accessible name (`label`) and no visible label; the placeholder says where the message goes too. Under it a row:
   the app's own actions at its start (ghost `sm` buttons: attach, a format toggle) and Send, a primary Button, always the row's last, at its end. The status is in that row, after the app's actions: `text-xs` in tertiary ink, one line, cut with an ellipsis (the live region holds
-  the whole text), a polite live region that is always mounted: who is typing (`typingStatus`: "Ana is typing", "Ana and Ben are typing", "Ana, Ben, and Cy are typing", "4 people
+  the whole text), a live region that is always mounted and polite while the field has focus (`statusLive`: `"focus"` by default, `"always"` or `"off"`), so "is typing" reaches the
+  person writing and not one reading round it: who is typing (`typingStatus`: "Ana is typing", "Ana and Ben are typing", "Ana, Ben, and Cy are typing", "4 people
   are typing") or anything the app says there. When its words do not fit beside the actions it takes a row of its own under them, and Send stays on the first row. With no status no line
   is held. The first of the app's actions, when ghost, takes `edge="start"`: its glyph is on the field's line. The field starts at `rows` lines (default 2, the textarea's own least) and grows with its text a line at a time
   to `maxRows` (default 8), then scrolls; it has no resize handle, since its height is its text's. Where the browser cannot size a field to its content (`field-sizing`), it is measured, within

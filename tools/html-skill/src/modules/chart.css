@@ -64,7 +64,7 @@
   .chart-line[data-dash="dot"] { stroke-dasharray: 0 var(--basalt-size-chart-dash); }
   .chart-mark { fill: var(--basalt-chart-observed); }
   .chart-mark[data-so-far] { fill: var(--_cut); stroke: var(--basalt-chart-observed); stroke-width: var(--basalt-size-chart-line); }
-  /* One tab stop, one focusable image a day; the ring is the control ring at +2 round the day. */
+  /* One tab stop, one focusable grid cell a day; the ring is the control ring at +2 round the day. */
   .chart-days { position: absolute; inset: 0; pointer-events: none; }
   .chart-day { position: absolute; border-radius: var(--basalt-radius-xs); outline: none; pointer-events: none; }
   .chart-day:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }

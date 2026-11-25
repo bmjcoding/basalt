@@ -279,9 +279,8 @@ for (const theme of THEMES) {
         await page.locator(".basalt-toast").waitFor();
         await page.focus("#opener");
         await page.keyboard.press("F6");
+        // F6 lands on the action itself (cimip-gaps-3 E2): no Tab after it.
         await page.waitForFunction(() => document.activeElement?.closest(".basalt-toast-viewport"));
-        // The toast takes focus first, then its action: the stack is a region, and the action is a stop inside it.
-        for (let tab = 0; tab < 3 && (await page.evaluate(() => document.activeElement?.textContent)) !== "Undo"; tab += 1) await page.keyboard.press("Tab");
         assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Undo");
       } finally { await page.close(); }
     });

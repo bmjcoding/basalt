@@ -15,6 +15,12 @@ export interface SparklineProps {
   label: string;
   /** Sentence shown when there is nothing to plot and it is not loading. */
   empty?: string;
+  /**
+   * Writes a reading: the latest value, the scale's ends and the value read with the label ("0.4%", "12 ms"). It is given the eased value while the
+   * scale moves, so it decides its own rounding. Left out, as before: the latest value is grouped with the decimals it has ("2,440", "1.25"), the
+   * image's name says the plain number ("1.25") and the scale's ends are whole numbers ("0", "2,440").
+   */
+  format?: (value: number) => string;
   className?: string;
 }
 
@@ -38,7 +44,7 @@ const formatCount = (value: number) => (formatter ??= new Intl.NumberFormat("en-
  * clipped; it eases back in. Reduced motion snaps everything. The accessible value is the target. There
  * is no fill, gradient or glow, and nothing else a chart would have: this is not a charting component.
  */
-export function Sparkline({ data, loading = false, paused = false, label, empty = "No data yet", className }: SparklineProps) {
+export function Sparkline({ data, loading = false, paused = false, label, empty = "No data yet", format, className }: SparklineProps) {
   const peak = Math.max(1, data.reduce((max, value) => Math.max(max, value), 0));
   const ceiling = useEased(peak, { growth: "snap", paused });
   const progress = useEased(loading ? 0 : 1, { paused });
@@ -64,22 +70,22 @@ export function Sparkline({ data, loading = false, paused = false, label, empty 
     <div className={join("basalt-sparkline", className)} data-loading={loading ? "" : undefined} data-empty={quiet ? "" : undefined}>
       <div className="basalt-sparkline-head">
         <span className="basalt-sparkline-label">{label}</span>
-        {data.length ? <NumberTicker glide value={paused ? held.current : latest} /> : null}
+        {data.length ? <NumberTicker glide value={paused ? held.current : latest} format={format} /> : null}
       </div>
       {quiet ? (
         <p className="basalt-sparkline-empty">{empty}</p>
       ) : (
-        <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={`${label}, ${latest}`}>
+        <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={`${label}, ${format ? format(latest) : latest}`}>
           <polyline className="basalt-sparkline-line" points={points} />
         </svg>
       )}
       {data.length ? (
         <div className="basalt-sparkline-axis">
-          <span>0</span>
+          <span>{format ? format(0) : "0"}</span>
           {/* the scale as drawn, frame by frame, as plain figures; the target is what is read */}
           <span>
-            <span className="basalt-visually-hidden">{formatCount(peak)}</span>
-            <span aria-hidden="true">{formatCount(Math.round(ceiling))}</span>
+            <span className="basalt-visually-hidden">{format ? format(peak) : formatCount(peak)}</span>
+            <span aria-hidden="true">{format ? format(ceiling) : formatCount(Math.round(ceiling))}</span>
           </span>
         </div>
       ) : null}

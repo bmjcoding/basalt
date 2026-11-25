@@ -96,7 +96,10 @@ async function lazyGraph(names, extra = "") {
 // keyboard machinery, the icons or anything else into an import that never mentions it.
 // DECISIONS 326: a text toggle's seat holds its glyph and hands over to the check (button.tsx), about 185 bytes on every Button: Button 17,835 (17,650 to 17,850), Drawer 18,384 (18,200 to 18,400).
 // Raised in DECISIONS 336 (reserved room), each to its measured size rounded up to the next 50, measured again merged with main at db0bc418 (#129 to #131): Button's `edge` and its words form's done seat (DoneSeat, so a copy with words keeps them) reach every Button-based export: Button 17,950 to 18,550, Drawer 18,500 to 19,100 (from main's).
-for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 6_000], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_550], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 3_400], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_100]]) {
+// cimip-gaps-3 E5: E1 had raised this limit to main's measure, because PR #143 built the lazy diagram-actions.js in the main build, so it imported
+// Button's dist chunk and an app's bundler put Button and Base UI's button in a chunk every root import loaded. diagram-actions is built on its own now
+// (build.mjs), and the limit is the measure on the E5 branch, rounded up to the next 50: Sparkline 23,197 on main, 4,765 (23,200 to 4,800).
+for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 4_800], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_550], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 3_400], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_100]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -377,7 +380,10 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // DECISIONS 326: a text toggle's seat holds its glyph and hands over to the check (button.tsx), about 185 bytes on every Button: NotificationCentre 152,753 (152,600 to 152,800).
 // NotificationCentre 152,900 (main's) to 153,200 in DECISIONS 336: its head's and foot's controls are hung at their edges, and Button's edge and done seat.
 // 153,200 to 153,250 in the code review's fix round of 336 (finding 4): the bell takes `edge` when it is last in a bar; 153,211 measured.
-for (const [name, limit] of [["ToastProvider", 93_500], ["useToast", 4_000], ["NotificationCentre", 153_250]]) {
+// cimip-gaps-3 E2 (DECISIONS 246, measured with this file's own graph() on origin/main 9f17176f, after #152, and on the E2 head; each limit the head's
+// measure rounded up to the next 50): ToastProvider 94,053 on main, 94,456 with E2 (+403: the toast's group role, F6 to the promised action), 93,500 to
+// 94,500; NotificationCentre 153,235 on main, 153,260 with E2 (+25: initialFocus), 153,250 to 153,300.
+for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 153_300]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);
@@ -411,7 +417,10 @@ for (const [name, limit] of [["DescriptionList, DescriptionItem", 1_500], ["Stat
 // The panels, art and parts (DECISIONS 162): the app tile, the captioned columns and the table call are plain markup, so they load no Base UI, no Phosphor and no Shiki;
 // the period stepper is two IconButtons, a status line and the core chevrons, so it carries a Button and nothing else of Base UI.
 // PeriodStepper 18,050 to 18,150 in DECISIONS 336: the IconButton it draws carries `edge`.
-for (const [name, limit, plain] of [["AppTile", 1_500, true], ["CaptionedColumns, CaptionedColumn", 1_000, true], ["TableCall", 800, true], ["PeriodStepper", 18_150, false]]) {
+// cimip-gaps-3 E5: E1 had raised this limit to main's measure, because PR #143 built the lazy diagram-actions.js in the main build, so it imported
+// Button's dist chunk and an app's bundler put Button and Base UI's button in a chunk every root import loaded. diagram-actions is built on its own now
+// (build.mjs), and the limit is the measure on the E5 branch, rounded up to the next 50: PeriodStepper 21,274 on main, 18,285 (21,300 to 18,300; E1's quiet arrival is the 155 over the old 18,150).
+for (const [name, limit, plain] of [["AppTile", 1_500, true], ["CaptionedColumns, CaptionedColumn", 1_000, true], ["TableCall", 800, true], ["PeriodStepper", 18_300, false]]) {
   test(`${name} alone is small and loads no Shiki or cmdk${plain ? ", no Base UI and no Phosphor" : ""} (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -467,7 +476,9 @@ test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async
   // The review round of 316: the failed outcome and the command that never steps back, and RunTimer's print and redraw guards: 41,435 (to 41,450).
   // DECISIONS 326: the head's copy button and the glyph seat every Button carries: 41,627 (to 41,650).
   // 41,750 (main's) to 42,200 in DECISIONS 336, then 42,550 with the open items' ruling (the shared copy state, copy-result.ts, and the close on a refused icon-only copy): its copies are hung, its words form keeps its words with the done seat, and a refused copy shows the close.
-  assert.ok(bytes < 42_550, `Terminal bundle is ${bytes} bytes`);
+  // cimip-gaps-3 E1 (DECISIONS 246): RunTimer's `spoken` and its fresh-words tick add 313. E5: with the shared chunk gone (diagram-actions built on its own, build.mjs)
+  // Terminal measures 42,889 (43,011 on main), so the limit is 43,050 to 42,900. It was 42,570 before PR #143, already 20 over the old 42,550.
+  assert.ok(bytes < 42_900, `Terminal bundle is ${bytes} bytes`);
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
 });
@@ -721,7 +732,9 @@ test("the imports plugin never rewrites a file that resolves another copy of Bas
 // ReleaseNotes measured 67,535 once #127 was merged in (DECISIONS 328's Button and TextButton changes, which its copy and text buttons carry).
 // ReleaseNotes 67,650 (main's) to 68,250 in DECISIONS 336: Button's edge and done seat.
 // The repo review's press guard (Promise.allSettled in takeClick, in every button) merged in: ReleaseNotes 67,639, so 67,650.
-for (const [name, limit] of [["VersionLink", 2_150], ["ReleaseIndex", 31_050], ["ReleaseNotes", 68_250]]) {
+// cimip-gaps-3 E2 (DECISIONS 246, this file's graph() on origin/main 9f17176f and the E2 head): ReleaseNotes 68,285 on main, 68,405 with E2 (+120: DotLine
+// holds each fact with its dot, and the read ", " is inline text), so 68,250 to 68,450.
+for (const [name, limit] of [["VersionLink", 2_150], ["ReleaseIndex", 31_050], ["ReleaseNotes", 68_450]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -750,7 +763,13 @@ test("AppShell loads the rail's tooltip for the version on demand", async () => 
 // Stages and runs (DECISIONS 316): each new part has its own limit, the measured static graph rounded up to the next 50. StageMark carries Phosphor's five
 // circled marks (one file each, as Terminal imports its marks) and the ring; StageBadge, RunTimer, RunAnnouncer and formatRunTime load no Phosphor, and none
 // of them loads Base UI.
-for (const [name, limit, phosphor] of [["StageMark", 14_500, true], ["StageBadge", 5_450, false], ["RunTimer", 5_800, false], ["RunAnnouncer", 600, false], ["formatRunTime", 750, false], ["RunStage", 21_850, true], ["StageList, RunStage", 22_600, true], ["StageRail, RunStage", 22_550, true]]) {
+// cimip-gaps-3 E5: E1 had raised this limit to main's measure, because PR #143 built the lazy diagram-actions.js in the main build, so it imported
+// Button's dist chunk and an app's bundler put Button and Base UI's button in a chunk every root import loaded. diagram-actions is built on its own now
+// (build.mjs), and the limit is the measure on the E5 branch, rounded up to the next 50: RunTimer 24,162 on main, 6,091 (24,200 to 6,100; E1's
+// `spoken` and the rail's whole seconds are about 312 of it); RunStage 38,512, 22,181 (38,550 to 22,200); StageList, RunStage 39,277, 22,948 (39,300 to 22,950); StageRail,
+// RunStage 39,229, 22,900 (39,250 to 22,950). StageMark 14,451 (31,147 on main), StageBadge 5,414 (22,072), RunAnnouncer 582 (19,047) and formatRunTime 649 (19,114)
+// are under the limits E1 left as they were, and none of them loads Base UI again.
+for (const [name, limit, phosphor] of [["StageMark", 14_500, true], ["StageBadge", 5_450, false], ["RunTimer", 6_100, false], ["RunAnnouncer", 600, false], ["formatRunTime", 750, false], ["RunStage", 22_200, true], ["StageList, RunStage", 22_950, true], ["StageRail, RunStage", 22_950, true]]) {
   test(`${name} alone loads no Base UI${phosphor ? "" : " and no Phosphor"} (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -765,9 +784,11 @@ for (const [name, limit, phosphor] of [["StageMark", 14_500, true], ["StageBadge
 // RunTimeline carries its toggle (TextButton, and so Base UI's button and the press wait) and the shared stage parts; StageList does not carry it (above).
 // Main raised the limit to 41,850 for the safe-sinks merge (measured 41,838, above). The top edge's fade (DECISIONS 337: the cut row, measured on each
 // scroll, focus and landing) adds about 730 bytes: measured 42,569 on the merged tree, so the limit is 42,600.
-test("RunTimeline with RunStep loads Base UI's button and nothing else of Base UI (42,600 bytes at most)", async () => {
+// cimip-gaps-3 E1 (DECISIONS 246): RunStep's `format` and `spoken` and RunTimer's add 371. E5: with the shared chunk gone (diagram-actions built on its own,
+// build.mjs) it measures 42,941 (46,635 on main), so the limit is 46,650 to 42,950.
+test("RunTimeline with RunStep loads Base UI's button and nothing else of Base UI (42,950 bytes at most)", async () => {
   const { bytes, inputs } = await graph("RunTimeline, RunStep");
-  assert.ok(bytes < 42_600, `RunTimeline bundle is ${bytes} bytes (limit 42,600)`);
+  assert.ok(bytes < 42_950, `RunTimeline bundle is ${bytes} bytes (limit 42,950)`);
   assert.deepEqual(inputs.filter((f) => /cmdk|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|progress|meter|tooltip)\//.test(f)), "an unrelated Base UI part");
 });

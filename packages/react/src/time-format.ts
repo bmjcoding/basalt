@@ -53,6 +53,14 @@ export function formatStamp(time: Date | number, { timeZone, locale = "en-US" }:
   return { text, dateTime: `${p.year}-${p.month}-${p.day}T${hour}:${p.minute}:${p.second}` };
 }
 
+/** How a zone's name is written, as `Intl.DateTimeFormat` writes it: "short" is "CST" in `en-US`, "shortOffset" "GMT-6", "long" "Central Standard Time". */
+export type TimeZoneNameStyle = "short" | "long" | "shortOffset" | "longOffset" | "shortGeneric" | "longGeneric";
+
+/** The zone's name at a moment, in the locale and style given ("CST"; "CDT" in summer). */
+export function zoneName(time: Date | number, style: TimeZoneNameStyle, { timeZone, locale = "en-US" }: TimeOptions = {}) {
+  return formatter(locale, { timeZone, timeZoneName: style, hour: "numeric" }).formatToParts(new Date(time)).find((part) => part.type === "timeZoneName")?.value ?? "";
+}
+
 /** A clock to the minute as a person reads it, in the locale's hour ("6:42 PM" in `en-US`, "18:42" in `en-GB`), and its machine form (ISO, 24-hour). */
 export function formatClock(time: Date | number, { timeZone, locale = "en-US" }: TimeOptions = {}) {
   const p = parts(new Date(time), "en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
