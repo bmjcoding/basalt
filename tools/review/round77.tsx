@@ -1,4 +1,4 @@
-// Round 75: cimip-gaps-3 topic T3, lists, tables, text and notifications (the council's decision: Neon and Muse drafted, Astra checked, Fable decided, and the
+// Round 77: cimip-gaps-3 topic T3, lists, tables, text and notifications (the council's decision: Neon and Muse drafted, Astra checked, Fable decided, and the
 // final positions answered; t3/decision.md). Built by Opus; the implementation is not reviewed; the browser tests are written and not run (DECISIONS 359).
 //
 // Three changes alter a shipped part's pixels and lead with before and after: TableCall in a rimmed table (40 to 54), the narrow one-page band, and the held
@@ -49,7 +49,7 @@ import type { Round } from "./rounds";
 
 const label: React.CSSProperties = { margin: "0 0 var(--basalt-space-2)", fontSize: "var(--basalt-text-xs-size)", lineHeight: "var(--basalt-text-xs-line-height)", color: "var(--basalt-text-secondary)" };
 const stack: React.CSSProperties = { display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "var(--basalt-space-6)", minWidth: 0 };
-const PAIR = ".r75-pair { display: grid; gap: var(--basalt-space-6); grid-template-columns: minmax(0, 1fr); } @media (min-width: 1024px) { .r75-pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }";
+const PAIR = ".r77-pair { display: grid; gap: var(--basalt-space-6); grid-template-columns: minmax(0, 1fr); } @media (min-width: 1024px) { .r77-pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }";
 const NOT_REVIEWED = "Decided by the council (cimip-gaps-3 T3, t3/decision.md, with its revisions after the final positions); built by Opus; the implementation is not reviewed. The browser tests are written and not run (DECISIONS 359).";
 const hold = (state: string, name: string) => state === name || state.startsWith(`${name}-`);
 /** Focus an element as the keyboard would, once the page has settled (a screenshot cannot press Tab). */
@@ -113,11 +113,11 @@ function WrapCells() {
 
 // ---- 2: the call's air in a rimmed table (before and after) ----
 
-const CALL_UNDO = ".r75-today .basalt-table-container .basalt-table :is(td, tbody th[scope='row']):has(> .basalt-table-call) { padding-block: 0 !important; }";
+const CALL_UNDO = ".r77-today .basalt-table-container .basalt-table :is(td, tbody th[scope='row']):has(> .basalt-table-call) { padding-block: 0 !important; }";
 
 function CallTables({ today }: { today: boolean }) {
   return (
-    <div className={today ? "r75-today" : undefined} style={stack}>
+    <div className={today ? "r77-today" : undefined} style={stack}>
       <p style={label}>{today ? "Today (main): a call in a rimmed table is 38px of text in a 40px row" : "This build: space-2 above and below, so a call row is 54 in every table"}</p>
       <TableContainer label={today ? "Orders, today" : "Orders"}>
         <Table columns={[{}, { width: 96 }]} minWidth={360}>
@@ -150,12 +150,12 @@ const LOANS = [
 ];
 
 function LinkedRows({ state }: { state: string }) {
-  useKeyFocus("#r75-loans tbody tr:nth-child(2) th a", hold(state, "link-focus"));
+  useKeyFocus("#r77-loans tbody tr:nth-child(2) th a", hold(state, "link-focus"));
   return (
     <div style={stack}>
       <div>
         <p style={label}>A library's loans: a press anywhere on a row follows the loan's link; the link is the one control and keeps its own ring</p>
-        <TableContainer id="r75-loans" label="Loans">
+        <TableContainer id="r77-loans" label="Loans">
           <Table columns={[{ width: 88 }, {}, { width: 140 }, { width: 80 }]} minWidth={560} pinned={1}>
             <TableHeader><TableRow><TableHead>Loan</TableHead><TableHead>Title</TableHead><TableHead>Member</TableHead><TableHead>Due</TableHead></TableRow></TableHeader>
             <TableBody>{LOANS.map((l) => <TableRow key={l.id} linked><TableRowHead><a className="basalt-link" href={`#${l.id}`} onClick={(e) => e.preventDefault()}>{l.id}</a></TableRowHead><TableCell>{l.title}</TableCell><TableCell>{l.member}</TableCell><TableCell>{l.due}</TableCell></TableRow>)}</TableBody>
@@ -184,19 +184,19 @@ function LinkedRows({ state }: { state: string }) {
 const FILES = ["quarterly-results-final-v3-approved-by-finance.pdf", "store-photos-spring-window-display.zip", "returns.csv"];
 
 function CutText({ state }: { state: string }) {
-  useKeyFocus("#r75-desc", hold(state, "peek-text"));
-  useKeyFocus("#r75-files li:first-child a", hold(state, "peek-link"));
+  useKeyFocus("#r77-desc", hold(state, "peek-text"));
+  useKeyFocus("#r77-files li:first-child a", hold(state, "peek-link"));
   return (
-    <div className="r75-pair">
+    <div className="r77-pair">
       <style>{PAIR}</style>
       <div style={stack}>
         <div style={{ maxWidth: 320 }}>
           <p style={label}>A product's description, two lines (its own stop: focus opens it whole on the plate)</p>
-          <Text id="r75-desc" size="sm" tone="secondary" lines={2}>Hand-thrown stoneware mug, glazed in a speckled oat finish, holds 350 ml, dishwasher safe, each one a little different from the next because every glaze pools on its own.</Text>
+          <Text id="r77-desc" size="sm" tone="secondary" lines={2}>Hand-thrown stoneware mug, glazed in a speckled oat finish, holds 350 ml, dishwasher safe, each one a little different from the next because every glaze pools on its own.</Text>
         </div>
         <div style={{ maxWidth: 240 }}>
           <p style={label}>Files, one cut line each, inside their links (the link is the stop; without hover the name is whole)</p>
-          <ul id="r75-files" style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "var(--basalt-space-2)" }}>
+          <ul id="r77-files" style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "var(--basalt-space-2)" }}>
             {FILES.map((f) => <li key={f} style={{ minWidth: 0 }}><Link href={`#${f}`} onClick={(e: React.MouseEvent) => e.preventDefault()}><Text as="span" size="sm" lines={1}>{f}</Text></Link></li>)}
           </ul>
         </div>
@@ -225,14 +225,14 @@ function CutText({ state }: { state: string }) {
 // ---- 4: PanelRow ----
 
 function PanelRows({ state }: { state: string }) {
-  useKeyFocus("#r75-suppliers .basalt-panel-row-trigger", hold(state, "trigger-focus"));
-  useKeyFocus("#r75-suppliers .basalt-panel-row-actions .basalt-button", hold(state, "action-focus"));
+  useKeyFocus("#r77-suppliers .basalt-panel-row-trigger", hold(state, "trigger-focus"));
+  useKeyFocus("#r77-suppliers .basalt-panel-row-actions .basalt-button", hold(state, "action-focus"));
   return (
-    <div className="r75-pair">
+    <div className="r77-pair">
       <style>{PAIR}</style>
       <div>
         <p style={label}>A kitchen's suppliers: a split row (open, and call), one target, a wrapped row and a static one</p>
-        <PanelList id="r75-suppliers" aria-label="Suppliers">
+        <PanelList id="r77-suppliers" aria-label="Suppliers">
           <PanelRow href="#dana" onClick={(e) => e.preventDefault()} title="Dana Brooks" description="Flour and grain, two deliveries a week" leading={<Avatar name="Dana Brooks" size={24} />} trailing="2m ago"
             actions={<Button size="sm" variant="secondary">Call +1 912-555-0142</Button>} />
           <PanelRow href="#sam" onClick={(e) => e.preventDefault()} title="Sam Okafor" description="Dairy and eggs" leading={<Avatar name="Sam Okafor" size={24} />} trailing="Yesterday" />
@@ -258,13 +258,13 @@ function PanelRows({ state }: { state: string }) {
 // ---- 10: a DisclosureRow in a PanelList ----
 
 function PanelDisclosures({ state }: { state: string }) {
-  useKeyFocus("#r75-faq > li:nth-child(2) .basalt-disclosure-row", hold(state, "row-focus"));
+  useKeyFocus("#r77-faq > li:nth-child(2) .basalt-disclosure-row", hold(state, "row-focus"));
   return (
-    <div className="r75-pair">
+    <div className="r77-pair">
       <style>{PAIR}</style>
       <div>
         <p style={label}>A shop's questions: each row is a band (padding, divider, wash, the -2 ring); the second is open</p>
-        <PanelList id="r75-faq" aria-label="Shipping questions">
+        <PanelList id="r77-faq" aria-label="Shipping questions">
           <li><DisclosureRow title="Where is my order?" meta="2 min read">The tracking link is in the confirmation email; it updates when the carrier scans the parcel.</DisclosureRow></li>
           <li><DisclosureRow defaultOpen title="Can I change the address after ordering?">Until the parcel is packed, yes: write to us with the order number. <Link href="#help">Contact support</Link></DisclosureRow></li>
           <li><DisclosureRow title="How do returns work?">Thirty days, unworn, with the slip.</DisclosureRow></li>
@@ -301,15 +301,15 @@ function SortedList() {
 // ---- 7: Disclosure and DisclosureList ----
 
 function Disclosures({ state }: { state: string }) {
-  useKeyFocus("#r75-why button", hold(state, "prose-focus"));
+  useKeyFocus("#r77-why button", hold(state, "prose-focus"));
   return (
-    <div className="r75-pair">
+    <div className="r77-pair">
       <style>{PAIR}</style>
       <div style={{ ...stack, maxWidth: 560 }}>
         <div>
           <p style={label}>In prose (a kitchen's method): the chevron leads, the title wraps at the size it sits in; the second is open</p>
           <p style={{ margin: 0, fontSize: "var(--basalt-text-md-size)", lineHeight: "var(--basalt-text-md-line-height)" }}>Shape the dough and leave it in the fridge overnight.</p>
-          <Disclosure id="r75-why" title="Why overnight, and not two hours on the counter?"><p style={{ margin: 0 }}>A slow, cold proof builds flavour and makes the dough easier to score.</p></Disclosure>
+          <Disclosure id="r77-why" title="Why overnight, and not two hours on the counter?"><p style={{ margin: 0 }}>A slow, cold proof builds flavour and makes the dough easier to score.</p></Disclosure>
           <Disclosure defaultOpen title="What if my kitchen is warm?"><p style={{ margin: 0 }}>Shorten the bulk ferment by a third and watch the dough, not the clock.</p></Disclosure>
         </div>
         <div>
@@ -375,7 +375,7 @@ function Notifications({ state }: { state: string }) {
   return (
     <div style={stack}>
       <div><p style={label}>The bell's three states: one dot means unread; a dot in a ring means unread and for you. The button never changes width.</p><Bells /></div>
-      <div className="r75-pair">
+      <div className="r77-pair">
         <style>{PAIR}</style>
         <div>
           <p style={label}>A library's notifications page: wrap, "2 unread · 1 for you", a count on an entry, the ringed dot, and Clear all off with its reason</p>
@@ -408,8 +408,8 @@ function Tabs() {
 // ---- 9 and 11: ListBand at one page (before and after) ----
 
 const BAND_UNDO = [
-  "@container (width < 640px) { .r75-today .basalt-list-band-row > .basalt-pagination { display: flex !important; } .r75-today .basalt-list-band-row > .basalt-list-band-range { display: none !important; } }",
-  ".r75-today .basalt-list-band-foot .basalt-pagination[data-whole] .basalt-pagination-summary { visibility: visible !important; }",
+  "@container (width < 640px) { .r77-today .basalt-list-band-row > .basalt-pagination { display: flex !important; } .r77-today .basalt-list-band-row > .basalt-list-band-range { display: none !important; } }",
+  ".r77-today .basalt-list-band-foot .basalt-pagination[data-whole] .basalt-pagination-summary { visibility: visible !important; }",
 ].join(" ");
 
 function Band({ total, noun, props }: { total: number; noun: string; props?: Partial<React.ComponentProps<typeof ListBand>> }) {
@@ -424,7 +424,7 @@ function Band({ total, noun, props }: { total: number; noun: string; props?: Par
 
 function Bands({ today }: { today: boolean }) {
   return (
-    <div className={today ? "r75-today" : undefined} style={stack}>
+    <div className={today ? "r77-today" : undefined} style={stack}>
       <style>{BAND_UNDO}</style>
       <p style={label}>{today ? "Today (main): at one page the narrow band holds two hidden arrows and the held foot draws a lone count" : "This build: the narrow one-page band draws the range and the page size on one row; the held foot draws nothing"}</p>
       <Band total={4} noun="Orders" props={{ keepFootRoom: true, footLabel: "Order pages, end of list" }} />
@@ -433,8 +433,8 @@ function Bands({ today }: { today: boolean }) {
   );
 }
 
-export const ROUND_75: Round = {
-  id: "75",
+export const ROUND_77: Round = {
+  id: "77",
   title: "cimip-gaps-3 T3: lists, tables, text and notifications",
   reviewed: false,
   summary:
@@ -448,7 +448,7 @@ export const ROUND_75: Round = {
       tryIt: ["Compare the two sides at 390: the call rows have air above and below on the right."],
       widths: [1440, 390],
       height: 520,
-      demo: () => <div className="r75-pair"><style>{`${PAIR} ${CALL_UNDO}`}</style><CallTables today /><CallTables today={false} /></div>,
+      demo: () => <div className="r77-pair"><style>{`${PAIR} ${CALL_UNDO}`}</style><CallTables today /><CallTables today={false} /></div>,
     },
     {
       id: "one-page-band",
@@ -459,7 +459,7 @@ export const ROUND_75: Round = {
       widths: [1440, 390],
       touch: true,
       height: 760,
-      demo: () => <div className="r75-pair"><style>{PAIR}</style><Bands today /><Bands today={false} /></div>,
+      demo: () => <div className="r77-pair"><style>{PAIR}</style><Bands today /><Bands today={false} /></div>,
     },
     {
       id: "wrap-cells",

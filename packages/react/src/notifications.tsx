@@ -162,7 +162,8 @@ function FirstLoad({ first, label, rows, wrap, className, onDone }: { first: boo
   // the one a part in the package reads.
   const standing = () => <InShapeContext.Provider value={1}><Entries entries={standIns(rows)} wrap={wrap} onChoose={() => {}} /></InShapeContext.Provider>;
   return (
-    <React.Suspense fallback={<div className={className}><div aria-hidden="true" inert style={{ visibility: "hidden" }}>{standing()}</div></div>}>
+    // The fallback is busy as the shape is, so a held first paint (holdFirstPaint) waits for the shape's code within its own limit, as it waits for a shape.
+    <React.Suspense fallback={<div className={join("basalt-loading-shape", className)} aria-busy="true"><div aria-hidden="true" inert style={{ visibility: "hidden" }}>{standing()}</div></div>}>
       <Shape loading={first} label={label} className={className} shape={standing} onDone={onDone} />
     </React.Suspense>
   );

@@ -270,7 +270,8 @@ const jstage = (m: Model, id: string) => jplan(m).stages.find((s) => s.id === id
 
 function journeySentence(m: Model, n: MNode): string {
   const p = jplan(m), s = jstage(m, n.id);
-  const parts = [`${p.words.stage} ${s.i + 1} of ${p.stages.length}, ${s.name}: ${s.levelWord}.`];
+  // The name first (cimip-gaps-3, Astra's 4): a card's name begins with its visible name, what a speech user says; then its place and its level.
+  const parts = [`${sentence(s.name)} ${p.words.stage} ${s.i + 1} of ${p.stages.length}: ${s.levelWord}.`];
   for (const f of J_FIELDS) if (s.fields[f]) parts.push(`${bandWord(p, f)}: ${f === "quote" ? `“${s.fields[f]}”` : sentence(s.fields[f]!)}`);
   if (s.focal && m.legend.focal) parts.push(sentence(m.legend.focal));
   return parts.join(" ");
@@ -405,7 +406,7 @@ function buildBlueprint(spec: DiagramSpec, kit: ExtBuildKit): ExtBuilt {
   const given = new Map<string, BlueprintCell>();
   for (const c of rawCells) { const k = cellId(String(c.stage), String(c.layer)); if (kit.dev && given.has(k)) kit.warn(`the cell ${k} is given twice`); given.set(k, c); }
   for (const k of given.keys()) if (kit.dev && !stages.some((s) => k.startsWith(`${s.id}:`))) kit.warn(`the cell ${k} names a stage that is not in stages`);
-  // Every cell of the grid is a stop, an empty one included (1.4): "Cold sandbox, Frontstage: none".
+  // Every cell of the grid is a stop, an empty one included (1.4): "None. Cold sandbox, Frontstage."
   const cells: BCell[] = [];
   for (const [si, st] of stages.entries()) for (const layer of layers) {
     const raw = given.get(cellId(st.id, layer));
@@ -444,7 +445,8 @@ const stageName = (p: BlueprintPlan, c: BCell) => p.stages[c.stage]!.name;
 
 function blueprintSentence(m: Model, n: MNode): string {
   const p = bplan(m), c = bcell(m, n.id);
-  if (c.empty) return `${stageName(p, c)}, ${p.layerWords[c.layer]}: ${p.words.none.toLowerCase()}.`;
+  // An empty cell's visible word ("None") leads its name too (cimip-gaps-3, Astra's 4), then where it is.
+  if (c.empty) return `${sentence(p.words.none)} ${stageName(p, c)}, ${p.layerWords[c.layer]}.`;
   const parts = [`${c.name}. ${stageName(p, c)}, ${p.layerWords[c.layer]}.`];
   if (c.detail) parts.push(sentence(c.detail));
   const to = p.arrows.filter((a) => a.from === c.id).map((a) => bcell(m, a.to)).map((t) => `${t.name} (${t.stage === c.stage ? p.layerWords[t.layer] : stageName(p, t)})`);

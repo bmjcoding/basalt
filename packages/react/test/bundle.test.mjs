@@ -222,7 +222,8 @@ test("Text loads the cut-text plate only on demand: none in its static graph, on
 // cimip-gaps-3 T3 (item 3, Text lines): measured with this file's own bundle() on origin/main ac962cec and on the T3 head: Text 922 on main, 17,398 with T3. The
 // growth is the text plate (peek-plate.js, 14,851 bytes), a dynamic import that this unsplit bundle inlines; under splitting Text's static graph is 2,390 (1,056
 // on main) and a Text without `lines` runs no hook and loads nothing. The limit rises by the increase, 4,000 to 17,400. T3 fix 1 (item 4: the cut text's ref
-// keeps a callback ref's cleanup, through useMergedRef): 17,568 measured, the limit 17,400 to 17,600.
+// keeps a callback ref's cleanup, through useMergedRef): 17,568 measured, the limit 17,400 to 17,600. Re-measured at the merge with origin/main c67926bf: main 922,
+// the head 17,568.
 for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 17_600], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 8_000]]) {
   test(`${name} alone is small and loads no Base UI`, async () => {
     const { bytes, inputs } = await bundle(name);
@@ -405,7 +406,8 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // cimip-gaps-3 T3 (item 8, measured with graph() on origin/main ac962cec and on the T3 head): NotificationCentre 153,260 on main, 167,117 with T3's first
 // build (+13,857, nearly all of it LoadingShape for the first load). T3 fix 1 (Astra's item 8) moves the first load into a lazy module built on its own
 // (notification-shape.js, build.mjs), so a bell that never waits carries none of it: 155,936 measured (+2,676 on main: wrap, counts, the direct mark, the
-// reasons, the stand-ins and the loader). The limit is that measure rounded up to the next 50: 153,300 to 155,950.
+// reasons, the stand-ins and the loader). The limit is that measure rounded up to the next 50: 153,300 to 155,950. Re-measured at the merge with origin/main
+// c67926bf: main 153,260, the head 155,936.
 for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 155_950]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).

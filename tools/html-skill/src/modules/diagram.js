@@ -4,7 +4,7 @@
    and draw the same pixels. compose.mjs runs `Basalt._.diagramMarkup` at build time and writes each figure's words into the page, so it
    reads before any script runs; this script then measures it, draws its lines and labels, and wires the keys, the trace and the list.
    Source: tools/html-skill/src/modules/diagram.js (do not edit the copy in the skill folder). */
-import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, moveStop, placeLabels, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
+import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureList, figureTree, hasStops, hintEntries, keysSentence, keyTarget, measureFigure, moveStop, placeLabels, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
 
 (function (B) {
   'use strict';
@@ -29,7 +29,8 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
       source: escapeHtml(String(spec.source || '')),
       summary: escapeHtml(String(spec.summary || '')),
       hint: hintEntries(model).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + escapeHtml(e.words) + '</span>'; }).join(''),
-      toggle: '<button type="button" class="btn diagram-toggle" data-variant="secondary" data-size="sm" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="' + escapeHtml(base) + '-list"><span>' + (open ? 'Hide the list' : 'View as list') + '</span></button>',
+      // Named for its figure (G17 of the console's log): the words shown, then the title, as React's; the words lead the name (WCAG 2.5.3).
+      toggle: '<button type="button" class="btn diagram-toggle" data-variant="secondary" data-size="sm" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="' + escapeHtml(base) + '-list" aria-labelledby="' + escapeHtml(base) + '-toggle-words ' + escapeHtml(base) + '-title"><span id="' + escapeHtml(base) + '-toggle-words">' + (open ? 'Hide the list' : 'View as list') + '</span></button>',
     };
   }
 
@@ -129,6 +130,9 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
         clearBtn.setAttribute('data-variant', 'secondary');
         clearBtn.setAttribute('data-size', 'sm');
         clearBtn.innerHTML = '<span>Clear highlight</span>';
+        // Named for its figure (G17 of cimip-gaps-3): its words, then the title, as React's.
+        clearBtn.firstChild.id = base + '-clear-words';
+        clearBtn.setAttribute('aria-labelledby', base + '-clear-words ' + base + '-title');
         clearBtn.addEventListener('click', function () { if (touchTrace) { touchTrace = null; retrace(); } });
         // Last of the controls; a download's note (the diagram-export module's) stays under them, the last thing in the foot.
         foot.insertBefore(clearBtn, foot.querySelector(':scope > .diagram-export-note'));
@@ -196,6 +200,9 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
       syncToggle();
       // The key hint follows the layout: four arrows where the drawn figure has rows and columns (DECISIONS 306, 1.5).
       var hintEl = figure.querySelector(':scope > .diagram-hint');
+      // The keys sentence follows it too, from the measured layout (it was written before measuring, as the stack's): what the tab stop is described by.
+      var keysEl = figure.querySelector(':scope > [id="' + base + '-keys"]');
+      if (keysEl) { var keysWords = keysSentence(model, state.layout === 'drawn') + (viewer ? ' ' + viewer.keys : ''); if (keysEl.textContent !== keysWords) keysEl.textContent = keysWords; }
       if (hintEl) { var hintHtml = hintEntries(model, state.layout === 'drawn').map(function (e) { return '<span>' + e.keys.map(function (k) { return '<kbd class="kbd">' + escapeHtml(k) + '</kbd>'; }).join(' ') + ' ' + escapeHtml(e.words) + '</span>'; }).join(''); if (hintEl.innerHTML !== hintHtml) hintEl.innerHTML = hintHtml; }
       // A layout with no stops traces nothing: a pointer resting on a node as the figure narrows into one leaves no trace behind.
       if (!hasStops(model, state)) hoverTrace = touchTrace = null;
@@ -216,7 +223,8 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
     }
     function setState(next) { state = next; apply(state); }
     // A move of the roving stop touches the two nodes it moves between, not the whole figure.
-    function setStop(id) { var from = state.stop; state = Object.assign({}, state, { stop: id }); moveStop(figure, P, from, id); }
+    // An arrow's move (`roved`) leaves the keys sentence off the card it reaches (G17 of cimip-gaps-3): it is said as the reader tabs in, not on every arrow.
+    function setStop(id, roved) { var from = state.stop; state = Object.assign({}, state, { stop: id, roved: roved || state.roved || undefined }); moveStop(figure, P, from, id, state.roved ? undefined : base + '-keys'); }
     var nodeOf = function (t) { var el = t && t.closest ? t.closest('.diagram-node') : null; return el && figure.contains(el) ? el : null; };
 
     function onKey(event) {
@@ -230,7 +238,7 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
       var to = keyTarget(model, node.getAttribute('data-node'), event.key, state.layout === 'drawn');
       if (!to) return;
       event.preventDefault();
-      setStop(to);
+      setStop(to, true);
       var el = figure.querySelector('.diagram-node[data-node="' + CSS.escape(to) + '"]');
       if (el) el.focus();
     }
@@ -247,7 +255,11 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
     function onFocusOut(event) {
       var left = nodeOf(event.target);
       if (!left) return;
-      if (!nodeOf(event.relatedTarget)) focusTrace = null;
+      if (!nodeOf(event.relatedTarget)) {
+        focusTrace = null;
+        // Focus has left the cards: the stop is described by the keys sentence again, for the next tab in.
+        if (state.roved) setState(Object.assign({}, state, { roved: undefined }));
+      }
       if (state.keep === left.getAttribute('data-node')) setState(Object.assign({}, state, { keep: undefined }));
       retrace();
     }

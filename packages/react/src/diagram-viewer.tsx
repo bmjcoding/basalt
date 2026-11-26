@@ -69,7 +69,9 @@ export function DiagramViewer({ kit, actions, Actions, spec, component, source, 
   const still = React.useMemo<DiagramSpec>(() => ({ ...spec, motion: "still" }), [spec]);
   // An automatic figure's foot (its key hint) is read from a placed model: unplaced, every card is in one cell and the hint would say two arrows where the
   // drawing has rows and columns (the pixel review's check on the viewer's hint).
-  const model = React.useMemo<Model>(() => buildModel(still, { placement: Array.isArray(still.placement) ? still.placement[0] : still.placement }), [still]);
+  // Its list sits under the dialog's h2, whatever the page's heading: its sub-headings are h3 and its group lines h4 (the viewer's outline). The heading is
+  // the model's alone; the figure the stage draws keeps the spec's.
+  const model = React.useMemo<Model>(() => buildModel({ ...still, heading: 2 }, { placement: Array.isArray(still.placement) ? still.placement[0] : still.placement }), [still]);
   const stageRef = React.useRef<HTMLDivElement>(null);
   const sizerRef = React.useRef<HTMLDivElement>(null);
   const layerRef = React.useRef<HTMLDivElement>(null);
