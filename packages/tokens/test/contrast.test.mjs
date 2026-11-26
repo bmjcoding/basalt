@@ -62,6 +62,18 @@ for (const theme of THEMES) {
     for (const t of ["border-input", "border-focus"]) atLeast(theme, t, 3);
   });
 
+  // cimip-gaps-3 T5: the connection bar (level 1, surface-raised) draws Disconnected in status-danger ink, its marks in the three status colours and its
+  // detail in secondary; the stream's time link is tertiary on the page and on levels 1 to 3, its underline border-input. Each pair is also inside the
+  // every-surface tests above; named here so the bar and the link are proved by name. More contrast is proved by the alias tests below.
+  test(`${theme}: the connection bar's and the time link's pairs (cimip-gaps-3 T5)`, () => {
+    const raised = [["surface-raised", color(theme, "surface-raised")]];
+    atLeast(theme, "status-danger", 4.5, raised);
+    atLeast(theme, "text-secondary", 4.5, raised);
+    for (const t of ["status-success", "status-warning", "status-danger"]) atLeast(theme, t, 3, raised);
+    atLeast(theme, "text-tertiary", 4.5, LEVELS.map((s) => [s, color(theme, s)]));
+    atLeast(theme, "border-input", 3, LEVELS.map((s) => [s, color(theme, s)]));
+  });
+
   test(`${theme}: status dots meet 3:1 as non-text marks (1.4.11)`, () => {
     for (const t of ["status-success", "status-warning", "status-danger"]) atLeast(theme, t, 3);
   });
