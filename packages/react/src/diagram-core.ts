@@ -116,6 +116,7 @@ export interface DiagramShapeLabels { terminal?: string; step?: string; decision
 export interface DiagramSpec {
   type: DiagramType;
   title: string;
+  /** The title's heading level in the page outline, 3 by default; its size stays the same at every level. */
   heading?: 2 | 3 | 4 | 5 | 6;
   legend?: DiagramLegend;
   nodes?: Array<ArchitectureNode | FlowchartNode | DataFlowNode>;

@@ -875,10 +875,10 @@ steps, so they'd render differently on native.
 | `text-4xl` | 40 / 44 | −0.03em | A large title in an app; not a site's hero (that is the hero role) |
 | `text-3xl` | 30 / 36 | −0.025em | Page title |
 | `text-2xl` | 24 / 30 | −0.02em | Section |
-| `text-xl` | 20 / 28 | −0.015em | Card title; the lead from 720 |
+| `text-xl` | 20 / 28 | −0.015em | The lead from 720 |
 | `text-lg` | 18 / 26 | −0.01em | The lead under 720, and an app's lead |
 | `text-md` | 16 / 24 | −0.005em | Body in docs and marketing |
-| `text-base` | 14 / 20 | 0 | Body and controls in apps; the rows of every popup (13 / 18 in compact) |
+| `text-base` | 14 / 20 | 0 | Body and controls in apps; the rows of every popup (13 / 18 in compact); a card's title, at 600 |
 | `text-sm` | 13 / 18 | 0 | Tables, sidebars, and popup rows in compact density |
 | `text-xs` | 12 / 16 | 0.01em | Labels, captions, a field's helper text |
 
@@ -1787,8 +1787,16 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
 
 - Its order is the chart's: the title and source, the drawing, the key, the key hint, the summary (a required `figcaption`), then
   "View as list" and the list, with "Expand" beside "View as list".
-- Text is `text-xs` or `text-sm`. Nothing is under 12px. The drawing is laid out in real CSS pixels at its own measured width, never
-  scaled through a `viewBox`, and nothing scrolls sideways. The one place a reader may scale and scroll it is its viewer (below), where the
+- **The title** is the figure's name, at `CardTitle`'s size: `text-base` at 600 in primary ink (14/20), at every `heading` level.
+  `heading` (2 to 6, 3 by default) places the title in the page's outline and changes no size. The size is what Basalt's own styles give: a page that sizes bare heading elements with unlayered rules resizes the title too, as it would any Basalt part drawn as a heading, so size a page's headings by class or with `Heading`, or keep element rules in a layer ordered before `basalt`. A figure's title is not a section's
+  heading and is not sized to match the headings beside it, so on a page with larger headings it is smaller than they are. A chart's
+  title is still `text-md` (BACKLOG, the chart title's size). (DECISIONS 386.)
+- **The list's sub-headings** ("Parts", "Connections", "Participants", "Messages", a schema table's name) are one level under the
+  title and never past `h6`, at `text-sm` and 600 in primary ink over the list's items in secondary ink, `space-4` above and `space-2`
+  below. A sequence's band or frame is a heading one level further down, at 500; an architecture's group line is a paragraph at 500.
+  The list is the drawing in words and keeps the drawing's sizes on any page.
+- The words under the title are `text-xs` or `text-sm`: the drawing's, the key's, the summary's and the list's. Nothing is under 12px.
+  The drawing is laid out in real CSS pixels at its own measured width, never scaled through a `viewBox`, and nothing scrolls sideways. The one place a reader may scale and scroll it is its viewer (below), where the
   scale is theirs, as a browser's zoom is.
 - A node is a panel one level above what the figure sits in: the rim, no shadow, radius 8, `space-2-5` by `space-3`. Its lines are a
   kind (`text-xs` Mono, tertiary), a name (`text-sm` 600) and a detail (`text-xs` secondary, Mono only for an identifier). A Mono
