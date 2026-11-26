@@ -23,6 +23,25 @@
       list.addEventListener('focusin', function (e) {
         if (e.target.getAttribute('role') === 'tab') e.target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       });
+      // The port's padding is the ring's room, and a scrollport shows content through it: while content is hidden past a side, that side is clipped at the
+      // column's edge (the content edge, and the hang on the start side), so a cut tab and the divider stop there. A side with nothing past it keeps its room.
+      var port = list.parentElement && list.parentElement.classList.contains('tabs-scroll') ? list.parentElement : null;
+      if (port) {
+        var clip = function () {
+          var box = port.getBoundingClientRect(), at = list.getBoundingClientRect(), st = getComputedStyle(port);
+          var pl = parseFloat(st.paddingLeft) || 0, pr = parseFloat(st.paddingRight) || 0;
+          var hl = Math.max(0, -(parseFloat(st.marginLeft) || 0) - pl), hr = Math.max(0, -(parseFloat(st.marginRight) || 0) - pr);
+          var rtl = st.direction === 'rtl';
+          var l = at.left < box.left + port.clientLeft + pl - 0.5 ? pl + (rtl ? 0 : hl) : 0;
+          var r = at.right > box.left + port.clientLeft + port.clientWidth - pr + 0.5 ? pr + (rtl ? hr : 0) : 0;
+          port.style.setProperty('--clip-left', l + 'px');
+          port.style.setProperty('--clip-right', r + 'px');
+          port.toggleAttribute('data-clip', l > 0 || r > 0);
+        };
+        port.addEventListener('scroll', clip, { passive: true });
+        var sizes = new ResizeObserver(clip); sizes.observe(port); sizes.observe(list);
+        clip();
+      }
       var tabs = Array.prototype.slice.call(list.querySelectorAll('[role="tab"]'));
       var panelOf = function (tab) { return document.getElementById(tab.getAttribute('aria-controls')); };
       var select = function (tab, focus) {

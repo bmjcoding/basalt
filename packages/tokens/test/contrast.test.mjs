@@ -1256,3 +1256,55 @@ for (const theme of THEMES) {
     }
   });
 }
+
+// ---- cimip-gaps-3 t4 (forms and controls): the segment's status dot, the chip's count and the file field's words, in both themes and under more contrast ----
+
+const pillOf = (theme) => (theme === "dark" ? over({ ...color(theme, "neutral-100"), alpha: 0.09 }, color(theme, "surface-top")) : color(theme, "surface-top"));
+const CONTRASTS = [["", color], [" under more contrast", more]];
+
+for (const theme of THEMES) {
+  test(`${theme}: a segment's status dot (success, warning, danger, neutral tertiary) and the pending ring (secondary at rest, primary chosen) hold 3:1 on the track and on the pill at every level, and under more contrast`, () => {
+    for (const [mode, ink] of CONTRASTS) {
+      for (const level of LEVELS) {
+        const track = over(color(theme, "surface-sunken-strong"), color(theme, level));
+        const pill = pillOf(theme);
+        for (const [fillName, fill] of [["the track", track], ["the pill", pill]]) {
+          for (const dot of ["status-success", "status-warning", "status-danger", "text-tertiary"]) {
+            const r = ratio(over(ink(theme, dot), fill), fill);
+            assert.ok(r >= 3, `${theme}${mode}: the ${dot} dot on ${fillName} at ${level} is ${fmt(r)}:1, needs 3:1`);
+          }
+        }
+        const rest = ratio(over(ink(theme, "text-secondary"), track), track);
+        assert.ok(rest >= 3, `${theme}${mode}: the pending ring (secondary) on the track at ${level} is ${fmt(rest)}:1`);
+        const chosen = ratio(over(ink(theme, "text-primary"), pill), pill);
+        assert.ok(chosen >= 3, `${theme}${mode}: the pending ring (primary) on the pill at ${level} is ${fmt(chosen)}:1`);
+      }
+    }
+  });
+
+  test(`${theme}: a chip's count holds 4.5:1, tertiary on the chip at rest and secondary on its hover and selected washes, at every level, and under more contrast`, () => {
+    for (const [mode, ink] of CONTRASTS) {
+      for (const level of LEVELS) {
+        const surface = color(theme, level);
+        const rest = ratio(over(ink(theme, "text-tertiary"), surface), surface);
+        assert.ok(rest >= 4.5, `${theme}${mode}: the count (tertiary) at rest on ${level} is ${fmt(rest)}:1`);
+        for (const wash of ["state-hover", "state-selected"]) {
+          const bg = over(color(theme, wash), surface);
+          const r = ratio(over(ink(theme, "text-secondary"), bg), bg);
+          assert.ok(r >= 4.5, `${theme}${mode}: the count (secondary) on ${wash} over ${level} is ${fmt(r)}:1`);
+        }
+      }
+    }
+  });
+
+  test(`${theme}: the file field's empty line and size (tertiary) hold 4.5:1 on surface-raised, and secondary on the drag's hover wash over it, and under more contrast`, () => {
+    for (const [mode, ink] of CONTRASTS) {
+      const raised = color(theme, "surface-raised");
+      const rest = ratio(over(ink(theme, "text-tertiary"), raised), raised);
+      assert.ok(rest >= 4.5, `${theme}${mode}: tertiary on surface-raised is ${fmt(rest)}:1`);
+      const wash = over(color(theme, "state-hover"), raised);
+      const drag = ratio(over(ink(theme, "text-secondary"), wash), wash);
+      assert.ok(drag >= 4.5, `${theme}${mode}: secondary on the hover wash over surface-raised is ${fmt(drag)}:1`);
+    }
+  });
+}

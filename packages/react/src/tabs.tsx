@@ -7,6 +7,7 @@ import { ChosenLabel } from "./chosen";
 import { FieldGroupContext } from "./field-group";
 import { useMergedRef } from "./merged-ref";
 import { Pill } from "./pill";
+import { clipToColumn, revealIn } from "./scroll-reveal";
 import type { ChangeDetails, ChoiceValue, Orientation, PartProps } from "./types";
 import { join, withClass } from "./utils";
 
@@ -151,7 +152,35 @@ export function TabsList({ className, children, ref, ...props }: TabsListProps) 
       element.style.removeProperty("--_line-right");
     };
   }, [orientation, flips]);
-  return (
+  // A horizontal row scrolls in its own port (cimip-gaps-3 t4, item 6): a tab that takes focus, the chosen tab when the choice changes (a press, a key, a
+  // controlled value) and the chosen tab on first layout are brought whole into view, space-6 clear (their `scroll-margin-inline`), at once. The port's
+  // scroll is set by hand from the two boxes' rects, so the window never moves and no sign of `scrollLeft` is assumed (right to left included).
+  const port = React.useRef<HTMLDivElement | null>(null);
+  React.useLayoutEffect(() => {
+    const scroller = port.current;
+    const element = list.current;
+    if (!scroller || !element || orientation === "vertical") return undefined;
+    const clip = () => clipToColumn(scroller, element);
+    const reveal = (tab: Element | null) => { revealIn(scroller, tab); clip(); };
+    const chosen = () => element.querySelector('[role="tab"][aria-selected="true"]');
+    reveal(chosen());
+    const onFocus = (event: FocusEvent) => reveal((event.target as Element | null)?.closest('[role="tab"]') ?? null);
+    element.addEventListener("focusin", onFocus);
+    scroller.addEventListener("scroll", clip, { passive: true });
+    const sizes = new ResizeObserver(clip);
+    sizes.observe(scroller);
+    sizes.observe(element);
+    const choice = new MutationObserver(() => reveal(chosen()));
+    choice.observe(element, { attributes: true, attributeFilter: ["aria-selected"], subtree: true });
+    return () => {
+      element.removeEventListener("focusin", onFocus);
+      scroller.removeEventListener("scroll", clip);
+      sizes.disconnect();
+      choice.disconnect();
+      scroller.removeAttribute("data-clip");
+    };
+  }, [orientation]);
+  const row = (
     <BaseTabs.List {...props} ref={setRef} className={withClass("basalt-tabs-list", className)}>
       {/* A vertical list is a column of pills in a track: one pill slides to the chosen tab, as the segmented control's does.
           The horizontal bar's mark is the underline, which slides on its own. */}
@@ -160,6 +189,7 @@ export function TabsList({ className, children, ref, ...props }: TabsListProps) 
       {orientation === "vertical" ? null : <BaseTabs.Indicator key={flips} className="basalt-tabs-indicator" />}
     </BaseTabs.List>
   );
+  return orientation === "vertical" ? row : <div ref={port} className="basalt-tabs-scroll">{row}</div>;
 }
 
 export interface TabProps extends PartProps<"button", "value"> {
@@ -269,6 +299,64 @@ function radiosIn(group: HTMLElement) {
     .map((el) => ({ el, value: el.dataset.value as string, disabled: (el as HTMLButtonElement).disabled || el.hasAttribute("data-disabled") }));
 }
 
+/** The segments of one track, wherever they sit under it (not a nested control's). */
+function segmentsOf(track: HTMLElement) {
+  return Array.from(track.querySelectorAll<HTMLElement>(".basalt-segment")).filter((el) => el.closest(".basalt-segmented") === track);
+}
+
+/**
+ * A horizontal track wider than its column scrolls in itself (cimip-gaps-3 t4, item 6). `data-overflow` is set while the segments, with the track's padding, are
+ * wider than the track's box (held to the column by `max-width: 100%`, so setting it changes no width and cannot flip back); the stylesheet hangs the scroll and the
+ * inset ring on it. Measured at once (a layout effect, so a client render never paints the unclipped form), when the track or a segment resizes, when segments
+ * come or go and when fonts arrive. While it overflows, the chosen segment, and a segment that takes focus, are brought whole into view, space-6 clear, at once.
+ */
+function watchOverflow(track: HTMLElement): () => void {
+  const sizes = new ResizeObserver(() => measure());
+  let watched: HTMLElement[] = [];
+  const chosen = () => segmentsOf(track).find((el) => el.hasAttribute("data-pressed") || el.getAttribute("aria-checked") === "true") ?? null;
+  const measure = () => {
+    const segments = segmentsOf(track);
+    for (const el of watched) if (!segments.includes(el)) sizes.unobserve(el);
+    for (const el of segments) if (!watched.includes(el)) sizes.observe(el);
+    watched = segments;
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (const el of segments) {
+      const at = el.getBoundingClientRect();
+      lo = Math.min(lo, at.left);
+      hi = Math.max(hi, at.right);
+    }
+    const style = getComputedStyle(track);
+    const need = segments.length ? hi - lo + (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0) : 0;
+    const over = need > track.getBoundingClientRect().width + 0.5;
+    if (over !== track.hasAttribute("data-overflow")) {
+      if (over) track.setAttribute("data-overflow", "");
+      else track.removeAttribute("data-overflow");
+    }
+    if (over) revealIn(track, chosen());
+  };
+  measure();
+  sizes.observe(track);
+  const changes = new MutationObserver((records) => {
+    if (records.some((record) => record.type === "childList")) measure();
+    else if (track.hasAttribute("data-overflow")) revealIn(track, chosen());
+  });
+  changes.observe(track, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-pressed", "aria-checked"] });
+  const onFocus = (event: FocusEvent) => {
+    if (track.hasAttribute("data-overflow")) revealIn(track, (event.target as Element | null)?.closest(".basalt-segment") ?? null);
+  };
+  track.addEventListener("focusin", onFocus);
+  let live = true;
+  document.fonts?.ready.then(() => { if (live) measure(); });
+  return () => {
+    live = false;
+    sizes.disconnect();
+    changes.disconnect();
+    track.removeEventListener("focusin", onFocus);
+    track.removeAttribute("data-overflow");
+  };
+}
+
 /**
  * A single choice among a few options that filter or change the current view (a time
  * range, a layout). Use `Tabs` when each option has its own panel. The chosen segment's label is 600 in primary ink against
@@ -339,6 +427,12 @@ export function SegmentedControl({ value, defaultValue, onValueChange, className
     pick(reached.value);
   };
   const checked = React.useMemo(() => (radio ? { value: current } : null), [radio, current]);
+  const vertical = props.orientation === "vertical";
+  React.useLayoutEffect(() => {
+    const track = group.current;
+    if (!track || vertical) return undefined;
+    return watchOverflow(track);
+  }, [vertical]);
   return (
     <SegmentStop.Provider value={stop}>
     <SegmentRadio.Provider value={checked}>
@@ -373,13 +467,30 @@ export function SegmentedControl({ value, defaultValue, onValueChange, className
   );
 }
 
+/** A segment's status dot: `neutral` is tertiary, `pending` a hollow ring in the label's ink, the rest their status colours. */
+export type SegmentStatus = "neutral" | "success" | "warning" | "danger" | "pending";
+
 export interface SegmentProps extends PartProps<"button", "value"> {
   value: string;
   disabled?: boolean;
   nativeButton?: boolean;
+  /**
+   * A 6px status dot before the label (Badge's dot), `space-1-5` from it (cimip-gaps-3 t4, item 3). The label names the state in words; the dot is
+   * `aria-hidden`. Never on an icon-only segment (it is not drawn, and development warns). A segment without it keeps its natural width: no empty seat.
+   */
+  status?: SegmentStatus;
 }
 
-export function Segment({ className, children, value, ...props }: SegmentProps) {
+declare const process: { env: { NODE_ENV?: string } };
+let warnedIconDot = false;
+
+/** True when every child is an `Icon` (the one element with an `icon` prop): a segment with no words. */
+function iconOnly(children: React.ReactNode) {
+  const all = React.Children.toArray(children);
+  return all.length > 0 && all.every((child) => React.isValidElement<{ icon?: unknown }>(child) && child.props.icon !== undefined);
+}
+
+export function Segment({ className, children, value, status, ...props }: SegmentProps) {
   // As a Tab: the label is 400 at rest and 600 once chosen and reserves its 600 width, whatever it is, and an icon follows the choice.
   // The group's one tab stop is the chosen segment: while focus is outside the group, the others are out of the Tab order whatever the roving focus last held.
   const stop = React.useContext(SegmentStop);
@@ -387,5 +498,16 @@ export function Segment({ className, children, value, ...props }: SegmentProps) 
   // group finds its segments and their order in the DOM, wherever they sit under it.
   const radio = React.useContext(SegmentRadio);
   const radioProps = radio ? { role: "radio", "aria-checked": radio.value === value, "aria-pressed": undefined, "data-value": value } : {};
-  return <Toggle {...props} {...radioProps} {...(stop === undefined ? {} : { tabIndex: stop === value ? 0 : -1 })} value={value} className={withClass("basalt-segment", className)}><ChosenLabel>{children}</ChosenLabel></Toggle>;
+  const bare = status !== undefined && iconOnly(children);
+  if (process.env.NODE_ENV !== "production" && bare && !warnedIconDot) {
+    warnedIconDot = true;
+    console.warn("Basalt Segment: `status` needs words: the label names the state, and an icon-only segment draws no dot");
+  }
+  const dotted = status !== undefined && !bare;
+  return (
+    <Toggle {...props} {...radioProps} {...(stop === undefined ? {} : { tabIndex: stop === value ? 0 : -1 })} value={value} data-status={dotted ? status : undefined} className={withClass("basalt-segment", className)}>
+      {dotted ? <span className="basalt-segment-dot" aria-hidden="true" /> : null}
+      <ChosenLabel>{children}</ChosenLabel>
+    </Toggle>
+  );
 }

@@ -102,7 +102,14 @@ async function lazyGraph(names, extra = "") {
 // cimip-gaps-3 T2 (measured with this file's own graph() and bundle() on origin/main (ac962cec, and the same on c67926bf) and on the T2 head; each limit the head's measure rounded up to the
 // next 50, raised only by the increase): Sparkline 4,765 on main, 9,060 on the head (4,800 to 9,100: the side scale from the data's own range, the real-pixel plot and its
 // ResizeObserver, times and their lane by formatClock and formatDay, two marks and their key, and the image's name from the data).
-for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_100], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_550], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 3_400], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_100]]) {
+// cimip-gaps-3 t4 (forms and controls), measured with this file's own graph() on origin/main ac962cec and again on c67926bf (the same figures), and on the t4 head; each limit raised by the increase alone.
+// Reserve's `block` and its development check (Reserve is in Button, so in everything that draws one) add 117 to 120 bytes: Button 18,544 to 18,662 (18,550 to 18,668),
+// Drawer 19,106 to 19,224 (19,100 to 19,218; main was already 6 over its limit), NotificationCentre 153,260 to 153,378 (153,300 to 153,418), DirectoryList 20,925 to 21,043
+// (20,950 to 21,068), Reveal 20,521 to 20,639 (20,550 to 20,668), CopyButton 19,485 to 19,603 (19,500 to 19,618), ReleaseNotes 68,405 to 68,523 (68,450 to 68,568), StageBadge
+// 5,414 to 5,531 (5,450 to 5,567), RunTimer 6,091 to 6,209 (6,100 to 6,218), RunStage 22,181 to 22,301 (22,200 to 22,320), StageList with RunStage 22,948 to 23,066 and StageRail
+// with RunStage 22,900 to 23,018 (22,950 to 23,068 each), the toolbar set 59,197 to 59,330 (59,200 to 59,333). FilterResult's `spoken` and `reserve` and Reserve: SearchDialog
+// 89,981 to 90,327 (89,950 to 90,296; main was already 31 over). OptionChip's count and its seat: OptionChips 37,972 to 38,517 (38,400 to 38,945).
+for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_100], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_668], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 3_400], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_218]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -117,7 +124,7 @@ for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_100], ["Skeleto
 // watcher, screen-keyboard.ts, trimmed to about 2.4 KB), so SearchDialog rose from about 87,300 to 88,162; merged with main (5ad5345a), whose own
 // changes added about 490 bytes, it measures 88,683, so its limit is 88,700.
 // SearchDialog 89,550 (main's) to 89,950 in DECISIONS 336: its top is held where a full result has it (DialogContent's held top for a dialog that is not a form), and Close is hung.
-for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 89_950]]) {
+for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 90_296]]) {
   test(`${name} alone, with splitting, loads Base UI's dialog and the close button and no command panel (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes (limit ${limit})`);
@@ -129,7 +136,7 @@ for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 89_950]])
 // OptionChips 37,699 (Base UI's radio group), LinkTabs 140,720 (it carries the Select under 720, DECISIONS 154 A15: Base UI's select and its popup), LinkTab 649 (3,898 once its label takes ChosenLabel, the selected state a Tab's children take: join 2 in integration-nov15b, DECISIONS 138 A, 145, 149; the limit is the measured bytes rounded up to the next 50), TabsPanels 519, useConfirm 399, CONFIRM_MS 185; the limits sit just above.
 // cimip-gaps-2 B6 (DECISIONS 246: trim first, then a raise the feature needs): LinkTabs carries the Select, and `Select toolbar` (the unseen labels that hold its width) adds 212 bytes
 // after a 67-byte trim (no attribute, no class on the labels): measured 141,669, from main's 141,457, so the limit goes from 141,500 to 141,700.
-for (const [name, limit, baseUi] of [["TextButton", 11_550, true], ["SwitchRow", 25_500, true], ["SwitchRowGroup", 11_600, true], ["OptionChips", 38_400, true], ["LinkTabs", 142_150, true], ["LinkTab", 3_900, false], ["TabsPanels", 900, false], ["useConfirm", 800, false], ["CONFIRM_MS", 400, false]]) {
+for (const [name, limit, baseUi] of [["TextButton", 11_550, true], ["SwitchRow", 25_500, true], ["SwitchRowGroup", 11_600, true], ["OptionChips", 38_945, true], ["LinkTabs", 142_150, true], ["LinkTab", 3_900, false], ["TabsPanels", 900, false], ["useConfirm", 800, false], ["CONFIRM_MS", 400, false]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -429,7 +436,7 @@ for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["N
 // the whole set weighs what its Button, Input and Link do plus the toolbar. The root alone is 23,575 bytes; every part, 53,764. Combined in integration-nov15b: the controls batch's Button (DECISIONS 154) and the links batch's Link arrow (DECISIONS 152) both ride in the set, which measures 56,008, over the 56,000 each side kept, so the limit was 56,050 (the measured bytes rounded up to the next 50); DECISIONS 221 raised it to 56,350 for the glyph morphs' shell in Button and IconButton.
 // DECISIONS 326: a text toggle's seat holds its glyph and hands over to the check (button.tsx), about 185 bytes on every Button: the toolbar parts 58,803 (58,650 to 58,850).
 // The toolbar's parts 58,950 (main's) to 59,200 in DECISIONS 336: Button's edge and done seat.
-for (const [name, limit] of [["Toolbar", 25_000], ["Toolbar, ToolbarButton, ToolbarIconButton, ToolbarLink, ToolbarInput, ToolbarGroup, ToolbarSeparator", 59_200]]) {
+for (const [name, limit] of [["Toolbar", 25_000], ["Toolbar, ToolbarButton, ToolbarIconButton, ToolbarLink, ToolbarInput, ToolbarGroup, ToolbarSeparator", 59_333]]) {
   test(`${name.length > 10 ? "Every toolbar part" : name} stays small and loads no Shiki, cmdk or grammar (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -571,7 +578,7 @@ test("LoopsToggleIcon alone loads the icon button and the hold, and not Switch",
 // not disabled, DECISIONS 246): CopyButton 18,551 measured, 18,550 to 18,600.
 // DECISIONS 326: a text toggle's seat holds its glyph and hands over to the check (button.tsx), about 185 bytes on every Button: DirectoryList 20,212 (20,050 to 20,250), Reveal 19,810 (19,650 to 19,850), CopyButton 18,749 (18,600 to 18,800).
 // DirectoryList 20,350 to 20,950, Reveal 19,950 to 20,550 and CopyButton 18,900 to 19,500 (from main's) in DECISIONS 336: Button's edge and done seat.
-for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_000, false], ["BackLink", 5_500, false], ["BigLinkList", 1_000, false], ["BigLinkRow", 6_000, false], ["DirectoryRow", 6_500, false], ["DirectoryList", 20_950, true], ["Reveal", 20_550, true], ["CopyButton", 19_500, true]]) {
+for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_000, false], ["BackLink", 5_500, false], ["BigLinkList", 1_000, false], ["BigLinkRow", 6_000, false], ["DirectoryRow", 6_500, false], ["DirectoryList", 21_068, true], ["Reveal", 20_668, true], ["CopyButton", 19_618, true]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -777,7 +784,7 @@ test("the imports plugin never rewrites a file that resolves another copy of Bas
 // The repo review's press guard (Promise.allSettled in takeClick, in every button) merged in: ReleaseNotes 67,639, so 67,650.
 // cimip-gaps-3 E2 (DECISIONS 246, this file's graph() on origin/main 9f17176f and the E2 head): ReleaseNotes 68,285 on main, 68,405 with E2 (+120: DotLine
 // holds each fact with its dot, and the read ", " is inline text), so 68,250 to 68,450.
-for (const [name, limit] of [["VersionLink", 2_150], ["ReleaseIndex", 31_050], ["ReleaseNotes", 68_450]]) {
+for (const [name, limit] of [["VersionLink", 2_150], ["ReleaseIndex", 31_050], ["ReleaseNotes", 68_568]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
