@@ -5,6 +5,8 @@
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -30,20 +32,36 @@ const active = (page) => page.evaluate(() => { const a = document.activeElement;
 
 // ---- 1. A field's hint and error in one seat ----
 
-const FIELD = (props, grid = false) => `
+const FIELD = (props) => `
 function App() {
   const [bad, setBad] = React.useState(false);
   window.setBad = setBad;
-  const date = <B.Field ${props} label="Pickup date" name="date" description="As MM/DD." invalid={bad} error="Write the date as MM/DD, two days out or more (for example 12/04)."><B.Input defaultValue="12/1" required /></B.Field>;
-  const next = <B.Field label="Name" name="name"><B.Input id="next" defaultValue="Rosa" /></B.Field>;
-  return <form id="f">${grid ? `<B.FormGrid><div style={{ display: "contents" }}>{date}</div>{next}</B.FormGrid>` : "{date}{next}"}</form>;
+  return <form id="f">
+    <B.Field ${props} label="Pickup date" name="date" description="As MM/DD." invalid={bad} error="Write the date as MM/DD, two days out or more (for example 12/04)."><B.Input defaultValue="12/1" required /></B.Field>
+    <B.Field label="Name" name="name"><B.Input id="next" defaultValue="Rosa" /></B.Field>
+  </form>;
+}
+${render("<App />")}`;
+
+// A real FormGrid: row 1 is the reserved field beside another, row 2 holds the field whose top is measured. From 720 (and 640 of its own width) the two
+// columns share every track; at 390 it is one column. Either way the next row must not move.
+const GRID = `
+function App() {
+  const [bad, setBad] = React.useState(false);
+  window.setBad = setBad;
+  return <B.FormGrid reserveErrors>
+    <B.Field column={1} row={1} label="File name" name="file" description="Letters, digits and dashes." invalid={bad} error="Use letters, digits and dashes only: no spaces, slashes or dots, and at most 60 characters."><B.Input defaultValue="lisbon trip/2026" /></B.Field>
+    <B.Field column={2} row={1} label="Longest edge" name="edge" description="In pixels, 512 to 8192."><B.Input defaultValue="2048" /></B.Field>
+    <B.Field column={1} row={2} label="Album" name="album"><B.Input id="next" defaultValue="Lisbon trip" /></B.Field>
+    <B.Field column={2} row={2} label="Copies" name="copies"><B.Input id="beside" defaultValue="1" /></B.Field>
+  </B.FormGrid>;
 }
 ${render("<App />")}`;
 
 describe("Field reserveError (t4 item 1)", () => {
   for (const [name, options] of [["1440", DESKTOP], ["390", PHONE]]) {
     test(`hint to error and back moves the next field 0px, in a Form and in a FormGrid row (${name})`, async () => {
-      for (const body of [FIELD("reserveError"), `${FIELD("reserveError").replace("<form", "<B.Form reserveErrors").replace("</form>", "</B.Form>").replace("reserveError ", "")}`]) {
+      for (const body of [FIELD("reserveError"), FIELD("").replace("<form", "<B.Form reserveErrors").replace("</form>", "</B.Form>"), GRID]) {
         const { page, errors } = await open(body, options);
         await page.waitForSelector("#next");
         const before = await top(page, "#next");
@@ -53,6 +71,7 @@ describe("Field reserveError (t4 item 1)", () => {
         await page.evaluate(() => window.setBad(false));
         await settle(page);
         near(await top(page, "#next"), before, "the next field back on the hint");
+        if (body === GRID) assert.equal(await page.evaluate(() => document.querySelectorAll(".basalt-form-grid > .basalt-field").length), 4, "a real FormGrid row");
         assert.deepEqual(errors, []);
         await page.close();
       }
@@ -217,17 +236,36 @@ describe("FilterToolbar narrow=\"fold\" (t4 item 2)", () => {
     }
   });
 
-  test("closing with focus inside sends it to the trigger; focusFilters() in both states", async () => {
-    const { page } = await open(TOOLBAR("foldOpen={undefined}"), PHONE);
-    await page.evaluate(() => window.actions.current.focusFilters());
-    assert.equal(await active(page), "Filters, 2 active", "closed: the trigger");
-    await page.locator(".basalt-filter-toolbar-fold-trigger").click();
-    await settle(page);
-    await page.evaluate(() => window.actions.current.focusFilters());
-    assert.match(await active(page), /Format/, "open: the first filter's trigger");
-    await page.locator(".basalt-filter-toolbar-fold-trigger").click();
-    await settle(page);
-    await page.close();
+  test("closing with focus inside sends it to the trigger; focusFilters() with the fold shut, open, and with narrow=\"rows\"", async () => {
+    {
+      const { page } = await open(TOOLBAR(), PHONE);
+      await page.evaluate(() => window.actions.current.focusFilters());
+      assert.equal(await active(page), "Filters, 2 active", "shut: the trigger");
+      await page.locator(".basalt-filter-toolbar-fold-trigger").click();
+      await settle(page);
+      await page.evaluate(() => window.actions.current.focusFilters());
+      assert.match(await active(page), /Format/, "open: the first filter's trigger");
+      await page.close();
+    }
+    {
+      // Controlled: the app closes the fold while focus is on Sort, inside it.
+      const { page } = await open(TOOLBAR("foldOpen={open} onFoldOpenChange={setOpen}"), PHONE);
+      await page.evaluate(() => window.setFold(true));
+      await settle(page);
+      await page.locator("[aria-label='Sort books']").focus();
+      await page.evaluate(() => window.setFold(false));
+      await settle(page);
+      assert.equal(await active(page), "Filters, 2 active", "closed with focus inside: the trigger, never body");
+      await page.close();
+    }
+    for (const [width, options] of [["390", PHONE], ["1440", DESKTOP]]) {
+      const { page } = await open(TOOLBAR().replace(' narrow="fold"', ""), options);
+      // One call, one focus: count what took it.
+      await page.evaluate(() => { window.focused = []; document.addEventListener("focusin", (e) => window.focused.push(e.target.textContent?.trim() ?? e.target.tagName)); window.actions.current.focusFilters(); });
+      assert.match(await active(page), /Format/, `rows at ${width}: the first filter's trigger`);
+      assert.equal(await page.evaluate(() => window.focused.length), 1, `rows at ${width}: focused once`);
+      await page.close();
+    }
   });
 });
 
@@ -292,13 +330,72 @@ describe("FileInput (t4 item 4)", () => {
     await page.close();
   });
 
-  test("a drop is the browser's: what the input holds is what is shown; two files dropped on a single input show what it keeps", async () => {
-    const { page } = await open(FILE());
-    // A drop sets the input's files and fires change; nothing in Basalt prevents or reads the drop.
-    await give(page, ["a.jpg", "b.jpg"]);
+  // The browser's own drop path: a trusted drop through Chromium's input domain (a synthetic DragEvent has no default action, so it would prove nothing). Basalt's
+  // drop listener only takes the drag look off; the files are the browser's.
+  const drop = async (page, names) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-t4-drop-"));
+    const files = names.map((name) => { const file = path.join(dir, name); fs.writeFileSync(file, "x".repeat(100)); return file; });
+    const box = await page.locator(".basalt-file-input").boundingBox();
+    const at = { x: box.x + box.width / 3, y: box.y + box.height / 2 };
+    const cdp = await page.context().newCDPSession(page);
+    const data = { items: [], files, dragOperationsMask: 1 };
+    await cdp.send("Input.dispatchDragEvent", { type: "dragEnter", ...at, data });
+    await cdp.send("Input.dispatchDragEvent", { type: "dragOver", ...at, data });
+    const during = await page.locator(".basalt-file-input").getAttribute("data-drag");
+    await cdp.send("Input.dispatchDragEvent", { type: "drop", ...at, data });
     await settle(page);
+    return during;
+  };
+
+  test("a drop is the browser's: the drag look shows while over and goes on the drop; the shown name, input.files, FormData and onValueChange agree", async () => {
+    const { page, errors } = await open(FILE());
+    assert.equal(await drop(page, ["crumb.jpg"]), "", "the drag look while a file is over the box");
+    assert.deepEqual(await reading(page), { shown: "crumb.jpg", files: ["crumb.jpg"], data: ["crumb.jpg"] });
+    assert.deepEqual(await page.evaluate(() => window.calls), [["crumb.jpg"]], "one onValueChange, from the browser's change");
+    assert.equal(await page.locator(".basalt-file-input").getAttribute("data-drag"), null, "the look is gone after the drop");
+    assert.deepEqual(errors, []);
+    await page.close();
+  });
+
+  test("two files dropped on a single input: what is shown is what the input keeps, whatever the browser decides", async () => {
+    const { page } = await open(FILE());
+    await drop(page, ["a.jpg", "b.jpg"]);
     const got = await reading(page);
-    assert.equal(got.shown, got.files.length === 1 ? got.files[0] : `${got.files.length} files chosen`);
+    assert.ok(got.files.length <= 1, `a single input holds at most one file (${got.files.length})`);
+    assert.equal(got.shown, got.files[0] ?? "No file chosen");
+    assert.deepEqual(got.data, got.files);
+    assert.equal(await page.locator(".basalt-file-input").getAttribute("data-drag"), null);
+    await page.close();
+  });
+
+  test("disabling the field after a pick disables Clear and refuses it; enabling gives it back", async () => {
+    const { page } = await open(`
+window.calls = [];
+function App() {
+  const [off, setOff] = React.useState(false);
+  window.setOff = setOff;
+  return <form id="f"><B.Field label="Photo" disabled={off}><B.FileInput name="photo" onValueChange={(files) => window.calls.push(files.map((f) => f.name))} /></B.Field></form>;
+}
+${render("<App />")}`);
+    await give(page, ["crumb.jpg"]);
+    await settle(page);
+    await page.evaluate(() => window.setOff(true));
+    await settle(page);
+    const clear = page.locator(".basalt-file-input-clear");
+    assert.ok(await clear.evaluate((el) => el.disabled || el.getAttribute("aria-disabled") === "true"), "Clear is disabled with the field");
+    await clear.click({ force: true });
+    assert.deepEqual((await reading(page)).files, ["crumb.jpg"], "a press on Clear does nothing while disabled");
+    assert.equal(await page.locator(".basalt-file-input").getAttribute("data-disabled"), "");
+    await page.evaluate(() => window.setOff(false));
+    await settle(page);
+    assert.equal(await clear.evaluate((el) => el.disabled || el.getAttribute("aria-disabled") === "true"), false);
+    await page.close();
+  });
+
+  test("a className callback adds to the input's own class and never replaces it", async () => {
+    const { page } = await open(`${render(`<B.Field label="Photo"><B.FileInput className={() => "app-own"} /></B.Field>`)}`);
+    assert.deepEqual(await page.locator("input[type=file]").evaluate((el) => [...el.classList].sort()), ["app-own", "basalt-file-input-native"]);
+    assert.equal(await page.locator("input[type=file]").evaluate((el) => getComputedStyle(el).opacity), "0", "it still covers the box unseen");
     await page.close();
   });
 
@@ -526,6 +623,26 @@ describe("Stepper nextDisabled, nextReason and onDone (t4 item 8)", () => {
     await settle(page);
     assert.equal(await page.locator(".basalt-stepper-reason").evaluate((el) => el.getBoundingClientRect().height), h);
     assert.equal(await next.getAttribute("aria-describedby"), null, "described only while held");
+    await page.close();
+  });
+
+  test("giving or taking away nextReason keeps the buttons in place and focus on Next", async () => {
+    const { page } = await open(`
+function App() {
+  const [reason, setReason] = React.useState(undefined);
+  window.setReason = setReason;
+  return <B.Stepper steps={[{ id: "a", label: "Choose a plan" }, { id: "b", label: "Invite" }]} value="a" onValueChange={() => {}} nextDisabled={reason !== undefined} nextReason={reason} onDone={() => {}} />;
+}
+${render("<App />")}`);
+    const next = page.locator(".basalt-button[data-variant=primary]");
+    await next.focus();
+    await page.evaluate(() => { window.nextNode = document.activeElement; });
+    for (const value of ["Choose a plan to go on.", undefined, "Choose a plan to go on."]) {
+      await page.evaluate((v) => window.setReason(v), value);
+      await settle(page);
+      assert.equal(await page.evaluate(() => document.activeElement === window.nextNode), true, `focus stays on the same Next (${value ?? "no reason"})`);
+    }
+    assert.equal(await page.evaluate(() => document.querySelector(".basalt-stepper").nextElementSibling?.className), "basalt-stepper-reason", "the reason is the row's sibling");
     await page.close();
   });
 

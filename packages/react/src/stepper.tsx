@@ -87,11 +87,11 @@ export function Stepper({ steps, value, onValueChange, label = "Steps", position
       </Button>
     </div>
   );
-  if (nextReason === undefined) return row;
+  // The reason is the row's sibling, never a wrapper round it: giving or taking away `nextReason` must not re-parent the buttons, which would drop focus.
   return (
-    <div className="basalt-stepper-frame">
+    <>
       {row}
-      <p id={reasonId} className="basalt-stepper-reason" data-held={held ? "" : undefined} aria-hidden={held ? undefined : true}>{nextReason}</p>
-    </div>
+      {nextReason !== undefined ? <p id={reasonId} className="basalt-stepper-reason" data-held={held ? "" : undefined} aria-hidden={held ? undefined : true}>{nextReason}</p> : null}
+    </>
   );
 }

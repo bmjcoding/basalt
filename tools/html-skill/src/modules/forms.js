@@ -50,12 +50,13 @@
       weight.textContent = files.length === 1 ? size(files[0].size) : '';
       weight.hidden = files.length !== 1;
       clear.hidden = !files.length;
-      clear.disabled = input.disabled;
+      clear.disabled = input.matches(':disabled');
       box.toggleAttribute('data-chosen', files.length > 0);
       box.removeAttribute('data-drag');
     }
     input.addEventListener('change', read);
     clear.addEventListener('click', function () {
+      if (input.disabled) return;
       input.value = '';
       input.dispatchEvent(new Event('change', { bubbles: true }));
       input.focus();
@@ -64,10 +65,16 @@
     input.addEventListener('dragenter', function (e) { if (carries(e)) box.setAttribute('data-drag', ''); });
     input.addEventListener('dragover', function (e) { if (carries(e)) box.setAttribute('data-drag', ''); });
     input.addEventListener('dragleave', function () { box.removeAttribute('data-drag'); });
-    // Only the look is reset: the drop is the browser's own, which fires change.
+    // After a drop the browser sends no dragleave, so this resets the drag look, and only that: the drop is the browser's own (it sets input.files and fires
+    // change, which read follows); no file is read here and nothing is prevented.
     input.addEventListener('drop', function () { box.removeAttribute('data-drag'); });
     // A reset event comes before the reset: the input is read once the browser has emptied it.
     if (input.form) input.form.addEventListener('reset', function () { setTimeout(read); });
+    // Clear and the look follow the input's real disabled state, whatever sets it (its own attribute or a fieldset round it).
+    var follow = function () { clear.disabled = input.matches(':disabled'); };
+    var watch = new MutationObserver(follow);
+    watch.observe(input, { attributes: true, attributeFilter: ['disabled'] });
+    for (var set = input.closest('fieldset'); set; set = set.parentElement && set.parentElement.closest('fieldset')) watch.observe(set, { attributes: true, attributeFilter: ['disabled'] });
     read();
   }
 

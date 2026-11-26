@@ -99,9 +99,22 @@ export function FileInput({
       form?.removeEventListener("reset", onReset);
     };
   }, [read]);
+  // Whether the input is disabled now, whatever made it so (this prop, a disabled Field or Fieldset, a native fieldset): Clear and the look follow the input.
+  const [inputDisabled, setInputDisabled] = React.useState(false);
+  React.useLayoutEffect(() => {
+    const element = input.current;
+    if (!element) return undefined;
+    const read = () => setInputDisabled(element.matches(":disabled"));
+    read();
+    const watch = new MutationObserver(read);
+    watch.observe(element, { attributes: true, attributeFilter: ["disabled", "data-disabled"] });
+    for (let set = element.closest("fieldset"); set; set = set.parentElement?.closest("fieldset") ?? null) watch.observe(set, { attributes: true, attributeFilter: ["disabled"] });
+    return () => watch.disconnect();
+  }, []);
+  const off = Boolean(disabled) || inputDisabled;
   const clear = () => {
     const element = input.current;
-    if (!element) return;
+    if (!element || element.matches(":disabled")) return;
     element.value = "";
     element.dispatchEvent(new Event("change", { bubbles: true }));
     element.focus();
@@ -114,8 +127,8 @@ export function FileInput({
       style={typeof style === "object" ? style : undefined}
       data-size={controlSize}
       data-chosen={files.length ? "" : undefined}
-      data-drag={drag && !disabled ? "" : undefined}
-      data-disabled={disabled ? "" : undefined}
+      data-drag={drag && !off ? "" : undefined}
+      data-disabled={off ? "" : undefined}
     >
       <BaseInput
         {...props}
@@ -124,7 +137,7 @@ export function FileInput({
         multiple={multiple}
         disabled={disabled}
         required={required ?? (inRequiredField || undefined)}
-        className={typeof className === "function" ? className : "basalt-file-input-native"}
+        className={typeof className === "function" ? (state) => join("basalt-file-input-native", className(state)) : "basalt-file-input-native"}
         style={typeof style === "function" ? style : undefined}
         onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
           onChange?.(event);
@@ -134,7 +147,8 @@ export function FileInput({
         onDragEnter={(event: React.DragEvent<HTMLInputElement>) => { props.onDragEnter?.(event); if (carriesFiles(event)) setDrag(true); }}
         onDragOver={(event: React.DragEvent<HTMLInputElement>) => { props.onDragOver?.(event); if (carriesFiles(event)) setDrag(true); }}
         onDragLeave={(event: React.DragEvent<HTMLInputElement>) => { props.onDragLeave?.(event); setDrag(false); }}
-        // Only the look is reset here: the drop itself is the browser's, which fires `change`. Nothing is read or prevented.
+        // Why this listener exists: after a drop the browser sends no dragleave, so without it the drag look would stay on. It resets the look and nothing else:
+        // the drop is the browser's own (it sets input.files and fires `change`, which `read` follows); no file is read here and nothing is prevented.
         onDrop={(event: React.DragEvent<HTMLInputElement>) => { props.onDrop?.(event); setDrag(false); }}
       />
       <span className="basalt-file-input-face" aria-hidden="true">
@@ -145,7 +159,7 @@ export function FileInput({
         {files.length === 0 ? <span className="basalt-file-input-choose">{chooseLabel}</span> : null}
         {one ? <span className="basalt-file-input-size">{formatSize(one.size)}</span> : null}
       </span>
-      {files.length ? <IconButton className="basalt-file-input-clear" size="xs" icon={CloseGlyph} label={clearLabel} disabled={disabled} onClick={clear} /> : null}
+      {files.length ? <IconButton className="basalt-file-input-clear" size="xs" icon={CloseGlyph} label={clearLabel} disabled={off} onClick={clear} /> : null}
     </span>
   );
 }

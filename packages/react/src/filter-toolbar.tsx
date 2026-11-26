@@ -3,6 +3,7 @@ import * as React from "react";
 
 import { Button } from "./button";
 import { ChevronDownGlyph } from "./glyphs/chevron-down";
+import { useMergedRef } from "./merged-ref";
 import { useMediaQuery } from "./use-media";
 import { join } from "./utils";
 
@@ -68,8 +69,10 @@ const defaultActive = (count: number) => `${count} active`;
 export function FilterToolbar({
   label, kind, search, filter, result, sort, sortLabel = "Sort",
   narrow: narrowForm = "rows", foldLabel = "Filters", activeCount, activeCountLabel = defaultActive, foldOpen, defaultFoldOpen = false, onFoldOpenChange, actionsRef,
-  className, ...props
+  className, ref, ...props
 }: FilterToolbarProps) {
+  const root = React.useRef<HTMLDivElement | null>(null);
+  const rootRef = useMergedRef(root, ref);
   const folding = narrowForm === "fold";
   const phone = useMediaQuery(`(width < ${breakpoint.md}px)`);
   const narrow = folding && phone;
@@ -132,12 +135,11 @@ export function FilterToolbar({
   }, [narrow, open]);
   React.useImperativeHandle(actionsRef, () => ({
     focusFilters() {
-      if (narrow && !open) {
-        trigger.current?.focus();
-        return;
-      }
-      fold.current?.querySelector<HTMLElement>(`.basalt-filter-toolbar-filter :is(${FOCUSABLE})`)?.focus()
-        ?? fold.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
+      // While the fold is shut its filters cannot take focus: the trigger does. Otherwise the first filter's control, else the sort's; focused once.
+      const target = narrow && !open
+        ? trigger.current
+        : root.current?.querySelector<HTMLElement>(`.basalt-filter-toolbar-filter :is(${FOCUSABLE})`) ?? root.current?.querySelector<HTMLElement>(`.basalt-filter-toolbar-sort :is(${FOCUSABLE})`);
+      target?.focus();
     },
   }), [narrow, open]);
   const filters = ([] as React.ReactNode[]).concat(filter ?? []).map((one, index) => <div key={index} className="basalt-filter-toolbar-filter">{one}</div>);
@@ -150,7 +152,7 @@ export function FilterToolbar({
   const resultCell = result ? <div className="basalt-filter-toolbar-result">{result}</div> : null;
   if (!folding) {
     return (
-      <div {...props} role="group" aria-label={label} className={join("basalt-filter-toolbar", className)}>
+      <div {...props} ref={rootRef} role="group" aria-label={label} className={join("basalt-filter-toolbar", className)}>
         {kind ? <div className="basalt-filter-toolbar-kind">{kind}</div> : null}
         {search ? <div className="basalt-filter-toolbar-search">{search}</div> : null}
         {filters}
@@ -160,7 +162,7 @@ export function FilterToolbar({
     );
   }
   return (
-    <div {...props} role="group" aria-label={label} data-narrow="fold" className={join("basalt-filter-toolbar", className)}>
+    <div {...props} ref={rootRef} role="group" aria-label={label} data-narrow="fold" className={join("basalt-filter-toolbar", className)}>
       {kind ? <div className="basalt-filter-toolbar-kind">{kind}</div> : null}
       {search ? <div className="basalt-filter-toolbar-search">{search}</div> : null}
       <Button

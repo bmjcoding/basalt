@@ -4089,11 +4089,10 @@
   .basalt-sparkline-empty { margin: 0; color: var(--basalt-text-secondary); }
   .basalt-sparkline-axis { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); font-variant-numeric: tabular-nums; }
   .basalt-stepper, .basalt-preview { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-3); min-width: 0; max-width: 100%; }
-  /* A held Next's reason (`nextReason`, cimip-gaps-3 t4, item 8): a line under the row at its start edge, space-1-5 below it, 12/16 in secondary ink. It is in the layout
+  /* A held Next's reason (`nextReason`, cimip-gaps-3 t4, item 8): the row's next sibling (never a wrapper, so the buttons keep their place and focus), a line under it at its start edge, space-1-5 below it, 12/16 in secondary ink. It is in the layout
      whenever it is given, unseen while Next is live, so it keeps its own wrapped height; it fades in over duration-fast when Next is held and goes at once. */
-  .basalt-stepper-frame { display: flex; flex-direction: column; gap: var(--basalt-space-1-5); min-width: 0; max-width: 100%; }
   .basalt-stepper-reason {
-    margin: 0;
+    margin: var(--basalt-space-1-5) 0 0;
     color: var(--basalt-text-secondary);
     font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans);
     visibility: hidden;

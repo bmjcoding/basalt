@@ -30,6 +30,8 @@ const BODY = `<main id="main" style="padding: 16px">
   <p class="filter-result" id="empty"></p>
 </main>`;
 const html = compose(BODY).html;
+const PHOTO = '<div class="field"><label for="photo">Photo</label><span class="file-field"><input type="file" id="photo" name="photo"></span></div>';
+const IN_FIELDSET = compose(BODY.replace(PHOTO, `<fieldset id="set" style="border: 0; margin: 0; padding: 0">${PHOTO}</fieldset>`)).html;
 const settle = (page) => page.evaluate(() => new Promise((r) => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(r)), 450)));
 
 describe("the field's one seat", () => {
@@ -63,6 +65,47 @@ describe("the file field", () => {
     await settle(page);
     assert.equal((await read()).line, "No file chosen");
     assert.deepEqual(errors, []);
+    await page.close();
+  });
+
+  test("Clear follows the input's real disabled state after a pick: its own attribute, and a fieldset round it", async () => {
+    const { page } = await openHtml(browser, IN_FIELDSET);
+    await page.evaluate(() => { const i = document.getElementById("photo"); const t = new DataTransfer(); t.items.add(new File(["x"], "crumb.jpg")); i.files = t.files; i.dispatchEvent(new Event("change", { bubbles: true })); });
+    const clearOff = () => page.locator(".file-field-clear").evaluate((el) => el.disabled);
+    assert.equal(await clearOff(), false);
+    await page.evaluate(() => { document.getElementById("photo").disabled = true; });
+    await settle(page);
+    assert.equal(await clearOff(), true, "the input's own disabled");
+    await page.evaluate(() => { document.getElementById("photo").disabled = false; });
+    await settle(page);
+    assert.equal(await clearOff(), false);
+    await page.evaluate(() => { document.getElementById("set").disabled = true; });
+    await settle(page);
+    assert.equal(await clearOff(), true, "a disabled fieldset");
+    assert.equal(await page.evaluate(() => document.getElementById("photo").files.length), 1, "nothing cleared the file");
+    await page.close();
+  });
+
+  test("the browser's own drop (a trusted drop through Chromium's input domain) sets the files; the look shows while over and goes on the drop", async () => {
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const { page } = await openHtml(browser, html);
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-t4-skill-drop-"));
+    const files = ["a.jpg", "b.jpg"].map((n) => { const f = path.join(dir, n); fs.writeFileSync(f, "x"); return f; });
+    const box = await page.locator(".file-field").boundingBox();
+    const at = { x: box.x + box.width / 3, y: box.y + box.height / 2 };
+    const cdp = await page.context().newCDPSession(page);
+    const data = { items: [], files, dragOperationsMask: 1 };
+    await cdp.send("Input.dispatchDragEvent", { type: "dragEnter", ...at, data });
+    await cdp.send("Input.dispatchDragEvent", { type: "dragOver", ...at, data });
+    assert.equal(await page.locator(".file-field").getAttribute("data-drag"), "");
+    await cdp.send("Input.dispatchDragEvent", { type: "drop", ...at, data });
+    await settle(page);
+    const got = await page.evaluate(() => ({ line: document.querySelector(".file-field-line").textContent, files: [...document.getElementById("photo").files].map((f) => f.name) }));
+    assert.ok(got.files.length <= 1, "a single input keeps at most one file");
+    assert.equal(got.line, got.files[0] ?? "No file chosen");
+    assert.equal(await page.locator(".file-field").getAttribute("data-drag"), null);
     await page.close();
   });
 
