@@ -41,7 +41,7 @@ const loadActions = () => (actionsLoading ??= import("./diagram-actions").catch(
 export interface DiagramFigureProps extends Omit<React.ComponentProps<"figure">, "children" | "title"> {
   /** What the diagram shows. Required: it names the figure and its drawing. */
   title: string;
-  /** The heading level of the title (default 3); the list's sub-headings are one level under it. */
+  /** The title's heading level in the page outline, 3 by default; its size stays the same at every level. The list's sub-headings are one level under it. Size a page's own headings by class or with `Heading`: an unlayered element rule (`h2 { font-size }`) resizes this title too. */
   heading?: 2 | 3 | 4 | 5 | 6;
   /** Where it came from, under the title. */
   source?: React.ReactNode;

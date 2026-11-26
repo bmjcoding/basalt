@@ -894,6 +894,29 @@ createRoot(document.getElementById("root")).render(<Host />);`, { theme: "dark",
 });
 
 describe("rules", () => {
+  test("the title is text-base at 600 at every heading level, and the list's sub-headings are text-sm at 600 (DECISIONS 386)", async () => {
+    const { page } = await diagramPage();
+    const { type, ...props } = DATA.architecture;
+    const { type: seqType, ...seqProps } = DATA.sequence;
+    await page.evaluate(({ props, seqType, seqProps }) => window.__set([2, 3, 6].flatMap((heading) => [
+      { key: `a${heading}`, type: "architecture", props: { ...props, heading } },
+      { key: `s${heading}`, type: seqType, props: { ...seqProps, heading } }])), { props, seqType, seqProps });
+    await frames(page, 4);
+    for (const heading of [2, 3, 6]) for (const key of [`a${heading}`, `s${heading}`]) {
+      await page.click(`#fig-${key} .${P}-toggle`);
+      const r = await page.evaluate(({ P, key }) => {
+        const fig = document.querySelector(`#fig-${key}`), title = fig.querySelector(`.${P}-title`), head = fig.querySelector(`.${P}-list-head`);
+        const t = getComputedStyle(title), h = getComputedStyle(head);
+        return { tag: title.tagName, title: [t.fontSize, t.lineHeight, t.fontWeight], headTag: head.tagName, head: [h.fontSize, h.fontWeight] };
+      }, { P, key });
+      assert.equal(r.tag, `H${heading}`, `${key}: the title's level`);
+      assert.deepEqual(r.title, ["14px", "20px", "600"], `${key}: the title's size`);
+      assert.equal(r.headTag, `H${Math.min(6, heading + 1)}`, `${key}: the sub-heading's level`);
+      assert.deepEqual(r.head, ["13px", "600"], `${key}: the sub-heading's size`);
+    }
+    await page.close();
+  });
+
   test("the diagrams' styles use tokens, and text is never under 12px", async () => {
     const section = fs.readFileSync(path.join(pkg, "src", "styles", "components.css"), "utf8").split("/* ---- Diagrams (DECISIONS 281")[1].split("/* ---- Lit figures")[0];
     assert.doesNotMatch(section.replace(/\/\*[\s\S]*?\*\//g, ""), /#[0-9a-f]{3,8}\b|rgb\(|hsl\(|oklch\(/i, "no raw colour");
