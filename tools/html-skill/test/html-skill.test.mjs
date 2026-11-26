@@ -286,7 +286,7 @@ describe("touch", () => {
 describe("reduced motion", () => {
   const spinners = '<span class="spinner" id="ring"></span><braille-spinner></braille-spinner>';
 
-  test("holds still: braille is a held frame, the ring and the busy button only fade, nothing moves", async () => {
+  test("holds still: braille is a held frame, the ring and the busy button stand still (no loop runs, cimip-gaps-3 T1), nothing moves", async () => {
     const { page, context } = await open("template-interactive.html", { reducedMotion: "reduce", all: true });
     await page.locator("#recalc").click();
     await page.evaluate((html) => { document.querySelector("#status").insertAdjacentHTML("afterend", html); }, spinners);
@@ -295,10 +295,16 @@ describe("reduced motion", () => {
       const kinds = document.getAnimations().map((a) => ({ name: a.animationName ?? a.transitionProperty, properties: [...new Set(a.effect.getKeyframes().flatMap((k) => Object.keys(k)))].filter((k) => !["offset", "easing", "composite", "computedOffset"].includes(k)) }));
       const dot = getComputedStyle(document.querySelector(".braille-dot"));
       const held = [...document.querySelectorAll("braille-spinner .braille-dot")].map((d) => getComputedStyle(d).opacity);
-      return { kinds, animationName: dot.animationName, held, busyRing: getComputedStyle(document.querySelector("#recalc"), "::after").animationName };
+      const busy = getComputedStyle(document.querySelector("#recalc"), "::after");
+      const ring = getComputedStyle(document.querySelector("#ring"));
+      return { kinds, animationName: dot.animationName, held, busyRing: busy.animationName, busyArc: busy.borderTopColor === busy.color, ring: ring.animationName, ringArc: ring.borderTopColor === ring.color, infinite: document.getAnimations().filter((a) => a.effect.getComputedTiming().iterations === Infinity).map((a) => a.animationName) };
     });
     assert.equal(report.animationName, "none", "braille does not step");
-    assert.equal(report.busyRing, "bh-fade", "the busy ring fades instead of turning");
+    assert.equal(report.busyRing, "none", "the busy ring stands still");
+    assert.equal(report.busyArc, true, "its quarter arc stays in currentColor");
+    assert.equal(report.ring, "none", "the ring stands still");
+    assert.equal(report.ringArc, true, "the ring's quarter arc stays in currentColor");
+    assert.deepEqual(report.infinite, [], "no loop runs");
     assert.deepEqual(report.held, ["1", "1", "0", "1", "0", "0"], "braille holds its first frame (⠋: dots 1, 2 and 4 of the six)");
     for (const k of report.kinds) assert.ok(k.properties.every((p) => ["opacity", "backgroundColor", "color", "boxShadow"].includes(p)), `${k.name} animates ${k.properties.join(", ")}: only opacity and colour steps may run`);
     await context.close();

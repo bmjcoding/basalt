@@ -183,7 +183,7 @@ function MorphDemo() {
   const [count, setCount] = React.useState(1204);
   return (
     <div style={col}>
-      <Stepper steps={steps} value={value} onValueChange={setValue} />
+      <Stepper steps={steps} value={value} onValueChange={setValue} onDone={() => {}} />
       <div style={row}>
         <Button onClick={() => setCount((n) => n + 1)}>Count one more</Button>
         <Text><TextMorph text={`Build ${count.toLocaleString("en-US")} passed`} /></Text>

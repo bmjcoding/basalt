@@ -46,21 +46,16 @@ function TickerBody({ value, shown, format, className, glide }: NumberTickerProp
           that reads a selection (Copy, drag, Services, assistive technology, `Selection.toString()`). Read aloud, and found. Under reduced motion the
           strips go and it is the visible text. */}
       <span className="basalt-ticker-text">{spoken}</span>
-      {/* The digits are drawn, never selected: the strips are unselectable. */}
+      {/* The digits are drawn, never selected: the strips are unselectable, and their characters are generated content, never text in the DOM. */}
       <span aria-hidden="true" className="basalt-ticker-visual">
         {Array.from(text).map((character, index) =>
           TICKER_DIGITS.includes(character) ? (
             <span key={`${index}-${text.length}`} className="basalt-ticker-digit" style={{ "--_d": TICKER_DIGITS.indexOf(character) } as React.CSSProperties}>
-              <span className="basalt-ticker-strip">
-                {TICKER_DIGITS.map((digit) => (
-                  <span key={digit}>{digit}</span>
-                ))}
-              </span>
+              {/* The strip's ten digits are drawn by the stylesheet (generated content), so no digit column is a text node. */}
+              <span className="basalt-ticker-strip" />
             </span>
           ) : (
-            <span key={`${index}-mark`} className="basalt-ticker-char">
-              {character}
-            </span>
+            <span key={`${index}-mark`} className="basalt-ticker-char" data-ch={character} />
           ),
         )}
       </span>

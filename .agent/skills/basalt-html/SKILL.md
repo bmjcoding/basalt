@@ -41,6 +41,7 @@ Markup your script builds (a `.row`) isn't seen: add `<!-- basalt:use rows -->` 
 - **tabs** `data-tabs`, `role="tablist"`: every tab has `aria-controls`; the page sets the panel's top space (`--basalt-space-4`).
 - **link-tabs** `.link-tabs`: a `nav` of links, `aria-current="page"` on one; not a tablist.
 - **disclosure** `data-disclosure`, `<details>`: the controlled element starts `hidden`.
+- **peek** `data-lines`: cut text is read whole on hover or focus; `data-peek="off"` only where a press shows it all.
 - **table** `.table-wrap`, `<table>`: a labelled region; never name it like its section.
 - **selection** `data-select-all`: the header box of a `td.select-col` column; label each box "Select NAME".
 - **still-table** `data-fixed`, `data-sortable`: a `<col>` for each column, one with no width; never size a column from content.

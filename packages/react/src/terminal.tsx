@@ -28,7 +28,7 @@ declare const process: { env: { NODE_ENV?: string } };
 export type TerminalLineKind = "command" | "output" | "done" | "warning" | "error" | "stage";
 
 /** A stage line's state. A stage that has not started has no line; a retry is a new running line whose text the app writes. */
-export type TerminalStageState = "running" | "done" | "failed" | "skipped" | "canceled";
+export type TerminalStageState = "running" | "done" | "failed" | "skipped" | "canceled" | "warning";
 
 export interface TerminalLine {
   kind: TerminalLineKind;
@@ -43,7 +43,7 @@ export interface TerminalLine {
   node?: React.ReactNode;
   /** A stage line's state (`kind: "stage"`). The app writes `text` without the state's word: a skipped stage's "cache restore (no cache)". */
   state?: TerminalStageState;
-  /** A stage line's word, drawn before its text, when the app's differs ("Skipped", "Canceled" by default; running, done and failed draw none). */
+  /** A stage line's word, drawn before its text, when the app's differs ("Skipped", "Canceled", "Warning" by default; running, done and failed draw none). */
   word?: string;
   /** When a stage line's stage started and ended: its duration, at the line's end. */
   start?: Moment;
@@ -93,14 +93,16 @@ const MARKS = {
 } as const;
 
 // A stage line's gutter: braille while running, the core check when done, the error's XCircle when failed, the core minus when skipped, Prohibit when
-// canceled. Running, done and failed are said by the mark (a named image); skipped and canceled by the word drawn before the text.
+// canceled, the Warning triangle in status-warning when it ended with a warning. Running, done and failed are said by the mark (a named image); skipped,
+// canceled and warning by the word drawn before the text.
 const STAGE_MARKS = {
   done: { icon: CheckGlyph, name: "Done" },
   failed: { icon: XCircleIcon, name: "Failed" },
   skipped: { icon: MinusGlyph, name: undefined },
   canceled: { icon: ProhibitIcon, name: undefined },
+  warning: { icon: WarningIcon, name: undefined },
 } as const;
-const STAGE_WORDS_DRAWN: Partial<Record<TerminalStageState, string>> = { skipped: "Skipped", canceled: "Canceled" };
+const STAGE_WORDS_DRAWN: Partial<Record<TerminalStageState, string>> = { skipped: "Skipped", canceled: "Canceled", warning: "Warning" };
 
 const REPLAY_WORDS = ["Play", "Pause", "Resume", "Replay"] as const;
 const STREAM_WORDS = ["Pause", "Resume"] as const;

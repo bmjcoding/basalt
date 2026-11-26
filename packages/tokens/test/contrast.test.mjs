@@ -673,6 +673,53 @@ for (const theme of THEMES) {
   });
 }
 
+// ---- cimip-gaps-3 T2: the heatmap's four levels, a share bar's status segments, the warning stage mark, and the heatmap's picked disc ----
+//
+// The heat levels alias neutral steps that already exist. Each is a mark, 3:1 on every level; neighbouring levels are an order, not a measure, and are reported,
+// not gated (foundations: the value is in the readout, the cell's name, the key's ranges and the table; in forced colours a level is a shape). The picked disc is
+// chart-observed on the level (its ring is the level's own colour), and the ring must part from each fill: each level on each heat fill.
+
+for (const theme of THEMES) {
+  test(`${theme}: the heat levels are their neutral steps`, () => {
+    const aliases = theme === "dark"
+      ? { "chart-heat-1": "neutral-42", "chart-heat-2": "neutral-59", "chart-heat-3": "neutral-75", "chart-heat-4": "neutral-100" }
+      : { "chart-heat-1": "neutral-52", "chart-heat-2": "neutral-36", "chart-heat-3": "neutral-20", "chart-heat-4": "neutral-9" };
+    for (const [role, alias] of Object.entries(aliases)) assert.deepEqual(color(theme, role), color(theme, alias), `${role} is not ${alias}`);
+  });
+
+  test(`${theme}: each heat level, each status as a share segment and the warning stage mark hold 3:1 on every level`, () => {
+    for (const level of LEVELS) {
+      const under = color(theme, level);
+      for (const role of ["chart-heat-1", "chart-heat-2", "chart-heat-3", "chart-heat-4", "status-success", "status-warning", "status-danger"]) {
+        const r = ratio(over(color(theme, role), under), under);
+        assert.ok(r >= 3, `${theme}: ${role} on ${level} is ${fmt(r)}:1, needs 3:1`);
+      }
+    }
+  });
+
+  test(`${theme}: the heatmap's picked disc holds 3:1 on its level, and its ring (the level's colour) 3:1 on each heat fill`, () => {
+    for (const level of LEVELS) {
+      const under = color(theme, level);
+      const disc = ratio(over(color(theme, "chart-observed"), under), under);
+      assert.ok(disc >= 3, `${theme}: the disc on ${level} is ${fmt(disc)}:1`);
+      for (const heat of ["chart-heat-1", "chart-heat-2", "chart-heat-3", "chart-heat-4"]) {
+        const r = ratio(under, over(color(theme, heat), under));
+        assert.ok(r >= 3, `${theme}: the ring (${level}) on ${heat} is ${fmt(r)}:1, needs 3:1`);
+      }
+    }
+  });
+
+  test(`${theme}: neighbouring heat levels, reported and not gated`, (t) => {
+    const under = color(theme, "surface-1");
+    const fills = ["chart-heat-1", "chart-heat-2", "chart-heat-3", "chart-heat-4"].map((role) => color(theme, role));
+    const steps = fills.slice(1).map((fill, i) => fmt(ratio(fill, fills[i])));
+    t.diagnostic(`${theme}: heat 1→2, 2→3, 3→4 at ${steps.join(", ")}:1 (an order, not a measure)`);
+    // The order holds: each level is further from the page than the one before it.
+    const from = fills.map((fill) => ratio(fill, under));
+    for (let i = 1; i < from.length; i += 1) assert.ok(from[i] > from[i - 1], `${theme}: heat ${i + 1} is not past heat ${i}`);
+  });
+}
+
 // ---- Two-line rows, the command list in the page and the checklist's search band (council item 103) ----
 //
 // A description is tertiary at rest and lifts to secondary on the plate, the hint rule above; a danger row's description keeps its
@@ -1169,6 +1216,23 @@ test("opacity-recede-2 to -5 are read by a run timeline's tail and nothing else 
   if (fs.existsSync(skill)) assert.ok(!/--basalt-opacity-recede-[2-5]\b/.test(fs.readFileSync(skill, "utf8")), "the HTML skill draws no tail");
 });
 
+// cimip-gaps-3 T1: the pairs its parts rely on, named. The idle mark (tertiary) and the still ring (secondary in a list, primary in a running mark) are
+// 3:1 marks on every surface and level; under more contrast the idle mark is secondary. The opaque bar under more contrast: its line is the hairline
+// drawn as border-input over surface-page (3.39:1 dark, 3.35:1 light at the decision), and primary and secondary ink sit on surface-page.
+for (const theme of THEMES) {
+  test(`${theme}: T1's pairs: the idle mark and the still ring at 3:1 everywhere, and the opaque bar under more contrast`, () => {
+    const onto = [...SURFACES.map((n) => [n, color(theme, n)]), ...LEVELS.map((n) => [n, color(theme, n)])];
+    for (const [bgName, bg] of onto) {
+      for (const mark of ["text-tertiary", "text-secondary", "text-primary"]) assert.ok(ratio(over(color(theme, mark), bg), bg) >= 3, `${theme}: ${mark} as a mark on ${bgName}`);
+      assert.ok(ratio(over(more(theme, "text-tertiary"), bg), bg) >= 3, `${theme}: the idle mark under more contrast on ${bgName}`);
+    }
+    const page = color(theme, "surface-page");
+    const line = ratio(over(more(theme, "border-hairline"), page), page);
+    assert.ok(line >= 3, `${theme}: the bar's line under more contrast is ${fmt(line)}:1`);
+    for (const ink of ["text-primary", "text-secondary"]) assert.ok(ratio(more(theme, ink), page) >= 4.5, `${theme}: ${ink} on the opaque bar`);
+  });
+}
+
 // cimip-gaps-3 t6 (DECISIONS 385): the pairs its parts draw, each in both themes and under more contrast. Tertiary on a code block's wells (the line
 // numbers and the sideways line under a CodeBlock), tertiary on the popup levels (MenuText), and a command row that cannot run: its reason is tertiary at
 // rest on the command surfaces (the modal at level 1, the list at 1 to 3) and secondary on the lit row's plate.
@@ -1189,6 +1253,58 @@ for (const theme of THEMES) {
         const m = ratio(over(read("text-primary"), plate), plate);
         assert.ok(m >= 4.5, `${theme}: a mark (primary) on the lit plate at level ${level} is ${fmt(m)}:1${mode}`);
       }
+    }
+  });
+}
+
+// ---- cimip-gaps-3 t4 (forms and controls): the segment's status dot, the chip's count and the file field's words, in both themes and under more contrast ----
+
+const pillOf = (theme) => (theme === "dark" ? over({ ...color(theme, "neutral-100"), alpha: 0.09 }, color(theme, "surface-top")) : color(theme, "surface-top"));
+const CONTRASTS = [["", color], [" under more contrast", more]];
+
+for (const theme of THEMES) {
+  test(`${theme}: a segment's status dot (success, warning, danger, neutral tertiary) and the pending ring (secondary at rest, primary chosen) hold 3:1 on the track and on the pill at every level, and under more contrast`, () => {
+    for (const [mode, ink] of CONTRASTS) {
+      for (const level of LEVELS) {
+        const track = over(color(theme, "surface-sunken-strong"), color(theme, level));
+        const pill = pillOf(theme);
+        for (const [fillName, fill] of [["the track", track], ["the pill", pill]]) {
+          for (const dot of ["status-success", "status-warning", "status-danger", "text-tertiary"]) {
+            const r = ratio(over(ink(theme, dot), fill), fill);
+            assert.ok(r >= 3, `${theme}${mode}: the ${dot} dot on ${fillName} at ${level} is ${fmt(r)}:1, needs 3:1`);
+          }
+        }
+        const rest = ratio(over(ink(theme, "text-secondary"), track), track);
+        assert.ok(rest >= 3, `${theme}${mode}: the pending ring (secondary) on the track at ${level} is ${fmt(rest)}:1`);
+        const chosen = ratio(over(ink(theme, "text-primary"), pill), pill);
+        assert.ok(chosen >= 3, `${theme}${mode}: the pending ring (primary) on the pill at ${level} is ${fmt(chosen)}:1`);
+      }
+    }
+  });
+
+  test(`${theme}: a chip's count holds 4.5:1, tertiary on the chip at rest and secondary on its hover and selected washes, at every level, and under more contrast`, () => {
+    for (const [mode, ink] of CONTRASTS) {
+      for (const level of LEVELS) {
+        const surface = color(theme, level);
+        const rest = ratio(over(ink(theme, "text-tertiary"), surface), surface);
+        assert.ok(rest >= 4.5, `${theme}${mode}: the count (tertiary) at rest on ${level} is ${fmt(rest)}:1`);
+        for (const wash of ["state-hover", "state-selected"]) {
+          const bg = over(color(theme, wash), surface);
+          const r = ratio(over(ink(theme, "text-secondary"), bg), bg);
+          assert.ok(r >= 4.5, `${theme}${mode}: the count (secondary) on ${wash} over ${level} is ${fmt(r)}:1`);
+        }
+      }
+    }
+  });
+
+  test(`${theme}: the file field's empty line and size (tertiary) hold 4.5:1 on surface-raised, and secondary on the drag's hover wash over it, and under more contrast`, () => {
+    for (const [mode, ink] of CONTRASTS) {
+      const raised = color(theme, "surface-raised");
+      const rest = ratio(over(ink(theme, "text-tertiary"), raised), raised);
+      assert.ok(rest >= 4.5, `${theme}${mode}: tertiary on surface-raised is ${fmt(rest)}:1`);
+      const wash = over(color(theme, "state-hover"), raised);
+      const drag = ratio(over(ink(theme, "text-secondary"), wash), wash);
+      assert.ok(drag >= 4.5, `${theme}${mode}: secondary on the hover wash over surface-raised is ${fmt(drag)}:1`);
     }
   });
 }

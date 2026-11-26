@@ -154,8 +154,8 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   critical task, a blocked card, a backbone activity), always with a word. It is the part's own edge, never a ring added to it, and it is
   never selected, active, current or pressed. Focus is a 2px ring at +2 outside the control, drawn inside at −2
   only where +2 would be cut or would cross a neighbour: a field or band flush with a clipping edge (the search dialog's
-  band, a flush listbox, an inline-label row), a sortable header cell, a phone tab bar cell, a ghost control hung at an edge whose box ends less than 4 from the edge of its room, and a cut cell of a
-  still table (a focus stop, which shows its own ring after Esc has closed its plate).
+  band, a flush listbox, an inline-label row), a sortable header cell, a phone tab bar cell, a ghost control hung at an edge whose box ends less than 4 from the edge of its room, a segment of a track while it
+  scrolls (a track that fits keeps +2; cimip-gaps-3 t4), and a cut cell of a still table (a focus stop, which shows its own ring after Esc has closed its plate).
   A focusable row (a link or button in a list, not a listbox option) takes the same control ring at +2, outside the
   row, and its list keeps at least `space-1-5` (6px) between a row and any clipping edge so the ring is never cut. A
   full-bleed band that holds its own control focuses that control. A band that is itself the link or button takes the
@@ -193,6 +193,8 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   current page are `Highlight` with `HighlightText`, the horizontal tab keeps its `Highlight` underline, and each keeps
   its 600; none draws an outline, so the focus ring shows on the chosen item as on any other, and the current page's box
   shadow is cleared. Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the implementation hasn't been reviewed.
+- **A share bar's form at hydration** (cimip-gaps-3 T2, DECISIONS 385; the implementation hasn't been reviewed): `ShareBar form="auto"` draws the inline form on the server and measures before the first client paint, so server
+  HTML can change form once at hydration; a page that knows its form pins it (`form="inline"` or `"legend"`).
 - **Server-rendered component labels (current limit):** opaque components render a second live instance for width, so hard-coded ids and controls can be duplicated in server HTML until hydration (permanently without scripts), and declining an unsafe component at hydration can change 600 to 400 and shift layout; a complete fix needs a larger server-safe reservation contract. The copied component is a second live instance on the client too, so its effects run twice.
 - **A wash over an opaque fill** (a pinned table's hover and selected washes) is one colour: the wash's colour at its
   own alpha mixed over the fill with `color-mix`, in sRGB, as a browser composites it. It is never a gradient, an image or
@@ -266,7 +268,8 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   container's end edge, never past the viewport (a cell scrolled half out of view brings the plate in). Esc closes it without moving
   the pointer or focus, the pointer can move onto it, and it stays until hover and focus have both left (WCAG 1.4.13); it is
   `aria-hidden`, because the cell already holds the value. Opened by the keyboard, the control ring at +2 goes round the plate; after
-  Esc, and for any cut cell in focus, the cell shows its own ring, the flush-field −2 inset. The row stays 40px and no column moves.
+  Esc, and for any cut cell in focus, the cell shows its own ring, the flush-field −2 inset. The row is at least 40px (32 compact, 44
+  comfortable and on touch) and no column moves.
   Each cut cell is one added tab stop, and the count is measured in the review round. A column of one fixed form (a date, a time,
   a status word) is sized for its longest form under WCAG 1.4.12 spacing, about 1.3 times its width at rest, so only free text is ever
   cut. A header's label is sized to fit its column under WCAG 1.4.12 text spacing, as a fixed-form column is: a sortable header is
@@ -328,6 +331,24 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   scroller. A filter that shortens the page removes a classic scrollbar, which widens the page and so the one remainder
   column, and every header after it moves; reserving the gutter prevents it. Fixed layout alone cannot (an overlay
   scrollbar never shows the problem, which is why a test on a Mac cannot either).
+  **A cell that wraps** (`TableCell wrap`, `TableRowHead wrap`; the HTML skill's `data-wrap`; cimip-gaps-3 T3): every other cell is one
+  cut line; a wrap cell says nothing cut. The row height is a floor, as it already is for a row holding a `TableCall`: the wrap cell
+  has the block padding a one-line row has round its line, `(row − 18) / 2` (11 at 40, 7 compact, 13 comfortable and on touch), so one
+  line is exactly the row and two are 58 / 50 / 62. Only the wrap cell is padded, so a neighbour's badge cannot grow a one-line row;
+  every cell keeps `vertical-align: middle`, so a grown row centres its short cells. Widths still come from the `colgroup`, so no column,
+  header or alignment moves. A wrap cell is never cut: it is no focus stop and opens no plate. `numeric` wins (a number is one line; with
+  both, development warns). Use it on every cell of a column or none, for a column of sentences, rules or paths, and give that column the
+  remainder or at least `size-select-min` (160). A fixed-form column (a number, a date, a time, a status) never wraps: it is sized for its
+  longest form. A value that often passes three lines belongs in what the row opens. **A row that opens what it names** (`TableRow
+  linked`; the HTML skill's `tr[data-linked]`): the row stays a `tr`, and its link stays the one keyboard and screen-reader control (no
+  `tabindex` and no role on the row). A plain press on the rest of the row is handed to that link (`data-row-opener`, else the first link or
+  enabled button in its row head, else its first link; with none, development warns and the row does nothing), only when the event is not
+  cancelled, is the primary button with no modifier, is not on the link, another control, a field, a label, a `summary`, an editable
+  region or a cut cell, the pointer moved less than 6px, and nothing is selected. **Native link gestures stay on the anchor**: the row
+  never opens a window and never answers a middle or modified click; those work on the link as the browser does them. A press on a cut cell
+  reads it (focus and its plate). The cells take the pointer cursor (not a cut cell or a control), the hover wash, and while the row is
+  hovered the opener's underline lifts to its ink; a press steps a row that is not selected to the selected wash on every cell, pinned or
+  not, as one `color-mix` colour. No chevron column, no outline, no bar; text in the row can still be selected.
 - **Table additions** (council, DECISIONS 95). **A row header** is a `th scope="row"` in the body (`TableRowHead`): 13/18 at
   500 in primary, start-aligned, with the cell's height, padding and divider, on the row's own fill, so the hover and
   selected washes run through it, and with no band fill (the 12px secondary band names columns across the top; a row
@@ -341,7 +362,10 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   that can hold the words is wide enough for them at 13px inside its padding (112px). **Sorting** (app guidance: `Table`
   does not sort data itself) puts a not-observed value after every observed value in both directions, and an empty string
   after the observed values too; a total or mean says what it skipped. Every example and review round that sorts follows
-  it. **Narrow tables** stay the still table: pin the row header and scroll, never cards, never a hidden column. **The
+  it. **Narrow tables** stay the still table: pin the row header and scroll, never cards, never a hidden column. Facts a reader
+  needs beside the name and does not compare down the table live in the name cell's second line (`TableCall`) at every width. Values
+  a reader compares or sorts stay columns at every width: pin the name and scroll. A column is never dropped or folded as the table
+  narrows. **The
   scroll hint** (`TableScrollHint`, directly under the container) is one line, "Scroll sideways to see all 6 columns" (the
   count is the table's), `text-tertiary`, 12/16, `aria-hidden`, shown only while the table overflows its container and
   never changed while it scrolls, so nothing in the table moves; a column cut by the edge is not a cue when the next
@@ -349,7 +373,8 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
 - **The flat table and the two-line cell** (DECISIONS 162, D18b). A `TableContainer` with `flat` draws no border, radius, fill or shadow and adds no level, so a
   panel that holds the table (a `Card`) has one box and not two: what it holds keeps the card's level, and the card's own `space-4` padding is the table's
   inset (the slab's 20 to 32px went with the slab, D18a). The header band keeps its fill (`surface-sunken-strong`); how a square band reads inside a rounded
-  card the owner has seen and approved (DECISIONS 163: "yep these are fine"). A flat table's cells are padded `space-2` above and below. `TableCall` is a two-line cell's content: a call in primary at
+  card the owner has seen and approved (DECISIONS 163: "yep these are fine"). A flat table's cells are padded `space-2` above and below, and a cell holding a
+  `TableCall` is padded `space-2` above and below in every table, flat or rimmed, so a two-line call row is 54 in every density (cimip-gaps-3 T3). `TableCall` is a two-line cell's content: a call in primary at
   500 over what it changes in secondary at 400, `space-0-5` (2px) apart, wrapping inside its column, so the row grows and no column moves. The panel's head
   (a title and a count on one line, `gap` `space-1` by `space-4`, `space-5` below) and its note (`text-sm` tertiary, `space-4` above) are the app's markup; the
   count's dot is the accent `Badge` dot, `size-dot`, never an 8px brass fill (consent row 4). Line heights are each size's token (consent row 3). Status: the
@@ -552,7 +577,30 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     dots; `head={false}` drops it, for a list of entries in a sidebar or a page column. With `onClearAll` a foot holds "Clear all" at its start, as the
     center's does (no "View all": this is that page). Paging is the app's (`ListBand` under it).
   - **The current entry** (`current`, in a list of entries beside the page they open) is `aria-current` and its title at 600 from 400, the
-    selected rule's one of many; the title is one cut line, so nothing moves.
+    selected rule's one of many; the title is one cut line, so nothing moves. Keep a `current` list's titles short: wrapped at 600 a title
+    may break differently from 400.
+  - **Rows that wrap, counts, mentions, reasons and the first load** (cimip-gaps-3 T3; the bell and the page list share each). `wrap` on either
+    container lets titles and lines wrap whole (no cap; an app that wants one passes `<Text as="span" lines={2}>` as the title, read whole by
+    the cut-text rule inside a control); the dot, the mark, the time and a count stay on the title's first line, group rows wrap too, and the
+    name stays the content's own. A page list of sentences sets it; the bell leaves it off. An entry keeps its node when it is read (keyed by
+    `id`), so focus is never dropped. **`count` on any entry**: a whole number above 1 draws "×N" in the group count's seat and type after the
+    title (spoken ", N times"), with no chevron; the title cuts first and the count always shows. There is no badge seat: another quantity goes
+    in the words. **The ringed dot**, one more named mark beside the unread dot: the 6px dot inside a 1px ring, 1px apart, 10px across on the
+    plain dot's centre, in `text-primary`, drawn as a border and a fill (never an outline, never a gradient), never moving, growing or animating.
+    One dot means unread; a dot in a ring means unread and for you (`direct`: a mention, a reply, an assignment). It is on the bell (while any
+    unread entry is direct, an unread child of a group included; a group's own flag is ignored), in the dot's seat of each unread direct entry
+    (reaching 2px into the gaps, the seat keeping its 6px), and on the phone tab bar's cell (`dotKind="direct"`). It is ink only, in every
+    product, and in forced colours the disc and the ring take the system colour of where they sit. In words: the bell's name "Notifications, 3
+    unread, 1 for you"; an unread direct entry's hidden prefix "Unread, for you: "; the page list's head "3 unread · 1 for you"; the centre's
+    head keeps "3 unread" drawn (the longer line does not fit beside the title and the button at 360) and says ", 1 for you" (`directLabel`).
+    **An action off, with its reason** (`markAllReadReason`, `clearAllReason`): given while the action would otherwise run, the button stays
+    mounted and focusable (`aria-disabled`), is described by the reason, and the reason is drawn as one line (it may wrap) under the head's (or
+    the foot's) row, inside the band, from the band's start edge, `text-sm` secondary, `space-1` above; otherwise it is neither drawn nor
+    referenced. **The first load** (`loading` with no entries): the body is a `LoadingShape` of `loadingRows` stand-in entries (default 3; even
+    ones two lines: 58, 40, 58), the waiting and shown phases one height, the shape's grace (300) and hold (400), `loadingLabel` said once after
+    the grace; the count's seat is blank (never "0 unread"), both actions are off with no reason, and the bell has no dot and its bare name.
+    `loading` with entries shown changes nothing: each action keeps its state, its focus and its reason. `empty` (default "Nothing yet.") is
+    drawn only once the list is known to be empty; a failed first read is the app's `empty`, with its words and a link.
 - **A popup opens below its opener, never beside it** (the owner's word, DECISIONS 268). A popover, a menu, a select, a combobox and
   a filter's checklist open under the control (above it only when that side has more room) and never jump to its side when they are
   taller than the room; they fit the room they have and scroll inside. A submenu opens beside its row, and a tooltip and an app's
@@ -604,6 +652,18 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     7, 8:02 AM"), the year only when it differs. A clock a person reads follows the locale (12-hour in `en-US`, with a numeric hour, never "08:02 AM"; `locale` defaults to `en-US`
     on every part that writes a time, so a server's render and the browser's agree). With no source the slot is left out. A row of stats is one `dl`; each stat
     is a `div` whose label is the `dt` and whose figure, note and source are `dd`s.
+    **A stat that links, a value not observed, a hint** (cimip-gaps-3 T2, DECISIONS 385; the implementation hasn't been reviewed). With `href` the `<a>` is inside the figure's `dd`, round the figure,
+    and its `::after` is stretched over the stat (`position: relative`), so the whole cell (label, figure, note and source) is the target at every pointer (a stat is
+    52px tall at least). Its name is `aria-labelledby` the label's words (a span, so the hint's name is not swept in), the figure and, on a new-tab link, the
+    hidden new-tab words, whose id is last: "Tide height 2.4 m (opens in a new tab)" (a name from `aria-labelledby` replaces the link's content, and every Basalt
+    link says these words in its name); `aria-describedby` is the note alone. The cue at rest is the core `arrow-right` at 20 after the figure, `space-2` away,
+    secondary (16 beside missing words; the core `external` for a new tab). Hover anywhere lifts the label and the arrow to primary; nothing travels, no
+    underline, wash, box or press scale. Focus is the control ring at +2 round the cell, radius 6. With `href` the note and the source hold nothing that acts
+    (development warns); a stat that acts without going anywhere is a `Button`. `missing` draws `NOT_OBSERVED`, or the app's absence words given as `value`,
+    at `text-base` 400 in tertiary inside the figure's 30px line, so notes and sources stay level across a row; never a dash, a blank or a zero. `hint` is an icon
+    button `space-1` after the label's words: Phosphor Bold `Info` at 16 in a 20px seat, secondary at rest and primary on hover, the control ring at +2, the
+    label's line still 18px, a 44 by 44 hit box on touch with no change to layout, above the stretched link. It opens a `Popover` below, start-aligned, titled
+    `hintTitle` or the label; its name is `hintLabel`, else "About" and the label, else "More information" (development warns). The skill's `stats` draws all three.
   - **Words joined by a dot** (`DotSep`, `DotLine`; the skill's `.dot-sep`; the wording audit's W8). A status line is words with a middle dot between them ("In design · Pilot planned"). The dot is
     drawn by the stylesheet (`::before`, with an empty alternative text, so it is not read; a plain `content` first for a browser that does not take the alternative), and the words are joined for a
     screen reader and a text scan by a ", " in the same element, inline and drawn at no size (`basalt-said`), so the text (`innerText` too) and the accessible name both read "In design, Pilot planned" and
@@ -651,7 +711,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   mark, never both. Braille is Basalt's own six-dot cell drawn in SVG, 6 by 10 with 2px dots on
   whole pixels, stepping through ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏) in 800ms; unlit dots are not drawn. It
   takes the status dot's place and gap, in its word's colour. Spinners on a page share one clock.
-  Under reduced motion the ring fades and braille holds its first frame.
+  Under reduced motion no loop runs: the ring stands still at its drawing, at full opacity, and braille holds its first frame.
   **A page can hold every loop.** `data-loops="held"` on `<html>` stops every loop Basalt draws,
   portals included: braille, the ring, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar,
   Sparkline's loading line, Skeleton's pulse and a written field's fill, a queued `StageMark`'s breath, and the page's ambient loop (its marks hold at full opacity); under the hold nothing
@@ -659,11 +719,10 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   can't be set on a subtree. Braille holds its first frame and the ring stands still at its
   drawing, at full opacity; nothing is hidden, swapped for another glyph or announced, and the
   words still say the work is running. Skeleton and the loading line hold at their reduced-motion
-  look. The indeterminate Progress bar holds as the track only, with the indicator hidden, with or
-  without reduced motion: a still bar reads as a value (30% done, or a full-width bar that reads as
+  look. The indeterminate Progress bar holds as the track only, with the indicator hidden, under the hold and under reduced motion: a still bar reads as a value (30% done, or a full-width bar that reads as
   done), so none is drawn. Its label still says the work is running and it keeps its indeterminate
   semantics (no `aria-valuenow`). Held is one look whatever the OS says: it outranks
-  reduced motion and stops the ring's fade too, and reduced motion never turns it on. Releasing
+  reduced motion, whose still ring is the same drawing, and reduced motion never turns it on. Releasing
   jumps to now: every loop rejoins the shared clock, and nothing resumes from where it stopped.
   `useLoops()` keeps the state (lazy, no module-scope side effects), stored in `localStorage`
   (`basalt-loops`) for this app's origin in this browser and carried across the app's tabs by the
@@ -671,7 +730,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   theme's, so a stored hold applies before the first frame; under a policy that forbids inline scripts it is the same line as a file
   (`head/loops.js`, as the theme's is `head/theme.js`), loaded with a plain `<script src>` in the head. This is the mechanism WCAG 2.2.2
   (Pause, Stop, Hide, Level A) asks for beside content that runs for more than five seconds:
-  reduced motion alone is OS-wide and leaves the ring fading, so it is not one.
+  reduced motion is an OS setting a reader may not have set, and it freezes no text and stops nothing starting, so it is not one.
   **The control is `LoopsToggle`, in the form the place needs, with the fixed name "Pause animations"** (it does not change when
   pressed; `aria-pressed` or the switch's state says it is on): on a site, an icon-only ghost toggle (`LoopsToggleIcon`, which loads no `Switch`) with the core `pause` glyph, its bars filled while held, in both forms, named by its `title` alone (the browser's own tooltip on a fine pointer; no `aria-label` beside it, so a screen reader hears the name once; no `Tooltip`) in the
   site header's end cluster, first in it (before any tools and the primary Button), on any page with an ambient loop or a loop that can run past five seconds;
@@ -686,7 +745,8 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   started ("Started 3:47 PM", with the date for another day) and a streaming count or step line
   hides while the status word stays; on release the current text is written. A result lands as
   usual: the word turns to Passed or Failed and a toast speaks once. A column that holds an
-  elapsed time is wide enough for the held form. **A run is the one exception to both sentences about an elapsed time.** Its head
+  elapsed time is wide enough for the held form. Under reduced motion an app's own rewriting elapsed time follows the same grain as `RunTimer`,
+  whole minutes while it runs (`useReducedMotion()`). **A run is the one exception to both sentences about an elapsed time.** Its head
   timer alone takes the held form ("Started 3:47 PM", from when the run first started), in a seat that holds it. A stage's, a step's,
   a rail node's and a stage line's own running time is not given the held form, and its column is not sized for it: it hides with
   `visibility: hidden`, its box kept, and the current figure is written on release. Under the hold every change of a stage's state
@@ -703,7 +763,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   9 by 16 box, one hairline below, so it lands on whole pixels in any even line. A plain `Badge`
   takes the size and sets the seat and the gap, and a braille `Spinner` inside it takes the same
   size. A plain `Badge` sets no font size of its own: it is a word in its line (a cell, a row, a heading) and takes that line's size, which is what lets
-  its `size` follow the word's cap height. So an app sets its base type on its root (`font: text-base` on `body`), as it sets the page's colour, and a
+  its `size` follow the word's cap height. So an app imports `base.css`, or sets the same on `body` itself, as it sets the page's colour, and a
   plain badge outside a component is never the browser's 16px (cimip-gaps-2, B6: kept by design). The toast's 16px mark seat is unchanged. Status: decided by the council (DECISIONS 99); the
   implementation hasn't been reviewed. `LoopsToggle` and the ambient loop: decided by the council (DECISIONS 136) and approved by the
   owner (DECISIONS 139); the implementation hasn't been reviewed.
@@ -725,7 +785,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   label, as `loading` draws it. **A TextButton's own mark** has no box and no seat, so nothing moves in its line: the words step down an ink
   (primary to secondary; the quiet form's secondary to tertiary, both 4.5:1; in the smoked bar, where tertiary never sits, the quiet form stays secondary and the dashed underline carries the state) and the underline, its affordance, turns dashed (a shape, so the
   state is never colour alone) in the ink and breathes from 35% to full on `duration-loop-fade`, as Sparkline's loading line does. Under
-  reduced motion it keeps breathing (a colour step, as the ring keeps its fade); held, it stands still, dashed and full; in forced colours it
+  reduced motion and held, it stands still, dashed and full; in forced colours it
   is dashed in the system's ink. Braille is not used: it is never in a button. **A field being written into** by something else (an
   agent's draft, a summary written again) is `writing` on `Textarea` or `Input`: read-only and `aria-busy` at once and until the writing ends (a key typed in the look's tail is
   typed, at the end of the new text, where the caret is left), and after the same 300ms,
@@ -751,13 +811,13 @@ field's. **Lines** (the hairline, the divider, the rim and its top edge, and the
 so a field keeps the strongest line; it is a role token of its own so that `border-input` itself does not step, and the progress and
 slider tracks, a link's underline and a chart's baseline stay on it (stepping it would take a progress indicator against its track from
 5.3:1 to 2.2:1). **A hovered edge** (`border-hover`) is drawn as `text-secondary`, so a hovered edge is never fainter than the edge at
-rest (a secondary Button, a chip, a pressed toggle). Surfaces, primary and secondary ink, focus, actions, status, the hover and
-selected washes and the smoked header do not change: the washes stay at their values so danger text keeps 4.5:1 on them (doubling the
+rest (a secondary Button, a chip, a pressed toggle). Surfaces, primary and secondary ink, focus, actions, status, and the hover and
+selected washes do not change: the washes stay at their values so danger text keeps 4.5:1 on them (doubling the
 selected wash put it at 3.5:1). The aliases are declared on every selector that sets a theme, after all of them, so the mode works
 in both themes and under a theme chosen with `data-theme`; each alias reads the theme of the element it is on. The contrast tests
 prove every text pair at 4.5:1 and every boundary at 3:1 in the mode too. A diagram's focal node draws its quiet ink at full strength, and its structure lines (`diagram-structure`) stay on the input boundary
 as a chart's baseline does (DECISIONS 281). A service mark does not change in the mode. A diagram card's arrival rim (`diagram-hit`) is drawn as `text-primary`: the rim it
-replaces is the input boundary's value in the mode, and secondary ink is under 3:1 against that (DECISIONS 292). Status: decided by the council and approved by the owner
+replaces is the input boundary's value in the mode, and secondary ink is under 3:1 against that (DECISIONS 292). The smoked header takes its opaque fallback (`surface-page`, no filter), and a clear bar is never clear. On Apple platforms a native bar that uses a material takes the solid page colour (cimip-gaps-3 T1). Status: decided by the council and approved by the owner
 (DECISIONS 138, 139 and 145); the implementation hasn't been reviewed.
 
 ### Accent classes
@@ -887,6 +947,22 @@ steps, so they'd render differently on native.
 
 Tabular numerals for tables, metrics and timestamps; Mono for identifiers, code and keys.
 
+**Cut text** (`Text lines`, cimip-gaps-3 T3). `lines={1}` is one line with an ellipsis; `lines={n}` a clamp of n lines whose height is
+capped at n of the reader's own lines (`1lh`, in the clamp's own rule), so a user's line height (WCAG 1.4.12) shows whole lines and
+no part of the next. **Cut text can always be read** (`peek`, default true): while it is cut its whole text opens over it on the
+level-3 plate (the rim, `shadow-overlay`, radius 8, its first line on the pixel the text starts on, at most the wider of the text and
+`size-popover-max`, inside the viewport), on hover after 600ms (at once within 400ms of another), at once on keyboard focus, and on a
+500ms touch and hold; Esc closes it without moving focus, the pointer can move onto it, it stays until hover and focus have both left
+(WCAG 1.4.13), and it is `aria-hidden`. Outside a control the cut text is a focus stop of its own (the control ring at +2, radius 6 for
+one line and 8 for a clamp, after Esc); each is one tab stop, so in a long list of static lines wrap instead of cutting. **Inside a
+control** (the nearest ancestor that is a link, a button, a `summary`, a `label` or carries a widget role; never a bare `tabindex`) the
+control is the stop: the plate opens from the control's hover and keyboard focus, Esc leaves focus on it and presses nothing, and a
+press on the plate is a press on the control. Without hover there is no plate inside a control, and a long press stays the browser's:
+the clamp lifts and the text is whole at rest, as a listbox's options are on touch. A control's own label is written to fit; `lines`
+inside a control is for data (a file name, a title), and `peek={false}` there only when pressing the control shows the whole text (an
+excerpt on a card that links to its article). Inside a listbox option or an open-list row `lines` only cuts (those read their own rows).
+A `title` or a `Tooltip` is never the way to read it. `Text` without `lines` runs no hook and loads nothing.
+
 `text-6xl` and `text-7xl` are px, as the ten steps before them are, and the ten do not change; whether the whole scale moves to rem
 so a reader's text-size setting reaches the type is a round of its own (the council split 2 to 1, and sol would have rem for every
 new display value). Under the type the sans family is `Geist, "Geist Fallback", ui-sans-serif, system-ui, sans-serif`:
@@ -1012,8 +1088,9 @@ overlay, and a translucent layer on a translucent layer is the failure mode.
   rim" (see Lines): the bar sits on level 0, is not a panel and has no rim, so in dark its line is the hairline
   (14.5% white) where a divider is 6%. In light it is black 8% either way. The council decided this by majority (3-1).
 - **Fallbacks, all to opaque.** Without `backdrop-filter` (`@supports not`), under
-  `prefers-reduced-transparency: reduce`, and in print, the fill is opaque `surface-page` and there is
-  no filter. In forced colours it is `Canvas` and `CanvasText` with a real bottom border and no filter.
+  `prefers-reduced-transparency: reduce`, under `prefers-contrast: more`, and in print, the fill is opaque `surface-page` and there is
+  no filter (more contrast: blurred words passing under the layer ghost beside the title, and the reader who asked for contrast is the one least able
+  to part them; cimip-gaps-3 T1). In forced colours it is `Canvas` and `CanvasText` with a real bottom border and no filter.
 - **Ink.** Only `text-primary` and `text-secondary` may sit on it. Over a pure white plate the dark bar
   holds secondary at 9.60:1 (tertiary 6.32:1), and over a pure black plate the light
   bar holds it at 7.42:1 (tertiary 4.68:1); primary is 15.73:1 or better. Tertiary passes on the bare bar, and in dark it now passes on the selected wash too (5.00:1 over white; it was 4.0:1 before DECISIONS 166), but in light it still falls to 4.01:1 there, so the rule keeps it off the bar in both themes. The class sets primary ink and
@@ -1046,7 +1123,7 @@ council voted 8.5, 8.5 and 8, a three-member round, DECISIONS 93).
 
 - **When it may be clear.** `SiteHeader` only (never `AppHeader`, never the opaque form `solid`), over a [stage](#art) that has declared its
   headroom passed, at the very top of the page, while the page is at scroll 0. Smoked is the default and the fallback: no stage, a stage
-  that has not declared its headroom, no script, reduced transparency, forced colours and print all keep the smoked bar. Clear is an
+  that has not declared its headroom, no script, reduced transparency, more contrast, forced colours and print all keep the smoked bar. Clear is an
   enhancement the art earns.
 - **What clear is.** No fill, no blur and a transparent hairline: the line is a transparent border, so the bar is 56px in both states and
   nothing moves when it arrives. The bar sits on the art with no scrim, gradient, text-shadow or blend. The ink is always the theme's own
@@ -1069,7 +1146,7 @@ council voted 8.5, 8.5 and 8, a three-member round, DECISIONS 93).
   script it stays smoked.
 - **The menu from a clear bar** is the narrow menu, unchanged: a solid top sheet on Base UI's Dialog, its first row drawing the bar in
   place, focus on Close. Closing returns the bar to the state it was in.
-- **Fallbacks.** Reduced transparency: opaque `surface-page` with its hairline, from the first frame. Forced colours: `Canvas` and
+- **Fallbacks.** Reduced transparency and more contrast: opaque `surface-page` with its hairline, from the first frame, at the top and scrolled. Forced colours: `Canvas` and
   `CanvasText` with a real line. Print: the bar is static and opaque, decorative stage art does not print and the stage takes its place in
   the flow. Without `backdrop-filter`: clear still works at the top, since it uses no filter, and the scrolled state is the smoked bar's
   opaque fallback, `surface-page` with its hairline. (The HTML skill's top bar prints the same way: static and opaque.)
@@ -1325,7 +1402,9 @@ voted, four members, 3 of 4 deciding, on the owner's handoff, from his approved 
   over `duration-base` on `ease-out`, not under reduced motion (vote 2, no majority: the prototype's picture lift on a tile is dropped, a 2-2 tie
   that kept the option with less change). In a right-to-left page it turns and travels the other way.
 - **The link card** (`LinkCard`) is one link round a media window, a heading, a sentence and a state; no rim, no level (not a `Card`). The
-  heading is the display role; the sentence and the state sit on one baseline `space-8` apart and stack under 720. **The tile** (`LinkTile`)
+  heading is the display role by default; on an app page `titleSize` is `md` or `base`, with a 16px arrow and the foot a step down (cimip-gaps-3 T1:
+  the title 16/24 or 14/20 at 600, `space-4` or `space-3` above it under media and none without, `space-4` to the arrow, the foot `text-base` or
+  `text-sm` `space-2` or `space-1` below, `space-4` apart, and a 44px hit area on touch with no change to layout); the sentence and the state sit on one baseline `space-8` apart and stack under 720. **The tile** (`LinkTile`)
   is a link round a picture, a brand line, a name (`text-md`, 500, a real heading, underlined on hover) and details, with a foot row outside
   the link, because a link cannot hold a button. Link radius 6 so the ring has a shape.
 - **The directory** (`DirectoryList`, `DirectoryRow`): a head, then rows ruled by `border-divider`, each one link of three fixed columns:
@@ -1509,7 +1588,8 @@ only what overflows it, and the document still scrolls the page.
 - **Press and hover** are a 32px circle at the selected wash behind the glyph; the first key hides it. **Focus** is the control ring
   inset by its own width on the full cell (the flush-field rule: the cell is itself a link and meets the screen's edge).
 - **A new-activity mark** is a 6px dot in the label's ink at the glyph's top end, its words in the link's name. Counts are spoken,
-  not drawn.
+  not drawn. `dotKind="direct"` rings it (the notification centre's ringed dot, in primary ink): something new is addressed to the
+  reader, and the words say so ("3 unread, 1 for you"). It is separate from `current`: the filled glyph still means the current page.
 - **More than five destinations:** four, then More, a button that opens the bottom `Sheet` with the rest as `Nav` rows. More takes the
   current look while one of its pages is current, and its name says which.
 
@@ -1756,12 +1836,34 @@ changes); the implementation hasn't been reviewed. The votes that had no majorit
   slot is under 44px (twelve choices do not fit a phone), the lane is marks (a changed week's mark is larger) and previous and next controls step through the weeks, with the
   open week in words in a seat as tall as the tallest; a keyboard still reaches every mark. The headline frame's `text-4xl` and `text-5xl` figure is used, over N1's own 22px
   phase read (DECISIONS 157, consent row C6).
-- **The share bar** (`ShareBar`, votes 12 and 13): N1's form without its gloss: 8px (a plan) or 12px (a tally, each part at least 12px long and as wide as its own words, taken from the other parts so the bar keeps its width) tall, a 4px gap, full radius,
-  one ink for every part (`chart-observed`), each part's share and name under it in words. The shares are whole percents that add to 100. The bar is decoration; a part of
+- **The share bar** (`ShareBar`, votes 12 and 13; tones, the legend and parts that act (cimip-gaps-3 T2, DECISIONS 385; the implementation hasn't been reviewed)): N1's form without its gloss: 8px (a plan) or 12px (a tally) tall, a 4px
+  gap, full radius. A part is as long as its share with a floor of 8px on `sm` (`space-2`) and 12px on `md` (`space-3`), the floor taken from the other parts so
+  the bar keeps its width; a part is never widened to its words. Its ink is `tone`: `neutral` (`chart-observed`, the default), `success`, `warning` or `danger`
+  (the status inks; no token or colour is ever passed in, and no lighter grey ranks a part); it paints the segment and the legend's swatch, never the words, and
+  every segment and swatch is `CanvasText` in forced colours. **One line or the legend, all or none:** the inline form (each part's share and name under it, one
+  line each, `nowrap`) only when every part's words fit their own segment less `space-2` (the last part its whole segment), so neighbours' words are always 8px
+  apart; on a coarse pointer a part that acts must also be 44px wide. Otherwise the bar is drawn alone, then `space-2`, then one list in the bar's order, items
+  inline and wrapping `space-3` apart (`space-1` between lines): a swatch (a pill `space-2-5` by `size-dot`, drawn as a border in the part's ink), `space-1-5`,
+  the share (`text-sm`, 600, primary, tabular), `space-1`, the name (`text-sm`, 400, secondary). An item never breaks between its swatch, share and first word,
+  and nothing breaks inside a word. In the legend, hover of an item or its segment and focus of an item show a 2px (`size-indicator`) `text-primary` line
+  `space-1` under the segment, as long as it, inside the gap (it takes no room), fading over `duration-fast` (kept under reduced motion), and lift the name to
+  primary; no other segment dims; `Highlight` in forced colours. `form` is `auto` (measured before the first client paint, when fonts are ready, on a resize and
+  when the parts or `format` change), `inline` or `legend`; a server render in `auto` draws the inline form. **Parts that act:** `href` (through `safeHref`,
+  with `target` and `rel`) is one `<a>` a part, `onSelect` one `<button>` (`href` wins, development warns); the root stays a `ul` and each part one `li`, and the
+  link or button is the same element in both forms, so a change of form never drops focus. Inline the whole part is the target; in the legend the item is and the
+  segments are decoration (no hit padding is ever added inside the bar). The name carries TextButton's underline at rest; hover lifts it and the underline to
+  the ink; the control ring at +2, radius 6, round the part or the item (the bar adds no padding: like a focusable row's list, keep `space-1-5` from any
+  clipping edge); a legend item that acts is 44px tall on touch. A new-tab part draws the `external` arrow and says so. No pressed state: a press that narrows a
+  list is a shortcut to that list's filter, which shows what is applied. The shares are whole percents that add to 100. The bar is decoration; a part of
   nothing is left out, and a part that is more than nothing but rounds to 0 reads "<1%" (spoken "less than 1%", DECISIONS 157, Q4, 4 to 0; the implementation hasn't been reviewed), and a part that rounds to 100 beside a part that is not empty reads ">99%" (spoken "more than 99 percent", DECISIONS 167, Q11b, 4 to 0), because "100%" would say the rest is nothing; every other share is a whole number.
 - **The coverage strip** (`CoverageStrip`, vote 14, consent rows 6 to 8): a cell a day, lit when recorded and Basalt's hatch when not (no dashed edge), 48px tall with a
   2px gap and a 2px corner (`radius-2xs`) as a strip of slivers (84 days is a quarter), or seven squares with a 4px gap and `radius-sm` for a week. The cells are hidden from
   assistive technology; the words ("78 of 84 days recorded. Not recorded: Aug 31 to Sep 2 (watch not worn), Oct 28 to 29.") are built from the cells; a range of days writes the month once when both ends share it, in the locale's order ("Oct 20 to 21", "20 to 21 Oct" in `en-GB`).
+  **A day with an event** (cimip-gaps-3 T2, DECISIONS 385; the implementation hasn't been reviewed): `event` (true, or the event's note) is independent of `recorded`: the cell is untouched (lit or the hatch) and the count counts
+  `recorded` alone. The mark is a `size-dot` disc in `text-primary` centred under its cell in a lane `size-dot` tall, `space-1` below the cells, held whenever any
+  day has an event, in both forms; where a cell is narrower than the dot (84 days at 390) the mark is as wide as its cell, full radius, so neighbours never overlap.
+  No colour and no tone; `CanvasText` in forced colours. The words add a sentence after the missing one, built the same way, its label word (`eventLabel`,
+  "Events") after the same dot, inline and `aria-hidden`: "Markets: Oct 3, Oct 17 to 18 (harvest fair), Nov 1." With no event the output is as before.
 - **The marks row** (`MarksRow`, vote 15, consent rows 9 to 11): one kind of reading across a run of days in the form of the thing measured: columns standing on the row's floor with
   8px top corners, pills, and blocks with 8px corners; a rest day is a 6px dot (`size-dot`), a missing day the hatch. It is 56px tall (`size-chart-row`, a default the app can
   set). **A written exception to "a bar is square at both ends"** (3 to 1). The marks glide to a new height over `duration-slow`.
@@ -1776,6 +1878,19 @@ changes); the implementation hasn't been reviewed. The votes that had no majorit
   plot and past the first series: no look was decided for those. It gives up the personal site's quantised 3px marks and its Monday ruler, which were not chosen.
 - **Motion:** the share bar, coverage strip, marks row and range meter draw at rest and are never a page's one entrance. A lit trend or bar `TimeChart` can be the one (the
   line draws, a bar scales from its baseline, the readings and the head dot fade; the headline's number is the real value throughout).
+- **The sparkline's scale, times and marks** (cimip-gaps-3 T2, DECISIONS 385; the implementation hasn't been reviewed). The foot row is gone: the scale is a gutter at the plot's start, the peak at the plot's top edge and
+  the floor at its bottom edge (`text-xs`, `chart-axis`, tabular, end-aligned, as wide as its wider label, `space-2` from the plot). It runs from 0 to the data's
+  own peak (a series under 0 from its lowest to its highest), with no floor of 1; an all-zero series draws on the floor with the "0" label alone. A new peak widens
+  it at once and it eases back. Without `format` the scale is whole from a peak of 100 and two significant figures under it ("0.04", "1.5", "42"), the ceiling and
+  the floor written with the peak's decimal places. The plot is drawn in real CSS pixels at its measured width, 64px tall; the line keeps its 1px `text-secondary`;
+  no baseline, gridline or fill. With `times` (one moment a sample, ascending) a sample's x is its moment, and a 16px lane `space-1` under the plot writes the first
+  and last moments and the midpoint when the three stay 56px apart (clocks under 48 hours, days past it). `marks` (two at most, inside the span) are chart markers on
+  the line at their moment: the first a diamond, the second a square, 8px (`size-chart-mark`), `chart-observed`, ringed `size-cut` in the surface's colour, with a
+  key under the lane ("2:14 PM Calibration", `text-xs` secondary, `space-3` apart). **A sparkline's mark draws no line through the plot.** The `svg` is one image
+  named from the data ("Queue latency, 142 ms, 2:00 PM to 2:30 PM, peak 224 ms, Calibration at 2:14 PM"); the scale, the lane and the key are `aria-hidden`.
+- **`NumberTicker`'s digits are generated content** (cimip-gaps-3 T2, DECISIONS 385; the implementation hasn't been reviewed): each strip's ten digits and every character that is not a digit (`content: attr(data-ch)`,
+  `white-space: pre`, so a space keeps its width) are drawn by the stylesheet with an empty alternative, so the ticker's text is the only text in the DOM:
+  `textContent`, `innerText`, find-in-page, a copy and a snapshot hold the value once. No pixel changes.
 - **Neutral:** every colour here is neutral. N1's verdigris and brass and the kit's own colours stay with the sites; a product colour over these is D17.
 
 | Token | Value | Use |
@@ -1784,10 +1899,50 @@ changes); the implementation hasn't been reviewed. The votes that had no majorit
 | `size-chart-plot-sm` | 96px | The phase chart's plot |
 | `size-chart-row` | 56px | A marks row's default height |
 | `size-meter-marker` | 12px | A range meter's marker, inside its `size-cut` ring |
-| `radius-2xs` | 2px | A coverage strip's cell (Swift: `Radius.xs2`) |
+| `radius-2xs` | 2px | A coverage strip's cell and a heatmap's (Swift: `Radius.xs2`) |
+| `chart-heat-1` | `neutral-42` in dark, `neutral-52` in light | A heatmap's first level |
+| `chart-heat-2` | `neutral-59` in dark, `neutral-36` in light | The second |
+| `chart-heat-3` | `neutral-75` in dark, `neutral-20` in light | The third |
+| `chart-heat-4` | `neutral-100` in dark, `neutral-9` in light | The fourth, which holds the peak |
 
 Widths the prototype set by hand are derived from tokens, with no new one: a marks column is `min(44%, 28px)` (`space-6` + `space-1`), a pill `min(26%, space-3)`, a block
 `min(64%, 44px)` (`space-10` + `space-1`), a missing seat `min(72%, 52px)`, a seven-day strip at most 240px.
+
+### The heatmap
+
+`Heatmap` (cimip-gaps-3 T2, DECISIONS 385; the implementation hasn't been reviewed): a value a day, weeks across and weekdays down. **An hours-by-day heatmap is undecided.**
+
+- **Anatomy,** top to bottom and start-aligned at every width: the title and source (as `TimeChart`), the readout, the key, the grid, the cut note, the key hint,
+  the `figcaption` (required) and "View as table". `text-xs` in the figure, numbers tabular, nothing under 12px.
+- **Cells** are squares of one whole-pixel size, as large as fits the measured width, 12 to 20px, 2px apart, `radius-2xs`. **Nothing scrolls sideways:** when
+  the weeks do not fit at 12px the newest that fit are drawn and a tertiary line under the grid says so ("Showing Sep 3 to Nov 25. Earlier days are in the
+  table."; `cutNote` gets the first and last day drawn as written dates, the year on both when they differ). More than 53 weeks warns.
+- **Labels:** the second, fourth and sixth rows' weekdays in a start gutter (the widest plus `space-2`); a month's name above the column where it begins, and of
+  two under `space-2` apart the one with fewer columns is left out; `chart-axis`. The month row is `aria-hidden` and outside the grid.
+- **Levels:** 0 is an empty cell with a 1px `border-input` edge; above 0 four fills, `chart-heat-1` to `-4`. Not observed is the chart's hatch with no edge; zero
+  is a value and missing is never zero. `thresholds` are the lower bounds of levels 2 to 4; left out, whole data takes `floor(peak × k / 4) + 1` (a peak of 8 is 1
+  to 2, 3 to 4, 5 to 6, 7 and over) and other data a quarter, a half and three quarters of the peak. A value takes the highest level whose bound it reaches, so
+  the peak is always level 4.
+- **The key** says the ranges in words, never ends alone: a 12px swatch drawn like its cell and its range through `formatShort` ("0", "1 to 7", "24 and over"),
+  then "Not observed" with the hatch when any day is missing, `space-3` apart, wrapping. It never shows a level no value can be in and never the same words twice
+  (a peak of 3 is levels 2, 3 and 4; of 2, levels 2 and 4; of 1, level 4; of 0, the "0" item alone); data that is not whole reads "Under 0.2", "0.2 to under 0.4",
+  "0.6 and over", at the fewest decimal places (three at most) at which every bound differs.
+- **The readout** is the picked day ("Wed, Nov 25, 2026 · 26 batches"; a missing day "Not observed" and why), every seat holding its widest form; it returns to the
+  latest observed day when the pointer leaves, never while focus is in the grid. The picked day's mark is a `size-track` disc in `chart-observed` ringed `size-cut`
+  in the surface's colour: a data mark, never a frame. Keyboard focus adds the control ring at +2 above its neighbours; the grid keeps `space-1` round itself.
+- **Pointer:** hover picks; a tap picks the nearest day and holds until a tap outside; a drag that starts sideways scrubs (`touch-action: pan-y`). A day is a
+  chart's day: under 44px, reached by drag and by the keys.
+- **Keyboard and names:** one tab stop; `role="grid"` named by the title and described by the summary and the key sentence; seven rows, each with its weekday as a
+  hidden `rowheader`; a day is a `gridcell` with a roving `tabindex`, named by its sentence ("Wednesday, November 25, 2026: 26 batches"). ← → a week, ↑ ↓ a day
+  (across a week's edge), Page Up and Down four weeks (Up is earlier), Home and End the ends. No live region and no tooltip; the hint is a `data-kbd-hint` legend.
+- **The table** is the still table: fixed layout from a `colgroup`, the date a pinned row header, newest first, the value end-aligned, a Note for `why`, "Not
+  observed" in tertiary, the scroll hint when it overflows; it holds every day, drawn or not.
+- **Motion:** at rest, never a page's entrance; a changed value's fill crosses over `duration-slow` on `ease-out`. Nothing loops.
+- **Forced colours:** level is shape: 0 an empty `CanvasText` edge, 1 a centred dot, 2 a centred square, 3 a 2px frame and a centred square, 4 solid `CanvasText`,
+  missing the `GrayText` hatch, focus `Highlight`, the picked disc `CanvasText` cut in `Canvas`. More contrast steps nothing.
+- **A written exception:** a heatmap's levels are an order, not a measure. Each fill is 3:1 on its surface; two neighbouring levels need not be 3:1 against each
+  other, because the value is always in the readout, the cell's name, the key's ranges and the table, and in forced colours the level is a shape. The contrast
+  tests gate each fill and the picked disc's ring on every level and report the neighbours.
 
 ## Diagrams
 
@@ -2290,6 +2445,8 @@ because no whole set had two of three votes; the owner is asked to look at them 
 
 **Status:** decided by the council and approved by the owner (DECISIONS 137 and 139); the implementation has not been reviewed.
 
+- **The page base** is opt-in: `base.css` sets `body` to no margin, `surface-page`, primary ink and the sans family at `text-base`, in `@layer basalt`.
+  It sets nothing on `html` and resets nothing else. No component stylesheet styles `body` (cimip-gaps-3 T1).
 - **The page row** (`PageRow`) is `size-page-width` with `--basalt-gutter` inside, the site header's row exactly, so every headline, lead, table
   and chart starts under the brand. It is the row of the first screen too: art that wants more is full-bleed in a `Stage`, never a wider
   row. The side safe area replaces the gutter where it is larger, as the header's padding does.
@@ -2543,8 +2700,7 @@ stack sits at its final offsets and only fades; Progress width jumps; NumberTick
 tabular text at the same width and baseline (in the sentence's own line, and the same in forced colours, where it does not roll); the toast drain is not drawn; Sparkline snaps its
 scale and labels; a travelling spinner appears at its destination with the same fade; an entrance is not played and a list's items take their places at once; an ambient loop is still; a tab change is
 a 100ms crossfade; a glyph that swaps (a plus to a check, an empty seat to a check) crossfades over `duration-fast` all the same, because it is opacity only; the horizontal tab underline does not move; the segmented and vertical-tab pill and the hover glide do
-not travel (each item shows its own pill or plate, fading over 100ms). Spinners fade or hold still, and a loop is
-never cut to 100ms.
+not travel (each item shows its own pill or plate, fading over 100ms). No loop runs: each holds still at its resting drawing, and none is cut to 100ms.
 
 The components and what each does are in [Motion and primitives](motion.md).
 
@@ -2752,6 +2908,7 @@ under the list moves whenever the list's height does, drops rows away from the p
   drives it. A total that changes by itself (rows arriving in a live list) is neither, so it never swallows a page change said with it; without a `filterKey`, a change of the total is
   read as a filter.
 - **Narrow.** Under `size-breakpoint-container-lg` (640) of the band's own width the numbers go (under `size-breakpoint-md`, 720, on a coarse pointer, where the wide form's three tracks cannot hold 44px targets and the page size covered Next from 640 to 690): Previous, the count and Next, with the page size after them. It is a row that wraps by what it measures, and both parts are reserved widths, so it never changes with its content: one row where they fit (a 193px pager and a 132px page size in 358), and where they do not (a 343 band on touch needs 340.1, and the 292px card) the page size is the end of a second row, so nothing overflows. The count is centred between the arrows (its seat holds the widest form and the text sits in the middle of it). The page size is a `sm` Select with a real `<label>` ("per page"); the band, Back to top and the list are one element, so the band sticks within the list.
+- **At one page or none** (cimip-gaps-3 T3). In the narrow form the band marks itself whole (`data-whole`): the pager is not drawn (no hidden arrows holding 44px seats), and the band's own range starts the row, on the gutter, with the page size at its end, on one row. With a second page the pager returns and the count is centred between its arrows, as above; the wide form is unchanged. `onePage="size"` shows the page size alone at one page or none (and at a total of 0): in the wide form the range and the pager keep their seats unseen, in the narrow form neither is drawn; a smaller size that makes a second page fills the seats and the select does not move. The `Select` is one mounted element through every state, so it never loses focus when the page count crosses one. **The stated limit:** in a band too narrow for the pager and the page size on one row (about 340 of its own width: a 343 band on touch, the 292 card), a second page adds the second row, at the reader's own change of size or a filter; a held, empty pager seat there would be the dead room DECISIONS 227 removed, so it is not held.
 
 ### Back to top and the list's foot
 
@@ -2777,8 +2934,10 @@ scrolling, and if someone physically scrolls up the scroll back up to top goes a
 
 **The list's foot** (under 720, with more than one page). The band's Previous, count and Next again, centred under the rows, with no seat under it (the page's own bottom padding is all that follows;
 DECISIONS 227: the empty seat and the off-centre pager were what the owner objected to). It holds no page size: that is a setting and stays at the top with the filters. It is a `nav` named by the app
-("Order pages, end of list"). It is not drawn from 720 (the band is stuck there), nor with one page or none, unless the app holds its room (`keepFootRoom`, opt-in pending the council's decision on the default: its arrows hidden at
-one page, as the band's are, so rows that arrive after the first frame move nothing under the list). A press changes the page, returns the window at once to where the band rests (the band
+("Order pages, end of list"). It is not drawn from 720 (the band is stuck there), nor with one page or none, unless the app holds its room (`keepFootRoom`, opt-in, as cimip-gaps-3 T3 decided: on by default it would put empty room under every
+short list, and kept once drawn it would make the same results a different height by filter history). At one page or none the held foot draws nothing: its arrows
+and its count are hidden (`visibility: hidden`, no landmark, no name), since the band above already says the range. Use it for a list whose rows arrive after the
+first frame and that expects more than one page, so those rows move nothing under the list. A press changes the page, returns the window at once to where the band rests (the band
 under the bar and the first row under it), moves focus to the band's own Previous or Next, and the band's status line says the page once; Back to top goes, since the window moved up.
 
 **The ring fix.** The band's narrow form and the foot set an arrow, the count and the next arrow `space-1` apart, so an arrow's +2 focus ring (2px wide, ending 4px out) touched the count's text. The
@@ -2808,7 +2967,15 @@ the filters (an array; each sits in its own column under 720), then `FilterResul
 ordered by urgency or by time). **A search or a filter returns to page 1.** The empty state follows DECISIONS 207, in the panel in place of the rows, one sentence and one button: a
 search alone says "No orders match “zzq”." with **Clear search** (focus goes to the search field); a filter says "No orders match these filters." with **Clear filters**, which clears
 a search too, and with a search the sentence names the term: "No orders match “zzq” with these filters." (focus goes to the first filter's trigger, since the button leaves with the
-empty state). The band keeps its room: the count is blank, the pager hidden. The words are the app's.
+empty state). The band keeps its room: the count is blank, the pager hidden. The words are the app's. On a phone the toolbar may fold its filters and sort under one trigger (`narrow="fold"`), the result held above the fold; Clear filters then sends focus to the Filters trigger while the fold is closed (see [Forms and controls](#forms-and-controls-cimip-gaps-3-t4)).
+
+**Sorting a list** (cimip-gaps-3 T3). A list has no column heads: `aria-sort` belongs to a `th`, a list has no column tracks to hold a head still, and a list often sorts
+by something it does not draw; lines a reader compares down columns are a still table. The sort control sits in `FilterToolbar`'s `sort` slot as a `Select toolbar`; a
+`SegmentedControl radio` only when every order's whole words fit one row of a 390 screen (358 of content). Each option names the field and the direction in words
+("Newest first", "Title A to Z", "Most reused"): there is no separate direction control and no cleared state, since the list's own order is one of the options. Rows that
+stay move by transform under `Reflow`'s rules, and every item keeps its node, its focus and its open state (stable keys, never a remount). A sort returns a paged list to
+page 1, as a search does. The result count does not change on a sort, so the app says the order once through `StatusLine` ("Sorted by title, A to Z."). `sortLabel={false}`
+(or `""`) draws no word beside the control and no empty span, for a `Select` that shows the word itself (`valuePrefix="Sort"`).
 
 ### The form dialog
 
@@ -2857,6 +3024,77 @@ round 2). React's alone: the HTML skill's `forms`, `segment` and `dialog-form` m
   alone. The implementation hasn't been reviewed.
 - **Open.** A status callout on a segmented control is not decided.
 
+### Forms and controls (cimip-gaps-3 t4)
+
+**Status:** decided by the council on the owner's handoff (DECISIONS 385; Fable decided between two drafts and a check, `cimip-gaps-3/t4/decision.md`, with its revisions
+after the final positions). The implementation hasn't been reviewed, and tests are paused (DECISIONS 359): every test below is written and none was run. Found by the first
+app's forms, toolbars and filters. No new tokens.
+
+- **A hint and an error in one seat** (`Field reserveError`; `Form` and `FormGrid` `reserveErrors` set it for the fields inside, a field's own, `false` included, wins). Off by
+  default. The hint, the error and the sizers share one cell under the control (`basalt-field-foot`, `space-1-5` below it, at least one line, 16): the cell is the tallest of the
+  hint, one line, the `error` when it is a string, and each listed string, each wrapped at the field's width, so an error moves nothing. **A sizer is text and nothing else:** no
+  element, `id`, link or form field is ever mounted unseen (an inert field still submits and a required one still blocks). An `error` that is a node is mounted only while it
+  shows and the cell grows if it is taller; a message nobody listed (a server's) may be taller too, and is never clipped. While valid the hint shows and describes the control;
+  while the error shows, the hint is unseen and leaves `aria-describedby`, so the error states the fix and repeats any format the hint held. The look is unchanged (12/16 at
+  400; the hint secondary, the error danger). The incoming line fades in over `duration-fast` on `ease-out` and the outgoing one goes at once; no height animates. In a
+  `FormGrid` the seat sits on the hint track and the error track stays 0. **Not for a hint that must stay:** a hint holding a link, a control or a standing instruction keeps the
+  two-line form (development warns). No XCircle on a field's error: a glyph on every error is a system-wide change to ask on its own. The HTML skill: `.field-message` holds `.hint`
+  and `.error` in one cell, and `aria-invalid="true"` on the control picks the one seen (the page swaps `aria-describedby`).
+- **A file field** (`FileInput`, a control for `Field`). One box drawn as `Input` is (32 at `md`, 44 on touch and under 720 from the first frame; 16px text on touch), inside
+  `space-2` apart: Phosphor Bold `Paperclip` at 16 in secondary ink (the field attaches; it does not upload), the file line (one line, cut: "No file chosen" in tertiary, one file's
+  name in primary, or "3 files chosen"), then "Choose file" (`text-sm`, 500, primary) while empty, or one file's size (`text-xs`, tertiary, tabular) and Clear (a ghost `xs`
+  `IconButton`, the core close, a 44 target on touch that does not grow the box). The box's height never changes. **The native input is the control:** it covers the box (all but
+  Clear) unseen, so it is the one tab stop, the label's target, the form's value and the drop target, and its focus is the ring at +2 round the box. **What is drawn is only ever a
+  reading of `input.files`**, on `change`, on mount and after the form's reset: Basalt never writes `input.files` and handles no drop; Clear empties the input, sends one bubbling
+  `change` and focuses it, so `onValueChange([])` is called once. A drag that carries files takes the hover wash and the boundary's hover step, tertiary ink stepping to
+  secondary; nothing dashed (dashed is a field being written into). Invalid is `Input`'s danger hairline; disabled is `Input`'s look and refuses a press and a drop. No dropzone,
+  list, upload or preview: a wrong type or size is the app's check and the field's error. The HTML skill: `<span class="file-field"><input type="file"></span>` (`forms`).
+- **Filters over a list on a phone** (`FilterToolbar narrow="fold"`, opt-in). Under 720, in DOM order: the kind on its own row when there is a search; one row of the search (or
+  the kind) and a Filters trigger (`minmax(0, 1fr) auto`, `space-2` apart; the trigger alone at the start with neither); the result on its own row, always shown, which never
+  moves; then the fold, the filters in two columns and the sort on a full row. The trigger is the secondary `Button` at 44 with the count pill (`activeCount`) and the core
+  chevron-down, which turns 180° over `duration-slow`; `aria-expanded` and `aria-controls`, never `aria-pressed`; its name is "Filters", or "Filters, 2 active". The fold opens its
+  height over `duration-slow` on `ease-out` and closes at 0.75× on `ease-in` (at once under reduced motion); closed, it is unseen, out of the Tab order and the accessibility tree,
+  and open and settled it clips nothing. From 720 there is no trigger and the row is the shipped one, pixel for pixel, with the same control instances. **Focus:** opening leaves it
+  on the trigger; closing with focus inside sends it to the trigger; crossing under 720 with focus in a filter opens the fold (`onFoldOpenChange(true)`) and focus stays, and a
+  parent that keeps it closed gets focus on the trigger before the fold is made inert. **Clear filters** in the empty state sends focus to the first filter's trigger, or to the
+  Filters trigger while the fold is closed (`actionsRef.focusFilters()`).
+- **A status dot in a segment** (`Segment status`: `neutral`, `success`, `warning`, `danger`, `pending`). `Badge`'s 6px dot, `space-1-5` before the label and outside it, so the
+  label still reserves its 600; neutral is tertiary, pending the hollow 1px ring in the label's ink, disabled `text-disabled`, and in forced colours `Badge`'s disc, following the
+  item. The label names the state; the dot is `aria-hidden`; never on an icon-only segment. A segment with no status keeps its natural width (no empty seat). No accent, and no rule
+  for a `Badge` as a segment's label (it is the wrong tool). The HTML skill: `data-status` on the button.
+- **Tabs and segments wider than their column.** **A horizontal tab row scrolls in its own port, as the HTML skill's does**: the ring at +2 (DECISIONS 358), no scrollbar drawn,
+  so overflow starting never changes the row's height; a tab brought into view (on focus, on a change of the chosen tab, on first layout; at once, never smooth, the window never
+  moves) keeps `space-6` clear on each side, so the next one's start always shows, and a cut tab is the cue. A cut tab and the divider stop at the column's edge: while content is hidden past a side, the port is clipped there, never in the ring's room on a side with nothing past it. No fade, no edge buttons. **A segmented control scrolls in its track
+  and never wraps, narrows or cuts a label:** the track is held to its column (`max-width: 100%`) and its segments keep their width on one line. While it fits it is not a
+  scrollport and the ring is at +2; while it overflows (`data-overflow`, measured before the first paint) it scrolls with no scrollbar drawn, the chosen or focused segment is
+  brought whole into view `space-6` clear, and a segment's ring is drawn inside at −2. The pill travels with the content. A `fullWidth` control's segments are equal while every
+  label fits its share, and past that it scrolls. Vertical tabs, `LinkTabs` and the theme choice's wrap are unchanged. Before script the control is as it ships.
+- **A count on an option chip** (`OptionChip count`, `OptionChips countSeat` and `countLabel`). After the label at `space-2`, 13/18 at 400 in tabular figures with en-US
+  grouping, no pill: tertiary at rest, secondary on hover and when chosen, the disabled ink when unavailable; in forced colours `ButtonText`, `HighlightText` chosen, `GrayText`
+  unavailable. Every counted chip holds the group's widest figure (`countSeat`, or the largest given), the figure at the seat's end, so 7 to 512 moves no chip and wraps no row,
+  and spare room falls between the word and the figure. Zero is a value and is drawn; it disables nothing, and an unavailable chip still draws its count. The name is the label,
+  ", ", then the figure or `countLabel(count)`. The figure is replaced, never animated.
+- **The result line** (`FilterResult`). The drawn form (`children`, a string or a node) is hidden from assistive technology; what is said is `spoken`, or the words, through the
+  one `StatusLine` after 400ms of stillness, never a second region. `reserve` is the widest drawn form, laid out unseen in the line's one cell, so the line and its toolbar wrap
+  the same from the first frame; it is a sizing copy (no form field and no `id`). An empty result keeps one line's height. The words stay the app's: a sentence count ("Showing 12 of
+  428 lots") stays first-class. The HTML skill: `data-reserve` (a string) and `data-spoken`.
+- **A step flow whose next waits** (`Stepper nextDisabled`, `nextReason`, `onDone`, and its labels). A held Next (Done on the last step) is the disabled look with focus kept
+  (`aria-disabled`); a press does nothing. Back on the first step keeps focus too, with no change of pixels. The reason is a line under the row at its start edge (`space-1-5`
+  above, 12/16 secondary), in the layout whenever it is given and unseen while Next is live, so it keeps its wrapped height; it fades in over `duration-fast`, describes Next only
+  while it is held, and is not live. Done calls `onDone` and hands its promise to `Button`'s wait, so a second press does nothing; **with no `onDone` Done is held** (a visible
+  change for a flow that used Done as an end mark). Focus outside the stepper is the app's: an action in a step that advances the flow hands focus to the new step.
+- **A form beside what it writes** (`FormPreview`). Two columns where its own width is at least `size-breakpoint-container-lg` (640) and the window at least 720, `FormGrid`'s
+  guard: fields at the start, the preview at the end, `space-8` apart, no line, the preview sticky `space-5` from the scroller's top (two 459px columns in the wide form dialog at
+  1440). One column anywhere else (the 480 dialog, a phone): the fields, then the preview under a `border-divider`, `space-6` above the line and `space-5` below it. The preview
+  is a `section` named by its heading (`previewLabel`, "Preview", an `h3` by default) drawn as the preview kicker; the part draws no rim or fill, and holds nothing the task needs
+  (no field, action or focus stop) and is never a live region.
+
+**Reserved room for blocks** (`Reserve block`). The alternatives are blocks (a `Callout`, a panel): a full-width cell as tall as the tallest, each block at its own height from the
+top, the unseen ones kept in the layout (`visibility: hidden`, `aria-hidden`, `inert`), so what follows moves 0px at every width. Each block hugs its own words: the spare room
+under a shorter one is the page, and nothing is painted inside a box to hold room. The swap is at once. The unseen copies hold nothing live (no form field, no `id`; buttons and
+links are fine), and a `Callout` in one takes no `live`: the app says the change through its one `StatusLine`. `Callout` itself is unchanged. `Select toolbar` covers a select's
+width in a toolbar; nothing is added for it.
+
 ### Defects not copied
 
 The prototype's band kept saying "Page 2 of 9" after a filter narrowed the list to one match; the band's line is now cleared when the filter changes (`filterKey`, or the total
@@ -2877,6 +3115,15 @@ Windows contrast theme.
 code and the lead checks the pixels (both done; the menu rows' wrap is the owner's pick, DECISIONS 275). Every part is general and is shown in the review round (62) in at least two unlike
 domains. React's alone (see [What the HTML skill does not draw](#what-the-html-skill-does-not-draw)).
 
+- **A count and the names it counts** (`CountNames`, (cimip-gaps-3 T2, DECISIONS 385; the implementation hasn't been reviewed)). The trigger is one inline button with TextButton's anatomy in the surrounding text's size: the
+  count and its noun ("6 analyzers", tabular), the 1px underline at rest and the core `chevron-down` at 16, turning when open; `aria-haspopup="dialog"`, the ring at
+  +2, TextButton's 44px hit box on touch; a row keeps one height however many names. Zero is plain text in the surrounding ink (no button); one is still the
+  trigger. The popover: below, start-aligned, the opener's level plus one, `size-menu-min` to `size-popover-max`; a title (`text-base`, 600) over a divider; the
+  list scrolling inside `size-popup-max-height` with `space-1-5` round it; a plain name `text-sm` primary, wrapping and never cut, its `detail` after it in
+  tertiary `text-xs`; a name with `href` a focusable row (32 tall, 44 on touch, the hover wash, the ring at +2, its detail lifting to secondary on the wash).
+  From `searchFrom` names (10) the popover's input band filters ("No analyzers match."); the first Esc clears the words, the second closes. When `count` is more
+  than the names given, a foot says "Showing 50 of 128" (with `footer` beside it). On open focus goes to the filter on a fine pointer, else to the title, so
+  Enter never follows the first link. The root is a `span` and the panel is portalled, so it is valid inside a paragraph, a cell or a description value.
 - **A panel of rows** (`PanelList`, `PanelRow`). Rows of one list in one panel: the panel's level (one above what it sits in, 3 at most), its one rim, radius 12 (a card's),
   and a `border-divider` between rows, never above the first or below the last. Each row is a link (with `href`) or a button across the whole band. It is not a form of
   `DirectoryList`: the directory is a site's ruled list on the page, rimless, with no wash, three fixed columns and an arrow; a panel of rows is an app's list of things to
@@ -2886,6 +3133,26 @@ domains. React's alone (see [What the HTML skill does not draw](#what-the-html-s
   44 tall on a coarse pointer. **Hover** is the hover wash, full bleed, and lifts no ink; a **press** steps to the selected wash; **focus** is the 2px ring inside at −2, because
   the band is flush with the panel's clipping edge, and the first and last rows take the panel's inner corner (12 less the rim, 11) so the ring follows it. A row that opens a
   new tab draws the new-tab arrow after its title and says so. Name the list (`aria-label`, or `aria-labelledby` on its heading).
+  **Words that wrap and a second target** (cimip-gaps-3 T3). `wrap` lets the title and the description wrap whole (`overflow-wrap: break-word`) and the row grows; the
+  lead, the trailing fact and (from 480) the actions stay on the title's first line. A row has **three anatomies with one look**: with no `actions` it is one target, the
+  band as above (pixel-identical without `wrap`); with `actions` (one or two `Button`s, `IconButton`s or `Link`s) it is **split**, a `div` whose title holds the row's link
+  or button (its name the title and the new-tab words, described by the description) with a cover (`::after`, inset 0) across the band, and each action its own control
+  above the cover, never nested in it; with `interactive={false}` it is **static**, a `div` with no target, wash, press or pointer, whose actions and links are its targets.
+  A row without `href` stays a button with every native prop; the static row is asked for, never inferred. `className` and `style` go on the row; every other native prop
+  and the `ref` go to the target. Each action names what and whom in visible words ("Call +1 912-555-0142"), or with an `aria-label` that starts with its visible word
+  (WCAG 2.5.3). A control in a split row's `children` (a link inside a line of words; a verb goes in `actions`) sits above the trigger's cover too, so a tap on its words
+  follows it as Enter does, while the words and badges beside it press the row; tab order is the DOM's: trigger, `children` controls, actions. The split row washes the band
+  while the pointer is on it and not on an action or such a control (over those only that control answers), and steps to the selected wash only while the trigger is
+  pressed; no scale. **A split row's trigger shows the band's −2 inset**, drawn on its cover so it follows the panel's inner corners; **each action its own ring at +2**,
+  inside the band's padding. The list is a container: from 480 of its width the actions are an end column of the list's grid, present only when a row has them, after the
+  trailing fact, `space-2` apart, on the title's line (an `sm` control overhangs the 24px line by half its difference, and not under the touch query, where it is drawn at
+  44), and a row without actions runs its trailing fact (or its words) to the row's end, so no row shows an empty seat. Under 480 the actions are a line of their own under
+  the words, on the words' start edge, `space-2` above, wrapping `space-2` apart, each 44 tall on touch; the trailing fact stays on the title's line at every width and
+  nothing is hidden. **A `DisclosureRow` in a `PanelList`** (the app's `<li><DisclosureRow /></li>`) is a band: a divider between any two items, its trigger padded
+  `space-3` by `space-4`, at least 44 on a coarse pointer and under 720, the full-bleed hover wash (its ink still lifts), a press to the selected wash and the flush −2 ring;
+  the first item's trigger takes the panel's inner top corners, the last item's the bottom ones only while it is closed. Its type stays its own (`text-sm`, secondary, the
+  meta tertiary, the chevron at the end). Its detail is padded `space-1` `space-4` `space-3`, a marked row's indent added at its start, and the panel's clip is the room for
+  a ring inside it. One rim: the panel's.
 - **A list to choose several from, outside a table** (`SelectableList`, `SelectableItem`, `SelectionBar`). The table's selection (see Selected rows), for a list: a chosen
   row is the selected wash as a band and its checked box carries the state, and rows are divided by `border-divider` as a table's are. The row is its checkbox's label, so a
   press anywhere on it chooses it; focus is the box's own ring at +2, inside the row's padding (`space-2-5` by `space-3`), as a band that holds its own control focuses that
@@ -2987,6 +3254,21 @@ at it, as a `Terminal` does, and says what must be heard through `StatusLine`. B
   whole in place (`wrap` keeps it wrapped while closed). Hover lifts the ink to primary and the meta to secondary, with no wash, as on a ruled list on
   the page. It is a focusable row: the control ring at +2, radius 6. 28 tall, 44 on touch. The detail opens by height over `duration-slow` on
   `ease-out` and closes at 0.75 on `ease-in`, at once under reduced motion; its clip reaches `space-1-5` past the detail, so a ring inside is whole.
+- **A list of disclosure rows** (`DisclosureList`, cimip-gaps-3 T3): a `ul` on its parent's surface with no rim, level or fill; each `DisclosureRow` in it renders its
+  root as an `li` (through an app's own wrapper too), with a `border-divider` between items, never above the first or below the last. A row there is at least
+  `size-table-row` (40) tall, padded 11 above and below (44 and 13 on touch), with no inline padding, so its words start on the list's line; hover and focus stay the
+  row's own, and the list keeps `space-1-5` from any clipping edge. If any row has a mark, every row keeps the mark's seat and every detail its indent. A `wrap` row
+  shows its whole title while closed; an open row always wraps. The rimmed form is a `PanelList` (see [Lists and facts](#lists-and-facts)). **Rows that must land
+  with no shift** use the default row, one cut line while closed (40, or 44 on touch, in a `DisclosureList`; the band's height in a `PanelList`), which opens to its
+  whole title; `wrap` rows in a loading shape take stand-ins of a typical length and may shift once, since a shape cannot know how many lines an unread string takes.
+- **A disclosure in prose** (`Disclosure`; the HTML skill's `data-prose` on `button.disclosure` or `details`): a line in running text that opens, not a log row. Base
+  UI's Collapsible (the closed detail out of the accessibility tree unless `hiddenUntilFound`). The trigger hugs its words (`inline-flex`, `fit-content`, at most the
+  line): the core chevron leads at 16 in a seat `size-icon-sm` wide and one line tall, to the end while closed (mirrored right to left) and down while open, by the
+  rotation morph; the title, which always wraps and is never cut, takes the size and line height of where it sits, at 500 in primary, and the chevron is secondary.
+  Hover lifts the chevron to primary and underlines the title (the text button's underline); no wash; disabled is `text-disabled`. At least 28 tall on a fine pointer,
+  44 on a coarse one and under 720 as real height, so two in a row never share a target; the control ring at +2, radius 6 (8 at 44). The detail is indented to the
+  title's edge (24), `space-2` under it, with no size or ink of Basalt's, and opens as the row's does. No rim, fill or divider. A page that is mostly closed
+  disclosures is an `Accordion` or a `DisclosureList`, not prose.
 - **An activity list** (`ActivityList`, `ActivityStep`): steps that run and report, a sentence each at `text-sm`, wrapping at any width. It is not
   `Stepper` (a known sequence), not `EventLog` (links in mono with a time column and one tab stop) and not `LogLine` (a log's mono fields). Each step has
   the plain badge's status seat (6, and a gap as wide): braille while it runs, the tertiary dot once done, the danger dot when it failed, the hollow ring
@@ -3099,11 +3381,15 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
 `Terminal` takes stage lines. Nothing new is named `stage` alone: `Stage` is the full-bleed art, and every class here begins `basalt-run-`
 (the skill's `run-`, in its `runs` module).
 
-- **The seven states and their mark.** One mark a state at 16px (`size-icon-sm`; 20 and 24 by the status seat's rule), `aria-hidden`, in a seat
-  that never changes size; the word carries the state. Queued is Phosphor Bold `Circle` in `text-secondary`, breathing (see Motion); running is
+- **The nine states and their mark.** One mark a state at 16px (`size-icon-sm`; 20 and 24 by the status seat's rule), `aria-hidden`, in a seat
+  that never changes size; the word carries the state. Idle ("Not started") is Phosphor Bold `CircleDashed` in `text-tertiary` and never
+  animates, in any mode: a stage the sequence has not reached, which cannot start until something before it finishes, where queued is work
+  that waits and could start at any moment; its dashed shape is what parts it from queued once motion stops and under more contrast
+  (cimip-gaps-3 T1). Queued is Phosphor Bold `Circle` in `text-secondary`, breathing (see Motion); running is
   the ring in `text-primary`; passed the outline `CheckCircle` in `text-secondary`; failed the outline `XCircle` in `status-danger`; skipped
-  `MinusCircle` and canceled `Prohibit` in `text-tertiary`; retrying is the ring, as running. No filled disc anywhere. The default words are
-  Queued, Running, Passed, Failed, Skipped, Canceled and Retrying (US English); the app may change any of them ("Investigating", "Waiting for
+  `MinusCircle` and canceled `Prohibit` in `text-tertiary`; retrying is the ring, as running; warning (an ending that is not a pass, cimip-gaps-3 T2) the outline
+  `Warning` triangle in `status-warning`. No filled disc anywhere. The default words are
+  Not started, Queued, Running, Passed, Failed, Skipped, Canceled, Retrying and Warning (US English); the app may change any of them ("Investigating", "Waiting for
   approval", "Retrying, 2 of 3"). A stage held up by a failure above it is skipped with the word "Blocked by Test". A change of state crossfades:
   both marks stand in the one seat, the old fading out as the new fades in, over `duration-fast` on `ease-out`, kept under reduced motion. In
   forced colours a mark is `currentColor` and names no system colour.
@@ -3111,19 +3397,60 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
 
   | Part | Drawn | Said and not drawn | Not a state there |
   |---|---|---|---|
-  | `StageList` | Queued, running, failed, skipped, canceled, retrying | Passed | |
-  | `StageRail` | Failed, skipped, canceled, retrying, in the node's status seat | Queued, running, passed | |
-  | `RunTimeline`, a full step | Queued, failed, skipped, canceled, retrying, and any word the app gives | Running, passed | |
-  | `RunTimeline`, a tail row | Failed, skipped, canceled, and the app's word | Passed | Queued, running and retrying: they never roll |
-  | `Terminal` stage line | Skipped, canceled, and any word the app gives | Running, done, failed (the mark is a named image) | Queued and retrying |
-  | `StageBadge` | Always, all seven | | |
+  | `StageList` | Not started, queued, running, failed, skipped, canceled, retrying, warning | Passed | |
+  | `StageRail` | Failed, skipped, canceled, retrying, warning, in the node's status seat | Not started, queued, running, passed | |
+  | `RunTimeline`, a full step | Not started, queued, failed, skipped, canceled, retrying, warning, and any word the app gives | Running, passed | |
+  | `RunTimeline`, a tail row | Failed, skipped, canceled, warning, and the app's word | Passed | Not started, queued, running and retrying: they never roll |
+  | `Terminal` stage line | Skipped, canceled, warning, and any word the app gives | Running, done, failed (the mark is a named image) | Not started, queued and retrying |
+  | `StageBadge` | Always, all nine | | |
 
   A state is said once: where the word is drawn the mark is `aria-hidden`; where it is not, the mark is a named image (the log) or a visually
   hidden word follows the name. A passed stage is its outline check and its duration.
+- **Nine states** (cimip-gaps-3 T2, DECISIONS 385; the implementation hasn't been reviewed). t1 adds `idle` ("Not started") as the eighth; `warning` is the ninth, default word "Warning", the app giving its own
+  ("Expired", "Timed out", "Partial"): `… | "retrying" | "idle" | "warning"`, and every `Record<StageState, …>` has nine keys. **It is an ending:** the time freezes,
+  it rolls into a timeline's tail, and a rail's link after it stays empty (only a pass fills); a stage that is late but still going keeps `running` with the app's
+  word, so `warning` is finished and `idle` is not. Its mark is Phosphor Bold `Warning` (the outline triangle) in `status-warning` at 16, 20 and 24, in the same
+  seat, crossfading like every change; its word is `text-primary` at 500, never `status-warning` ink on text. `StageBadge` shows it as `Badge status="warning"`;
+  the seat left out of `states` (every state but `idle`) holds "Warning", which is narrower than "Canceled", so no shipped seat moves. `TerminalStageState` gains
+  it (the mark with no name, the word drawn first, the triangle in the gutter); `idle` is still not a state there. `RunTimeline`'s toggle counts it: "Show 5
+  earlier steps, 1 failed, 1 warning" (`toggleLabel(earlier, failed, open, warned)`). `RunAnnouncer` is unchanged. Beside `idle`:
+
+  | Part | `idle` (t1) | `warning` |
+  |---|---|---|
+  | `StageList` | Word drawn, tertiary | Word drawn, primary at 500 |
+  | `StageRail` | Word said; the seat empty | Word drawn in the seat |
+  | `RunTimeline`, full step | Word drawn, tertiary | Word drawn, primary at 500 |
+  | `RunTimeline`, tail row | Cannot occur | Word drawn, in the row's ink (the triangle keeps its colour) |
+  | `Terminal` stage line | Not a state there | Word drawn first, the triangle in the gutter |
+  | `StageBadge` | The neutral dot | `status="warning"` |
+
+- **A clock in a stage's seat** (cimip-gaps-3 T2, DECISIONS 385; the implementation hasn't been reviewed). `StageList` and `StageRail` take `time` (`"duration"`, the default, or `"clock"`), `locale`, `timeZone` and `now` (what
+  counts as today). At `clock` a rail's seat shows the stage's `start` through `formatClock` ("7:03 PM"; "19:03" in a 24-hour locale) and a list's end column
+  through `formatStatTime` (the date added on another day), in a `time` whose `datetime` is the instant: sans (a clock a person reads is never mono), tabular,
+  `text-xs`, tertiary, in the one `Reserve` cell, as wide as the locale's widest clock (and, in a list with a stage on another day, its widest date) and every word
+  it can draw, so nothing moves. A failed, skipped, canceled, retrying or warning node still draws its word; a queued or idle stage with no `start` holds an empty
+  seat; a start on another day is said in full in a rail node's hidden text. The seat holds one fact. The clock does not tick and does not hide under the hold;
+  `timeScale` is ignored beside it (development warns).
+- **`StagePlace`** (cimip-gaps-3 T2, DECISIONS 385; the implementation hasn't been reviewed): "stage 3 of 5" in a row, by position only. Two to eight stages are pills `size-track` tall, full radius, `space-0-5` apart: before
+  the current 10px (`space-2-5`) of solid `text-secondary`, the current 14px (`space-3-5`) of solid `text-primary` (longer, so never ink alone), after it 10px with
+  a 1px `border-input` edge. `current: 0` (not started) draws every pill empty and reads "0 of 5"; `done` draws every pill passed and reads "5 of 5"; with no long
+  pill its extra `space-1` is held at the mark's end, so the words start at one x in every row. Past eight, one track `space-12` long with a `text-primary` fill to
+  `current / total`. Then `space-2`, the `label` (`text-sm`, 400, primary, cut) and the count (`text-xs`, tertiary, tabular, its seat as wide as "5 of 5"). No colour
+  and no state: the row's badge says how it went. A plain inline `span`. An advance moves the long pill over `duration-slow` on `ease-out`; at once under reduced
+  motion and the hold. Out of range, the count alone (development warns).
+- **A stage's own disclosure** (cimip-gaps-3 T2, DECISIONS 385; the implementation hasn't been reviewed). `RunStage` takes `collapsible`, `open`, `defaultOpen` and `onOpenChange`. In a list the stage's line is a `<button
+  aria-expanded aria-controls>` with the core chevron at 16 at its end (right to down); hover lifts the inks with no wash; the control ring at +2, radius 6; 44
+  tall on touch; the detail opens with the existing clip; when any stage folds every row keeps the chevron's seat. On a rail the node (mark, name and seat, never
+  the link) is a `<button>` opening a `Popover` below it, centred, its name as the title, its word and time, then the detail and action; the name carries
+  TextButton's underline. A rail drawn as the list opens the detail in place; crossing 480 keeps `open`, swaps the popover and the in-place detail, and leaves focus
+  on the trigger, one element in both forms. **Only a detail that opens in place opens by itself:** uncontrolled, a stage that turns failed or warning, or gains an
+  action, opens once in a list (and a rail drawn as the list); a popover never opens by itself, and a detail that opened by itself closes when the rail leaves the
+  list form. A detail that closes with focus inside sends it to the trigger. `RunStep` is unchanged (a timeline's full step always draws its detail). The skill
+  draws the warning state and `.run-place`; the stage disclosure is React's alone.
 - **`StageList`.** A known sequence of named stages, an `ol` named by `label`. A row is the mark (16), `space-3`, the name and its word
   (`space-2` apart, one line, never wrapped), the meta and the timer, at `text-sm`, `space-2` above and below: 34px. The name is primary, and
-  secondary while queued, skipped or canceled; the word secondary, primary while running or retrying, `status-danger` at 500 when failed, tertiary
-  while queued, skipped or canceled; the meta tertiary at `text-xs`, hidden under 480px of the list's own container. The connector is a 1px
+  secondary while not started, queued, skipped or canceled; the word secondary, primary while running or retrying, `status-danger` at 500 when failed, tertiary
+  while not started, queued, skipped or canceled; the meta tertiary at `text-xs`, hidden under 480px of the list's own container. The connector is a 1px
   `border-input` line on the marks' centre line from `space-1` under one mark to `space-1` above the next, beside an open detail too, and never a
   state (see Vertical lines). A stage's detail (`detail`, `action`: a failure's reason and Retry, what waits and Approve) opens under it, indented
   to the name, by height and opacity over `duration-slow` on `ease-out`, closing at 0.75 on `ease-in`, `inert` while closed; inside it `code` is
@@ -3137,8 +3464,11 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   `ease-out` when its stage passes, empties at once on a retry and stays empty after a failure; it repeats the check before it and is never the
   only sign of anything. No bead and no pulse: the running ring is the rail's only moving thing. `Progress`'s value takes tabular figures and the
   room of "100%".
-- **`StageBadge`.** A `Badge` bound to the seven states (the pending ring, braille, the success, danger and neutral dots), `outline` in a run's
-  head and `plain` in a list or table. Its seat is as wide as its widest face; each face is a pill as wide as its own words. The seat comes
+- **`StageBadge`.** A `Badge` bound to the nine states (the pending ring, braille, the success, warning, danger and neutral dots; not started is the
+  neutral dot, never the pending ring, which means work actively waiting), `outline` in a run's
+  head and `plain` in a list or table. Its seat is as wide as its widest face among `states`, the states the badge will show (left out, every
+  state but not started, so no badge that never shows "Not started", the widest word, makes room for it); a badge that shows a state its set
+  leaves out still draws it, its seat widening once and never narrowing, and development warns; each face is a pill as wide as its own words. The seat comes
   from a static measure and is never narrower under width pressure; its figures are tabular, so a changed digit changes no width. A change of face is sequential: the old face
   fades and rises `space-1` over 0.75 of `duration-base` on `ease-in`, then the new one fades in from `space-1` below over `duration-base` on
   `ease-out`. One accessible name at every moment.
@@ -3149,9 +3479,10 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   first frame its window is a named `region` (a `group` while empty) and the run's `RunAnnouncer` speaks. With `keep`, lines older than the
   newest `keep` stages step back once (see Logs, status and forms); a command never does.
 - **`RunTimeline` and the counter.** An append-only `ol` of steps, a sentence each: the mark, `space-3`, the sentence, the meta (a result and
-  the time), at `text-sm`; the sentence is primary while the step runs, retries or waits, secondary once it has finished. From 640px of its own container the meta ends on the row's end edge, the time's seat `space-3` after the result with no dot between
+  the time), at `text-sm`; the sentence is primary while the step runs, retries or waits, secondary once it has finished or while it has not
+  started (its word "Not started" tertiary at 400). From 640px of its own container the meta ends on the row's end edge, the time's seat `space-3` after the result with no dot between
   them; under it the meta goes under the sentence, a middle dot between the result and the time. The comma is said at both. A detail and an action are always drawn under a full step. `keep` (3 when left out; `false` is the whole record) is the counter:
-  the newest `keep` steps stay in full and a finished step older than those rolls into the tail (a step running, retrying or waiting never
+  the newest `keep` steps stay in full and a finished step older than those rolls into the tail (a step running, retrying, waiting or not started never
   rolls, and nothing after it does). A tail row is `text-xs` at 400, 20px, one line cut with an ellipsis, its mark still 16, no connector and
   no detail, its ink its depth's step (see Principles); everything it says stays in the accessibility tree. The window is the list's
   scrolling box, its floor the larger of `keep` and `minRows` rows plus two and a half tail rows, only growing; it draws no scrollbar and is a named tab stop while it
@@ -3169,14 +3500,22 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   under the status, 70px at 390 and 320); a list sets one scale for all its timers. A run's head seat also holds today's held form
   ("Started 12:59 PM"); a run that started on another day widens it once when the hold is pressed, as a time that outgrows its scale does. It counts from `start`, is frozen at `end`,
   adds `carried` across a retry, and its held form reads from `since`. A run's time counts while it runs, retries or waits for an approval, and
-  is frozen while it has failed, is canceled or has passed.
+  is frozen while it has failed, is canceled or has passed. **Under reduced motion a running time counts whole minutes** (cimip-gaps-3 T1):
+  "<1 min" (said "less than 1 minute", `PT0M`) until 60 s, then "4 min" (`PT4M`), "1 hr 12 min" and "3 days" as before, the drawn figure, the
+  spoken words and `dateTime` from one floored length, written once a minute and never between; at `end` it is exact again ("47 min 30 s"),
+  in every mode, and the hold still wins. `carried` is added before the floor. A rail at the minutes scale takes the same grain. An app's
+  `format` and `spoken` are given the floored length and the grain (`"minute"`; otherwise the true length and `"exact"`), so a one-argument
+  formatter writes the floored figure in its own form and cannot keep ticking; with an app's `format` the seat also holds its minute forms
+  while reduced motion is on. The server writes the exact figure; the client reads the setting before paint, so no exact figure is painted
+  after hydration and the change lands once. `Countdown`, `Clock` and `DateAge` do not change.
 - **`RunAnnouncer`.** One a run: a visually hidden `role="log"`, polite, additions only, each event its own appended element, said once and in
   order; a repeated `id` is quiet and events present at mount are not said. An app sends the run's start, a failure with its reason, a retry
   when it starts, an approval needed or given by someone else, a cancel and who made it, and the run's end with its outcome and time; never a
   timer, a spinner's frame, a log line, a stage that passed, a roll, the hold or the reader's own press. Never `role="alert"`, and no toast for
   the same result.
 - **Modes.** Reduced motion: nothing moves, grows or travels; the mark's crossfade stays; the queued mark is still at full; a rail's fill, a
-  detail and a roll land at once; an arriving step fades over 100ms; the badge's faces only fade; timers tick. The hold: the ring and braille
+  detail and a roll land at once; an arriving step fades over 100ms; the badge's faces only fade; a running timer counts whole minutes and is
+  exact again at its end; an idle mark is still in every mode. The hold: the ring and braille
   stand still, the queued mark is still at full, every change of state lands at once, and a stage's own running time hides (see "A page can
   hold every loop"). A demonstration asks the hold when it would start and does not start under it; a run the reader starts runs whatever the
   hold. More contrast: no tail, every stepped-back line at the first step and a failed one full `status-danger`, and the window's top edge is a plain cut. Forced colours: marks and
@@ -3259,7 +3598,14 @@ as if it were known, which Basalt can't detect.
 
 ## What the HTML skill does not draw
 
-The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of the form gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, and the scrim closing a form only while nothing has been entered (the skill's scrim closes it), a list's `scroller`, and an explainer on a header that does not sort. React's alone too: `LoadingShape` and its parts (DECISIONS 258; the skill's loading shape is a follow-up batch). React's alone too: `Composer`, `Mention` and `MentionPicker` (cimip-gaps-2, B3; see [Writing to someone](#writing-to-someone-the-composer-the-mention-and-the-picker)). So are the conversation stream's parts (`Stream` and its entries, `StreamQuote`, the arrived mark, `DisclosureRow`, `ActivityList` and `Presence`; round 56, a follow-up batch). React's alone as well: `NotificationList` (the center's page form), a group's reveal track (the skill's group opens at once), and the search over a server (`SearchField`, `SearchPassages`, `SearchPassage`, `markMatches`); the skill's `notifications` module draws the pending ring and groups (cimip-gaps-2, B7). The app shell's gaps (cimip-gaps-2, B4) are in the skill: `data-capped` on `.app-shell` (the `app-shell` module, cap 4,300 from 3,250, the skip link on the brand's start edge included), `.app-heading` and `.app-facts` under the title, the primary kept under 720, `data-size="sm"` on a `.nav` (the `nav` module, cap 5,350 from 4,800), and the `pane` module (`.pane-layout`, cap 1,700), whose script makes an overflowing pane a tab stop, including when its content arrives or grows after the page. React's alone too: the parts of [Lists and facts](#lists-and-facts) (`PanelList`, `SelectableList`, `DescriptionList narrow`, `CodeBlock wrap`, `Select toolbar` and the form dialog body's stack); a later batch may bring them to the skill. The stages and runs (DECISIONS 316) are in the skill as states, not machinery: the `runs` module draws the seven marks (`.run-mark`), a stage list and a rail (`.run-stages`, `.run-rail`, `.run-stage`) and a timeline's full rows (`.run-steps`, `.run-step`), and `terminal` takes `data-stages` (a replay that is never a `log`), stage lines and no scrollbar on a replay's window. React's alone: the counter, a ticking `RunTimer`, `StageBadge`'s swap (the skill's `status` badge is swapped at once), `RunAnnouncer`, the held room and the focus rules. Whether the skill gets the links and the charts is not decided. React's alone too (cimip-gaps-3 t6): the match marks in a command row (the skill's palette has no app matcher) and `SingleKeysMenuItem` (the skill has no single-key shortcuts). The skill does draw the palette's and the command list's foot, count, empty block (a `<template data-empty>`) and a row that cannot run, the loop hold as a menu's checkbox row, `.menu-text`, a code block's `data-line-numbers` and its sideways line, and `rich-text`.
+The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of the form gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, and the scrim closing a form only while nothing has been entered (the skill's scrim closes it), a list's `scroller`, and an explainer on a header that does not sort. React's alone too: `LoadingShape` and its parts (DECISIONS 258; the skill's loading shape is a follow-up batch). React's alone too: `Composer`, `Mention` and `MentionPicker` (cimip-gaps-2, B3; see [Writing to someone](#writing-to-someone-the-composer-the-mention-and-the-picker)). So are the conversation stream's parts (`Stream` and its entries, `StreamQuote`, the arrived mark, `DisclosureRow`, `ActivityList` and `Presence`; round 56, a follow-up batch). React's alone as well: `NotificationList` (the center's page form), a group's reveal track (the skill's group opens at once), and the search over a server (`SearchField`, `SearchPassages`, `SearchPassage`, `markMatches`); the skill's `notifications` module draws the pending ring and groups (cimip-gaps-2, B7). The app shell's gaps (cimip-gaps-2, B4) are in the skill: `data-capped` on `.app-shell` (the `app-shell` module, cap 4,300 from 3,250, the skip link on the brand's start edge included), `.app-heading` and `.app-facts` under the title, the primary kept under 720, `data-size="sm"` on a `.nav` (the `nav` module, cap 5,350 from 4,800), and the `pane` module (`.pane-layout`, cap 1,700), whose script makes an overflowing pane a tab stop, including when its content arrives or grows after the page. React's alone too: the parts of [Lists and facts](#lists-and-facts) (`PanelList`, `SelectableList`, `DescriptionList narrow`, `CodeBlock wrap`, `Select toolbar` and the form dialog body's stack); a later batch may bring them to the skill. The stages and runs (DECISIONS 316) are in the skill as states, not machinery: the `runs` module draws the seven marks (`.run-mark`), a stage list and a rail (`.run-stages`, `.run-rail`, `.run-stage`) and a timeline's full rows (`.run-steps`, `.run-step`), and `terminal` takes `data-stages` (a replay that is never a `log`), stage lines and no scrollbar on a replay's window. React's alone: the counter, a ticking `RunTimer`, `StageBadge`'s swap (the skill's `status` badge is swapped at once), `RunAnnouncer`, the held room and the focus rules. Whether the skill gets the links and the charts is not decided. React's alone too (cimip-gaps-3 t6): the match marks in a command row (the skill's palette has no app matcher) and `SingleKeysMenuItem` (the skill has no single-key shortcuts). The skill does draw the palette's and the command list's foot, count, empty block (a `<template data-empty>`) and a row that cannot run, the loop hold as a menu's checkbox row, `.menu-text`, a code block's `data-line-numbers` and its sideways line, and `rich-text`. From cimip-gaps-3 T2 the skill's `stats` draws a stat that links, a value not observed and a hint, `runs` the warning state and the static `.run-place`, `terminal` the warning stage line, and `sparkline` the side scale, `times` and `marks`; React's alone: the share bar's new forms, `StaleNote`, the stage disclosure, `Heatmap` (an interactive heatmap in the skill is its own batch), the newest-first event log and `CountNames`. React's alone too (cimip-gaps-3 t4): `FormPreview`, `Reserve block`, the filter toolbar's fold and the stepper's gate; the skill draws the field's one seat (`.field-message`) and the file field in `forms` (cap 10,300 from 3,550), the segment's dot and scrolling track (`segment`, cap 8,500 from 5,500), the chip count (`option-chips`, cap 7,850 from 6,900) and the result line's held width and spoken form (`filter`, cap 18,150 from 17,700), and the tab row's undrawn scrollbar, `space-6` reveal and clip at the column's edge (`tabs`, cap 5,400 from 4,600).
+
+cimip-gaps-3 T3 adds to this list: `PanelRow`'s `wrap`, `actions` and static form, `DisclosureList`, the `FilterToolbar` sort and its `sortLabel`, `ListBand`'s one-page
+form, `onePage` and the held foot, and the notification centre's loading shape (the skill's centre shows no count and no empty words until the first `setEntries`).
+The skill draws the rest of T3: `data-wrap` cells and the call's air (`still-table`, `table`), `tr[data-linked]` (`table`), the prose disclosure (`disclosure`,
+`data-prose`), the centre's `direct` mark, counts, `wrap`, reasons and `empty` words (`notifications`), the tab bar's `data-dot-kind="direct"` (`tab-bar`), and cut text
+read whole: `data-lines` in core (the clamp, and its lift inside a control without hover) and the new `peek` module in the skill's index (the still table's plate moved
+into it; `still-table` needs it; `data-peek="off"` cuts and opens nothing).
 
 ## Logs, status and forms
 
@@ -3277,7 +3623,19 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
   under each. The prompt is the app's.
 - **A log in fixed slots** (`LogSlots`, `LogSummary`): the last three lines in three slots, 13 on 20, `space-1` of padding, no frame, title row or copy button. Each slot stands
   on `Reserve`, holding the room of the widest line the caller lists. The newest line fades in over `duration-base` (opacity only; at once under reduced motion).
-- **The event log** (`EventLog`, `EventLine`, `EventLogRule`, `EventTime`, `EventText`, and `ListboxOption`'s `leading`; V3, V4, R5). Lines are links or buttons with one tab stop. The
+- **The event log** (`EventLog`, `EventLine`, `EventLogRule`, `EventTime`, `EventText`, and `ListboxOption`'s `leading`; V3, V4, R5). Lines are links or buttons with one tab stop,
+  or plain lines (cimip-gaps-3 T2, DECISIONS 385; the implementation hasn't been reviewed): an `EventLine` with neither `href` nor `onClick` is a `div` with no tab stop, no hover wash and no pointer, which the arrows, Home and End
+  skip (a log of plain lines is a list, with no roving stop); its `object` or `detail` may hold a `Link`, its own tab stop. On touch a line that acts is 44px, a
+  plain line its own height. **Newest first** (`order="newest"`, (cimip-gaps-3 T2, DECISIONS 385; the implementation hasn't been reviewed)): the app passes its lines newest first, each with a stable `key`, in DOM order (never a CSS
+  reversal). An arrival (a key not in the last render, above the first line that was) shows at once only while the reader is at the head and not engaged: the head
+  in view, focus, the pointer and a selection outside the log's root (the element that holds the release dock and the list), no `data-loops="held"`, no scroll.
+  It fades in over `duration-base` and the lines under it move down by transform over `duration-slow` on `ease-out` (past 48, at once; reduced motion, at once
+  with a 100ms fade). Otherwise it waits out of the DOM: nothing on screen moves or remounts, focus stays where it was, and the hold makes every arrival wait (the
+  feed's pause, WCAG 2.2.2). The release control is Back to top's look and dock, the "go to the newest" control its rule names: a secondary `sm` Button with the core
+  `arrow-up` and `newLabel`'s words ("3 new events"), in a zero-height sticky dock at the log's head, fading over `duration-fast`, taking no room; a view with it
+  leaves `BackToTop` out. A press lands the lines at once, brings the head into view and focuses the first new line (a plain line takes `tabindex="-1"`, no ring).
+  A wait ends with its last cause, never mid-scroll. One polite hidden line says the count 400ms after a burst's last arrival and then not for 10 seconds
+  (`announce={false}` silences it); the list is never a live region. `unread`, a fold and a "Live" badge are the app's. The
   ring is the control ring at +2 outside each line, the list keeps `space-1-5` from its edge, the hover wash is full bleed, and focus adds no wash. A new line is
   a 6px dot in a seat every line keeps, with primary ink and a hidden "New: ": no weight change, no colour flash. Each time column is as wide as the widest stamp it can show,
   measured in the line's own font and following what the column holds (the session log, to the second and 24-hour: "00:00:00"; the activity list, a day and a clock in the locale's hour:
@@ -3314,6 +3672,15 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
   12-hour in `en-US` ("6:42 PM", "Nov 7, 8:02 AM"), with a numeric hour; a stamp to the second (`formatStamp`, the session log, `SourceStamp`, `CommandBlock`'s time) is a log's and stays 24-hour ("18:42:07"). Every
   formatter and part that writes a time takes `locale`, default `en-US`, so a server's render and the browser's agree on the hour; `dateTime` attributes stay ISO. A countdown is a length of time, not a clock. A relative age is written only beside its absolute date, never alone and never in a
   `Stat`'s source line. A countdown ticks by the second and a clock by the minute on one shared timer; `data-loops="held"` freezes both and releasing writes the current value; no live region; reduced motion does not stop them.
+  (cimip-gaps-3 T2, DECISIONS 385; the implementation hasn't been reviewed): `DateAge precision="minute"` writes the time of day first through `formatStatTime` ("7:06 PM · 19 minutes ago", "Nov 24, 7:06 PM · 1 day ago", the year
+  only when it differs; `short` "7:06 PM · 19m") and, with no `now`, ticks by the minute and holds under the hold; the day form is as before. `Countdown form="words"`
+  is `formatUntil`: "in under 1 min", "in 12 min", "in 2 hr 15 min", "in 1 day", rounded down (the words never promise more time than there is; never "in 0 min"),
+  `null` once passed (the part shows `done`, "Now"); its `datetime` is the real time left to the second ("PT12M41S"). The words change within a second of each
+  boundary and the part draws again only when they change; `format` writes another language, `widest` holds a column's width. **`StaleNote`** says what a block
+  of text predates: one wrapping line on the page (no fill, rim or level), `SourceStamp`'s stale mark (`currentColor`, `aria-hidden`) centred on the first line,
+  `space-1-5`, the app's whole sentence at `text-sm` 400 secondary (Basalt ships no template; a moment in it is the app's `DateAge precision="minute"`), and one quiet
+  `TextButton` `space-2` after it, on its own line when it does not fit. A `p` (a `div` with the action); not a live region, a `Badge` or a `Callout`; no margin
+  of its own (put `space-2` between it and the block it qualifies); shown in print; `CanvasText` in forced colours.
 - **Filter toolbar** (`FilterToolbar`): the kind select (phone only), the filter, `FilterResult` and the sort with the word "Sort" beside it (`aria-hidden`, and in the select's `aria-label`).
 
 ## Writing to someone: the composer, the mention and the picker
@@ -3371,7 +3738,7 @@ TimeChart draws a series over time (see [Charts](#charts)), ChartGroup stacks ch
 Stage and PairedArt put full-bleed art under a clear site header (a stage may also close a page), and FramedArt frames a picture in the flow (see [Art](#art)). CaptionedColumns, AppTile and PeriodStepper are in [Parts of DECISIONS 162](#parts-of-decisions-162).
 
 Text and Heading consume the shared type scale; structural heading level is independent
-of visual size. Breadcrumbs mark the current location, Pagination renders a bounded page
+of visual size. A part's level prop changes no size. `EmptyState`'s title is `text-base` at 500 (`titleSize` `md` or `lg` for a page-level one). Breadcrumbs mark the current location, Pagination renders a bounded page
 window, and Link retains native navigation, underlined in the input-boundary colour (3:1) that brightens to the text on hover, and draws the new-tab arrow when it opens one. Avatar, Separator and EmptyState provide
 neutral composition without replacing meaningful words with imagery.
 
@@ -3416,7 +3783,8 @@ opening and closing motion. Below Firefox 129 those four open and close with no 
 **Reduced transparency.** "Falls back to opaque `surface-page` under reduced transparency" holds in the browsers that evaluate
 `prefers-reduced-transparency`: Chromium from 118. Safari and Firefox do not evaluate it (Firefox only behind a flag), so there the sticky header
 stays smoked with the setting on. It is a comfort and not a legibility matter: text on the bar holds 4.5:1 over any backdrop. The audit (A5-16a)
-read this from compatibility data and did not check it in Safari with the setting on.
+read this from compatibility data and did not check it in Safari with the setting on. Where a browser evaluates `prefers-contrast` and not reduced
+transparency, more contrast gives the opaque bar; it claims no more than that.
 
 ## How these were decided
 

@@ -102,7 +102,9 @@ const inCore = Object.assign((name) => !MODULE_TOKEN.test(name) && !TYPE_LAYOUT_
 const inDiagramMotion = Object.assign((name) => DIAGRAM_MOTION_TOKEN.test(name), { keepsOther: false });
 const inDiagram = Object.assign((name) => DIAGRAM_TOKEN.test(name), { keepsOther: false });
 const inLinkRows = Object.assign((name) => LINK_ROWS_TOKEN.test(name), { keepsOther: false });
-const inArt = Object.assign((name) => MODULE_TOKEN.test(name), { keepsOther: false });
+/** The heatmap's four levels (cimip-gaps-3 T2): the skill draws no heatmap ("What the HTML skill does not draw"), so no page carries them. */
+const HEAT_TOKEN = /^--basalt-chart-heat-/;
+const inArt = Object.assign((name) => MODULE_TOKEN.test(name) && !HEAT_TOKEN.test(name), { keepsOther: false });
 const inTypeLayout = Object.assign((name) => TYPE_LAYOUT_TOKEN.test(name), { keepsOther: false });
 
 function findPackage(name) {

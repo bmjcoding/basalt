@@ -78,6 +78,18 @@ describe("the link", () => {
     assert.match((await fill(1)).transform, /^matrix\(0, /, "a failed stage's link stays empty");
   });
 
+  // cimip-gaps-3 T1: the link before a stage that has not started stays empty, even after a passed stage; before a running one it fills.
+  test("success then idle: the link stays empty; success then running: it fills", async () => {
+    const page = await open(RUN(800));
+    const fill = (i) => page.evaluate((i) => ({ transform: getComputedStyle(document.querySelectorAll(".basalt-run-stage-fill")[i]).transform, filled: document.querySelectorAll(".basalt-run-stage-link")[i].hasAttribute("data-filled") }), i);
+    await page.evaluate(() => { window.set(0, "success"); window.set(1, "idle"); });
+    await settle(page);
+    assert.deepEqual(await fill(0), { transform: "matrix(0, 0, 0, 1, 0, 0)", filled: false }, "success → idle: empty");
+    await page.evaluate(() => window.set(1, "running"));
+    await settle(page);
+    assert.deepEqual(await fill(0), { transform: "matrix(1, 0, 0, 1, 0, 0)", filled: true }, "success → running: full");
+  });
+
   test("right-to-left: the fill grows from the right", async () => {
     const page = await open(RUN(800, "rtl"));
     const origin = await page.evaluate(() => getComputedStyle(document.querySelector(".basalt-run-stage-fill")).transformOrigin);

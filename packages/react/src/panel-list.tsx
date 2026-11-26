@@ -51,59 +51,108 @@ interface PanelRowOwnProps {
   leading?: React.ReactNode;
   /** At the row's end on the title's line: a time, a count, a short state. Secondary ink, `text-sm`, tabular numerals, never cut. */
   trailing?: React.ReactNode;
-  /** More under the description, laid out by the app (a third line, a row of badges). */
+  /**
+   * More under the description, laid out by the app (a third line, a row of badges). In a row with `actions` or a static row a link inside a line of words
+   * may sit here, with its own name; it sits above the row's target, so a tap on its words follows it. In a one-target row, words and badges only.
+   */
   children?: React.ReactNode;
   /** The words a row that opens a new tab adds to its name, for translation. Default "(opens in a new tab)". */
   newTabLabel?: string;
+  /** Title and description wrap whole instead of one cut line each; the row grows. Default false. */
+  wrap?: boolean;
+  /**
+   * One or two more controls in the row: a `Button`, an `IconButton`, a `Link`. Given, the row is no longer one anchor: the title holds the link or button
+   * and its target still covers the band; the actions sit above it. Never nested in the row's target. Each says what and whom ("Call +1 912-555-0142", or
+   * an `aria-label` that starts with its visible word). From 480 of the list's width they sit at the row's end on the title's line; under it, on a line of
+   * their own under the words.
+   */
+  actions?: React.ReactNode;
 }
 
 export type PanelRowProps = PanelRowOwnProps &
   (
-    | ({ href: string } & Omit<React.ComponentProps<"a">, "title" | "children" | "href">)
-    | ({ href?: undefined } & Omit<React.ComponentProps<"button">, "title" | "children">)
+    | ({ href: string; interactive?: true } & Omit<React.ComponentProps<"a">, "title" | "children" | "href">)
+    | ({ href?: undefined; interactive?: true } & Omit<React.ComponentProps<"button">, "title" | "children">)
+    /** The band is not a target: a `div`, no wash, no press, no pointer. Its `actions` and the links in `children` are its targets. */
+    | ({ href?: undefined; interactive: false } & Omit<React.ComponentProps<"div">, "title" | "children">)
   );
 
 /**
- * One row of a `PanelList`: a link (with `href`) or a button across the whole band. Hover is the row's wash, full bleed, and lifts no ink; a
- * press steps it once more; focus is the 2px ring drawn inside at −2, because the band is flush with the panel's clipping edge (the first and
- * last rows round it with the panel's inner corner). A row that opens a new tab draws the new-tab arrow after its title and says so.
+ * One row of a `PanelList`, in one of three forms that look alike. With no `actions` it is a link (with `href`) or a button across the whole band. Hover is
+ * the row's wash, full bleed, and lifts no ink; a press steps it once more; focus is the 2px ring drawn inside at −2, because the band is flush with the
+ * panel's clipping edge (the first and last rows round it with the panel's inner corner). With `actions` the row is split: the title holds the link or
+ * button, whose cover reaches across the band and shows the same −2 ring, and each action is its own control with its own ring at +2. With
+ * `interactive={false}` the band is no target at all. A row that opens a new tab draws the new-tab arrow after its title and says so.
  */
 export function PanelRow(props: PanelRowProps) {
-  const { title, description, leading, trailing, children, newTabLabel, className, ...rest } = props;
-  const newTab = "href" in rest && rest.href !== undefined ? opensNewTab((rest as React.ComponentProps<"a">).target) : false;
-  const body = (
+  const { title, description, leading, trailing, children, newTabLabel, wrap, actions, interactive, className, style, ...rest } = props;
+  const descriptionId = React.useId();
+  const href = "href" in rest ? rest.href : undefined;
+  const newTab = href !== undefined ? opensNewTab((rest as React.ComponentProps<"a">).target) : false;
+  const split = actions !== undefined && actions !== null && actions !== false;
+  const titled = (
+    <>
+      {title}
+      {newTab ? (
+        <>
+          <NewTabGlyph />
+          <NewTabWords label={newTabLabel} />
+        </>
+      ) : null}
+    </>
+  );
+  const linkProps = (): React.ComponentProps<"a"> => {
+    const { target, rel, ...link } = rest as React.ComponentProps<"a">;
+    const safe = newTab ? [...new Set([...(rel?.split(/\s+/).filter(Boolean) ?? []), "noopener", "noreferrer"])].join(" ") : rel;
+    return { ...link, target, rel: safe, "data-new-tab": newTab ? "" : undefined } as React.ComponentProps<"a">;
+  };
+  const classes = join("basalt-panel-row", className);
+  const wrapped = wrap ? "" : undefined;
+  const words = (head: React.ReactNode) => (
     <>
       {leading !== undefined ? <span className="basalt-panel-row-lead">{leading}</span> : null}
       <span className="basalt-panel-row-words">
-        <span className="basalt-panel-row-title">
-          {title}
-          {newTab ? (
-            <>
-              <NewTabGlyph />
-              <NewTabWords label={newTabLabel} />
-            </>
-          ) : null}
-        </span>
-        {description !== undefined ? <span className="basalt-panel-row-description">{description}</span> : null}
+        <span className="basalt-panel-row-title">{head}</span>
+        {description !== undefined ? <span id={split ? descriptionId : undefined} className="basalt-panel-row-description">{description}</span> : null}
         {children}
       </span>
       {trailing !== undefined ? <span className="basalt-panel-row-end">{trailing}</span> : null}
+      {split ? <span className="basalt-panel-row-actions">{actions}</span> : null}
     </>
   );
-  const classes = join("basalt-panel-row", className);
-  if ("href" in rest && rest.href !== undefined) {
-    const { target, rel, ...link } = rest as React.ComponentProps<"a">;
-    const safe = newTab ? [...new Set([...(rel?.split(/\s+/).filter(Boolean) ?? []), "noopener", "noreferrer"])].join(" ") : rel;
+  if (interactive === false) {
     return (
       <li className="basalt-panel-item">
-        <a {...link} target={target} rel={safe} data-new-tab={newTab ? "" : undefined} className={classes}>{body}</a>
+        <div {...(rest as React.ComponentProps<"div">)} style={style} data-static="" data-wrap={wrapped} className={classes}>{words(titled)}</div>
+      </li>
+    );
+  }
+  if (split) {
+    // The trigger is the row's one link or button; its cover (`::after`) reaches across the band. Every other native prop and the ref go to it.
+    const described = description !== undefined ? descriptionId : undefined;
+    const trigger = href !== undefined
+      ? <a {...linkProps()} aria-describedby={join(described, (rest as React.ComponentProps<"a">)["aria-describedby"]) || undefined} className="basalt-panel-row-trigger">{titled}</a>
+      : (() => {
+          const { type = "button", ...button } = rest as React.ComponentProps<"button">;
+          return <button {...button} type={type} aria-describedby={join(described, button["aria-describedby"]) || undefined} className="basalt-panel-row-trigger">{titled}</button>;
+        })();
+    return (
+      <li className="basalt-panel-item">
+        <div style={style} data-split="" data-wrap={wrapped} className={classes}>{words(trigger)}</div>
+      </li>
+    );
+  }
+  if (href !== undefined) {
+    return (
+      <li className="basalt-panel-item">
+        <a {...linkProps()} style={style} data-wrap={wrapped} className={classes}>{words(titled)}</a>
       </li>
     );
   }
   const { type = "button", ...button } = rest as React.ComponentProps<"button">;
   return (
     <li className="basalt-panel-item">
-      <button {...button} type={type} className={classes}>{body}</button>
+      <button {...button} type={type} style={style} data-wrap={wrapped} className={classes}>{words(titled)}</button>
     </li>
   );
 }

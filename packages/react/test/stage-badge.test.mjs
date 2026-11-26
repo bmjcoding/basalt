@@ -1,9 +1,10 @@
 // StageBadge (DECISIONS 316, 1.6): the seven faces on Badge's marks, one seat as wide as the widest face (braille included, from a static measure), the
 // sequential swap and its frames, one accessible name throughout, reduced motion and the hold. Chromium, built package, real stylesheet.
 import assert from "node:assert/strict";
+import path from "node:path";
 import { after, before, describe, test } from "node:test";
 
-import { fixturePage, freezeAnimations, launch, settle } from "./support.mjs";
+import { fixturePage, freezeAnimations, launch, pkg, settle } from "./support.mjs";
 
 let browser;
 before(async () => { browser = await launch(); });
@@ -179,4 +180,68 @@ test("release plays no settled face's entry again (Astra 4)", async () => {
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const r = await page.evaluate(() => [...document.querySelectorAll("#live .basalt-run-badge-face")].map((f) => [f.hasAttribute("data-entering"), getComputedStyle(f).opacity]));
   assert.deepEqual(r, [[false, "1"]]);
+});
+
+// cimip-gaps-3 T1: idle ("Not started") is the neutral dot, and `states` sets the seat. Left out, the seat is today's seven words; with idle listed it
+// holds "Not started"; a badge that shows a state its set leaves out still draws it, widening once and never narrowing, and development warns.
+const SEATS = `
+const WITH_IDLE = ["idle", "queued", "running", "success", "failed", "skipped", "canceled", "retrying"];
+function App() {
+  const [state, setState] = React.useState("queued");
+  React.useEffect(() => { window.setState = setState; }, []);
+  return <div style={{ padding: 24, display: "grid", gap: 8, justifyItems: "start", fontSize: 13, lineHeight: "18px" }}>
+    <span id="today" style={{ display: "inline-flex" }}><B.StageBadge state="queued" /><i>|</i></span>
+    <span id="listed" style={{ display: "inline-flex" }}><B.StageBadge state="queued" states={WITH_IDLE} /><i>|</i></span>
+    <span id="listed-idle" style={{ display: "inline-flex" }}><B.StageBadge state="idle" states={WITH_IDLE} /><i>|</i></span>
+    <span id="live" style={{ display: "inline-flex" }}><B.StageBadge state={state} /><i>|</i></span>
+  </div>;
+}
+createRoot(document.getElementById("root")).render(<App />);`;
+
+describe("idle and the seat's states", () => {
+  for (const theme of ["dark", "light"]) {
+    test(`${theme}: idle is the neutral dot with "Not started"; the seat is unchanged without states and holds "Not started" with it`, async () => {
+      const { page, errors } = await fixturePage(browser, SEATS, { viewport: { width: 800, height: 400 }, theme });
+      await settle(page);
+      const face = await page.evaluate(() => { const b = document.querySelector("#listed-idle .basalt-run-badge-face .basalt-badge"); return [b.dataset.status, b.textContent]; });
+      assert.deepEqual(face, ["neutral", "Not started"]);
+      const w = await page.evaluate(() => ["#today", "#listed", "#listed-idle", "#live"].map((s) => document.querySelector(`${s} .basalt-run-badge`).getBoundingClientRect().width));
+      assert.equal(w[3], w[0], "left out, today's seat");
+      assert.ok(w[1] > w[0], `listed, the seat holds "Not started" (${w[1]} over ${w[0]})`);
+      assert.equal(w[2], w[1], "one width for every badge in a listed column");
+      assert.deepEqual(errors, []);
+    });
+  }
+
+  test("a badge that shows a state its set leaves out draws it, widens once, never narrows, and warns", async () => {
+    const { page } = await fixturePage(browser, SEATS, { viewport: { width: 800, height: 400 }, theme: "dark" });
+    await settle(page);
+    const seat = () => page.evaluate(() => document.querySelector("#live .basalt-run-badge").getBoundingClientRect().width);
+    const before = await seat();
+    await page.evaluate(() => window.setState("idle"));
+    await settle(page);
+    const wide = await seat();
+    assert.ok(wide > before, `it widened to hold "Not started" (${before} to ${wide})`);
+    assert.equal(await page.evaluate(() => document.querySelector("#live .basalt-run-badge-face:not([data-leaving]) .basalt-badge").textContent), "Not started");
+    await page.evaluate(() => window.setState("success"));
+    await settle(page);
+    assert.equal(await seat(), wide, "it never narrows");
+  });
+
+  test("development warns once when a badge shows a state its set leaves out (the dist module under Node, where NODE_ENV is not production)", async () => {
+    const React = await import("react");
+    const { renderToString } = await import("react-dom/server");
+    const { StageBadge } = await import(path.join(pkg, "dist", "stage-badge.js"));
+    const warn = console.warn;
+    const said = [];
+    console.warn = (m) => said.push(String(m));
+    let html;
+    try {
+      html = renderToString(React.createElement(StageBadge, { state: "idle" }));
+      renderToString(React.createElement(StageBadge, { state: "idle" }));
+      renderToString(React.createElement(StageBadge, { state: "idle", states: ["idle", "queued"] }));
+    } finally { console.warn = warn; }
+    assert.equal(said.filter((m) => /StageBadge: it showed "idle"/.test(m)).length, 1, said.join("\n"));
+    assert.match(html, /Not started/, "it still draws the state");
+  });
 });

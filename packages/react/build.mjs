@@ -4,6 +4,7 @@
 //   dist/components.css the component styles, with the tokens package's accent classes, in @layer basalt
 //   dist/styles.css     tokens + components: the one stylesheet most apps import
 //   dist/fonts.css      Geist Sans and Mono @font-face rules, with the variable font files, and the Geist Fallback face (three, one per weight)
+//   dist/base.css       the opt-in page base, the tokens package's base.css as it ships: never part of styles.css
 //   .demo/              a page with every component in both themes, for the browser tests
 
 import { execFileSync } from "node:child_process";
@@ -180,6 +181,26 @@ await esbuild.build({
   banner: { js: `"use client";` },
 });
 
+// The notification list's first load (notification-shape.tsx, cimip-gaps-3 T3 fix 1, item 8) is one more lazy module: a list that waits for its first answer
+// loads it, and a bell or a page list that never waits does not (built in the main build, the bell's static graph carried LoadingShape's 13.9 KB). It is
+// built here for the E5 reason: LoadingShape, its measuring and its clock (page-start) are inlined, so it shares no file with the static graph. Even a
+// React-only file shared with it (in-shape, measured) put a chunk of about 90 bytes into every root import's graph, because an app's bundler assigns chunks
+// before it shakes. The one piece of shared state a drawing needs, the context that tells a part it is drawn in a shape, stays the package's own: the list
+// wraps its stand-ins in in-shape's provider itself (notifications.tsx), so the parts inside read the shared context and not this copy's. The copy's clock
+// counts a list drawn more than a second into its page from its own drawing, as the package's does; it does not see a held reload paint.
+await esbuild.build({
+  bundle: true,
+  format: "esm",
+  platform: "neutral",
+  target: "es2022",
+  jsx: "automatic",
+  logLevel: "warning",
+  entryPoints: [path.join(here, "src/notification-shape.tsx")],
+  outdir: dist,
+  external,
+  banner: { js: `"use client";` },
+});
+
 // The root's map for the imports plugin (src/tooling/imports.ts): every name the root exports at run time, and the module that holds it, read from the barrel's source.
 // `export * from "./glyph-set"` is the one star, and glyph-set is itself a list of `export { X } from "./glyphs/x"`: each glyph maps to its own module. Every
 // `export` statement in the barrel must be one of the three forms below (`export { … } from "./x";`, `export type { … } from "./x";`, `export * from "./x";`, double
@@ -266,13 +287,30 @@ await esbuild.build({
   banner: { js: `"use client";` },
 });
 
+// The anchored popover is the sixth (cimip-gaps-3 T2: Stat's hint and a rail stage's detail load it the first time one opens, lazy-popover.ts), built the
+// same way and for the same reason as the Sources popup: Base UI's popover is inlined and nothing of Basalt's is imported (the level and layer are handed in),
+// so a Stat or a StageRail that never opens one is what it was.
+await esbuild.build({
+  bundle: true,
+  format: "esm",
+  platform: "neutral",
+  target: "es2022",
+  jsx: "automatic",
+  logLevel: "warning",
+  entryPoints: [path.join(here, "src/anchored-popover.tsx")],
+  outdir: dist,
+  external: reactOnly,
+  plugins: [storeFromReact],
+  banner: { js: `"use client";` },
+});
+
 await esbuild.build({
   // One module per source file: with "sideEffects" limited to CSS, an app's bundler drops
   // every module it doesn't import (an app using Button never loads Menu, Base UI's menu or Shiki).
   // The core glyphs are modules of their own (src/glyphs), so an app that imports HomeGlyph bundles only HomeGlyph.
   entryPoints: [
     // index.ts is not bundled: it is a barrel of `export { … } from "./module"` and is written as one, below, so each export comes from the module that holds it.
-    ...fs.readdirSync(path.join(here, "src")).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts") && !["command-panel.tsx", "glyph-flight.tsx", "diagram-motion.tsx", "diagram-motion-core.ts", "diagram-interop.ts", "diagram-viewer.tsx", "diagram-actions.tsx", "diagram-zoom-core.ts", "diagram-elk.ts", "release-sources.tsx", "rail-tooltip.tsx", "index.ts"].includes(f)).map((f) => path.join(here, "src", f)),
+    ...fs.readdirSync(path.join(here, "src")).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".d.ts") && !["command-panel.tsx", "glyph-flight.tsx", "diagram-motion.tsx", "diagram-motion-core.ts", "diagram-interop.ts", "diagram-viewer.tsx", "diagram-actions.tsx", "diagram-zoom-core.ts", "diagram-elk.ts", "release-sources.tsx", "rail-tooltip.tsx", "anchored-popover.tsx", "notification-shape.tsx", "index.ts"].includes(f)).map((f) => path.join(here, "src", f)),
     ...fs.readdirSync(path.join(here, "src", "glyphs")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "glyphs", f)),
     // The service marks (DECISIONS 292, 2.6): one module a mark under dist/marks, at @srasyndicate/basalt/marks/<id>, never imported by the index, so an
     // app pays for the marks it imports and no others. Generated by marks/generate.mjs.
@@ -283,7 +321,7 @@ await esbuild.build({
     ...fs.readdirSync(path.join(here, "src", "tooling")).filter((f) => /\.ts$/.test(f)).map((f) => path.join(here, "src", "tooling", f)),
   ],
   define: { __PHOSPHOR_NOTICE__: JSON.stringify(phosphorNotice), __BASALT_ROOT_MAP__: JSON.stringify(JSON.stringify(rootMap)) },
-  plugins: [{ name: "lazy-modules", setup(build) { build.onResolve({ filter: /^\.\/(command-panel|glyph-flight|diagram-motion|diagram-viewer|diagram-layout|diagram-text|diagram-actions|diagram-elk|release-sources|rail-tooltip)$/ }, (args) => (args.kind === "dynamic-import" ? { path: `${args.path}.js`, external: true } : undefined)); } }],
+  plugins: [{ name: "lazy-modules", setup(build) { build.onResolve({ filter: /^\.\/(command-panel|glyph-flight|diagram-motion|diagram-viewer|diagram-layout|diagram-text|diagram-actions|diagram-elk|release-sources|rail-tooltip|anchored-popover|notification-shape)$/ }, (args) => (args.kind === "dynamic-import" ? { path: `${args.path}.js`, external: true } : undefined)); } }],
   outdir: dist,
   bundle: true,
   splitting: true,
@@ -336,7 +374,7 @@ const needsClient = (file, seen = new Set()) => {
   seen.add(file);
   return staticImports(fs.readFileSync(path.join(dist, file), "utf8")).some((specifier) => clientImport.test(specifier) || (/^\.\/chunk-/.test(specifier) && needsClient(specifier.slice(2), seen)));
 };
-for (const file of fs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && !path.basename(f).startsWith("chunk-") && !["command-panel.js", "glyph-flight.js", "diagram-motion.js", "diagram-interop.js", "diagram-viewer.js", "diagram-actions.js", "diagram-elk.js", "release-sources.js", "rail-tooltip.js"].includes(f))) {
+for (const file of fs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && !path.basename(f).startsWith("chunk-") && !["command-panel.js", "glyph-flight.js", "diagram-motion.js", "diagram-interop.js", "diagram-viewer.js", "diagram-actions.js", "diagram-elk.js", "release-sources.js", "rail-tooltip.js", "anchored-popover.js", "notification-shape.js"].includes(f))) {
   const code = fs.readFileSync(path.join(dist, file), "utf8");
   if (needsClient(file)) fs.writeFileSync(path.join(dist, file), `"use client";\n${code}`);
 }
@@ -414,6 +452,8 @@ const tokens = fs.readFileSync(require.resolve("@srasyndicate/basalt-tokens/toke
 // The two style sheets ship without their comments and whitespace (minify-css.mjs); the commented source stays in the repository and in the demo page below.
 fs.writeFileSync(path.join(dist, "components.css"), minifyCss(components));
 fs.writeFileSync(path.join(dist, "styles.css"), minifyCss(`${tokens}\n${components}`));
+// The page base: one source (the tokens package's), two doors. Opt-in, so styles.css never includes it.
+fs.copyFileSync(require.resolve("@srasyndicate/basalt-tokens/base.css"), path.join(dist, "base.css"));
 
 // The demo page: every component, both themes, bundled with React for the browser tests.
 const demo = path.join(here, ".demo");

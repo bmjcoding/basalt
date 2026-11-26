@@ -31,19 +31,23 @@
   }
 
   /* ---- The result line: shown at once, spoken once ---- */
-  function say(p, text, delay, quiet) {
+  /* The drawn words are `text`; what is said, 400ms after the line holds still, is `spoken` when given (the words set apart, "Lots shown (12)", said as a
+     sentence), else the words. One live region per line, whatever is drawn. */
+  function say(p, text, delay, quiet, spoken) {
+    var heard = spoken == null || spoken === '' ? text : spoken;
     if (!p.__bhResult) {
       p.__bhResult = true;
       p.innerHTML = '<span aria-hidden="true"></span><span role="status" aria-live="polite" aria-atomic="true" class="visually-hidden"></span>';
-      p.lastChild.textContent = text;
+      p.lastChild.textContent = heard;
     }
     p.firstChild.textContent = text;
     clearTimeout(p.__bhTimer);
     var wait = delay == null ? Number(p.getAttribute('data-delay')) || 400 : delay;
-    if (quiet) p.lastChild.textContent = text;
-    else p.__bhTimer = setTimeout(function () { p.lastChild.textContent = text; }, wait);
+    if (quiet) p.lastChild.textContent = heard;
+    else p.__bhTimer = setTimeout(function () { p.lastChild.textContent = heard; }, wait);
   }
-  B.filterResult = say;
+  /** Basalt.filterResult(el, text, delay, spoken): sets a result line by hand; `spoken` is what is said in place of `text`. */
+  B.filterResult = function (p, text, delay, spoken) { say(p, text, delay, false, spoken); };
 
   /* ---- The table a filter narrows ---- */
   function refresh(id, quiet) {
@@ -237,7 +241,7 @@
   }
 
   _.step(75, 'filter', function () {
-    document.querySelectorAll('.filter-result').forEach(function (p) { if (!p.__bhResult) say(p, p.textContent); });
+    document.querySelectorAll('.filter-result').forEach(function (p) { if (!p.__bhResult) say(p, p.textContent, null, false, p.getAttribute('data-spoken')); });
     document.querySelectorAll('.filter').forEach(function (root) { if (!root.__bhFilter) wire(root); });
     var done = {};
     document.querySelectorAll('.filter[data-for]').forEach(function (f) { var t = f.getAttribute('data-for'); if (!done[t]) { done[t] = 1; refresh(t, true); } });

@@ -14,3 +14,4 @@ One of many, eight at most, as wrapping chips with no track (React's OptionChips
 
 - A value that cannot be chosen has `aria-disabled="true"` on its input (not `disabled`) and its reason in `.option-chip-note`: it stays reachable, the arrow keys land on it, and nothing chooses it. A `disabled` input is skipped.
 - The chosen chip is the selected wash; its edge does not change. Every chip reserves the round seat, so choosing moves nothing.
+- A count: after the label, `<span class="visually-hidden">, 18</span><span class="option-chip-figure" data-seat="512" aria-hidden="true"><span>18</span></span>`, `data-seat` the group's largest figure on every counted chip. Zero is drawn and disables nothing.

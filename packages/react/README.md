@@ -8,6 +8,7 @@ accessibility, styled with Basalt tokens, with its own core icon set and [Phosph
 ```tsx
 import "@srasyndicate/basalt/fonts.css"; // Geist Sans and Mono (SIL OFL 1.1)
 import "@srasyndicate/basalt/styles.css"; // tokens + components
+import "@srasyndicate/basalt/base.css"; // optional: the page base (body: no margin, surface-page, primary ink, text-base), never in styles.css
 
 import { Button, Menu, MenuContent, MenuItem, MenuTrigger } from "@srasyndicate/basalt";
 import { CopyIcon, PlayIcon } from "@phosphor-icons/react";

@@ -680,7 +680,7 @@ for (const theme of ["light", "dark"]) {
       await page.keyboard.press("Enter");
       assert.equal(await page.getByTestId("saving-clicks").textContent(), "0");
       await page.emulateMedia({ reducedMotion: "reduce" });
-      assert.equal(await page.locator(".basalt-spinner[data-variant=ring] svg").first().evaluate((el) => getComputedStyle(el).animationName), "basalt-pulse");
+      assert.equal(await page.locator(".basalt-spinner[data-variant=ring] svg").first().evaluate((el) => getComputedStyle(el).animationName), "none", "the ring stands still under reduced motion");
       assert.equal(await page.locator(".basalt-spinner[data-variant=braille] [data-dot='1']").evaluate((el) => getComputedStyle(el).animationName), "none", "braille holds under reduced motion");
       const add = page.getByRole("button", { name: "Add a run" });
       const box = await add.boundingBox();
@@ -696,9 +696,10 @@ for (const theme of ["light", "dark"]) {
     test("loading and expansion honour reduced motion", async () => {
       const { page } = await open(theme);
       await page.emulateMedia({ reducedMotion: "reduce" });
-      assert.equal(await page.getByRole("status", { name: "Starting sandbox" }).locator("svg").evaluate((el) => getComputedStyle(el).animationName), "basalt-pulse");
+      assert.equal(await page.getByRole("status", { name: "Starting sandbox" }).locator("svg").evaluate((el) => getComputedStyle(el).animationName), "none");
       assert.equal(await page.locator(".basalt-skeleton").first().evaluate((el) => getComputedStyle(el).animationName), "none");
-      assert.equal(await page.locator(".basalt-progress-indicator[data-indeterminate]").evaluate((el) => getComputedStyle(el).animationName), "basalt-pulse");
+      assert.equal(await page.locator(".basalt-progress-indicator[data-indeterminate]").evaluate((el) => getComputedStyle(el).animationName), "none");
+      assert.equal(await page.locator(".basalt-progress-indicator[data-indeterminate]").evaluate((el) => getComputedStyle(el).visibility), "hidden", "the indeterminate bar is its track only");
       assert.equal(await page.locator(".basalt-accordion-caret").first().evaluate((el) => getComputedStyle(el).transitionDuration), "0s");
       await page.close();
     });

@@ -136,7 +136,12 @@
   .filter-none[hidden] { display: none; }
 
   /* The result line: shown at once, spoken once (the live copy is visually hidden). */
-  .filter-result { margin: 0; font: var(--basalt-font-weight-regular) var(--bh-sm); color: var(--basalt-text-secondary); font-variant-numeric: tabular-nums; }
+  .filter-result { margin: 0; min-height: var(--basalt-text-sm-line-height); font: var(--basalt-font-weight-regular) var(--bh-sm); color: var(--basalt-text-secondary); font-variant-numeric: tabular-nums; }
+  /* data-reserve: the widest drawn form, a string, laid out unseen in the line's one cell, so the line wraps the same from the first frame (React's reserve).
+     An empty result keeps one line's height (the min-height above). */
+  .filter-result[data-reserve] { display: inline-grid; grid-template-columns: minmax(0, 1fr); max-width: 100%; vertical-align: top; }
+  .filter-result[data-reserve] > [aria-hidden], .filter-result[data-reserve]::after { grid-area: 1 / 1; min-width: 0; }
+  .filter-result[data-reserve]::after { content: attr(data-reserve); visibility: hidden; user-select: none; }
 
   /* While the glide's shared plate is live, the lit row's own plate steps aside. */
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {

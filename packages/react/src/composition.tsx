@@ -3,6 +3,7 @@ import { Separator as BaseSeparator } from "@base-ui/react/separator";
 import * as React from "react";
 
 import { Icon } from "./icon";
+import { PeekText } from "./text-peek";
 import type { IconComponent, Orientation, PartProps } from "./types";
 import { join, withClass } from "./utils";
 
@@ -42,17 +43,22 @@ export interface EmptyStateProps extends Omit<React.ComponentProps<"section">, "
   description?: React.ReactNode;
   icon?: IconComponent;
   actions?: React.ReactNode;
-  /** The title's heading level in the page outline; its size stays the same. */
-  headingLevel?: 2 | 3 | 4 | 5 | 6;
+  /** The title's heading level in the page outline; it never sets the size. Level 1 is for a page whose only heading is this one. */
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
+  /**
+   * The title's size, at 500 in primary ink at every level: `"base"` (the default, 14/20) in a panel or a list; `"md"` (16/24) for an empty state that
+   * is a page's whole content under its title; `"lg"` (18/26).
+   */
+  titleSize?: "base" | "md" | "lg";
 }
 
 /** Guidance when a view has no content; never announced as an error on initial load. */
-export function EmptyState({ title, description, icon, actions, headingLevel = 2, children, className, ...props }: EmptyStateProps) {
+export function EmptyState({ title, description, icon, actions, headingLevel = 2, titleSize = "base", children, className, ...props }: EmptyStateProps) {
   const id = React.useId();
   return (
     <section {...props} aria-labelledby={id} className={join("basalt-empty-state", className)}>
       {icon ? <Icon icon={icon} size={24} className="basalt-empty-state-icon" /> : null}
-      {React.createElement(`h${headingLevel}`, { id, className: "basalt-empty-state-title" }, title)}
+      {React.createElement(`h${headingLevel}`, { id, className: "basalt-empty-state-title", "data-size": titleSize === "base" ? undefined : titleSize }, title)}
       {description ? <p className="basalt-empty-state-description">{description}</p> : null}
       {children}
       {actions ? <div className="basalt-empty-state-actions">{actions}</div> : null}
@@ -91,12 +97,36 @@ export interface TextProps extends React.ComponentProps<"p"> {
   mono?: boolean;
   /** Tabular figures, so columns of numbers don't shift. */
   tabular?: boolean;
+  /**
+   * Cut to this many lines with an ellipsis (a whole number, 1 or more). The element becomes a block box. The clamp's height is capped at that many of the
+   * reader's own lines (`1lh`), so a user's line height (WCAG 1.4.12) shows whole lines and no part of the next.
+   */
+  lines?: number;
+  /**
+   * While the text is cut, its whole text opens over it on the level-3 plate. The text is the focus stop; inside a control (a link, a button, a summary, a
+   * label or a widget role), that control is, and the plate opens from its hover and keyboard focus. Without hover there is no plate inside a control: the
+   * text shows whole at rest. Default true. Set false only for an excerpt whose whole text is one press away (a card or row that links to it). Read only
+   * with `lines`.
+   */
+  peek?: boolean;
 }
 
-export function Text({ as = "p", size = "base", tone = "primary", weight, mono = false, tabular = false, className, style, ...props }: TextProps): React.JSX.Element {
+export function Text({ as = "p", size = "base", tone = "primary", weight, mono = false, tabular = false, lines, peek = true, className, style, ...props }: TextProps): React.JSX.Element {
   const display = DISPLAY.includes(size);
+  const cut = lines !== undefined && Number.isInteger(lines) && lines >= 1 ? lines : undefined;
   // Display type is 600, as it is through Heading and as the skill's .text-6xl and .text-7xl are: a weight that is asked for still wins.
-  return React.createElement(as, { ...props, "data-tone": tone, "data-mono": mono ? "" : undefined, "data-display": display ? "" : undefined, className: join("basalt-text", tabular && "basalt-tabular", className), style: { ...typeStyle(size, weight ?? (display ? "semibold" : "regular")), ...style } });
+  const all = {
+    ...props,
+    "data-tone": tone,
+    "data-mono": mono ? "" : undefined,
+    "data-display": display ? "" : undefined,
+    "data-lines": cut,
+    "data-peek": cut && !peek ? "off" : undefined,
+    className: join("basalt-text", tabular && "basalt-tabular", className),
+    style: { ...typeStyle(size, weight ?? (display ? "semibold" : "regular")), ...(cut ? { "--_lines": cut } : null), ...style } as React.CSSProperties,
+  };
+  if (cut && peek) return <PeekText as={as} props={all} />;
+  return React.createElement(as, all);
 }
 
 export interface HeadingProps extends React.HTMLAttributes<HTMLHeadingElement> {

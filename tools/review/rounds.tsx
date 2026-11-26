@@ -140,6 +140,10 @@ import { ROUND_71 } from "./round71";
 import { ROUND_72 } from "./round72";
 import { ROUND_73 } from "./round73";
 import { ROUND_74 } from "./round74";
+import { ROUND_75 } from "./round75";
+import { ROUND_76 } from "./round76";
+import { ROUND_77 } from "./round77";
+import { ROUND_78 } from "./round78";
 import { ROUND_80 } from "./round80";
 
 export interface Step {
@@ -722,4 +726,8 @@ ROUNDS.push(ROUND_71);
 ROUNDS.push(ROUND_72);
 ROUNDS.push(ROUND_73);
 ROUNDS.push(ROUND_74);
+ROUNDS.push(ROUND_75);
+ROUNDS.push(ROUND_76);
+ROUNDS.push(ROUND_77);
+ROUNDS.push(ROUND_78);
 ROUNDS.push(ROUND_80);
