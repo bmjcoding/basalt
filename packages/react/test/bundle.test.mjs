@@ -99,7 +99,7 @@ async function lazyGraph(names, extra = "") {
 // cimip-gaps-3 E5: E1 had raised this limit to main's measure, because PR #143 built the lazy diagram-actions.js in the main build, so it imported
 // Button's dist chunk and an app's bundler put Button and Base UI's button in a chunk every root import loaded. diagram-actions is built on its own now
 // (build.mjs), and the limit is the measure on the E5 branch, rounded up to the next 50: Sparkline 23,197 on main, 4,765 (23,200 to 4,800).
-// cimip-gaps-3 T2 (measured with this file's own graph() and bundle() on origin/main ac962cec and on the T2 head; each limit the head's measure rounded up to the
+// cimip-gaps-3 T2 (measured with this file's own graph() and bundle() on origin/main (ac962cec, and the same on c67926bf) and on the T2 head; each limit the head's measure rounded up to the
 // next 50, raised only by the increase): Sparkline 4,765 on main, 9,060 on the head (4,800 to 9,100: the side scale from the data's own range, the real-pixel plot and its
 // ResizeObserver, times and their lane by formatClock and formatDay, two marks and their key, and the image's name from the data).
 for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_100], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_550], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 3_400], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_100]]) {
@@ -207,7 +207,7 @@ test("Menu does not pull in Shiki", async () => {
 // all of them (9,706 bytes, limit 10,500); the limit is back at 8,000.
 // Representative single imports. Each of these once dragged in a neighbouring component's
 // primitives (a Popover or Tooltip from a module-scope alias, Base UI from NumberTicker's module).
-// cimip-gaps-3 T2 (measured with this file's own graph() and bundle() on origin/main ac962cec and on the T2 head; each limit the head's measure rounded up to the
+// cimip-gaps-3 T2 (measured with this file's own graph() and bundle() on origin/main (ac962cec, and the same on c67926bf) and on the T2 head; each limit the head's measure rounded up to the
 // next 50, raised only by the increase): Sparkline alone 4,631 on main, 8,926 on the head (8,000 to 8,950), for the same parts as above.
 for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 4_000], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 8_950]]) {
   test(`${name} alone is small and loads no Base UI`, async () => {
@@ -448,7 +448,7 @@ test("Meter carries Base UI's Meter and no other part, no Phosphor and no Shiki"
 // The charts port (DECISIONS 153): the trend helper is a few hundred bytes and does not pull the chart in; the share bar, coverage strip and marks row are plain elements and load no
 // Base UI and no icon; the range meter carries Base UI's Meter and nothing else of it; the phase chart is the chart plus its lane. Measured (bytes): trailingMean 435, ShareBar 1,022,
 // CoverageStrip 1,379, MarksRow 683, RangeMeter 9,454, TimeChart 46,915, PhaseChart 49,465. The short bar plot (`compact`, DECISIONS 160) added 120 bytes to TimeChart (46,973 to 47,093); PhaseChart is 49,643.
-// cimip-gaps-3 T2 (measured with this file's own graph() and bundle() on origin/main ac962cec and on the T2 head; each limit the head's measure rounded up to the
+// cimip-gaps-3 T2 (measured with this file's own graph() and bundle() on origin/main (ac962cec, and the same on c67926bf) and on the T2 head; each limit the head's measure rounded up to the
 // next 50, raised only by the increase): ShareBar 1,411 on main, 8,197 on the head (1,500 to 8,250: tones, the floors and the one-line fit measured before paint, the legend, parts
 // that are links or buttons through safeHref, and the core new-tab arrow); CoverageStrip 1,570, 2,297 (2,000 to 2,300: the events' lane and sentence). Neither loads Base UI or Phosphor.
 // T2 fix pass 1 (Astra): ShareBar keeps the caller's ref (useMergedRef): 8,197 to 8,458 measured, so 8,250 to 8,500.
@@ -489,8 +489,10 @@ test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async
   // 41,750 (main's) to 42,200 in DECISIONS 336, then 42,550 with the open items' ruling (the shared copy state, copy-result.ts, and the close on a refused icon-only copy): its copies are hung, its words form keeps its words with the done seat, and a refused copy shows the close.
   // cimip-gaps-3 E1 (DECISIONS 246): RunTimer's `spoken` and its fresh-words tick add 313. E5: with the shared chunk gone (diagram-actions built on its own, build.mjs)
   // Terminal measures 42,889 (43,011 on main), so the limit is 43,050 to 42,900. It was 42,570 before PR #143, already 20 over the old 42,550.
-  // MEASURE-TERMINAL
-  assert.ok(bytes < 99_999, `Terminal bundle is ${bytes} bytes`);
+  // cimip-gaps-3 T1 and T2 in one PR (measured with this file's graph() on origin/main c67926bf and on the combined head; the limit is main's 42,900 plus the
+  // combined increase): T1's minute grain for RunTimer (read before paint, its tick on the minute's machine value and scale) and T2's warning stage line (its
+  // mark and word): 42,889 on main, 43,744 on the head (+855), so 42,900 to 43,755.
+  assert.ok(bytes < 43_755, `Terminal bundle is ${bytes} bytes`);
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
 });
@@ -781,8 +783,14 @@ test("AppShell loads the rail's tooltip for the version on demand", async () => 
 // `spoken` and the rail's whole seconds are about 312 of it); RunStage 38,512, 22,181 (38,550 to 22,200); StageList, RunStage 39,277, 22,948 (39,300 to 22,950); StageRail,
 // RunStage 39,229, 22,900 (39,250 to 22,950). StageMark 14,451 (31,147 on main), StageBadge 5,414 (22,072), RunAnnouncer 582 (19,047) and formatRunTime 649 (19,114)
 // are under the limits E1 left as they were, and none of them loads Base UI again.
-// MEASURE-STAGES
-for (const [name, limit, phosphor] of [["StageMark", 99_999, true], ["StageBadge", 99_999, false], ["RunTimer", 99_999, false], ["RunAnnouncer", 600, false], ["formatRunTime", 750, false], ["RunStage", 99_999, true], ["StageList, RunStage", 99_999, true], ["StageRail, RunStage", 99_999, true]]) {
+// cimip-gaps-3 T1 (idle: Phosphor's CircleDashed, the badge's `states` seat, RunTimer's minute grain, the empty link before an idle node) and T2 (warning:
+// Phosphor's Warning and the warning status; the clock seat, formatClock and formatStatTime; the stage's own disclosure, its chevron morph, ControlIcon and the
+// popup level; the rail's popover, lazy in anchored-popover.js, built on its own with Base UI's popover inlined, so none of these loads Base UI) ship in one PR.
+// Measured with this file's graph() on origin/main c67926bf and on the combined head; each limit is main's plus the combined increase: StageMark 14,451 to
+// 22,797 (+8,346; 14,500 to 22,846); StageBadge 5,414 to 5,724 (+310; 5,450 to 5,760); RunTimer 6,091 to 6,897 (+806; 6,100 to 6,906, T1's alone); formatRunTime
+// 649 to 818 (+169; 750 to 919: T1's minute grain in run-format.ts); RunStage 22,181 to 39,733 (+17,552; 22,200 to 39,752); StageList, RunStage 22,948 to 40,985
+// (+18,037; 22,950 to 40,987); StageRail, RunStage 22,900 to 41,330 (+18,430; 22,950 to 41,380).
+for (const [name, limit, phosphor] of [["StageMark", 22_846, true], ["StageBadge", 5_760, false], ["RunTimer", 6_906, false], ["RunAnnouncer", 600, false], ["formatRunTime", 919, false], ["RunStage", 39_752, true], ["StageList, RunStage", 40_987, true], ["StageRail, RunStage", 41_380, true]]) {
   test(`${name} alone loads no Base UI${phosphor ? "" : " and no Phosphor"} (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
