@@ -93,7 +93,7 @@
     var savedScroll = 0;
     var paneFor = NaN;
     var paneBody = pane && pane.querySelector('.command-pane-body');
-    var spoken = shownText.textContent = spokenText.textContent = P.countLine(total, total, noun, count);
+    var spoken = shownText.textContent = spokenText.textContent = P.countLine(total, total, noun, false, count);
     var timer;
 
     /** The count is shown at once and spoken once, after it has held still for 400ms. */
@@ -191,7 +191,7 @@
       none.hidden = vis.length > 0;
       if (!vis.length) fillNone(q);
       results.scrollTop = 0;
-      say(P.countLine(vis.length, total, noun, count));
+      say(P.countLine(vis.length, total, noun, q !== '', count));
       setActive(vis.length ? vis[0] : -1, false);
     }
 

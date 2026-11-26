@@ -1238,8 +1238,8 @@
         "kbd",
         "glide"
       ],
-      "budget": 14513,
-      "budgetReason": "audit-fix-c2 Sol build: 9897 to 10801 bytes (+904); hosted top-layer scrim, logical-host cleanup, scoped keys and the modal depth reset preserve the original page painting and explicit inertness, escape sheet clipping and allow dialogs above the palette. Cap 9900 to 10801. Return 1: 10801 to 10843 bytes (+42) for pointer focus on the panel without a ring and modal-only hosting; cap 10801 to 11000, leaving 157 bytes. cimip-gaps-3 t6 (DECISIONS 385; the skill's budgets are soft): the foot and its count (data-noun, data-count, spoken once and never on opening), the empty block outside the listbox with its template and Clear search, the row that cannot run (its reason said on every press), Tab among the field and the block, and the foot's and the block's CSS moved here from command-list (which shrank 14674 to 14295): 11335 to 14513 bytes (+3178); cap 11500 to 14513. Usage 1388 to 2248.",
+      "budget": 14518,
+      "budgetReason": "audit-fix-c2 Sol build: 9897 to 10801 bytes (+904); hosted top-layer scrim, logical-host cleanup, scoped keys and the modal depth reset preserve the original page painting and explicit inertness, escape sheet clipping and allow dialogs above the palette. Cap 9900 to 10801. Return 1: 10801 to 10843 bytes (+42) for pointer focus on the panel without a ring and modal-only hosting; cap 10801 to 11000, leaving 157 bytes. cimip-gaps-3 t6 (DECISIONS 385; the skill's budgets are soft): the foot and its count (data-noun, data-count, spoken once and never on opening), the empty block outside the listbox with its template and Clear search, the row that cannot run (its reason said on every press), Tab among the field and the block, and the foot's and the block's CSS moved here from command-list (which shrank 14674 to 14295): 11335 to 14513 bytes (+3178); cap 11500 to 14513. Fix pass 1: N of N while a search matches every row, 14513 to 14518 (+5); cap 14518. Usage 1388 to 2248.",
       "usage": 2248,
       "textWords": [
         "a call to Basalt.openPalette or Basalt.closePalette",

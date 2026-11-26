@@ -22,6 +22,10 @@ const open = async (body, options = DESKTOP, theme = "dark") => {
   await page.addStyleTag({ content: "body { background: var(--basalt-surface-page); color: var(--basalt-text-primary); margin: 0; } button, input { font: inherit; }" });
   return { page, errors };
 };
+const clickCentre = async (page, locator) => {
+  const box = await locator.boundingBox();
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+};
 const lit = (page) => page.evaluate(() => document.querySelector("[cmdk-item][data-selected='true'] .basalt-menu-item-label")?.textContent ?? null);
 const axe = async (page) => {
   await page.evaluate(() => { document.title = "Basalt"; document.documentElement.lang = "en"; });
@@ -78,7 +82,8 @@ ${render("<App />")}`);
     await page.keyboard.press("Enter");
     await page.waitForTimeout(50);
     assert.deepEqual(reasons, ["Sign in to share a recipe with another cook.", "Sign in to share a recipe with another cook."], "said at once, on every press");
-    await page.locator("[cmdk-item]", { hasText: "Share recipe" }).click();
+    // The mouse at the row's centre: locator.click() waits for an enabled option, and this one is aria-disabled.
+    await clickCentre(page, page.locator("[cmdk-item]", { hasText: "Share recipe" }));
     await page.waitForTimeout(50);
     assert.equal(reasons.length, 3, "a click says it too");
     assert.deepEqual(await page.evaluate(() => window.log), [], "nothing ran and nothing closed");
@@ -174,6 +179,41 @@ ${render(`<div style={{ width: ${width} }}><B.CommandList label="Console" groups
   });
 });
 
+describe("Basalt filters and orders the rows (cmdk does not)", () => {
+  // A row that cannot run and a better match that can, in one group: cmdk's sorter moved only the rows it can select, so the better match landed
+  // behind the worse one and the lit first row and Home went to the wrong command (Astra's review, fix pass 1). The order must be the scores'.
+  const MIXED = `
+window.log = [];
+const MIXED = [{ label: "Builds", commands: [
+  { id: "deployments", label: "Deployment history", unavailable: "Sign in to see past deployments." },
+  { id: "deploy", label: "Deploy", onSelect: () => { window.log.push("ran:deploy"); } },
+  { id: "logs", label: "Open logs", onSelect: () => { window.log.push("ran:logs"); } },
+] }];
+`;
+  const order = (page) => page.evaluate(() => [...document.querySelectorAll("[cmdk-item] .basalt-menu-item-label")].map((el) => el.textContent));
+  for (const surface of ["modal", "list"]) {
+    test(`${surface}: with an unavailable row in the group, the best match is first, lit and what Home reaches; the order is the DOM's`, async () => {
+      const tree = surface === "modal" ? `<B.CommandMenu open onOpenChange={() => {}} groups={MIXED} />` : `<B.CommandList label="Console" groups={MIXED} />`;
+      const { page } = await open(`${MIXED}${render(tree)}`);
+      await page.waitForSelector("[cmdk-item]");
+      await page.locator("[cmdk-input]").focus();
+      await page.keyboard.type("deploy");
+      await settle(page);
+      const rows = await order(page);
+      assert.equal(rows[0], "Deploy", `the exact match ranks first: ${rows.join(", ")}`);
+      assert.ok(rows.includes("Deployment history"), "the unavailable row is still shown, ranked by its score");
+      assert.equal(rows.includes("Open logs"), false, "a row that does not match is not drawn");
+      assert.equal(await lit(page), "Deploy");
+      await page.keyboard.press("End");
+      await page.keyboard.press("Home");
+      assert.equal(await lit(page), "Deploy", "Home goes to the first row drawn");
+      await page.keyboard.press("Enter");
+      assert.deepEqual(await page.evaluate(() => window.log), ["ran:deploy"]);
+      await page.close();
+    });
+  }
+});
+
 describe("the modal's foot, count and empty slot", () => {
   test("the count at rest, while filtering, at zero and with filter={false}; `count` replaces it; the foot is always there and 36px or taller", async () => {
     const { page } = await open(`${RECIPES}
@@ -190,6 +230,10 @@ ${render("<App />")}`);
     await page.fill("[cmdk-input]", "pie");
     await settle(page);
     assert.equal(await count(), "1 of 3");
+    // "s" is in every row (Apple pie by its description, a keyword).
+    await page.fill("[cmdk-input]", "s");
+    await settle(page);
+    assert.equal(await count(), "3 of 3", "a search that every row matches is still filtering");
     await page.fill("[cmdk-input]", "zzq");
     await settle(page);
     assert.equal(await count(), "0 of 3");
@@ -218,6 +262,11 @@ ${render(`<B.CommandMenu open onOpenChange={() => {}} groups={RECIPES} />`)}`);
     await page.keyboard.type("soup");
     await page.waitForTimeout(700);
     assert.deepEqual(await page.evaluate(() => window.spoken.filter(Boolean)), ["1 of 3"]);
+    // A search every row matches ("s": Apple pie by its description) changes the line to "3 of 3", so it is spoken too.
+    await page.keyboard.press("Control+a");
+    await page.keyboard.type("s");
+    await page.waitForTimeout(700);
+    assert.deepEqual(await page.evaluate(() => window.spoken.filter(Boolean)), ["1 of 3", "3 of 3"]);
     await page.close();
   });
 

@@ -170,10 +170,10 @@
     }
   }
 
-  /** The count line: "7 commands" (whenever every row shows), "2 of 7" while filtering, or the page's own (`count`). */
-  function countLine(shown, total, noun, count) {
+  /** The count line: "7 commands" at rest, "2 of 7" while a search narrows the rows ("7 of 7" when every row matches), or the page's own (`count`). */
+  function countLine(shown, total, noun, filtering, count) {
     if (count != null) return String(count);
-    return shown === total ? total + ' ' + (total === 1 ? noun : noun + 's') : shown + ' of ' + total;
+    return filtering ? shown + ' of ' + total : total + ' ' + (total === 1 ? noun : noun + 's');
   }
 
   /** Says a reason at once, and again on a second press: the line is emptied, then filled a task later. */
@@ -265,7 +265,7 @@
       if (!flat.length) fillNone(none, q, template, function () { input.value = ''; index = 0; render(); input.focus(); });
       index = Math.min(index, Math.max(flat.length - 1, 0));
       setActive(flat.length ? index : -1, false);
-      speak(countLine(flat.length, total, noun, count));
+      speak(countLine(flat.length, total, noun, q !== '', count));
     }
 
     function setActive(i, scroll) {

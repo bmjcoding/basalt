@@ -44,6 +44,12 @@ describe("the palette", () => {
     assert.equal(await page.locator(".palette .command-count [role='status']").textContent(), "", "its first text is not announced");
     await page.keyboard.type("logs");
     assert.equal(await count(), "1 of 3");
+    // A search every row matches is still filtering: "3 of 3", and the live line says it once it holds still.
+    await page.locator(".palette input").fill("");
+    await page.keyboard.type("e");
+    assert.equal(await count(), "3 of 3", "every build has an e");
+    await page.waitForTimeout(700);
+    assert.equal(await page.locator(".palette .command-count [role='status']").textContent(), "3 of 3");
     assert.ok((await page.locator(".palette .command-foot").boundingBox()).height >= 36);
     await context.close();
   });
@@ -63,7 +69,9 @@ describe("the palette", () => {
     await page.waitForTimeout(30);
     await page.keyboard.press("Enter");
     await page.waitForTimeout(30);
-    await row.click();
+    // The mouse at the row's centre: locator.click() waits for an enabled option, and this one is aria-disabled.
+    const box = await row.boundingBox();
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     await page.waitForTimeout(30);
     assert.equal(reasons.length, 3);
     assert.equal(await page.locator(".palette").count(), 1, "nothing closed");

@@ -27,15 +27,15 @@ export function commandFilter(value: string, search: string, keywords?: string[]
 }
 
 /**
- * The groups in the order a search gives, and in their own order when there is none. cmdk sorts what it keeps by moving nodes in the page, and two things
- * go wrong with that here: its sort of the groups looks each one up by an id that React 19's ids do not survive, so a group with the better match stays
- * below one with the worse (typing "dep" lit "Duplicate sandbox" above "Deploy", and Enter ran it), and nothing sorts the rows back when the search is
- * cleared, so they stayed in the order the last search left them. The order is React's instead: rows by score, groups by their best row, ties in the
- * order given. cmdk still hides the rows that do not match, with the same scorer, and has nothing left to move.
+ * The rows a search shows, in the order it gives them, and every row in its own order when there is none. Basalt filters and orders the rows itself, once,
+ * and cmdk is told not to (`shouldFilter={false}`): cmdk's sorter moves only the rows it can select, so a better match that can run would land behind a
+ * worse one that cannot, in the same group (the lit first row and Home then went to the wrong command); its sort of the groups looks each one up by an id
+ * that React 19's ids do not survive; and nothing sorted the rows back when the search was cleared. The order is React's: rows by score, groups by their
+ * best row, ties in the order given, and the rows that score 0 (and the groups left empty) are not drawn.
  */
 export function orderGroups(groups: CommandGroup[], search: string): CommandGroup[] {
   if (!search) return groups;
-  return rank(groups, (command) => commandFilter(commandValue(command), search, keywordsOf(command)), false);
+  return rank(groups, (command) => commandFilter(commandValue(command), search, keywordsOf(command)), true);
 }
 
 /** Rows by score, highest first, groups by their best row, ties in the order given; with `drop`, the rows that score 0 and the groups left empty go. */
@@ -49,9 +49,9 @@ function rank(groups: CommandGroup[], scoreOf: (command: CommandItem) => number,
 }
 
 /**
- * The rows a `CommandMenu` draws, in the order it draws them. Basalt's own scorer: every row, ordered (`orderGroups`), and cmdk hides those that score 0
- * with the same scorer. The app's order (`filter={false}`): the rows as given. An app's scorer: scored once here, and only the rows above 0 are drawn, so
- * what is shown, its order and the first row all come from the same scores, whatever the scorer was a render ago (cmdk is told not to filter).
+ * The rows a `CommandMenu` draws, in the order it draws them, every one of them shown: Basalt's own scorer (`orderGroups`), the app's order as given
+ * (`filter={false}`), or the app's scorer, scored once here with only the rows above 0 drawn, so what is shown, its order and the first row all come from
+ * the same scores, whatever the scorer was a render ago.
  */
 function shownGroups(groups: CommandGroup[], search: string, filter: CommandFilter | undefined): CommandGroup[] {
   if (!search || filter === false) return groups;
@@ -59,32 +59,29 @@ function shownGroups(groups: CommandGroup[], search: string, filter: CommandFilt
   return rank(groups, (command) => filter(command, search), true);
 }
 
-/** Whether a row is shown: every row drawn is, except under Basalt's own scorer, where cmdk hides the rows that score 0. */
-function isShown(command: CommandItem, search: string, filter: CommandFilter | undefined): boolean {
-  return !search || filter !== undefined || commandFilter(commandValue(command), search, keywordsOf(command)) > 0;
-}
-
 /** The value cmdk keeps for a row (it trims what it is given), and what the lit row is held as. */
 const valueOf = (command: CommandItem) => commandValue(command).trim();
 
-/** The rows shown, in the order they are drawn: every row, available or not. The first is the one lit when the rows change (`firstShown`). */
-function shownValues(shown: CommandGroup[], search: string, filter: CommandFilter | undefined): string[] {
+/** The rows drawn, in order: every row, available or not. The first is the one lit when the rows change. */
+function shownValues(shown: CommandGroup[]): string[] {
   const out: string[] = [];
-  for (const group of shown) for (const command of group.commands) if (isShown(command, search, filter)) out.push(valueOf(command));
+  for (const group of shown) for (const command of group.commands) out.push(valueOf(command));
   return out;
 }
 
-/** The count line: "7 commands" at rest (and whenever every row shows), "2 of 7" while filtering, the app's own line when it gives one. */
-export function countLine(shown: number, total: number, noun: string, count?: string): string {
+/**
+ * The count line: "7 commands" at rest, "2 of 7" while filtering ("7 of 7" when every row matches), the app's own line when it gives one. `filtering` is
+ * whether a search is narrowing the rows: never with `filter={false}`, where every row given is shown whatever is typed.
+ */
+export function countLine(shown: number, total: number, noun: string, filtering: boolean, count?: string): string {
   if (count !== undefined) return count;
-  return shown === total ? `${total} ${total === 1 ? noun : `${noun}s`}` : `${shown} of ${total}`;
+  return filtering ? `${shown} of ${total}` : `${total} ${total === 1 ? noun : `${noun}s`}`;
 }
 
 interface LitOptions {
   /** The rows drawn and their order. */
   shown: CommandGroup[];
   search: string;
-  filter: CommandFilter | undefined;
   list: React.RefObject<HTMLElement | null>;
   /** Every command, by its value. */
   commands: Map<string, CommandItem>;
@@ -102,7 +99,7 @@ interface LitOptions {
  * the search changes, and writes its own value before the controlled early return) is put back by a value that differs only in a trailing space, which
  * cmdk trims. Until the reader moves the light, the first row shown is lit whenever the rows or the words change.
  */
-function useLitRow({ shown, search, filter, list, commands, pointer, onEnter }: LitOptions) {
+function useLitRow({ shown, search, list, commands, pointer, onEnter }: LitOptions) {
   const [lit, setLitState] = React.useState("");
   const [resync, setResync] = React.useState(0);
   const litNow = React.useRef(lit);
@@ -112,7 +109,7 @@ function useLitRow({ shown, search, filter, list, commands, pointer, onEnter }: 
   // How the next lit row is brought into view: by a key, as cmdk does (the nearest scroller, the page too); when the rows change, inside the list
   // alone, so a list lower on the page never pulls the page to it; by the pointer, not at all.
   const scroll = React.useRef<"key" | "list" | false>(false);
-  const values = shownValues(shown, search, filter);
+  const values = shownValues(shown);
   const first = values[0] ?? "";
   const shownKey = values.join("\u0000");
   const searched = React.useRef(search);
@@ -352,9 +349,9 @@ export function CommandPanel({ groups, placeholder, label, listLabel, filter, hi
     if (!command.keepOpen) onOpenChange(false);
     command.onSelect?.();
   };
-  const lit = useLitRow({ shown: ordered, search, filter, list, commands, pointer: true, onEnter: choose });
+  const lit = useLitRow({ shown: ordered, search, list, commands, pointer: true, onEnter: choose });
   const total = commands.size;
-  const shown = shownValues(ordered, search, filter).length;
+  const shown = shownValues(ordered).length;
   const clear = () => {
     setSearch("");
     input.current?.focus();
@@ -363,9 +360,8 @@ export function CommandPanel({ groups, placeholder, label, listLabel, filter, hi
     <Command
       label={label}
       loop
-      filter={commandFilter}
-      // Only Basalt's own scorer is cmdk's: the app's order and the app's scorer are drawn as they are (`shownGroups`).
-      shouldFilter={filter === undefined}
+      // Basalt filters and orders the rows it draws (`shownGroups`); cmdk neither hides nor moves one.
+      shouldFilter={false}
       value={lit.value}
       onValueChange={lit.onValueChange}
       onKeyDown={lit.onKeyDown}
@@ -387,7 +383,7 @@ export function CommandPanel({ groups, placeholder, label, listLabel, filter, hi
       </Command.List>
       {shown === 0 ? <NoneBlock search={search} clear={clear} empty={empty} /> : null}
       <div className="basalt-command-foot">
-        <FilterResult className="basalt-command-count">{countLine(shown, total, noun, count)}</FilterResult>
+        <FilterResult className="basalt-command-count">{countLine(shown, total, noun, search !== "" && filter !== false, count)}</FilterResult>
         {/* The legend keeps its id while hidden from assistive technology, so the field's description still resolves. */}
         {hints ? <CommandHints id={hintId} preview={false} modal /> : null}
       </div>
@@ -464,12 +460,19 @@ export function CommandListPanel({ groups, label, placeholder, noun, count, empt
   const savedScroll = React.useRef(0);
   const searchRef = React.useRef(search);
   searchRef.current = search;
+  // What the page keeps under the panel: the unfiltered panel's height less its list (`rest`), and the taller of the list and the empty block.
+  const held = React.useRef<{ rest: number; list: number } | null>(null);
+  const noneHeight = React.useRef(0);
+  const noneRef = React.useRef<HTMLDivElement>(null);
+  const hold = () => {
+    if (held.current) wrap.current?.style.setProperty("--_held-page", `${held.current.rest + Math.max(held.current.list, noneHeight.current)}px`);
+  };
 
   const commands = React.useMemo(() => byValue(groups), [groups]);
   const total = commands.size;
   const split = Boolean(detail) && mode === "split";
   const ordered = orderGroups(groups, search);
-  const shown = shownValues(ordered, search, undefined).length;
+  const shown = shownValues(ordered).length;
 
   // Opens with the text that was typed while this loaded. It is applied after the first layout, which has measured the
   // unfiltered list, so the list holds that height whatever the first search is.
@@ -493,16 +496,37 @@ export function CommandListPanel({ groups, label, placeholder, noun, count, empt
       box.style.setProperty("--_held", `${listHeight}px`);
       const page = root.current;
       // The page keeps the taller of the panel's two heights, the unfiltered list's and "Nothing matches"', so a short list filtered to nothing
-      // never moves what follows (the code review's finding 6). The sentence's height is read from an unseen copy of it.
+      // never moves what follows (the code review's finding 6). Basalt's own sentence is read from an unseen copy of it; an app's `empty` is read
+      // where it shows, the first time it does (`noneHeight`).
       const none = box.querySelector<HTMLElement>(".basalt-command-none-sizer");
-      const empty = none ? padding + none.getBoundingClientRect().height : 0;
-      if (page) wrap.current?.style.setProperty("--_held-page", `${page.getBoundingClientRect().height - listHeight + Math.max(listHeight, empty)}px`);
+      if (none) noneHeight.current = padding + none.getBoundingClientRect().height;
+      if (!page) return;
+      held.current = { rest: page.getBoundingClientRect().height - listHeight, list: listHeight };
+      hold();
     };
     measure();
     const resizes = new ResizeObserver(measure);
     resizes.observe(sizer);
     return () => resizes.disconnect();
   }, [groups]);
+
+  // An app's own `empty` is mounted once, only while it shows, and measured there: the page then keeps room for it too, from then on.
+  React.useLayoutEffect(() => {
+    const block = noneRef.current;
+    const host = list.current;
+    if (!block || !host || empty === undefined) return undefined;
+    const measure = () => {
+      const style = getComputedStyle(host);
+      const tall = Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom) + block.getBoundingClientRect().height;
+      if (tall <= noneHeight.current) return;
+      noneHeight.current = tall;
+      hold();
+    };
+    measure();
+    const resizes = new ResizeObserver(measure);
+    resizes.observe(block);
+    return () => resizes.disconnect();
+  }, [shown === 0, empty === undefined]);
 
   useActiveDescendant(list, input);
 
@@ -577,7 +601,6 @@ export function CommandListPanel({ groups, label, placeholder, noun, count, empt
   const lit = useLitRow({
     shown: ordered,
     search,
-    filter: undefined,
     list,
     commands,
     pointer: !split,
@@ -617,7 +640,8 @@ export function CommandListPanel({ groups, label, placeholder, noun, count, empt
       ref={root}
       label={placeholder}
       loop
-      filter={commandFilter}
+      // Basalt filters and orders the rows it draws (`orderGroups`); cmdk neither hides nor moves one.
+      shouldFilter={false}
       // In a split a pointer passing over a row changes nothing: the plate marks what the pane shows.
       disablePointerSelection={split}
       value={lit.value}
@@ -663,12 +687,13 @@ export function CommandListPanel({ groups, label, placeholder, noun, count, empt
             </Command.Group>
           ))}
         </Command.List>
-        {shown === 0 ? <NoneBlock search={search} clear={clear} empty={empty} /> : null}
-        {/* An unseen copy of "Nothing matches", measured with the list, so the page can keep room for it. */}
-        <NoneBlock className="basalt-command-none-sizer" aria-hidden="true" inert search={empty === undefined ? "?" : ""} clear={() => {}} empty={empty} />
+        {shown === 0 ? <NoneBlock ref={noneRef} search={search} clear={clear} empty={empty} /> : null}
+        {/* An unseen copy of Basalt's own "Nothing matches", measured with the list, so the page can keep room for it. An app's own `empty` is never
+            mounted twice: it is measured where it shows (below). */}
+        {empty === undefined ? <NoneBlock className="basalt-command-none-sizer" aria-hidden="true" inert search="?" clear={() => {}} /> : null}
       </div>
       <div className="basalt-command-foot">
-        <FilterResult className="basalt-command-count">{countLine(shown, total, noun, count)}</FilterResult>
+        <FilterResult className="basalt-command-count">{countLine(shown, total, noun, search !== "", count)}</FilterResult>
         <CommandHints id={ids.hint} preview={Boolean(detail)} />
       </div>
       {lit.status}
