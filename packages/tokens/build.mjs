@@ -6,6 +6,7 @@
 //   dist/css/accents.css  the accent classes: one [data-accent] rule per class, in @layer basalt
 //   dist/css/shadcn.css   the shadcn/ui variable names, mapped onto Basalt's
 //   dist/css/breakpoints.css  the breakpoints as @custom-media rules, for apps that build with PostCSS
+//   dist/css/base.css     the opt-in page base (src/base.css, copied as written): one body rule in @layer basalt
 //   dist/js/tokens.js     resolved values per theme, and the accent classes, for TypeScript and charts
 //   dist/js/breakpoints.js the breakpoint numbers alone (the 720, 1024, 480, 340 and 640 of the media and container queries)
 //   dist/js/durations.js   the duration numbers alone, in milliseconds (a confirmation's hold)
@@ -292,6 +293,7 @@ const breakpointsCss = [
 ].join("\n");
 write("css/breakpoints.css", breakpointsCss);
 write("css/accents.css", accents);
+write("css/base.css", fs.readFileSync(path.join(here, "src", "base.css"), "utf8"));
 write("json/tokens.json", JSON.stringify(json, null, 2) + "\n");
 const accentsJson = Object.fromEntries(accentClasses.map((c) => [c.name, { light: entry({ $type: "color", $value: c.light }), dark: entry({ $type: "color", $value: c.dark }) }]));
 write("js/tokens.js", `${header}export const tokens = ${JSON.stringify(json, null, 2)};\nexport const accents = ${JSON.stringify(accentsJson, null, 2)};\n/** The breakpoints in CSS pixels, so a script never carries the number: matchMedia(\`(width >= \${breakpoint.md}px)\`). */\nexport const breakpoint = ${JSON.stringify(breakpointPx, null, 2)};\n/** The durations in milliseconds, so a script that holds a timer never carries the number: setTimeout(done, duration.confirm). */\nexport const duration = ${JSON.stringify(durationMs, null, 2)};\nexport default tokens;\n`);

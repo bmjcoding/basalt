@@ -52,11 +52,11 @@
   :is(.topbar, .app-header) .btn[data-variant="ghost"]:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { color: var(--basalt-text-primary); }
   /* The opaque form of the bar, for a page whose content does not scroll under it: the same bar on the page colour, with no filter. */
   :is(.topbar, .app-header)[data-solid] { background: var(--basalt-surface-page); -webkit-backdrop-filter: none; backdrop-filter: none; }
-  /* No backdrop-filter, or the reader asks for less transparency: the page colour, opaque, with no filter. */
+  /* No backdrop-filter, or the reader asks for less transparency or more contrast: the page colour, opaque, with no filter. */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .topbar, .app-header { background: var(--basalt-surface-page); }
   }
-  @media (prefers-reduced-transparency: reduce) {
+  @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
     .topbar, .app-header { background: var(--basalt-surface-page); -webkit-backdrop-filter: none; backdrop-filter: none; }
   }
 

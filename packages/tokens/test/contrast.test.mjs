@@ -1215,3 +1215,20 @@ test("opacity-recede-2 to -5 are read by a run timeline's tail and nothing else 
   const skill = new URL("../../../tools/html-skill/src/modules/runs.css", import.meta.url);
   if (fs.existsSync(skill)) assert.ok(!/--basalt-opacity-recede-[2-5]\b/.test(fs.readFileSync(skill, "utf8")), "the HTML skill draws no tail");
 });
+
+// cimip-gaps-3 T1: the pairs its parts rely on, named. The idle mark (tertiary) and the still ring (secondary in a list, primary in a running mark) are
+// 3:1 marks on every surface and level; under more contrast the idle mark is secondary. The opaque bar under more contrast: its line is the hairline
+// drawn as border-input over surface-page (3.39:1 dark, 3.35:1 light at the decision), and primary and secondary ink sit on surface-page.
+for (const theme of THEMES) {
+  test(`${theme}: T1's pairs: the idle mark and the still ring at 3:1 everywhere, and the opaque bar under more contrast`, () => {
+    const onto = [...SURFACES.map((n) => [n, color(theme, n)]), ...LEVELS.map((n) => [n, color(theme, n)])];
+    for (const [bgName, bg] of onto) {
+      for (const mark of ["text-tertiary", "text-secondary", "text-primary"]) assert.ok(ratio(over(color(theme, mark), bg), bg) >= 3, `${theme}: ${mark} as a mark on ${bgName}`);
+      assert.ok(ratio(over(more(theme, "text-tertiary"), bg), bg) >= 3, `${theme}: the idle mark under more contrast on ${bgName}`);
+    }
+    const page = color(theme, "surface-page");
+    const line = ratio(over(more(theme, "border-hairline"), page), page);
+    assert.ok(line >= 3, `${theme}: the bar's line under more contrast is ${fmt(line)}:1`);
+    for (const ink of ["text-primary", "text-secondary"]) assert.ok(ratio(more(theme, ink), page) >= 4.5, `${theme}: ${ink} on the opaque bar`);
+  });
+}

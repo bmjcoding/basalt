@@ -3,7 +3,7 @@
 (function (B) {
   'use strict';
   var _ = B._;
-  var MARKS = { queued: 'Circle', success: 'CheckCircle', failed: 'XCircle', skipped: 'MinusCircle', canceled: 'Prohibit', warning: 'Warning' };
+  var MARKS = { idle: 'CircleDashed', queued: 'Circle', success: 'CheckCircle', failed: 'XCircle', skipped: 'MinusCircle', canceled: 'Prohibit', warning: 'Warning' };
 
   function draw(el) {
     var state = el.getAttribute('data-state');

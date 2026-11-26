@@ -7,7 +7,7 @@ import { inLevel, useFloatingLayer, usePopupLevel } from "./layers";
 import { lazyAnchoredPopover } from "./lazy-popover";
 import { Reserve } from "./reserve";
 import { STAGE_WORDS } from "./run-format";
-import type { Moment, StageState } from "./run-format";
+import type { Moment, RunTimeGrain, StageState } from "./run-format";
 import { RunTimer } from "./run-timer";
 import { warnRun } from "./run-warn";
 import { StageMark } from "./stage-mark";
@@ -24,6 +24,8 @@ declare const process: { env: { NODE_ENV?: string } };
 
 /** Where a `RunStage` is drawn: set by `StageList` and `StageRail`. */
 export const RunStagesContext = React.createContext<"list" | "rail" | null>(null);
+/** On a rail, the state of the next node: the link before a stage that has not started (idle) stays empty, even after a passed stage. */
+export const RailNextContext = React.createContext<StageState | undefined>(undefined);
 
 /**
  * What a list or a rail tells its stages beyond where they are (cimip-gaps-3 T2, 3a and 3d): whether the seat shows a clock, in which locale and zone, what
@@ -70,9 +72,9 @@ export interface RunStageProps {
   start?: Moment;
   end?: Moment;
   /** Writes the stage's time, in a list and on a rail (see `RunTimer`'s `format`): its seat's width follows it. */
-  format?: (ms: number) => string;
+  format?: (ms: number, grain: RunTimeGrain) => string;
   /** Says the stage's time, when the drawn form is short for the ear (see `RunTimer`'s `spoken`). */
-  spoken?: (ms: number) => string;
+  spoken?: (ms: number, grain: RunTimeGrain) => string;
   /** What opens under a list's stage: a failure's reason, what waits. A `p` is the reason, a `strong` its loud words, a `small` its fact. A rail ignores it. */
   detail?: React.ReactNode;
   /** The detail's one action: a `Button` whose `onClick` returns the app's promise ("Retry", "Approve"). A rail ignores it. */
@@ -92,8 +94,8 @@ export interface RunStageProps {
 }
 
 const DRAWN: Record<"list" | "rail", Record<StageState, boolean>> = {
-  list: { queued: true, running: true, success: false, failed: true, skipped: true, canceled: true, retrying: true, warning: true },
-  rail: { queued: false, running: false, success: false, failed: true, skipped: true, canceled: true, retrying: true, warning: true },
+  list: { idle: true, queued: true, running: true, success: false, failed: true, skipped: true, canceled: true, retrying: true, warning: true },
+  rail: { idle: false, queued: false, running: false, success: false, failed: true, skipped: true, canceled: true, retrying: true, warning: true },
 };
 
 /** Whether a slot holds something drawn: `null`, `false`, `true` and "" (what `cond && <Button />` leaves) are nothing, as React draws them. */
@@ -153,6 +155,7 @@ export function RunStage({ name, state, word, meta, start, end, format, spoken, 
   const kind = React.useContext(RunStagesContext) ?? "list";
   const options = React.useContext(RunStagesOptionsContext);
   const clock = options.time === "clock";
+  const next = React.useContext(RailNextContext);
   const said = word ?? STAGE_WORDS[state];
   const drawn = DRAWN[kind][state];
   const nameRef = React.useRef<HTMLSpanElement>(null);
@@ -214,7 +217,8 @@ export function RunStage({ name, state, word, meta, start, end, format, spoken, 
   );
 
   if (kind === "rail") {
-    const link = <span className="basalt-run-stage-link" data-filled={state === "success" ? "" : undefined} aria-hidden="true"><span className="basalt-run-stage-fill" /></span>;
+    // Only a pass fills the link, and never the one before a stage that has not started (idle, cimip-gaps-3 T1).
+    const link = <span className="basalt-run-stage-link" data-filled={state === "success" && next !== "idle" ? "" : undefined} aria-hidden="true"><span className="basalt-run-stage-fill" /></span>;
     const status = (
       <span className="basalt-run-stage-status">
         {/* One cell for the time and every word a node can draw, so a node that turns from its time to "Failed" or "Retrying" moves nothing. */}

@@ -1816,7 +1816,7 @@
       }
     },
     "loop": {
-      "$description": "Loops: they repeat while work is happening, so they may run longer than an entry. Under reduced motion a spinner fades instead of moving, and a loop is never cut to the 100ms floor, or it flickers.",
+      "$description": "Loops: they repeat while work is happening, so they may run longer than an entry. Under reduced motion no loop runs: a spinner holds still, and a loop is never cut to the 100ms floor, or it flickers.",
       "ring": {
         "$type": "duration",
         "$value": {

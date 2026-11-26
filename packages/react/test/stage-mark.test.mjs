@@ -1,4 +1,4 @@
-// StageMark (DECISIONS 316, 1.2): the seven states' marks, their ink and their seat; the crossfade on a change of state; the queued breath (the one loop a
+// StageMark (DECISIONS 316, 1.2; idle, cimip-gaps-3 T1): the eight states' marks, their ink and their seat; the crossfade on a change of state; the queued breath (the one loop a
 // state that is not running has) and where it is still. Driven in Chromium against the built package with the real stylesheet.
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -11,16 +11,17 @@ let browser;
 before(async () => { browser = await launch(); });
 after(async () => { await browser?.close(); });
 
-const STATES = ["queued", "running", "success", "failed", "skipped", "canceled", "retrying"];
-const INK = { queued: "--basalt-text-secondary", running: "--basalt-text-primary", success: "--basalt-text-secondary", failed: "--basalt-status-danger", skipped: "--basalt-text-tertiary", canceled: "--basalt-text-tertiary", retrying: "--basalt-text-primary" };
+const STATES = ["idle", "queued", "running", "success", "failed", "skipped", "canceled", "retrying"];
+const INK = { idle: "--basalt-text-tertiary", queued: "--basalt-text-secondary", running: "--basalt-text-primary", success: "--basalt-text-secondary", failed: "--basalt-status-danger", skipped: "--basalt-text-tertiary", canceled: "--basalt-text-tertiary", retrying: "--basalt-text-primary" };
 
 const ALL = `
 import { CheckCircleIcon } from "@phosphor-icons/react/dist/csr/CheckCircle";
 import { CircleIcon } from "@phosphor-icons/react/dist/csr/Circle";
+import { CircleDashedIcon } from "@phosphor-icons/react/dist/csr/CircleDashed";
 import { MinusCircleIcon } from "@phosphor-icons/react/dist/csr/MinusCircle";
 import { ProhibitIcon } from "@phosphor-icons/react/dist/csr/Prohibit";
 import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
-const REF = { queued: CircleIcon, success: CheckCircleIcon, failed: XCircleIcon, skipped: MinusCircleIcon, canceled: ProhibitIcon };
+const REF = { idle: CircleDashedIcon, queued: CircleIcon, success: CheckCircleIcon, failed: XCircleIcon, skipped: MinusCircleIcon, canceled: ProhibitIcon };
 const STATES = ${JSON.stringify(STATES)};
 function App() {
   return <div style={{ padding: 24, display: "grid", gap: 8, background: "var(--basalt-surface-page)" }}>
@@ -49,9 +50,9 @@ const open = async (body, options = {}) => {
 };
 const tokenColor = (page, name) => page.evaluate((n) => { const p = document.createElement("span"); p.style.color = `var(${n})`; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; }, name);
 
-describe("the seven marks", () => {
+describe("the eight marks", () => {
   for (const theme of ["dark", "light"]) {
-    test(`each state's glyph, ink and size at 16, 20 and 24, one seat for all seven, aria-hidden (${theme})`, async () => {
+    test(`each state's glyph, ink and size at 16, 20 and 24, one seat for all eight, aria-hidden (${theme})`, async () => {
       const page = await open(ALL, { theme });
       for (const size of [16, 20, 24]) {
         const r = await page.evaluate(({ size, states }) => states.map((s) => {
@@ -83,7 +84,7 @@ describe("the seven marks", () => {
     const entry = read("stage-mark.js");
     const source = [entry, ...[...entry.matchAll(/from "\.\/(chunk-[A-Z0-9]+\.js)"/g)].map((m) => read(m[1]))].join("\n");
     const phosphor = [...source.matchAll(/@phosphor-icons\/react\/dist\/csr\/([A-Za-z]+)/g)].map((m) => m[1]).sort();
-    assert.deepEqual(phosphor, ["CheckCircle", "Circle", "MinusCircle", "Prohibit", "XCircle"]);
+    assert.deepEqual(phosphor, ["CheckCircle", "Circle", "CircleDashed", "MinusCircle", "Prohibit", "XCircle"]);
   });
 });
 
@@ -192,6 +193,41 @@ describe("the queued breath", () => {
     const css = fs.readFileSync(path.join(pkg, "src", "styles", "components.css"), "utf8");
     const block = css.slice(css.indexOf("/* StageMark: one seat"), css.indexOf("/* RunTimer: Geist Mono"));
     assert.ok(!/CanvasText|GrayText|HighlightText|LinkText/.test(block), "the mark's rules name no system colour");
+  });
+});
+
+// cimip-gaps-3 T1: idle ("Not started") is CircleDashed in tertiary, and never animates in any mode: no breath, no shared clock.
+const IDLE = `createRoot(document.getElementById("root")).render(<div style={{ padding: 24, display: "flex", gap: 8 }}><span id="i"><B.StageMark state="idle" /></span><span id="q"><B.StageMark state="queued" /></span></div>);`;
+
+describe("the idle mark", () => {
+  for (const [mode, options, prep] of [
+    ["full motion", {}, null],
+    ["reduced motion", { reducedMotion: "reduce" }, null],
+    ["the hold", {}, () => document.documentElement.setAttribute("data-loops", "held")],
+    ["forced colours", { forcedColors: "active" }, null],
+    ["more contrast", { contrast: "more" }, null],
+    ["print", {}, "print"],
+  ]) {
+    for (const theme of ["dark", "light"]) {
+      test(`still under ${mode} (${theme}): no breath, nothing running, full opacity, the dashed glyph`, async () => {
+        const page = await open(IDLE, { theme, ...options });
+        if (prep === "print") await page.emulateMedia({ media: "print" });
+        else if (prep) await page.evaluate(prep);
+        await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+        const r = await page.evaluate(() => { const m = document.querySelector("#i .basalt-run-mark"); return { breath: m.querySelectorAll(".basalt-run-mark-breath").length, running: m.getAnimations({ subtree: true }).length, opacity: getComputedStyle(m.querySelector("svg")).opacity, state: m.querySelector(".basalt-run-mark-face").dataset.state }; });
+        assert.deepEqual(r, { breath: 0, running: 0, opacity: "1", state: "idle" }, mode);
+        // Apart from queued by shape alone: the two glyphs differ once both are still.
+        const shapes = await page.evaluate(() => ["#i", "#q"].map((s) => document.querySelector(`${s} svg`).innerHTML));
+        assert.notEqual(shapes[0], shapes[1]);
+      });
+    }
+  }
+
+  test("idle to queued crossfades in the seat, and the breath starts with the queued face", async () => {
+    const page = await open(SWITCH.replace('useState("running")', 'useState("idle")'), { theme: "dark" });
+    await page.evaluate(() => window.setState("queued"));
+    const faces = await page.evaluate(() => [...document.querySelectorAll("#m .basalt-run-mark-face")].map((f) => [f.dataset.state, f.hasAttribute("data-leaving"), f.querySelectorAll(".basalt-run-mark-breath").length]));
+    assert.deepEqual(faces, [["idle", true, 0], ["queued", false, 1]]);
   });
 });
 

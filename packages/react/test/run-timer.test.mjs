@@ -33,6 +33,25 @@ describe("formatRunTime", () => {
     assert.deepEqual(formatRunTime(-5), { text: "0.0 s", dateTime: "PT0.0S" }, "never negative");
     assert.deepEqual(formatRunTime(Number.NaN), { text: "0.0 s", dateTime: "PT0.0S" });
   });
+
+  // cimip-gaps-3 T1: the minute grain, a running timer's under reduced motion. Node only.
+  test("both grains at 0, 59.9 s, 60 s, 59 min 59 s, 60 min and 24 h: text, dateTime and spoken", () => {
+    const cases = [
+      [0, { text: "0.0 s", dateTime: "PT0.0S" }, { text: "<1 min", dateTime: "PT0M", spoken: "less than 1 minute" }],
+      [59_900, { text: "59.9 s", dateTime: "PT59.9S" }, { text: "<1 min", dateTime: "PT0M", spoken: "less than 1 minute" }],
+      [60_000, { text: "1 min 0 s", dateTime: "PT1M0S" }, { text: "1 min", dateTime: "PT1M" }],
+      [3_599_000, { text: "59 min 59 s", dateTime: "PT59M59S" }, { text: "59 min", dateTime: "PT59M" }],
+      [3_600_000, { text: "1 hr 0 min", dateTime: "PT1H0M" }, { text: "1 hr 0 min", dateTime: "PT1H0M" }],
+      [86_400_000, { text: "1 day", dateTime: "P1D" }, { text: "1 day", dateTime: "P1D" }],
+    ];
+    for (const [ms, exact, minute] of cases) {
+      assert.deepEqual(formatRunTime(ms), exact, `${ms}ms, the default grain`);
+      assert.deepEqual(formatRunTime(ms, "exact"), exact, `${ms}ms, exact`);
+      assert.deepEqual(formatRunTime(ms, "minute"), minute, `${ms}ms, minute`);
+    }
+    assert.deepEqual(formatRunTime(4 * 60_000 + 59_999, "minute"), { text: "4 min", dateTime: "PT4M" }, "floored, never rounded up");
+    assert.deepEqual(formatRunTime(-5, "minute"), { text: "<1 min", dateTime: "PT0M", spoken: "less than 1 minute" }, "never negative");
+  });
 });
 
 // The page counts intervals: a patched setInterval and clearInterval, before anything renders.
@@ -275,5 +294,123 @@ ${RUN(`<span id="t"><B.RunTimer start={10_000 - 184_000} scale="minutes" format=
     assert.equal(await page.evaluate(() => document.querySelectorAll("#started time > .basalt-visually-hidden").length), 0, "the started-at form is read as drawn");
     assert.equal(await page.evaluate(() => document.querySelector("#started .basalt-reserve").hasAttribute("aria-hidden")), false);
     assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#hidden time")).visibility), "hidden", "the hidden form hides the spoken words with it");
+  });
+});
+
+// cimip-gaps-3 T1: under reduced motion a running timer counts whole minutes; exact again at its end; the hold still wins.
+const REDUCED = { reducedMotion: "reduce" };
+const observe = (page, sel) => page.evaluate((s) => { window.__changes = 0; new MutationObserver((m) => { window.__changes += m.length; }).observe(document.querySelector(s), { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["datetime"] }); }, sel);
+const said = (page, sel) => page.evaluate((s) => { const t = document.querySelector(`${s} time`); return { drawn: t.querySelector("[data-on]").textContent, hidden: t.querySelector(".basalt-reserve").getAttribute("aria-hidden"), words: t.querySelector(":scope > .basalt-visually-hidden")?.textContent ?? null, iso: t.getAttribute("datetime") }; }, sel);
+
+describe("the minute grain under reduced motion", () => {
+  for (const theme of ["dark", "light"]) {
+    test(`${theme}: at 20 s it draws "<1 min", says "less than 1 minute" once, PT0M, and nothing changes for 1.5 s inside the minute`, async () => {
+      const page = await open(RUN(`<span id="t"><B.RunTimer start={10_000 - 20_000} /></span>`), { ...REDUCED, theme });
+      assert.deepEqual(await said(page, "#t"), { drawn: "<1 min", hidden: "true", words: "less than 1 minute", iso: "PT0M" });
+      const tree = await page.locator("#t").ariaSnapshot();
+      assert.equal((tree.match(/less than 1 minute/g) ?? []).length, 1, tree);
+      assert.doesNotMatch(tree, /<1 min/, "the drawn form is not read beside it");
+      assert.equal(await page.evaluate(() => document.querySelectorAll("#t [aria-live], #t [role=status], #t [role=log]").length), 0, "never a live region");
+      await observe(page, "#t");
+      await page.clock.runFor(1_500);
+      assert.equal(await page.evaluate(() => window.__changes), 0, "no write between boundaries");
+    });
+  }
+
+  test("one change across a minute's boundary: drawn, said and dateTime agree, then once a minute", async () => {
+    const page = await open(RUN(`<span id="t"><B.RunTimer start={10_000 - 59_000} /></span>`), REDUCED);
+    assert.equal((await said(page, "#t")).drawn, "<1 min");
+    await observe(page, "#t");
+    await page.clock.runFor(1_100);
+    assert.deepEqual(await said(page, "#t"), { drawn: "1 min", hidden: null, words: null, iso: "PT1M" });
+    const once = await page.evaluate(() => window.__changes);
+    assert.ok(once > 0, "the boundary is written");
+    await page.clock.runFor(58_000);
+    assert.equal(await page.evaluate(() => window.__changes), once, "nothing more inside the minute");
+    await page.clock.runFor(2_000);
+    assert.deepEqual(await said(page, "#t"), { drawn: "2 min", hidden: null, words: null, iso: "PT2M" });
+  });
+
+  test("at 4 min it is \"4 min\"; at end the exact figure is written once; carried is added before the floor", async () => {
+    const page = await open(RUN(`<><span id="run"><B.RunTimer start={10_000 - 240_000} /></span><span id="carried"><B.RunTimer start={10_000 - 20_000} carried={50_000} since={0} /></span><span id="done"><B.RunTimer start={0} end={2_850_000} /></span></>`), REDUCED);
+    assert.equal((await said(page, "#run")).drawn, "4 min");
+    assert.equal((await said(page, "#run")).iso, "PT4M");
+    assert.equal((await said(page, "#carried")).drawn, "1 min", "20 s and 50 s carried is 70 s: a retry counts on");
+    assert.deepEqual(await said(page, "#done"), { drawn: "47 min 30 s", hidden: null, words: null, iso: "PT47M30S" }, "a finished time is exact in every mode");
+  });
+
+  test("held, the held form wins: Started, and the hidden form hides", async () => {
+    const page = await open(RUN(`<><span id="started"><B.RunTimer start={4_000} /></span><span id="hidden"><B.RunTimer start={4_000} whenHeld="hidden" /></span></>`), REDUCED);
+    await hold(page, true);
+    await page.clock.runFor(50);
+    assert.match(plain(await text(page, "#started")), /^Started /);
+    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#hidden time")).visibility), "hidden");
+  });
+
+  for (const scale of ["seconds", "minutes", "hours"]) {
+    test(`the seat at "${scale}" is one width before and after the grain changes, with the default words (0px)`, async () => {
+      const body = RUN(`<span id="t"><B.RunTimer start={10_000 - 20_000} scale="${scale}" /></span>`);
+      const full = await open(body);
+      const reduced = await open(body, REDUCED);
+      assert.equal(await width(reduced, "#t time"), await width(full, "#t time"), `${scale}: "<1 min" fits the seat`);
+    });
+  }
+
+  test("a rail at the minutes scale shows \"<1 min\" under reduced motion, where it showed whole seconds", async () => {
+    const page = await open(RUN(`<B.StageRail label="Build stages" timeScale="minutes"><B.RunStage name="Fetch" state="running" start={10_000 - 45_000} /><B.RunStage name="Pack" state="idle" /></B.StageRail>`), REDUCED);
+    assert.equal(await page.evaluate(() => document.querySelector(".basalt-run-stage[data-state=running] time [data-on]").textContent), "<1 min");
+  });
+
+  test("an app's format and spoken receive the floored length and \"minute\" while running under reduced motion; the true length and \"exact\" otherwise and at end", async () => {
+    const LOG = `window.__calls = []; const format = (ms, grain) => { window.__calls.push(["format", ms, grain]); return grain === "minute" ? (ms < 60_000 ? "under 1m" : Math.floor(ms / 60_000) + "m") : (ms / 1000).toFixed(1) + "s"; }; const spoken = (ms, grain) => { window.__calls.push(["spoken", ms, grain]); return grain + " " + ms; };`;
+    const body = `${LOG}${RUN(`<><span id="run"><B.RunTimer start={10_000 - 184_500} scale="minutes" format={format} spoken={spoken} /></span><span id="done"><B.RunTimer start={0} end={184_500} scale="minutes" format={format} spoken={spoken} /></span></>`)}`;
+    const reduced = await open(body, REDUCED);
+    const calls = (page, grain) => page.evaluate((g) => window.__calls.filter(([, , gr]) => gr === g).map(([k, ms]) => [k, ms]), grain);
+    assert.equal((await said(reduced, "#run")).drawn, "3m");
+    assert.equal((await said(reduced, "#run")).words, "minute 180000", "floored before the app's formatter is called");
+    assert.equal((await said(reduced, "#run")).iso, "PT3M", "the dateTime is floored with it");
+    assert.ok((await calls(reduced, "minute")).every(([, ms]) => ms % 60_000 === 0), "every minute-grain call is a whole minute");
+    assert.ok((await calls(reduced, "minute")).some(([k, ms]) => k === "format" && ms === 0), "the seat holds format(0, \"minute\")");
+    assert.equal((await said(reduced, "#done")).drawn, "184.5s", "a finished time: the true length, exact");
+    assert.equal((await said(reduced, "#done")).words, "exact 184500");
+    const full = await open(body);
+    assert.equal((await said(full, "#run")).drawn, "184.5s", "full motion: the true length, exact");
+    assert.deepEqual(await calls(full, "minute"), [], "no minute-grain call without reduced motion");
+  });
+
+  test("a one-argument formatter writes the floored length in its own form and cannot keep ticking", async () => {
+    const page = await open(`const short = (ms) => Math.floor(ms / 60_000) + "m " + Math.floor((ms % 60_000) / 1000) + "s";${RUN(`<span id="t"><B.RunTimer start={10_000 - 184_000} scale="minutes" format={short} /></span>`)}`, REDUCED);
+    assert.equal((await said(page, "#t")).drawn, "3m 0s");
+    await observe(page, "#t");
+    await page.clock.runFor(5_000);
+    assert.equal(await page.evaluate(() => window.__changes), 0);
+  });
+});
+
+// cimip-gaps-3 T1, fix pass 1: an app's formatter can hold its text across many minutes; under reduced motion the machine value still moves each minute
+// and the list's scale still changes at 60 s, while the text is written only when it changes.
+describe("a coarse formatter under reduced motion", () => {
+  test("an hours formatter: dateTime moves at each minute, the list's seat widens at 60 s, and the text is written only when it changes", async () => {
+    const page = await open(`const hours = (ms, grain) => grain === "minute" ? Math.floor(ms / 3_600_000) + "h" : Math.floor(ms / 1000) + "s";
+${RUN(`<B.StageList label="Kiln stages"><B.RunStage name="Fire" state="running" start={10_000 - 50_000} format={hours} /></B.StageList>`)}`, REDUCED);
+    const sel = ".basalt-run-stage time";
+    const read = () => page.evaluate((s) => { const t = document.querySelector(s); return { text: t.querySelector("[data-on]").textContent, iso: t.getAttribute("datetime"), width: t.getBoundingClientRect().width }; }, sel);
+    const start = await read();
+    assert.deepEqual([start.text, start.iso], ["0h", "PT0M"]);
+    await page.evaluate((s) => {
+      window.__text = 0; window.__iso = 0;
+      const t = document.querySelector(s);
+      new MutationObserver((m) => { for (const r of m) if (r.type === "attributes") window.__iso += 1; else if (r.target.closest?.("[data-on]") || r.target.parentElement?.closest("[data-on]")) window.__text += 1; }).observe(t, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["datetime"] });
+    }, sel);
+    await page.clock.runFor(11_000);
+    const minute = await read();
+    assert.deepEqual([minute.text, minute.iso], ["0h", "PT1M"], "the machine value moved at the boundary");
+    assert.ok(minute.width > start.width, `the list's scale changed at 60 s, so the seat widened (${start.width} to ${minute.width})`);
+    for (const want of ["PT2M", "PT3M", "PT4M"]) {
+      await page.clock.runFor(60_000);
+      assert.equal((await read()).iso, want);
+    }
+    assert.equal(await page.evaluate(() => window.__text), 0, "the drawn text never changed, so it was never written");
+    assert.ok(await page.evaluate(() => window.__iso) >= 4, "dateTime was written at each minute");
   });
 });

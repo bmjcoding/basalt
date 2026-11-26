@@ -665,7 +665,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   mark, never both. Braille is Basalt's own six-dot cell drawn in SVG, 6 by 10 with 2px dots on
   whole pixels, stepping through ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏) in 800ms; unlit dots are not drawn. It
   takes the status dot's place and gap, in its word's colour. Spinners on a page share one clock.
-  Under reduced motion the ring fades and braille holds its first frame.
+  Under reduced motion no loop runs: the ring stands still at its drawing, at full opacity, and braille holds its first frame.
   **A page can hold every loop.** `data-loops="held"` on `<html>` stops every loop Basalt draws,
   portals included: braille, the ring, a busy Button's ring, a busy TextButton's underline, the indeterminate Progress bar,
   Sparkline's loading line, Skeleton's pulse and a written field's fill, a queued `StageMark`'s breath, and the page's ambient loop (its marks hold at full opacity); under the hold nothing
@@ -673,11 +673,10 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   can't be set on a subtree. Braille holds its first frame and the ring stands still at its
   drawing, at full opacity; nothing is hidden, swapped for another glyph or announced, and the
   words still say the work is running. Skeleton and the loading line hold at their reduced-motion
-  look. The indeterminate Progress bar holds as the track only, with the indicator hidden, with or
-  without reduced motion: a still bar reads as a value (30% done, or a full-width bar that reads as
+  look. The indeterminate Progress bar holds as the track only, with the indicator hidden, under the hold and under reduced motion: a still bar reads as a value (30% done, or a full-width bar that reads as
   done), so none is drawn. Its label still says the work is running and it keeps its indeterminate
   semantics (no `aria-valuenow`). Held is one look whatever the OS says: it outranks
-  reduced motion and stops the ring's fade too, and reduced motion never turns it on. Releasing
+  reduced motion, whose still ring is the same drawing, and reduced motion never turns it on. Releasing
   jumps to now: every loop rejoins the shared clock, and nothing resumes from where it stopped.
   `useLoops()` keeps the state (lazy, no module-scope side effects), stored in `localStorage`
   (`basalt-loops`) for this app's origin in this browser and carried across the app's tabs by the
@@ -685,7 +684,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   theme's, so a stored hold applies before the first frame; under a policy that forbids inline scripts it is the same line as a file
   (`head/loops.js`, as the theme's is `head/theme.js`), loaded with a plain `<script src>` in the head. This is the mechanism WCAG 2.2.2
   (Pause, Stop, Hide, Level A) asks for beside content that runs for more than five seconds:
-  reduced motion alone is OS-wide and leaves the ring fading, so it is not one.
+  reduced motion is an OS setting a reader may not have set, and it freezes no text and stops nothing starting, so it is not one.
   **The control is `LoopsToggle`, in the form the place needs, with the fixed name "Pause animations"** (it does not change when
   pressed; `aria-pressed` or the switch's state says it is on): on a site, an icon-only ghost toggle (`LoopsToggleIcon`, which loads no `Switch`) with the core `pause` glyph, its bars filled while held, in both forms, named by its `title` alone (the browser's own tooltip on a fine pointer; no `aria-label` beside it, so a screen reader hears the name once; no `Tooltip`) in the
   site header's end cluster, first in it (before any tools and the primary Button), on any page with an ambient loop or a loop that can run past five seconds;
@@ -697,7 +696,8 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   started ("Started 3:47 PM", with the date for another day) and a streaming count or step line
   hides while the status word stays; on release the current text is written. A result lands as
   usual: the word turns to Passed or Failed and a toast speaks once. A column that holds an
-  elapsed time is wide enough for the held form. **A run is the one exception to both sentences about an elapsed time.** Its head
+  elapsed time is wide enough for the held form. Under reduced motion an app's own rewriting elapsed time follows the same grain as `RunTimer`,
+  whole minutes while it runs (`useReducedMotion()`). **A run is the one exception to both sentences about an elapsed time.** Its head
   timer alone takes the held form ("Started 3:47 PM", from when the run first started), in a seat that holds it. A stage's, a step's,
   a rail node's and a stage line's own running time is not given the held form, and its column is not sized for it: it hides with
   `visibility: hidden`, its box kept, and the current figure is written on release. Under the hold every change of a stage's state
@@ -714,7 +714,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   9 by 16 box, one hairline below, so it lands on whole pixels in any even line. A plain `Badge`
   takes the size and sets the seat and the gap, and a braille `Spinner` inside it takes the same
   size. A plain `Badge` sets no font size of its own: it is a word in its line (a cell, a row, a heading) and takes that line's size, which is what lets
-  its `size` follow the word's cap height. So an app sets its base type on its root (`font: text-base` on `body`), as it sets the page's colour, and a
+  its `size` follow the word's cap height. So an app imports `base.css`, or sets the same on `body` itself, as it sets the page's colour, and a
   plain badge outside a component is never the browser's 16px (cimip-gaps-2, B6: kept by design). The toast's 16px mark seat is unchanged. Status: decided by the council (DECISIONS 99); the
   implementation hasn't been reviewed. `LoopsToggle` and the ambient loop: decided by the council (DECISIONS 136) and approved by the
   owner (DECISIONS 139); the implementation hasn't been reviewed.
@@ -736,7 +736,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   label, as `loading` draws it. **A TextButton's own mark** has no box and no seat, so nothing moves in its line: the words step down an ink
   (primary to secondary; the quiet form's secondary to tertiary, both 4.5:1; in the smoked bar, where tertiary never sits, the quiet form stays secondary and the dashed underline carries the state) and the underline, its affordance, turns dashed (a shape, so the
   state is never colour alone) in the ink and breathes from 35% to full on `duration-loop-fade`, as Sparkline's loading line does. Under
-  reduced motion it keeps breathing (a colour step, as the ring keeps its fade); held, it stands still, dashed and full; in forced colours it
+  reduced motion and held, it stands still, dashed and full; in forced colours it
   is dashed in the system's ink. Braille is not used: it is never in a button. **A field being written into** by something else (an
   agent's draft, a summary written again) is `writing` on `Textarea` or `Input`: read-only and `aria-busy` at once and until the writing ends (a key typed in the look's tail is
   typed, at the end of the new text, where the caret is left), and after the same 300ms,
@@ -762,13 +762,13 @@ field's. **Lines** (the hairline, the divider, the rim and its top edge, and the
 so a field keeps the strongest line; it is a role token of its own so that `border-input` itself does not step, and the progress and
 slider tracks, a link's underline and a chart's baseline stay on it (stepping it would take a progress indicator against its track from
 5.3:1 to 2.2:1). **A hovered edge** (`border-hover`) is drawn as `text-secondary`, so a hovered edge is never fainter than the edge at
-rest (a secondary Button, a chip, a pressed toggle). Surfaces, primary and secondary ink, focus, actions, status, the hover and
-selected washes and the smoked header do not change: the washes stay at their values so danger text keeps 4.5:1 on them (doubling the
+rest (a secondary Button, a chip, a pressed toggle). Surfaces, primary and secondary ink, focus, actions, status, and the hover and
+selected washes do not change: the washes stay at their values so danger text keeps 4.5:1 on them (doubling the
 selected wash put it at 3.5:1). The aliases are declared on every selector that sets a theme, after all of them, so the mode works
 in both themes and under a theme chosen with `data-theme`; each alias reads the theme of the element it is on. The contrast tests
 prove every text pair at 4.5:1 and every boundary at 3:1 in the mode too. A diagram's focal node draws its quiet ink at full strength, and its structure lines (`diagram-structure`) stay on the input boundary
 as a chart's baseline does (DECISIONS 281). A service mark does not change in the mode. A diagram card's arrival rim (`diagram-hit`) is drawn as `text-primary`: the rim it
-replaces is the input boundary's value in the mode, and secondary ink is under 3:1 against that (DECISIONS 292). Status: decided by the council and approved by the owner
+replaces is the input boundary's value in the mode, and secondary ink is under 3:1 against that (DECISIONS 292). The smoked header takes its opaque fallback (`surface-page`, no filter), and a clear bar is never clear. On Apple platforms a native bar that uses a material takes the solid page colour (cimip-gaps-3 T1). Status: decided by the council and approved by the owner
 (DECISIONS 138, 139 and 145); the implementation hasn't been reviewed.
 
 ### Accent classes
@@ -1023,8 +1023,9 @@ overlay, and a translucent layer on a translucent layer is the failure mode.
   rim" (see Lines): the bar sits on level 0, is not a panel and has no rim, so in dark its line is the hairline
   (14.5% white) where a divider is 6%. In light it is black 8% either way. The council decided this by majority (3-1).
 - **Fallbacks, all to opaque.** Without `backdrop-filter` (`@supports not`), under
-  `prefers-reduced-transparency: reduce`, and in print, the fill is opaque `surface-page` and there is
-  no filter. In forced colours it is `Canvas` and `CanvasText` with a real bottom border and no filter.
+  `prefers-reduced-transparency: reduce`, under `prefers-contrast: more`, and in print, the fill is opaque `surface-page` and there is
+  no filter (more contrast: blurred words passing under the layer ghost beside the title, and the reader who asked for contrast is the one least able
+  to part them; cimip-gaps-3 T1). In forced colours it is `Canvas` and `CanvasText` with a real bottom border and no filter.
 - **Ink.** Only `text-primary` and `text-secondary` may sit on it. Over a pure white plate the dark bar
   holds secondary at 9.60:1 (tertiary 6.32:1), and over a pure black plate the light
   bar holds it at 7.42:1 (tertiary 4.68:1); primary is 15.73:1 or better. Tertiary passes on the bare bar, and in dark it now passes on the selected wash too (5.00:1 over white; it was 4.0:1 before DECISIONS 166), but in light it still falls to 4.01:1 there, so the rule keeps it off the bar in both themes. The class sets primary ink and
@@ -1057,7 +1058,7 @@ council voted 8.5, 8.5 and 8, a three-member round, DECISIONS 93).
 
 - **When it may be clear.** `SiteHeader` only (never `AppHeader`, never the opaque form `solid`), over a [stage](#art) that has declared its
   headroom passed, at the very top of the page, while the page is at scroll 0. Smoked is the default and the fallback: no stage, a stage
-  that has not declared its headroom, no script, reduced transparency, forced colours and print all keep the smoked bar. Clear is an
+  that has not declared its headroom, no script, reduced transparency, more contrast, forced colours and print all keep the smoked bar. Clear is an
   enhancement the art earns.
 - **What clear is.** No fill, no blur and a transparent hairline: the line is a transparent border, so the bar is 56px in both states and
   nothing moves when it arrives. The bar sits on the art with no scrim, gradient, text-shadow or blend. The ink is always the theme's own
@@ -1080,7 +1081,7 @@ council voted 8.5, 8.5 and 8, a three-member round, DECISIONS 93).
   script it stays smoked.
 - **The menu from a clear bar** is the narrow menu, unchanged: a solid top sheet on Base UI's Dialog, its first row drawing the bar in
   place, focus on Close. Closing returns the bar to the state it was in.
-- **Fallbacks.** Reduced transparency: opaque `surface-page` with its hairline, from the first frame. Forced colours: `Canvas` and
+- **Fallbacks.** Reduced transparency and more contrast: opaque `surface-page` with its hairline, from the first frame, at the top and scrolled. Forced colours: `Canvas` and
   `CanvasText` with a real line. Print: the bar is static and opaque, decorative stage art does not print and the stage takes its place in
   the flow. Without `backdrop-filter`: clear still works at the top, since it uses no filter, and the scrolled state is the smoked bar's
   opaque fallback, `surface-page` with its hairline. (The HTML skill's top bar prints the same way: static and opaque.)
@@ -1308,7 +1309,9 @@ voted, four members, 3 of 4 deciding, on the owner's handoff, from his approved 
   over `duration-base` on `ease-out`, not under reduced motion (vote 2, no majority: the prototype's picture lift on a tile is dropped, a 2-2 tie
   that kept the option with less change). In a right-to-left page it turns and travels the other way.
 - **The link card** (`LinkCard`) is one link round a media window, a heading, a sentence and a state; no rim, no level (not a `Card`). The
-  heading is the display role; the sentence and the state sit on one baseline `space-8` apart and stack under 720. **The tile** (`LinkTile`)
+  heading is the display role by default; on an app page `titleSize` is `md` or `base`, with a 16px arrow and the foot a step down (cimip-gaps-3 T1:
+  the title 16/24 or 14/20 at 600, `space-4` or `space-3` above it under media and none without, `space-4` to the arrow, the foot `text-base` or
+  `text-sm` `space-2` or `space-1` below, `space-4` apart, and a 44px hit area on touch with no change to layout); the sentence and the state sit on one baseline `space-8` apart and stack under 720. **The tile** (`LinkTile`)
   is a link round a picture, a brand line, a name (`text-md`, 500, a real heading, underlined on hover) and details, with a foot row outside
   the link, because a link cannot hold a button. Link radius 6 so the ring has a shape.
 - **The directory** (`DirectoryList`, `DirectoryRow`): a head, then rows ruled by `border-divider`, each one link of three fixed columns:
@@ -2337,6 +2340,8 @@ because no whole set had two of three votes; the owner is asked to look at them 
 
 **Status:** decided by the council and approved by the owner (DECISIONS 137 and 139); the implementation has not been reviewed.
 
+- **The page base** is opt-in: `base.css` sets `body` to no margin, `surface-page`, primary ink and the sans family at `text-base`, in `@layer basalt`.
+  It sets nothing on `html` and resets nothing else. No component stylesheet styles `body` (cimip-gaps-3 T1).
 - **The page row** (`PageRow`) is `size-page-width` with `--basalt-gutter` inside, the site header's row exactly, so every headline, lead, table
   and chart starts under the brand. It is the row of the first screen too: art that wants more is full-bleed in a `Stage`, never a wider
   row. The side safe area replaces the gutter where it is larger, as the header's padding does.
@@ -2590,8 +2595,7 @@ stack sits at its final offsets and only fades; Progress width jumps; NumberTick
 tabular text at the same width and baseline (in the sentence's own line, and the same in forced colours, where it does not roll); the toast drain is not drawn; Sparkline snaps its
 scale and labels; a travelling spinner appears at its destination with the same fade; an entrance is not played and a list's items take their places at once; an ambient loop is still; a tab change is
 a 100ms crossfade; a glyph that swaps (a plus to a check, an empty seat to a check) crossfades over `duration-fast` all the same, because it is opacity only; the horizontal tab underline does not move; the segmented and vertical-tab pill and the hover glide do
-not travel (each item shows its own pill or plate, fading over 100ms). Spinners fade or hold still, and a loop is
-never cut to 100ms.
+not travel (each item shows its own pill or plate, fading over 100ms). No loop runs: each holds still at its resting drawing, and none is cut to 100ms.
 
 The components and what each does are in [Motion and primitives](motion.md).
 
@@ -3126,11 +3130,15 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
 `Terminal` takes stage lines. Nothing new is named `stage` alone: `Stage` is the full-bleed art, and every class here begins `basalt-run-`
 (the skill's `run-`, in its `runs` module).
 
-- **The seven states and their mark.** One mark a state at 16px (`size-icon-sm`; 20 and 24 by the status seat's rule), `aria-hidden`, in a seat
-  that never changes size; the word carries the state. Queued is Phosphor Bold `Circle` in `text-secondary`, breathing (see Motion); running is
+- **The nine states and their mark.** One mark a state at 16px (`size-icon-sm`; 20 and 24 by the status seat's rule), `aria-hidden`, in a seat
+  that never changes size; the word carries the state. Idle ("Not started") is Phosphor Bold `CircleDashed` in `text-tertiary` and never
+  animates, in any mode: a stage the sequence has not reached, which cannot start until something before it finishes, where queued is work
+  that waits and could start at any moment; its dashed shape is what parts it from queued once motion stops and under more contrast
+  (cimip-gaps-3 T1). Queued is Phosphor Bold `Circle` in `text-secondary`, breathing (see Motion); running is
   the ring in `text-primary`; passed the outline `CheckCircle` in `text-secondary`; failed the outline `XCircle` in `status-danger`; skipped
-  `MinusCircle` and canceled `Prohibit` in `text-tertiary`; retrying is the ring, as running. No filled disc anywhere. The default words are
-  Queued, Running, Passed, Failed, Skipped, Canceled and Retrying (US English); the app may change any of them ("Investigating", "Waiting for
+  `MinusCircle` and canceled `Prohibit` in `text-tertiary`; retrying is the ring, as running; warning (an ending that is not a pass, cimip-gaps-3 T2) the outline
+  `Warning` triangle in `status-warning`. No filled disc anywhere. The default words are
+  Not started, Queued, Running, Passed, Failed, Skipped, Canceled, Retrying and Warning (US English); the app may change any of them ("Investigating", "Waiting for
   approval", "Retrying, 2 of 3"). A stage held up by a failure above it is skipped with the word "Blocked by Test". A change of state crossfades:
   both marks stand in the one seat, the old fading out as the new fades in, over `duration-fast` on `ease-out`, kept under reduced motion. In
   forced colours a mark is `currentColor` and names no system colour.
@@ -3138,12 +3146,12 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
 
   | Part | Drawn | Said and not drawn | Not a state there |
   |---|---|---|---|
-  | `StageList` | Queued, running, failed, skipped, canceled, retrying | Passed | |
-  | `StageRail` | Failed, skipped, canceled, retrying, in the node's status seat | Queued, running, passed | |
-  | `RunTimeline`, a full step | Queued, failed, skipped, canceled, retrying, and any word the app gives | Running, passed | |
-  | `RunTimeline`, a tail row | Failed, skipped, canceled, and the app's word | Passed | Queued, running and retrying: they never roll |
-  | `Terminal` stage line | Skipped, canceled, and any word the app gives | Running, done, failed (the mark is a named image) | Queued and retrying |
-  | `StageBadge` | Always, all seven | | |
+  | `StageList` | Not started, queued, running, failed, skipped, canceled, retrying, warning | Passed | |
+  | `StageRail` | Failed, skipped, canceled, retrying, warning, in the node's status seat | Not started, queued, running, passed | |
+  | `RunTimeline`, a full step | Not started, queued, failed, skipped, canceled, retrying, warning, and any word the app gives | Running, passed | |
+  | `RunTimeline`, a tail row | Failed, skipped, canceled, warning, and the app's word | Passed | Not started, queued, running and retrying: they never roll |
+  | `Terminal` stage line | Skipped, canceled, warning, and any word the app gives | Running, done, failed (the mark is a named image) | Not started, queued and retrying |
+  | `StageBadge` | Always, all nine | | |
 
   A state is said once: where the word is drawn the mark is `aria-hidden`; where it is not, the mark is a named image (the log) or a visually
   hidden word follows the name. A passed stage is its outline check and its duration.
@@ -3190,8 +3198,8 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   draws the warning state and `.run-place`; the stage disclosure is React's alone.
 - **`StageList`.** A known sequence of named stages, an `ol` named by `label`. A row is the mark (16), `space-3`, the name and its word
   (`space-2` apart, one line, never wrapped), the meta and the timer, at `text-sm`, `space-2` above and below: 34px. The name is primary, and
-  secondary while queued, skipped or canceled; the word secondary, primary while running or retrying, `status-danger` at 500 when failed, tertiary
-  while queued, skipped or canceled; the meta tertiary at `text-xs`, hidden under 480px of the list's own container. The connector is a 1px
+  secondary while not started, queued, skipped or canceled; the word secondary, primary while running or retrying, `status-danger` at 500 when failed, tertiary
+  while not started, queued, skipped or canceled; the meta tertiary at `text-xs`, hidden under 480px of the list's own container. The connector is a 1px
   `border-input` line on the marks' centre line from `space-1` under one mark to `space-1` above the next, beside an open detail too, and never a
   state (see Vertical lines). A stage's detail (`detail`, `action`: a failure's reason and Retry, what waits and Approve) opens under it, indented
   to the name, by height and opacity over `duration-slow` on `ease-out`, closing at 0.75 on `ease-in`, `inert` while closed; inside it `code` is
@@ -3205,8 +3213,11 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   `ease-out` when its stage passes, empties at once on a retry and stays empty after a failure; it repeats the check before it and is never the
   only sign of anything. No bead and no pulse: the running ring is the rail's only moving thing. `Progress`'s value takes tabular figures and the
   room of "100%".
-- **`StageBadge`.** A `Badge` bound to the seven states (the pending ring, braille, the success, danger and neutral dots), `outline` in a run's
-  head and `plain` in a list or table. Its seat is as wide as its widest face; each face is a pill as wide as its own words. The seat comes
+- **`StageBadge`.** A `Badge` bound to the nine states (the pending ring, braille, the success, warning, danger and neutral dots; not started is the
+  neutral dot, never the pending ring, which means work actively waiting), `outline` in a run's
+  head and `plain` in a list or table. Its seat is as wide as its widest face among `states`, the states the badge will show (left out, every
+  state but not started, so no badge that never shows "Not started", the widest word, makes room for it); a badge that shows a state its set
+  leaves out still draws it, its seat widening once and never narrowing, and development warns; each face is a pill as wide as its own words. The seat comes
   from a static measure and is never narrower under width pressure; its figures are tabular, so a changed digit changes no width. A change of face is sequential: the old face
   fades and rises `space-1` over 0.75 of `duration-base` on `ease-in`, then the new one fades in from `space-1` below over `duration-base` on
   `ease-out`. One accessible name at every moment.
@@ -3217,9 +3228,10 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   first frame its window is a named `region` (a `group` while empty) and the run's `RunAnnouncer` speaks. With `keep`, lines older than the
   newest `keep` stages step back once (see Logs, status and forms); a command never does.
 - **`RunTimeline` and the counter.** An append-only `ol` of steps, a sentence each: the mark, `space-3`, the sentence, the meta (a result and
-  the time), at `text-sm`; the sentence is primary while the step runs, retries or waits, secondary once it has finished. From 640px of its own container the meta ends on the row's end edge, the time's seat `space-3` after the result with no dot between
+  the time), at `text-sm`; the sentence is primary while the step runs, retries or waits, secondary once it has finished or while it has not
+  started (its word "Not started" tertiary at 400). From 640px of its own container the meta ends on the row's end edge, the time's seat `space-3` after the result with no dot between
   them; under it the meta goes under the sentence, a middle dot between the result and the time. The comma is said at both. A detail and an action are always drawn under a full step. `keep` (3 when left out; `false` is the whole record) is the counter:
-  the newest `keep` steps stay in full and a finished step older than those rolls into the tail (a step running, retrying or waiting never
+  the newest `keep` steps stay in full and a finished step older than those rolls into the tail (a step running, retrying, waiting or not started never
   rolls, and nothing after it does). A tail row is `text-xs` at 400, 20px, one line cut with an ellipsis, its mark still 16, no connector and
   no detail, its ink its depth's step (see Principles); everything it says stays in the accessibility tree. The window is the list's
   scrolling box, its floor the larger of `keep` and `minRows` rows plus two and a half tail rows, only growing; it draws no scrollbar and is a named tab stop while it
@@ -3237,14 +3249,22 @@ Work that runs in stages and reports as it goes: a deploy pipeline, a CI job lis
   under the status, 70px at 390 and 320); a list sets one scale for all its timers. A run's head seat also holds today's held form
   ("Started 12:59 PM"); a run that started on another day widens it once when the hold is pressed, as a time that outgrows its scale does. It counts from `start`, is frozen at `end`,
   adds `carried` across a retry, and its held form reads from `since`. A run's time counts while it runs, retries or waits for an approval, and
-  is frozen while it has failed, is canceled or has passed.
+  is frozen while it has failed, is canceled or has passed. **Under reduced motion a running time counts whole minutes** (cimip-gaps-3 T1):
+  "<1 min" (said "less than 1 minute", `PT0M`) until 60 s, then "4 min" (`PT4M`), "1 hr 12 min" and "3 days" as before, the drawn figure, the
+  spoken words and `dateTime` from one floored length, written once a minute and never between; at `end` it is exact again ("47 min 30 s"),
+  in every mode, and the hold still wins. `carried` is added before the floor. A rail at the minutes scale takes the same grain. An app's
+  `format` and `spoken` are given the floored length and the grain (`"minute"`; otherwise the true length and `"exact"`), so a one-argument
+  formatter writes the floored figure in its own form and cannot keep ticking; with an app's `format` the seat also holds its minute forms
+  while reduced motion is on. The server writes the exact figure; the client reads the setting before paint, so no exact figure is painted
+  after hydration and the change lands once. `Countdown`, `Clock` and `DateAge` do not change.
 - **`RunAnnouncer`.** One a run: a visually hidden `role="log"`, polite, additions only, each event its own appended element, said once and in
   order; a repeated `id` is quiet and events present at mount are not said. An app sends the run's start, a failure with its reason, a retry
   when it starts, an approval needed or given by someone else, a cancel and who made it, and the run's end with its outcome and time; never a
   timer, a spinner's frame, a log line, a stage that passed, a roll, the hold or the reader's own press. Never `role="alert"`, and no toast for
   the same result.
 - **Modes.** Reduced motion: nothing moves, grows or travels; the mark's crossfade stays; the queued mark is still at full; a rail's fill, a
-  detail and a roll land at once; an arriving step fades over 100ms; the badge's faces only fade; timers tick. The hold: the ring and braille
+  detail and a roll land at once; an arriving step fades over 100ms; the badge's faces only fade; a running timer counts whole minutes and is
+  exact again at its end; an idle mark is still in every mode. The hold: the ring and braille
   stand still, the queued mark is still at full, every change of state lands at once, and a stage's own running time hides (see "A page can
   hold every loop"). A demonstration asks the hold when it would start and does not start under it; a run the reader starts runs whatever the
   hold. More contrast: no tail, every stepped-back line at the first step and a failed one full `status-danger`, and the window's top edge is a plain cut. Forced colours: marks and
@@ -3460,7 +3480,7 @@ TimeChart draws a series over time (see [Charts](#charts)), ChartGroup stacks ch
 Stage and PairedArt put full-bleed art under a clear site header (a stage may also close a page), and FramedArt frames a picture in the flow (see [Art](#art)). CaptionedColumns, AppTile and PeriodStepper are in [Parts of DECISIONS 162](#parts-of-decisions-162).
 
 Text and Heading consume the shared type scale; structural heading level is independent
-of visual size. Breadcrumbs mark the current location, Pagination renders a bounded page
+of visual size. A part's level prop changes no size. `EmptyState`'s title is `text-base` at 500 (`titleSize` `md` or `lg` for a page-level one). Breadcrumbs mark the current location, Pagination renders a bounded page
 window, and Link retains native navigation, underlined in the input-boundary colour (3:1) that brightens to the text on hover, and draws the new-tab arrow when it opens one. Avatar, Separator and EmptyState provide
 neutral composition without replacing meaningful words with imagery.
 
@@ -3505,7 +3525,8 @@ opening and closing motion. Below Firefox 129 those four open and close with no 
 **Reduced transparency.** "Falls back to opaque `surface-page` under reduced transparency" holds in the browsers that evaluate
 `prefers-reduced-transparency`: Chromium from 118. Safari and Firefox do not evaluate it (Firefox only behind a flag), so there the sticky header
 stays smoked with the setting on. It is a comfort and not a legibility matter: text on the bar holds 4.5:1 over any backdrop. The audit (A5-16a)
-read this from compatibility data and did not check it in Safari with the setting on.
+read this from compatibility data and did not check it in Safari with the setting on. Where a browser evaluates `prefers-contrast` and not reduced
+transparency, more contrast gives the opaque bar; it claims no more than that.
 
 ## How these were decided
 

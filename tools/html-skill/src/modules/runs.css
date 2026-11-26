@@ -4,8 +4,8 @@
      The skill draws the states and not the machinery: no counter, no ticking time, no badge swap, no announcer (React's alone). Every class begins
      run-: .stage, .stage-art and .stage-content are the art module's, and a page may hold both. */
 
-  /* The seven marks, one 16px seat each, aria-hidden: the word carries the state. The script draws the glyph from data-state (and again when it
-     changes): queued is Circle in secondary ink, breathing by opacity from opacity-queued to 1 on duration-loop-fade (still under reduced motion,
+  /* The eight marks, one 16px seat each, aria-hidden: the word carries the state. The script draws the glyph from data-state (and again when it
+     changes): idle (not started) is CircleDashed in tertiary and never animates; queued is Circle in secondary ink, breathing by opacity from opacity-queued to 1 on duration-loop-fade (still under reduced motion,
      the hold, forced colours and print); passed is CheckCircle in secondary, failed XCircle in danger, skipped MinusCircle and canceled Prohibit in
      tertiary. Running and retrying are the ring, drawn here. */
   .run-mark { display: inline-grid; flex: none; place-items: center; box-sizing: border-box; inline-size: var(--basalt-size-icon-sm); block-size: var(--basalt-size-icon-sm); vertical-align: middle; }
@@ -13,7 +13,7 @@
   .run-mark:is([data-state="queued"], [data-state="success"]) { color: var(--basalt-text-secondary); }
   .run-mark[data-state="queued"] { animation: bh-run-breath var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite alternate; }
   .run-mark[data-state="failed"] { color: var(--basalt-status-danger); }
-  .run-mark:is([data-state="skipped"], [data-state="canceled"]) { color: var(--basalt-text-tertiary); }
+  .run-mark:is([data-state="idle"], [data-state="skipped"], [data-state="canceled"]) { color: var(--basalt-text-tertiary); }
   /* An ending with a warning (cimip-gaps-3 T2): the outline Warning triangle in status-warning; its word is primary at 500, drawn in a list, a rail and a step. */
   .run-mark[data-state="warning"] { color: var(--basalt-status-warning); }
   /* The ring: React's, a 1.5px stroke whose quarter is full ink, 14 across (React's circle and its stroke) in the 16px seat, turning in duration-loop-ring.
@@ -25,7 +25,7 @@
   :root[data-loops="held"] .run-mark { animation: none; }
   @media (prefers-reduced-motion: reduce) {
     .run-mark[data-state="queued"] { animation: none; }
-    .run-mark:is([data-state="running"], [data-state="retrying"])::before { animation: bh-fade var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite; }
+    .run-mark:is([data-state="running"], [data-state="retrying"])::before { animation: none; }
   }
   :root[data-loops="held"] .run-mark::before { animation: none; }
   @media (forced-colors: active) { .run-mark { color: inherit; } .run-mark[data-state="queued"] { animation: none; } }
@@ -44,13 +44,13 @@
   .run-stage-name { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
   .run-stage-word { color: var(--basalt-text-secondary); white-space: nowrap; }
   .run-stages .run-stage-word { margin-inline-start: calc(var(--basalt-space-2) - var(--basalt-space-3)); }
-  .run-stage:is([data-state="queued"], [data-state="skipped"], [data-state="canceled"]) .run-stage-name { color: var(--basalt-text-secondary); }
+  .run-stage:is([data-state="idle"], [data-state="queued"], [data-state="skipped"], [data-state="canceled"]) .run-stage-name { color: var(--basalt-text-secondary); }
   .run-stage:is([data-state="running"], [data-state="retrying"]) .run-stage-word { color: var(--basalt-text-primary); }
   .run-stage[data-state="failed"] .run-stage-word { color: var(--basalt-status-danger); font-weight: var(--basalt-font-weight-medium); }
   .run-stage[data-state="warning"] .run-stage-word { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
-  .run-stage:is([data-state="queued"], [data-state="skipped"], [data-state="canceled"]) .run-stage-word { color: var(--basalt-text-tertiary); }
+  .run-stage:is([data-state="idle"], [data-state="queued"], [data-state="skipped"], [data-state="canceled"]) .run-stage-word { color: var(--basalt-text-tertiary); }
   /* stylelint-disable-next-line unit-disallowed-list -- the 1px clip box of the visually-hidden pattern; it must be exactly 1px */
-  .run-stages > .run-stage[data-state="success"] > .run-stage-word, .run-rail > .run-stage:is([data-state="queued"], [data-state="running"], [data-state="success"]) > .run-stage-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .run-stages > .run-stage[data-state="success"] > .run-stage-word, .run-rail > .run-stage:is([data-state="idle"], [data-state="queued"], [data-state="running"], [data-state="success"]) > .run-stage-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .run-stage-meta { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); white-space: nowrap; }
   :is(.run-stage-time, .run-step-time) { min-inline-size: var(--basalt-space-12); text-align: end; font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); font-variant-numeric: tabular-nums; color: var(--basalt-text-tertiary); white-space: nowrap; }
   .run-stage-detail { grid-column: 2 / -1; padding-block: var(--basalt-space-2) var(--basalt-space-1); color: var(--basalt-text-secondary); }
@@ -84,6 +84,8 @@
   .run-rail > .run-stage:not(:last-child)::after { border-block-start-color: var(--basalt-text-secondary); transform: scaleX(0); transform-origin: left; }
   .run-rail > .run-stage:not(:last-child):dir(rtl)::after { transform-origin: right; }
   .run-rail > .run-stage[data-state="success"]:not(:last-child)::after { transform: scaleX(1); transition: transform var(--basalt-duration-slower) var(--basalt-ease-out); }
+  /* The link before a stage that has not started stays empty, even after a passed stage. */
+  .run-rail > .run-stage:not(:last-child):has(+ [data-state="idle"])::after { transform: scaleX(0); }
   @media (prefers-reduced-motion: reduce) { .run-rail > .run-stage::after { transition: none !important; } }
   :root[data-loops="held"] .run-rail > .run-stage::after { transition: none !important; }
   @media (forced-colors: active) { .run-rail > .run-stage::before { border-color: GrayText; } .run-rail > .run-stage::after { border-color: CanvasText; } }
@@ -107,7 +109,7 @@
   .run-step:is([data-state="running"], [data-state="queued"], [data-state="retrying"]) .run-step-sentence { color: var(--basalt-text-primary); }
   .run-step-word { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
   .run-step[data-state="failed"] .run-step-word { color: var(--basalt-status-danger); }
-  .run-step:is([data-state="skipped"], [data-state="canceled"]) .run-step-word { color: var(--basalt-text-tertiary); font-weight: var(--basalt-font-weight-regular); }
+  .run-step:is([data-state="idle"], [data-state="skipped"], [data-state="canceled"]) .run-step-word { color: var(--basalt-text-tertiary); font-weight: var(--basalt-font-weight-regular); }
   .run-step-meta { justify-self: end; color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); white-space: nowrap; font-variant-numeric: tabular-nums; text-align: end; }
   .run-step-meta .run-step-time { min-inline-size: 0; line-height: inherit; }
   .run-step-detail { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2) var(--basalt-space-3); padding-block-start: var(--basalt-space-2); }

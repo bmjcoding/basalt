@@ -8,7 +8,7 @@ import { Icon } from "./icon";
 import { useLoops } from "./loops";
 import { useReducedMotion } from "./motion";
 import { STAGE_WORDS } from "./run-format";
-import type { Moment, RunTimeScale, StageState } from "./run-format";
+import type { Moment, RunTimeGrain, RunTimeScale, StageState } from "./run-format";
 import { rendered, useFocusHome } from "./run-stage";
 import { RunTimer, useRunTimeScale } from "./run-timer";
 import { warnRun } from "./run-warn";
@@ -41,9 +41,9 @@ export interface RunStepProps {
   start?: Moment;
   end?: Moment;
   /** Writes the step's time, in a full step and a tail row (see `RunTimer`'s `format`): its seat's width follows it. */
-  format?: (ms: number) => string;
+  format?: (ms: number, grain: RunTimeGrain) => string;
   /** Says the step's time, when the drawn form is short for the ear (see `RunTimer`'s `spoken`). */
-  spoken?: (ms: number) => string;
+  spoken?: (ms: number, grain: RunTimeGrain) => string;
   /** What is drawn under a full step, never behind a disclosure: a command to approve, a reason. Hidden in the tail. */
   detail?: React.ReactNode;
   /** The step's action ("Approve"): a `Button` whose `onClick` returns the app's promise. */
@@ -71,12 +71,12 @@ export interface RunTimelineProps {
   children: React.ReactNode;
 }
 
-/** Running, retrying and waiting (queued) never roll, and nothing after them does. */
-const unfinished = (state: StageState | undefined) => state === "queued" || state === "running" || state === "retrying";
+/** Running, retrying, waiting (queued) and not started (idle) never roll, and nothing after them does. */
+const unfinished = (state: StageState | undefined) => state === "idle" || state === "queued" || state === "running" || state === "retrying";
 /** Drawn in a full step: every state's word but running's and passed's, and any word the app gives. */
-const DRAWN_FULL: Record<StageState, boolean> = { queued: true, running: false, success: false, failed: true, skipped: true, canceled: true, retrying: true, warning: true };
-/** Drawn in a tail row: failed, skipped, canceled and warning (queued, running and retrying never roll), and any word the app gives. */
-const DRAWN_TAIL: Record<StageState, boolean> = { queued: false, running: false, success: false, failed: true, skipped: true, canceled: true, retrying: false, warning: true };
+const DRAWN_FULL: Record<StageState, boolean> = { idle: true, queued: true, running: false, success: false, failed: true, skipped: true, canceled: true, retrying: true, warning: true };
+/** Drawn in a tail row: failed, skipped, canceled and warning (idle, queued, running and retrying never roll), and any word the app gives. */
+const DRAWN_TAIL: Record<StageState, boolean> = { idle: false, queued: false, running: false, success: false, failed: true, skipped: true, canceled: true, retrying: false, warning: true };
 
 interface StepPlace { tail: boolean; depth: number }
 const StepPlaceContext = React.createContext<StepPlace>({ tail: false, depth: 0 });

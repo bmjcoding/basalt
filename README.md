@@ -27,11 +27,13 @@ npm run build
 @import "@srasyndicate/basalt-tokens/tokens.css";
 /* optional: shadcn/ui variable names, mapped onto Basalt's */
 @import "@srasyndicate/basalt-tokens/shadcn.css";
+/* optional: the page base, one body rule in @layer basalt (no margin, surface-page, primary ink, the sans family at text-base) */
+@import "@srasyndicate/basalt-tokens/base.css";
 
+/* A site that reads at text-md overrides it in one rule of its own: unlayered, so it wins. */
 body {
-  background: var(--basalt-surface-page);
-  color: var(--basalt-text-primary);
-  font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans);
+  font-size: var(--basalt-text-md-size);
+  line-height: var(--basalt-text-md-line-height);
 }
 ```
 
