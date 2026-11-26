@@ -470,7 +470,7 @@ function Steps({ state }: { state: string }) {
             <Segment value="company">Company</Segment>
           </SegmentedControl>
         </div>
-        <Stepper steps={SETUP} value={setup} onValueChange={setSetup} nextDisabled={setup === "plan" && !plan} nextReason="Choose a plan to go on." onDone={() => {}} />
+        <div><Stepper steps={SETUP} value={setup} onValueChange={setSetup} nextDisabled={setup === "plan" && !plan} nextReason="Choose a plan to go on." onDone={() => {}} /></div>
       </div>
       <div ref={printBox} style={stack}>
         <Caption>A photo print order: Done sends the order and waits for it; a second press does nothing.</Caption>
