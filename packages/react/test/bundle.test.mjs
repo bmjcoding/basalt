@@ -806,7 +806,9 @@ test("the imports plugin never rewrites a file that resolves another copy of Bas
 // cimip-gaps-3 E2 (DECISIONS 246, this file's graph() on origin/main 9f17176f and the E2 head): ReleaseNotes 68,285 on main, 68,405 with E2 (+120: DotLine
 // holds each fact with its dot, and the read ", " is inline text), so 68,250 to 68,450.
 // The stream's merge: ReleaseNotes 68,405 on origin/main 6a78d57c, 68,533 on the combined head (+128), so main's 68,450 to 68,578.
-for (const [name, limit] of [["VersionLink", 2_150], ["ReleaseIndex", 31_050], ["ReleaseNotes", 68_578]]) {
+// cimip-gaps-3 T5 (this file's graph() on origin/main 4e438ecb and on the T5 head): ReleaseNotes 68,533 on main, 68,708 with T5 (+175: Callout's `meta`,
+// the head row a callout draws only when it is given one), so the limit goes up by that increase, 68,578 to 68,753.
+for (const [name, limit] of [["VersionLink", 2_150], ["ReleaseIndex", 31_050], ["ReleaseNotes", 68_753]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -825,7 +827,7 @@ test("ReleaseNotes loads no popup up front: no popover, no positioning, no Float
 
 // AppShell measured alone (the size table): 103,887 before the version, 115,101 with the rail's tooltip up front, 104,373 with it on demand; with
 // splitting its static graph measures 104,964, so the limit is 105,000.
-// cimip-gaps-3 T5 (graph() on origin/main c67926bf and on the T5 head): 104,924 on main, 105,239 with T5 (+315: `rail`, `banner`, `footnote` and the
+// cimip-gaps-3 T5 (graph() on origin/main 4e438ecb and on the T5 head): 104,924 on main, 105,239 with T5 (+315: `rail`, `banner`, `footnote` and the
 // title context a phone page head registers in), so the limit goes up by that increase, 105,000 to 105,315.
 test("AppShell loads the rail's tooltip for the version on demand", async () => {
   const { inputs, bytes } = await graph("AppShell");
@@ -834,7 +836,7 @@ test("AppShell loads the rail's tooltip for the version on demand", async () => 
 });
 
 // cimip-gaps-3 T5: a stream message's More popover (the quiet actions' touch form) loads the first time a reader reaches for More, from stream-more.js,
-// built on its own with Base UI's popover inlined. With it up front StreamMessage measured 130,133 in the size table; on demand, 19,831.
+// built on its own with Base UI's popover inlined. With it up front StreamMessage measured 130,133 in the size table; on demand, 19,640 (15,052 on origin/main 4e438ecb before the quiet actions, the seat and the time link).
 test("StreamMessage loads no popup up front: no popover, no positioning, no Floating UI until More is pressed", async () => {
   const { inputs } = await graph("StreamMessage");
   assert.deepEqual(inputs.filter((input) => /@floating-ui\/(dom|core|react-dom)|floating-ui-react|@base-ui\/react\/popover|stream-more|useAnchorPositioning/.test(input)), []);
