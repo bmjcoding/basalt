@@ -25,6 +25,9 @@
     var id = 'bh-cl-' + (++seq);
     var label = o.label || host.getAttribute('data-label') || 'Commands';
     var noun = o.noun || host.getAttribute('data-noun') || 'command';
+    // The page's own count line, and its own empty block (a <template data-empty> inside the list, cloned, never HTML from data).
+    var count = o.count != null ? o.count : host.getAttribute('data-count');
+    var template = o.empty || host.querySelector('template[data-empty]');
     var placeholder = o.placeholder || host.getAttribute('data-placeholder') || 'Search commands';
     var groups = o.groups || [];
     groups.forEach(function (g, gi) { (g.items || []).forEach(function (it, n) { if (it.id == null) it.id = 'g' + gi + 'c' + n; }); });
@@ -46,9 +49,10 @@
           '</div>' +
           '<div class="command-body">' +
             '<div class="command-results" id="' + id + '-list" role="listbox" aria-label="' + esc(label) + '" tabindex="-1" data-idle><div class="command-sizer">' + r.html + '</div></div>' +
-            '<div class="command-none" hidden><p></p><button type="button" class="btn" data-variant="ghost" data-size="sm">Clear search</button></div>' +
+            '<div class="command-none" hidden></div>' +
           '</div>' +
           '<div hidden>' + r.words + '</div>' +
+          '<span class="visually-hidden" role="status" data-reason></span>' +
           '<div class="command-foot">' +
             '<p class="command-count"><span aria-hidden="true"></span><span role="status" aria-live="polite" aria-atomic="true" class="visually-hidden"></span></p>' +
             '<span class="command-hints" data-kbd-hint aria-hidden="true"><span>' + kbdGroup(['↑', '↓']) + ' Move</span><span>' + kbdGroup(['↵']) + (detail ? ' Open' : ' Run') + '</span>' +
@@ -69,6 +73,7 @@
     var none = page.querySelector('.command-none');
     var shownText = page.querySelector('.command-count').firstChild;
     var spokenText = page.querySelector('.command-count').lastChild;
+    var reason = page.querySelector('[data-reason]');
     var rows = Array.prototype.slice.call(results.querySelectorAll('.row'));
     var groupEls = Array.prototype.slice.call(sizer.children);
     var plate = document.createElement('span');
@@ -88,7 +93,7 @@
     var savedScroll = 0;
     var paneFor = NaN;
     var paneBody = pane && pane.querySelector('.command-pane-body');
-    var spoken = shownText.textContent = spokenText.textContent = total + ' ' + (total === 1 ? noun : noun + 's');
+    var spoken = shownText.textContent = spokenText.textContent = P.countLine(total, total, noun, false, count);
     var timer;
 
     /** The count is shown at once and spoken once, after it has held still for 400ms. */
@@ -113,14 +118,12 @@
       // The page keeps the taller of the panel's two heights, the unfiltered list's and "Nothing matches"', so a short list filtered to nothing never
       // moves what follows (the code review's finding 6): the sentence is measured unseen, out of the flow.
       var wasHidden = none.hidden;
-      var said = none.firstChild.textContent;
-      if (!said) none.firstChild.textContent = 'Nothing matches.';
       none.hidden = false;
+      if (wasHidden) fillNone('?');
       none.setAttribute('data-measure', '');
       var empty = pad + none.getBoundingClientRect().height;
       none.removeAttribute('data-measure');
       none.hidden = wasHidden;
-      none.firstChild.textContent = said;
       host.style.setProperty('--held-page', page.getBoundingClientRect().height - list + Math.max(list, empty) + 'px');
     }
 
@@ -145,8 +148,10 @@
       if (item === paneFor) return;
       paneFor = item;
       paneBody.textContent = '';
-      var out = item ? detail(item) : null;
+      var out = item && item.unavailable == null ? detail(item) : null;
       if (!item) paneBody.innerHTML = '<p class="command-pane-empty">Nothing to show.</p>';
+      // A row that cannot run has no pane: its reason is the pane's empty form, and ↵ has no button to press.
+      else if (item.unavailable != null) { var p = document.createElement('p'); p.className = 'command-pane-empty'; p.textContent = String(item.unavailable); paneBody.appendChild(p); }
       else if (typeof out === 'string') paneBody.innerHTML = out;
       else if (out) paneBody.appendChild(out);
       namePane();
@@ -184,9 +189,9 @@
       vis = [];
       order.forEach(function (x) { Array.prototype.forEach.call(x.g.querySelectorAll('.row'), function (row) { if (!row.hidden) vis.push(Number(row.dataset.index)); }); });
       none.hidden = vis.length > 0;
-      none.firstChild.textContent = 'Nothing matches “' + q + '”.';
+      if (!vis.length) fillNone(q);
       results.scrollTop = 0;
-      say(vis.length === total ? total + ' ' + (total === 1 ? noun : noun + 's') : vis.length + ' of ' + total);
+      say(P.countLine(vis.length, total, noun, q !== '', count));
       setActive(vis.length ? vis[0] : -1, false);
     }
 
@@ -205,9 +210,14 @@
       }
     }
 
+    /** The empty block for the words typed (Basalt's sentence and Clear search, or the page's template). */
+    function fillNone(q) { P.fillNone(none, q, template, function () { input.value = ''; filter(); input.focus(); }); }
+
     function choose(i) {
       var item = flat[i];
       if (!item) return;
+      // A row that cannot run opens nothing and runs nothing: it is lit, and its reason is said (again on every press).
+      if (item.unavailable != null) { setActive(i, false); P.sayNow(reason, String(item.unavailable)); return; }
       if (!detail) { P.activate(item, o); return; }
       setActive(i, false);
       if (mode === 'push') { savedScroll = results.scrollTop; split.setAttribute('data-enter', 'next'); setView('detail'); }
@@ -229,7 +239,9 @@
       if (e.key === 'Enter' && e.target === input && !(e.ctrlKey || e.metaKey || e.altKey || e.shiftKey)) {
         e.preventDefault();
         // In a split the plate marks what the pane shows, so ↵ runs the pane's primary action: its first button.
-        if (detail && mode === 'split') { var go = paneBody.querySelector('button:not([disabled]), a[href]'); if (go) go.click(); } else if (active > -1) choose(active);
+        var lit = flat[active];
+        if (lit && lit.unavailable != null) choose(active);
+        else if (detail && mode === 'split') { var go = paneBody.querySelector('button:not([disabled]), a[href]'); if (go) go.click(); } else if (active > -1) choose(active);
       }
     });
     page.addEventListener('pointerdown', function (e) { lastInput = e.pointerType === 'touch' ? 'touch' : 'pointer'; }, true);
@@ -247,7 +259,8 @@
       var row = e.target.closest('.row');
       if (row) choose(Number(row.dataset.index));
     });
-    none.querySelector('button').addEventListener('click', function () { input.value = ''; filter(); input.focus(); });
+    // A press on a row that cannot run keeps focus where it is.
+    results.addEventListener('mousedown', function (e) { if (e.target.closest('.row[aria-disabled="true"]')) e.preventDefault(); });
 
     if (detail) {
       pane.querySelector('.command-back button').addEventListener('click', function () { split.setAttribute('data-enter', 'prev'); setView('list'); });
@@ -265,6 +278,7 @@
     }
     new ResizeObserver(hold).observe(sizer);
     hold();
+    if (!total) { none.hidden = false; fillNone(''); }
     _.glide(results, plate, { active: '.row[data-active]', attr: 'data-active' });
     if (vis.length) setActive(0, false);
     if (detail) renderPane();

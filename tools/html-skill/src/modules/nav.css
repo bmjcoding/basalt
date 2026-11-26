@@ -59,8 +59,8 @@
   .nav-label {
     display: inline-flex;
     flex-direction: column;
-    font: var(--basalt-font-weight-regular) var(--basalt-text-xl-size) / var(--basalt-text-xl-line-height) var(--basalt-font-family-sans);
-    letter-spacing: var(--basalt-text-xl-tracking);
+    font: var(--basalt-font-weight-regular) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans);
+    letter-spacing: var(--basalt-text-lg-tracking);
     white-space: nowrap;
   }
   /* The label reserves its 600 width (nav.js writes data-label), so becoming current never moves the pill's far edge. */

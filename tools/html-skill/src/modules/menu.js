@@ -39,6 +39,13 @@
         it.insertAdjacentHTML('afterbegin', '<span class="menu-check" aria-hidden="true">' + (role === 'menuitemradio' ? '<span class="menu-radio-dot"></span>' : '%glyph-svg:check%') + '</span>');
       }
     });
+    // A line of words (.menu-text) describes its group, or the menu when it sits in none.
+    Array.prototype.forEach.call(menu.querySelectorAll('.menu-text'), function (text, n) {
+      text.id = text.id || menu.id + '-text-' + n;
+      var host = text.closest('[role="group"]') || menu;
+      var ids = (host.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+      if (ids.indexOf(text.id) === -1) host.setAttribute('aria-describedby', ids.concat(text.id).join(' '));
+    });
     var buffer = '';
     var timer;
     menu.addEventListener('keydown', function (e) {

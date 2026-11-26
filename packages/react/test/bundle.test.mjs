@@ -492,7 +492,10 @@ test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async
   // cimip-gaps-3 T1 and T2 in one PR (measured with this file's graph() on origin/main c67926bf and on the combined head; the limit is main's 42,900 plus the
   // combined increase): T1's minute grain for RunTimer (read before paint, its tick on the minute's machine value and scale) and T2's warning stage line (its
   // mark and word): 42,889 on main, 43,744 on the head (+855), so 42,900 to 43,755.
-  assert.ok(bytes < 43_755, `Terminal bundle is ${bytes} bytes`);
+  // cimip-gaps-3 t6: CodeLine draws a line number's column (CodeBlock lineNumbers), which Terminal shares: measured with this file's graph() at 42,889 on
+  // origin/main ac962cec, again at 42,889 on origin/main c67926bf (merge prep), and 43,007 on the t6 head (+118), so the limit rises by the increase, 42,900 to 43,018.
+  // MEASURE-TERMINAL (T1+T2+T6)
+  assert.ok(bytes < 43_018, `Terminal bundle is ${bytes} bytes`);
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
 });

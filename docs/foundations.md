@@ -690,7 +690,10 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   site header's end cluster, first in it (before any tools and the primary Button), on any page with an ambient loop or a loop that can run past five seconds;
   in an app, a pressed toggle in the head band of the view that shows running work, in either of two forms: the Button form (`form="button"`,
   secondary or ghost, labelled "Pause animations", `size` `md` or `sm`) or the icon form (`LoopsToggleIcon`, the same ghost icon toggle as a site's), and a settings row (the
-  label, the description "Moving art and spinners hold still. Your work keeps running.", and a `Switch`); and a command, "Pause
+  label, the description "Moving art and spinners hold still. Your work keeps running.", and a `Switch`); a menu row
+  (`LoopsToggleMenuItem`, cimip-gaps-3 t6): a `MenuCheckboxItem`, "Pause animations", checked while held, with the switch form's
+  description, which wraps as a Menu's descriptions do (`description` replaces it, `false` gives one line), one store write per press, the
+  menu staying open; in a menu, on is a check, so **never a `Switch` in a menu**; and a command, "Pause
   animations", reading "Resume animations" while held. Nothing is announced when the hold changes: the control speaks its own
   state. **The app's own text is its part too:** while held, an elapsed time shows when the work
   started ("Started 3:47 PM", with the date for another day) and a streaming count or step line
@@ -1125,7 +1128,8 @@ below, one level up, no rim or radius of its own.
   nothing when it is empty, and never blurs or closes anything. **No autofocus on load**: it would steal a screen reader's start and
   raise a phone's keyboard.
 - **The field takes the flush-field −2 ring**, because in the page it is one stop among many. The modal's field is its only stop and
-  stays ringless.
+  stays ringless, except while the empty block (below) holds a tab stop: then it is one stop among two, and its band takes the same −2
+  ring while the field has focus.
 - **The plate shows only while the list is in use**: while the field has focus or the pointer is over the list. It fades, as Menu's
   does, when neither is true, and while the field has focus it stays when the pointer leaves, because it marks what ↵ will run. A page
   at rest with one row lit reads as a selection that isn't there, except the opening list, whose cursor row is lit at rest because the cursor is its state. (The modal's plate is always lit: the modal exists only while it is used.)
@@ -1135,8 +1139,16 @@ below, one level up, no rim or radius of its own.
   it moves with the list (`reserve={false}`, `data-reserve="off"` in the skill, says the same for an app's own painted box). Beside a
   preview, the list and the pane share the row's height.
 - **A foot band** shows the count at the start ("9 commands", "3 of 9") and the key legend at the end (`data-kbd-hint`, hidden on touch). The
-  count is shown at once and spoken once, through a polite, atomic live region after 400ms of stillness (`FilterResult`'s rule). No match
-  is one centred sentence ("Nothing matches “zzz”.") and a ghost "Clear search", in the panel's flow, with its own padding, outside the listbox, so the button is valid.
+  count is shown at once and spoken once, through a polite, atomic live region after 400ms of stillness (`FilterResult`'s rule), never on
+  opening. `noun` names what is counted (singular) and `count` replaces the line (a server's own total, a noun that does not take an s). With
+  `filter={false}` every row given is shown, so the line is the total whatever is typed. **The modal has the same foot** (cimip-gaps-3 t6):
+  always mounted and at least `size-kbd` plus `space-2` above and below (36px), so it never comes and goes, and inside its 480px cap the list
+  gives up the room; its `hints` show "↵ Run" and "Esc Close" at the foot's end.
+- **No row shown** is one centred stack (`space-6` by `space-4`, `space-3` between, 13/18 secondary) in the panel's flow, with its own
+  padding, outside the listbox, so a button or a link is valid there: with words typed, "Nothing matches “zzz”." and a ghost `sm` "Clear
+  search" (which empties the search and focuses the field); with no words and no rows, "Nothing to show." and no button. `empty` (a node, or
+  a function of `{ search, clear }`) replaces the sentence and the button, and Basalt keeps the stack. It is not live: the count already said
+  "0 of 7". A key other than Esc stops in the block, so cmdk's Enter never eats a button's or a link's own activation.
 - **Until cmdk arrives** the rows are drawn as they will be and what is typed is kept, then becomes the first search. cmdk stays behind
   its dynamic import, loaded when the list first mounts.
 - **Where the modal command menu sits** (DECISIONS 167, Q7c): its top is `max(16px, 12vh)` and its height is capped at 480px or what the window leaves under it, as the skill's palette is.
@@ -1193,10 +1205,28 @@ The padding is the one-line row's, so a two-line plate is the one-line plate plu
   A row with no description is one line: it holds no empty second line.
 - **Danger.** The title and the glyph take the danger ink; the description keeps its own.
 - **Names.** An option's name is its content in reading order: title, description, hint. The key chip stays `aria-hidden`.
-- **Search.** Descriptions are search keywords, ranked below title matches. There is no match highlighting: bold letters change widths as you type.
+- **Search.** Descriptions are search keywords, ranked below title matches. **A command row marks only the ranges its app supplies**
+  (`matches`: ranges on the label, the description and the reason, each on its own string), drawn as `SearchMatch` (primary at 600, no
+  fill; on a danger or unavailable title the mark keeps the title's ink and is 600 only; `CanvasText` at 600 in forced colours,
+  `HighlightText` lit). No width is reserved: the list reorders on every key. Basalt marks nothing from its own score, and Menu, Select
+  and Combobox mark nothing.
+- **A command that cannot run** (`unavailable`, its reason; cimip-gaps-3 t6) stays where the order put it, is lit if it is first, and the
+  arrows, Home, End and the pointer land on it: the plate means "the keys are here". Enter, a click or a tap runs nothing and closes
+  nothing; focus and the light stay, and the reason is spoken at once through a polite line inside the surface, again on every press. The
+  title and glyph are `text-disabled` at rest and lit; the reason is the second line in the description's inks (tertiary at rest,
+  secondary lit). **Its reason wraps where a description cuts**: it is the only statement of why, so the row grows by the description's
+  line for each line it takes (62/58, then 18 a line; compact 56/52, then 16), as a Menu's description does. No key chip, no
+  `aria-keyshortcuts`; `aria-disabled="true"`, named title then reason. Unavailable wins over danger; a description stays a search
+  keyword. Beside a preview the pane shows the reason in its empty form and ↵ presses nothing; the push pushes nothing. In forced colours,
+  at rest the title and glyph are `GrayText` and the reason `CanvasText`; lit, all of it is `HighlightText` on `Highlight`.
 - **Where to use it.** Freely in the command menu and the list. In Menu and Select, describe a choice only when the label alone can't tell the
   choices apart (a visibility, a role, a plan, a model), never to explain an obvious action ("Copy link" stays one line). A described
   menu is as wide as its content, up to `size-popover-max` (320), and then a Menu's descriptions wrap (Select's and Combobox's truncate).
+- **Words that are not a row** (`MenuText`, cimip-gaps-3 t6; the skill's `.menu-text`). A line under a group's label: 13/18 at 400 in tertiary (the menu's ink for
+  what cannot be chosen; a row rests in secondary at 14/20 with a plate), `space-3` at each side (the label's edge), `space-1` below, wrapping inside the menu's 320
+  (it widens the menu as a described row does). Never lit, no plate, no tab stop, no disabled state; the arrows and type-ahead skip it, because it is not an item.
+  In a `MenuGroup` it describes the group (`aria-describedby`, wired by the group); with no group it describes the menu. More contrast steps it by the alias;
+  forced colours give `CanvasText`.
 
 ### Overlays and search
 
@@ -1267,7 +1297,8 @@ labels, and `aria-current="page"` on the current link.
 
 - **The item** is a link whose row is the column, so the target is the whole row, and a pill inside it that hugs its
   content. The pill is 48 tall and fully round, 12 before the glyph and 20 after the label, with the glyph at 24 and the
-  label at 20/28 (`text-xl`), 16 between them. Glyph and label are both primary ink at rest. Each row carries 2px above and
+  label at 18/26 (`text-lg`), 16 between them: never larger than the app title it sits beside (the title is 600 always, a label 400
+  until it is current). Glyph and label are both primary ink at rest. Each row carries 2px above and
   below its pill, so neighbouring rows touch and a pointer crossing between them never leaves a row. The column keeps at
   least `space-1-5` of inline padding so the focus ring never clips.
 - **Hover** is the hugging pill at the selected wash (9% white, 7% black; `#171717` over the dark page and `#e8e8e8` over the
@@ -1398,7 +1429,7 @@ Under 720 the links and the primary action leave the bar; the brand, `LoopsToggl
   loops toggle has no such row, and nothing else in the menu moves. The HTML skill's narrow menu has the same row (DECISIONS 148): when its bar has a `[data-loops-toggle]`, the first row after the band is the pressed-toggle button "Pause animations". (Decided by the council, DECISIONS 143, 2 to 1; the implementation hasn't been reviewed.) The list unrolls beneath from the
   band's edge. It is as tall as its content and scrolls inside at the viewport's height (`overscroll-behavior: contain`); the page
   under it does not scroll.
-- **Its rows** are `Nav` rows without a glyph (`NavItem` takes `icon` optionally): the 48px pill at 20/28, primary at rest, the
+- **Its rows** are `Nav` rows without a glyph (`NavItem` takes `icon` optionally): the 48px pill at 18/26, primary at rest, the
   current row at 600, each row at least `space-1-5` from the sheet's edge so a ring never clips. The bar's one action sits at the
   foot, full width, 44px.
 - **Focus:** on open, focus lands on Close. Escape, the scrim, Close or a link closes it, and focus goes back to Menu. Widening past
@@ -2622,8 +2653,10 @@ A product's own logo is its own; the social marks are Phosphor's (below). A diag
   set's glyph; Phosphor Bold draws what the core set lacks (the status marks, the sort caret, the social
   marks), and the key glyphs ⌘ ⌥ ⌃ stay Phosphor's. A component never draws Phosphor's version of a core glyph. **Status:** decided by the
   council (DECISIONS 138) and approved by the owner (DECISIONS 139); the implementation has not been reviewed.
-- **Drawing.** Actions are exactly three straight lines (copy, edit, trash and download are the
-  agreed exceptions, drawn richer, and pause is two closed bars; DECISIONS 361). Every other glyph is eight cubic slots on the 24 grid, and an
+- **Drawing.** Actions are exactly three straight lines (copy, edit, trash, download and send are the
+  agreed exceptions, drawn richer, and pause is two closed bars; DECISIONS 361; send, cimip-gaps-3 t6: an arrowhead of straight lines with
+  its notch and a fold, the same drawing at rest and selected, which does not mirror by itself: a component that seats it in a direction
+  mirrors it under `:dir(rtl)`). Every other glyph is eight cubic slots on the 24 grid, and an
   unused slot is an invisible point. The stroke is a constant 2.25 units on 24 (1.5px at 16,
   1.875 at 20, 2.25 at 24), with round caps and joins, and a point is drawn 1.5 times the stroke.
   Colour is `currentColor`.
@@ -2638,6 +2671,12 @@ A product's own logo is its own; the social marks are Phosphor's (below). A diag
   request for another member of its group turns on; anything else swaps at once. They run at
   `slow` on `ease-out`. Under reduced motion a change swaps at once, except in a pressed toggle's seat, where it crossfades over `duration-fast` on `ease-out` (DECISIONS 361). Status: Basalt's controls draw their core glyphs through the morph (engineering restoring DECISIONS 38 and 55); the implementation hasn't been reviewed.
 - **Sizes.** Glyphs are drawn at 16, 20 and 24, and at 12 only as a mark inside a box: a choice box's check or dash (the core's) and a key chip's ⌘ ⌥ ⌃ (Phosphor Bold's, which the core does not draw), the chip drawn at its real height, `size-kbd`. Status: decided by the council and approved by the owner (DECISIONS 138 and 139); the implementation hasn't been reviewed.
+- **The inventory** gains `send` (the fifth richer action) and `keyboard` (an object glyph: a case wider than `more-nav`'s box, three keys
+  and a spacebar, open at the top right corner; selected closes it, fills the case and cuts the keys out). Once they ship no component
+  draws Phosphor's paper plane or keyboard (cimip-gaps-3 t6).
+- **Done is two glyphs, no third.** The core `check` does it (a "Resolve" or "Mark complete" row or button); Phosphor's `CheckCircle` says
+  it happened, beside its word. In a `Menu` that holds checkbox or radio rows, a completing action takes no glyph, because a leading check
+  there means on.
 - **The long tail** is Phosphor Bold at 20 and up, as at 16, so its line is the core's. Fill only
   for selected navigation and object identities whose drawing keeps its silhouette (`fillSafe`).
   Danger is the XCircle, everywhere.
@@ -2973,6 +3012,27 @@ domains. React's alone (see [What the HTML skill does not draw](#what-the-html-s
   slash or a dot, where a browser's own wrap would break a flag or a path. A word longer than the line is not broken: the block scrolls sideways for it, as an unwrapped block
   does. With no prompt each source line is a row whose continuation is indented 2ch (an empty line keeps its 20px), so a wrapped line never reads as a new one; beside a
   prompt the gutter already marks where a line starts and the continuation starts at the text's edge. Copy takes the code as given. The default still scrolls.
+- **Line numbers** (`CodeBlock lineNumbers`, `startLine`; cimip-gaps-3 t6). The gutter is `CodeLine`'s: Geist Mono 13/20, tertiary, tabular, end-aligned, one column for
+  the block, at least 24px and as wide as the widest number, with `space-4` after it, and no vertical rule. Every source line is numbered and only source lines
+  (CRLF, blank lines inside, no phantom line after a final newline); a line after a trailing backslash keeps its number. With `wrap` the number sits on the first
+  visual line and the continuation starts at the text's edge under an empty gutter. With `prompt` both are drawn: the numbers' column, the prompt's, then the
+  text. The numbers are a real span, `aria-hidden` and `user-select: none`, never copied (copy takes `code` as given); more contrast steps their ink, forced colours
+  give system text, and print keeps them. Like the prompt's, the gutter scrolls sideways with the text.
+- **The sideways line** (cimip-gaps-3 t6). Under the code, inside the well, a foot band says "Scroll sideways to see the long lines" at 12/16 in tertiary,
+  `space-1-5` by `space-4`, a `border-divider` above (a real `CanvasText` border in forced colours). It is `aria-hidden` (the `pre` is already a named, focusable
+  region), shown only while the `pre` is wider than its box, never changed while it scrolls, and absent in print; it is measured before the first paint, and on a
+  server-drawn page it arrives at hydration. This is `TableScrollHint`'s form. No edge fade: a fade takes readable code under 4.5:1. `Terminal` keeps its scrollbar
+  alone for now.
+- **Rich text** (`RichText`, cimip-gaps-3 t6; the skill's `.rich-text`). Type and rhythm for the elements an app's renderer emits, set on the elements inside it,
+  with no measure; Basalt ships no parser (a subset that reads differently from the forge misleads the person checking what will be posted). The app parses with
+  what its other end renders, cleans the result, passes link targets through `safeHref` and hands over elements: `<Prose><RichText>…</RichText></Prose>` in a card,
+  or bare in a stream's text column. Body 14/20 in primary at 400; blocks `space-3` apart with no outer margin; lists indented `space-5`, items `space-1` apart,
+  markers in the text's ink, a nested list one indent more; `strong` at 600, `em` the browser's italic of Geist; inline `code` is `InlineCode` exactly, each wrapped
+  piece closed (`box-decoration-break: clone`); `a` is `Link` exactly (only `Link` draws the new-tab arrow, so map anchors to it); `overflow-wrap: anywhere`, so a
+  long identifier or address never widens the column. The floor for the rest: `h1` to `h6` all 14/20 at 600 with `space-4` above and `space-2` below (the element
+  keeps its level; the pixels never outrank the page), `blockquote` indented `space-4` in secondary with no bar, `hr` a `border-divider` with `space-4` either side,
+  `pre` mono 13/20 scrolling sideways with no well (map it to `CodeBlock`), `img` never wider than the column. Tables, task lists and footnotes are not styled. In
+  forced colours links are `LinkText` and inline code (here and `InlineCode`) draws a real 1px `CanvasText` border in place of its inset hairline.
 - **A select at its own width** (`Select toolbar`). In a toolbar row a `Select` is as wide as its widest label, not its container's width: every option and the placeholder
   stand unseen in the value's one cell (as `MultiSelect toolbar` does), so a choice moves nothing after it, and two selects and a search share a row. With a `valuePrefix` the label leads and the seat follows it, holding the
   same width. In a column narrower than that it fills the column and cuts the value with an ellipsis; in `FilterToolbar` under 720 it fills its column, as the filters' triggers do. `numeric` stays the form for numbers.
@@ -3358,7 +3418,7 @@ as if it were known, which Basalt can't detect.
 
 ## What the HTML skill does not draw
 
-The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of the form gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, and the scrim closing a form only while nothing has been entered (the skill's scrim closes it), a list's `scroller`, and an explainer on a header that does not sort. React's alone too: `LoadingShape` and its parts (DECISIONS 258; the skill's loading shape is a follow-up batch). React's alone too: `Composer`, `Mention` and `MentionPicker` (cimip-gaps-2, B3; see [Writing to someone](#writing-to-someone-the-composer-the-mention-and-the-picker)). So are the conversation stream's parts (`Stream` and its entries, `StreamQuote`, the arrived mark, `DisclosureRow`, `ActivityList` and `Presence`; round 56, a follow-up batch). React's alone as well: `NotificationList` (the center's page form), a group's reveal track (the skill's group opens at once), and the search over a server (`SearchField`, `SearchPassages`, `SearchPassage`, `markMatches`); the skill's `notifications` module draws the pending ring and groups (cimip-gaps-2, B7). The app shell's gaps (cimip-gaps-2, B4) are in the skill: `data-capped` on `.app-shell` (the `app-shell` module, cap 4,300 from 3,250, the skip link on the brand's start edge included), `.app-heading` and `.app-facts` under the title, the primary kept under 720, `data-size="sm"` on a `.nav` (the `nav` module, cap 5,350 from 4,800), and the `pane` module (`.pane-layout`, cap 1,700), whose script makes an overflowing pane a tab stop, including when its content arrives or grows after the page. React's alone too: the parts of [Lists and facts](#lists-and-facts) (`PanelList`, `SelectableList`, `DescriptionList narrow`, `CodeBlock wrap`, `Select toolbar` and the form dialog body's stack); a later batch may bring them to the skill. The stages and runs (DECISIONS 316) are in the skill as states, not machinery: the `runs` module draws the seven marks (`.run-mark`), a stage list and a rail (`.run-stages`, `.run-rail`, `.run-stage`) and a timeline's full rows (`.run-steps`, `.run-step`), and `terminal` takes `data-stages` (a replay that is never a `log`), stage lines and no scrollbar on a replay's window. React's alone: the counter, a ticking `RunTimer`, `StageBadge`'s swap (the skill's `status` badge is swapped at once), `RunAnnouncer`, the held room and the focus rules. Whether the skill gets the links and the charts is not decided. From cimip-gaps-3 T2 the skill's `stats` draws a stat that links, a value not observed and a hint, `runs` the warning state and the static `.run-place`, `terminal` the warning stage line, and `sparkline` the side scale, `times` and `marks`; React's alone: the share bar's new forms, `StaleNote`, the stage disclosure, `Heatmap` (an interactive heatmap in the skill is its own batch), the newest-first event log and `CountNames`.
+The log slots, the status bar, the command block, the event log, the source stamp, the inline-label rows, the filter toolbar, the notice bar, the listbox, the open list, the drawer and `Reflow` are React's alone: the HTML skill has no module for them (DECISIONS 167, Q8). So are `Pagination` and `ListBand` (DECISIONS 222: the skill has no pagination module and none is added). The skill's modules draw the rest (DECISIONS 230, the owner approved the caps): `select` has `data-numeric` (the width of its widest option, measured once fonts are ready; cap 9,000), `filter` has a toolbar trigger that holds its widest value (cap 17,450), and the form dialog is a module of its own, `dialog-form` (`data-form`: the 480 box, the held head and foot, the scrolling body, full screen under 720, the top held as it opens and first focus by the input that opened it; cap 2,200), so the plain and alert dialog keep `dialog`'s 5,150. React's alone: `FormGrid` and the rest of the form gaps (DECISIONS 242: the form grid, a segmented control's `fullWidth`, `required`, `invalid` and its tab stop on the chosen value, a `Switch` description, `TextButton` keeping focus and underlining a `Reserve`), the held top's re-measure on a window resize, and the scrim closing a form only while nothing has been entered (the skill's scrim closes it), a list's `scroller`, and an explainer on a header that does not sort. React's alone too: `LoadingShape` and its parts (DECISIONS 258; the skill's loading shape is a follow-up batch). React's alone too: `Composer`, `Mention` and `MentionPicker` (cimip-gaps-2, B3; see [Writing to someone](#writing-to-someone-the-composer-the-mention-and-the-picker)). So are the conversation stream's parts (`Stream` and its entries, `StreamQuote`, the arrived mark, `DisclosureRow`, `ActivityList` and `Presence`; round 56, a follow-up batch). React's alone as well: `NotificationList` (the center's page form), a group's reveal track (the skill's group opens at once), and the search over a server (`SearchField`, `SearchPassages`, `SearchPassage`, `markMatches`); the skill's `notifications` module draws the pending ring and groups (cimip-gaps-2, B7). The app shell's gaps (cimip-gaps-2, B4) are in the skill: `data-capped` on `.app-shell` (the `app-shell` module, cap 4,300 from 3,250, the skip link on the brand's start edge included), `.app-heading` and `.app-facts` under the title, the primary kept under 720, `data-size="sm"` on a `.nav` (the `nav` module, cap 5,350 from 4,800), and the `pane` module (`.pane-layout`, cap 1,700), whose script makes an overflowing pane a tab stop, including when its content arrives or grows after the page. React's alone too: the parts of [Lists and facts](#lists-and-facts) (`PanelList`, `SelectableList`, `DescriptionList narrow`, `CodeBlock wrap`, `Select toolbar` and the form dialog body's stack); a later batch may bring them to the skill. The stages and runs (DECISIONS 316) are in the skill as states, not machinery: the `runs` module draws the seven marks (`.run-mark`), a stage list and a rail (`.run-stages`, `.run-rail`, `.run-stage`) and a timeline's full rows (`.run-steps`, `.run-step`), and `terminal` takes `data-stages` (a replay that is never a `log`), stage lines and no scrollbar on a replay's window. React's alone: the counter, a ticking `RunTimer`, `StageBadge`'s swap (the skill's `status` badge is swapped at once), `RunAnnouncer`, the held room and the focus rules. Whether the skill gets the links and the charts is not decided. React's alone too (cimip-gaps-3 t6): the match marks in a command row (the skill's palette has no app matcher) and `SingleKeysMenuItem` (the skill has no single-key shortcuts). The skill does draw the palette's and the command list's foot, count, empty block (a `<template data-empty>`) and a row that cannot run, the loop hold as a menu's checkbox row, `.menu-text`, a code block's `data-line-numbers` and its sideways line, and `rich-text`. From cimip-gaps-3 T2 the skill's `stats` draws a stat that links, a value not observed and a hint, `runs` the warning state and the static `.run-place`, `terminal` the warning stage line, and `sparkline` the side scale, `times` and `marks`; React's alone: the share bar's new forms, `StaleNote`, the stage disclosure, `Heatmap` (an interactive heatmap in the skill is its own batch), the newest-first event log and `CountNames`.
 
 ## Logs, status and forms
 
@@ -3414,7 +3474,7 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
   `border-field` (equal to `border-input` outside more contrast, so a field's boundary steps with the others); on focus a real 2px outline at −2 inset round the row; at least 44 tall, a textarea grows its row; 16px on touch.
 - **The Send hint** (`ActionShortcut`; V11): Send stays primary with `aria-keyshortcuts="Meta+Enter"`; the two chips stand beside it as a hint, hidden on touch until a hardware key.
 - **Single-key shortcuts** (`useShortcuts`, `useSingleKeys`, `SingleKeysSwitch`, `ShortcutList`; V12): an app-level hook that ignores keys with a modifier, keys typed in a field, anything inside
-  `[data-own-keys]` and a key pressed inside a dialog, sheet, popover, the command menu, a menu or a listbox (an app's own `role="dialog"` too; a toast is not one; back on the page the keys run), plus a "Single-key shortcuts" Switch in the help dialog (default on, stored lazily as `basalt-keys`; off takes every key, `?` included). The help dialog also has a visible opener that is not a single key.
+  `[data-own-keys]` and a key pressed inside a dialog, sheet, popover, the command menu, a menu or a listbox (an app's own `role="dialog"` too; a toast is not one; back on the page the keys run), plus a "Single-key shortcuts" Switch in the help dialog (default on, stored lazily as `basalt-keys`; off takes every key, `?` included), or in a menu its row, `SingleKeysMenuItem` (a `MenuCheckboxItem`, "Single-key shortcuts", checked while on, one line, on the same store; never a `Switch` in a menu; cimip-gaps-3 t6). The help dialog also has a visible opener that is not a single key.
 - **Route focus** (`useRouteFocus`; X10): after a client-side page change, scroll to the top (unless `scroll={false}`: a stream that opens at its end, a page reached by Back), set
   `document.title` and focus the page's title with no ring (`AppHeader`'s `h1` takes `tabIndex={-1}` and `titleRef`); a change that came from a control's own value leaves focus on the control
   (WCAG 3.2.2). Route focus wins: a popup that is closing (the command menu a page was chosen in) is waited for, and the focus it hands back does not take the reader off the new page

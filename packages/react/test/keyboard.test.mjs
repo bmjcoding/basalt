@@ -71,8 +71,10 @@ describe("touch without a keyboard", () => {
     const marked = page.locator(".basalt-kbd[data-shortcut]");
     assert.ok(await marked.count() >= 5, "menu row, tooltip, command row, and the two footer keys carry data-shortcut");
     for (const el of await marked.all()) assert.equal(await display(el), "none");
-    assert.equal(await display(page.locator(".basalt-command-footer")), "none", "the key-only footer is hidden whole");
-    assert.equal(await page.locator(".basalt-command-footer").getAttribute("data-kbd-hint"), "");
+    // cimip-gaps-3 t6: the modal's legend is at the end of its foot, which stays (its count is not a key hint); the legend alone hides.
+    assert.equal(await display(page.locator(".basalt-dialog .basalt-command-hints")), "none", "the key-only legend is hidden whole");
+    assert.equal(await page.locator(".basalt-dialog .basalt-command-hints").getAttribute("data-kbd-hint"), "");
+    assert.notEqual(await display(page.locator(".basalt-dialog .basalt-command-foot")), "none", "the foot and its count stay");
     // nothing replaces a hidden chip: the row keeps its word and its machine-readable shortcut
     assert.equal(await page.locator(".basalt-command [cmdk-item]").getAttribute("aria-keyshortcuts"), "Meta+D");
     assert.equal(await page.locator("[role=menuitem]").getAttribute("aria-keyshortcuts"), "Meta+D");
@@ -100,8 +102,8 @@ describe("touch without a keyboard", () => {
     await input.waitFor();
     const id = await input.getAttribute("aria-describedby");
     assert.ok(id, "described while the chips show");
-    assert.equal(await page.locator(".basalt-command-footer").getAttribute("id"), id);
-    assert.equal(await display(page.locator(".basalt-command-footer")), "flex");
+    assert.equal(await page.locator(".basalt-dialog .basalt-command-hints").getAttribute("id"), id);
+    assert.equal(await display(page.locator(".basalt-dialog .basalt-command-hints")), "inline-flex");
     await context.close();
   });
 
@@ -114,7 +116,7 @@ describe("touch without a keyboard", () => {
     await page.keyboard.press("Tab");
     await page.waitForFunction(() => document.documentElement.dataset.keyboard === "hardware");
     assert.ok(await input.getAttribute("aria-describedby"), "described again");
-    assert.equal(await display(page.locator(".basalt-command-footer")), "flex");
+    assert.equal(await display(page.locator(".basalt-dialog .basalt-command-hints")), "inline-flex");
     for (const el of await page.locator(".basalt-kbd[data-shortcut]").all()) assert.notEqual(await display(el), "none");
     await context.close();
   });

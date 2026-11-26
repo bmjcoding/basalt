@@ -459,7 +459,7 @@ describe("the palette", () => {
 
   test("the result count is spoken inside the dialog, once the typing pauses, and only when it changed", async () => {
     const { page, context } = await open("template-interactive.html");
-    await page.evaluate(() => { window.__spoken = []; new MutationObserver(() => window.__spoken.push(document.querySelector(".palette [role=status]")?.textContent)).observe(document.body, { subtree: true, childList: true, characterData: true }); });
+    await page.evaluate(() => { window.__spoken = []; new MutationObserver(() => window.__spoken.push(document.querySelector(".palette .command-count [role=status]")?.textContent)).observe(document.body, { subtree: true, childList: true, characterData: true }); });
     // The count is spoken once the typing pauses: the page's timers are on the shared clock from before the palette opens, so the pause is the test's to give, not the machine's.
     const clock = await freezeAnimations(page);
     await page.keyboard.press("Control+k");
@@ -469,7 +469,8 @@ describe("the palette", () => {
     await clock.advance(900);
     const spoken = (await page.evaluate(() => window.__spoken)).filter(Boolean);
     assert.ok(spoken.length <= 2, `spoken ${JSON.stringify(spoken)}`);
-    assert.match(spoken.at(-1), /^\d+ results?$/);
+    // cimip-gaps-3 t6: the palette's foot counts as the command list's does ("2 of 9"), and its first text, on opening, is not spoken.
+    assert.match(spoken.at(-1), /^\d+ of \d+$|^\d+ commands?$/);
     assert.equal(await page.evaluate(() => document.getElementById("basalt-live")?.textContent ?? ""), "", "the page-level region is not used");
     await page.keyboard.press("Backspace");
     await page.keyboard.type("n", { delay: 10 });
@@ -483,7 +484,7 @@ describe("the palette", () => {
     const described = (page) => page.evaluate(() => {
       const id = document.querySelector(".palette input").getAttribute("aria-describedby");
       const el = id && document.getElementById(id);
-      return el ? { footer: el.classList.contains("palette-footer"), words: ["Navigate", "Run", "Close"].filter((w) => el.textContent.includes(w)) } : null;
+      return el ? { footer: el.classList.contains("command-hints") && !!el.closest(".command-foot"), words: ["Navigate", "Run", "Close"].filter((w) => el.textContent.includes(w)) } : null;
     });
     const desktop = await open("template-interactive.html");
     await desktop.page.keyboard.press("Control+k");
@@ -1008,13 +1009,14 @@ describe("palette keys", () => {
     await context.close();
   });
 
-  test("the footer says Run and the empty state says No commands match.", async () => {
+  test("the foot's legend says Run, and with nothing shown the empty block says what was typed and offers Clear search (cimip-gaps-3 t6)", async () => {
     const { page, context } = await open("template-interactive.html");
     await page.keyboard.press("Control+k");
     await page.keyboard.type("qqqq");
-    assert.equal(await page.locator(".palette-empty").textContent(), "No commands match.");
-    assert.equal(await page.locator(".palette-empty").isVisible(), true);
-    assert.deepEqual(await page.locator(".palette-footer > span").evaluateAll((spans) => spans.map((span) => span.lastChild.textContent)), ["Navigate", "Run", "Close"]);
+    assert.equal(await page.locator(".palette .command-none p").textContent(), "Nothing matches “qqqq”.");
+    assert.equal(await page.locator(".palette .command-none").isVisible(), true);
+    assert.equal(await page.locator(".palette .command-none button").textContent(), "Clear search");
+    assert.deepEqual(await page.locator(".palette .command-hints > span").evaluateAll((spans) => spans.map((span) => span.lastChild.textContent.trim())), ["Navigate", "Run", "Close"]);
     await context.close();
   });
 });
