@@ -371,6 +371,8 @@ export const ROUND_79: Round = {
     {
       id: "rhythm",
       bleed: true,
+      // A phone's or a laptop's window: the review's default 400 is under size-breakpoint-short, where nothing is pinned and the sidebar is the window's 400.
+      height: 844,
       name: "The app page's rhythm and ladder",
       intro: "AppSections, AppSection and AppSectionHead: sections 48 apart from 720 and 32 under it, sub-sections 32, the head's size by its position (16/24, then 14/20), its actions beside the title from 480 of its own width and under it below.",
       decisions: [
@@ -403,6 +405,8 @@ export const ROUND_79: Round = {
     {
       id: "short",
       bleed: true,
+      // A phone's or a laptop's window: the review's default 400 is under size-breakpoint-short, where nothing is pinned and the sidebar is the window's 400.
+      height: 844,
       name: "A short window: nothing pinned under 480 tall",
       intro: "At 720 by 450 and 320 by 225 the header, the connection bar, the foot and the tab bar scroll with the page; at 1440 by 900 they are pinned as before.",
       decisions: ["size-breakpoint-short (480, a window's height). --basalt-sticky-top and --basalt-bottom-offset are 0 there; the header keeps its 56px and its fill. The sidebar and the rail stay beside the page.", NOT_REVIEWED],
@@ -415,6 +419,8 @@ export const ROUND_79: Round = {
     {
       id: "rail",
       bleed: true,
+      // A phone's or a laptop's window: the review's default 400 is under size-breakpoint-short, where nothing is pinned and the sidebar is the window's 400.
+      height: 844,
       name: "The rail at every width, capped",
       intro: "AppShell rail: the 72px rail from 720 at every width, the cap the rail plus the page's own 72rem (1224 at 16px text).",
       decisions: ["Everything the 720 to 1023 rail does: Nav collapsed, the label as name and tooltip, the brand's mark alone, the version as its number, the footnote's trigger alone.", NOT_REVIEWED],
@@ -437,6 +443,8 @@ export const ROUND_79: Round = {
     {
       id: "account",
       bleed: true,
+      // A phone's or a laptop's window: the review's default 400 is under size-breakpoint-short, where nothing is pinned and the sidebar is the window's 400.
+      height: 844,
       name: "An app page under a site header, with an account",
       intro: "SiteHeader account: last in the bar from 720; under 720 a row of the narrow menu (open in `press-menu`), with no menu in the Menu button's place. AppPage, AppPageHead and AppSections under it; the theme choice is in the footer.",
       decisions: ["The same control in both places, so it takes no id. The bar at 320 keeps brand, tools and Menu.", NOT_REVIEWED],
@@ -449,6 +457,8 @@ export const ROUND_79: Round = {
     {
       id: "brand",
       bleed: true,
+      // A phone's or a laptop's window: the review's default 400 is under size-breakpoint-short, where nothing is pinned and the sidebar is the window's 400.
+      height: 844,
       name: "The lockup and a shared footnote",
       intro: "AppBrand (the mark in a 36 seat with a subtitle, the name and a second line) and AppFootnote at the sidebar's foot; in the rail the mark alone and the footnote's trigger; under 720 a row of More's sheet, with More's `before` row.",
       decisions: ["Basalt draws nothing round the mark. The subtitle is secondary, never tertiary. A 32px lockup in a header draws as before (the brand's minimum height).", NOT_REVIEWED],
@@ -473,6 +483,8 @@ export const ROUND_79: Round = {
     {
       id: "pinned",
       bleed: true,
+      // A phone's or a laptop's window: the review's default 400 is under size-breakpoint-short, where nothing is pinned and the sidebar is the window's 400.
+      height: 844,
       name: "A pinned status bar outside the shell",
       intro: "StatusBar pinned in a SitePage: from 720 it sticks to its column's bottom and rests there on a short page; under 720 the phone form.",
       decisions: ["Its column must reach the bottom (SitePage is one). What it covers is measured on the box it sticks in.", NOT_REVIEWED],
@@ -501,6 +513,8 @@ export const ROUND_79: Round = {
     {
       id: "connection",
       bleed: true,
+      // A phone's or a laptop's window: the review's default 400 is under size-breakpoint-short, where nothing is pinned and the sidebar is the window's 400.
+      height: 844,
       name: "For the owner: the connection bar, and the page moving by its height",
       intro: "ConnectionBar as AppShell's banner: Offline (the default shot), Reconnecting (braille), Disconnected (danger, said assertively) and Back online. It takes room in the flow: compare `before`, the page with the connection up.",
       decisions: ["Reconnecting waits a second after a connection that was up; an outage under a second draws nothing. Back online stays 5 seconds, held under the pointer or focus. Level 1, a divider, no coloured edge.", NOT_REVIEWED],
