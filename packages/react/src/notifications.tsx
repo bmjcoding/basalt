@@ -11,8 +11,12 @@ import { ControlIcon, loadFlight } from "./control-icon";
 import { ChevronDownGlyph } from "./glyphs/chevron-down";
 import { ChevronRightGlyph } from "./glyphs/chevron-right";
 import { NotificationsGlyph } from "./glyphs/notifications";
+import { DotSep } from "./dot-sep";
 import { Icon } from "./icon";
+import { InShapeContext } from "./in-shape";
+import type { NotificationShapeProps } from "./notification-shape";
 import { GlidePlate } from "./plate";
+import { standIn } from "./shape-data";
 import { useReveal } from "./reveal";
 import type { ToastStatus } from "./toast";
 import type { Align, FocusTarget, IconComponent, OpenChangeDetails, PopupActions, Side } from "./types";
@@ -55,9 +59,15 @@ export interface NotificationEntry {
   entries?: readonly NotificationEntry[];
   /**
    * A group's count, when the app holds more than the `entries` it gives (40 mentions, the newest 5 listed); errors are not counted in it. A whole
-   * number above 0, else the group's entries are counted. Default: the entries it holds.
+   * number above 0, else the group's entries are counted. Default: the entries it holds. On any other entry, a whole number above 1 draws "×N" after
+   * the title (the group count's seat and type), spoken ", N times"; the title is cut first and the count always shows.
    */
   count?: number;
+  /**
+   * Addressed to the reader (a mention, a reply, an assignment). While unread its dot is the ringed dot (a 6px dot in a 1px ring), the bell carries the
+   * same mark, and the words say it ("Unread, for you: …", "3 unread, 1 for you"). A group's own flag is not read: its entries' are.
+   */
+  direct?: boolean;
 }
 
 /** What the bell, the popover and the in-page list share. */
@@ -73,6 +83,22 @@ interface ListParts {
    * left it stays, disabled in place, and keeps focus. The center stays open.
    */
   onClearAll?: () => void;
+  /** Titles and lines wrap whole instead of one cut line each. Default false. A page list of sentences sets it; the bell leaves it off. */
+  wrap?: boolean;
+  /** Before the first answer: stand-in rows, no count and no empty words. With entries already shown it changes nothing. */
+  loading?: boolean;
+  /** Stand-in rows while loading. Default 3. */
+  loadingRows?: number;
+  /** What is said once while the shape shows. Default "Loading notifications". */
+  loadingLabel?: string;
+  /** What an empty list says, once it is known to be empty. Default "Nothing yet." A failed first read is the app's node, with its words and a link. */
+  empty?: React.ReactNode;
+  /** The words after the count of unread direct entries ("1 for you"). Default "for you". */
+  directLabel?: string;
+  /** Why "Mark all as read" cannot run now. Given while anything is unread, the button is off (still a stop, described by the reason) and the reason is drawn. */
+  markAllReadReason?: string;
+  /** Why "Clear all" cannot run now. Given while entries remain, the button is off (still a stop, described by the reason) and the reason is drawn. */
+  clearAllReason?: string;
 }
 
 export interface NotificationCenterProps extends ListParts {
@@ -103,6 +129,49 @@ export interface NotificationCenterProps extends ListParts {
 /** The older spelling of `NotificationCenterProps`; it stays as an alias. */
 export type NotificationCentreProps = NotificationCenterProps;
 
+// The first load's shape (LoadingShape and its measuring, about 13 KB) is a module of its own, notification-shape.tsx, fetched only while a list waits for its
+// first answer, so a bell or a page list that never waits carries none of it. It is made on first use; nothing runs when this module loads.
+let shapeModule: Promise<typeof import("./notification-shape")> | undefined;
+const loadShape = () => {
+  shapeModule ??= import("./notification-shape").catch((error) => { shapeModule = undefined; throw error; });
+  return shapeModule;
+};
+let lazyShape: React.LazyExoticComponent<(props: NotificationShapeProps) => React.JSX.Element> | undefined;
+const shapePart = () => (lazyShape ??= React.lazy(() => loadShape().then((m) => ({ default: m.NotificationShape }))));
+
+/**
+ * Whether the list's place shows the first load's shape: from a first load (a loading state and no entries) until the shape has finished, its hold
+ * included. The populated list is drawn in its own place whatever `loading` says, so a refresh (or `loading` given later) never remounts its entries.
+ */
+function useFirstLoad(first: boolean) {
+  const [done, setDone] = React.useState(!first);
+  // A list that is emptied and waits again shows the shape again.
+  if (first && done) setDone(false);
+  React.useEffect(() => { if (first) void loadShape().catch(() => {}); }, [first]);
+  const finish = React.useCallback(() => setDone(true), []);
+  return { shown: first || !done, finish };
+}
+
+/**
+ * The first load: stand-in entries as bones, in the list's own box. Until the shape's code has arrived the box holds the same stand-ins unseen, so it is the
+ * waiting phase's height and nothing moves when the shape arrives.
+ */
+function FirstLoad({ first, label, rows, wrap, className, onDone }: { first: boolean; label: string; rows: number; wrap?: boolean; className?: string; onDone: () => void }) {
+  const Shape = shapePart();
+  // The stand-ins are told they are drawn in a shape by the package's own context: the lazy module inlines its copy of LoadingShape, whose provider is not
+  // the one a part in the package reads.
+  const standing = () => <InShapeContext.Provider value={1}><Entries entries={standIns(rows)} wrap={wrap} onChoose={() => {}} /></InShapeContext.Provider>;
+  return (
+    // The fallback is busy as the shape is, so a held first paint (holdFirstPaint) waits for the shape's code within its own limit, as it waits for a shape.
+    <React.Suspense fallback={<div className={join("basalt-loading-shape", className)} aria-busy="true"><div aria-hidden="true" inert style={{ visibility: "hidden" }}>{standing()}</div></div>}>
+      <Shape loading={first} label={label} className={className} shape={standing} onDone={onDone} />
+    </React.Suspense>
+  );
+}
+
+/** The words after "Unread, " on an unread direct entry: the list's `directLabel`. */
+const DirectWords = /* @__PURE__ */ React.createContext("for you");
+
 const MARKS: Record<Exclude<NotificationStatus, "neutral">, IconComponent> = { success: CheckCircleIcon, warning: WarningIcon, danger: XCircleIcon, pending: CircleIcon };
 
 const isGroup = (entry: NotificationEntry): boolean => (entry.entries?.length ?? 0) > 0;
@@ -111,6 +180,17 @@ const isUnread = (entry: NotificationEntry): boolean => (isGroup(entry) ? entry.
 /** What is unread is counted by the entries a reader would open, so a group of three unread mentions is three. */
 const unreadCount = (entries: readonly NotificationEntry[]): number =>
   entries.reduce((count, entry) => count + (isGroup(entry) ? unreadCount(entry.entries!) : entry.unread ? 1 : 0), 0);
+/** The unread entries addressed to the reader, counted as unread is: an unread child of a group counts, and a group's own flag is ignored. */
+const directCount = (entries: readonly NotificationEntry[]): number =>
+  entries.reduce((count, entry) => count + (isGroup(entry) ? directCount(entry.entries!) : entry.unread && entry.direct ? 1 : 0), 0);
+/** Whether a row shows the ringed dot: unread and for the reader (a group, while any unread entry in it is). */
+const isDirect = (entry: NotificationEntry): boolean => (isGroup(entry) ? entry.entries!.some((inner) => Boolean(inner.unread && inner.direct)) : Boolean(entry.unread && entry.direct));
+/** A count on an entry that is not a group: a whole number above 1, else none. */
+const repeatOf = (entry: NotificationEntry): number | undefined => (!isGroup(entry) && Number.isInteger(entry.count) && entry.count! > 1 ? entry.count : undefined);
+/** The stand-in entries a first load draws as bones: even rows have a second line (58, 40, 58), in the entry's own grid. */
+const standIns = (rows: number): NotificationEntry[] =>
+  Array.from({ length: Math.max(0, Math.floor(rows)) }, (_, i) => ({ id: `stand-in-${i}`, title: standIn(i * 3 + 1, 26), description: i % 2 === 0 ? standIn(i * 3 + 2, 18) : undefined, time: standIn(i * 3 + 3, 6) }));
+
 /** A group's count: the app's when it is a whole number above 0, else the entries it holds. */
 const countOf = (entry: NotificationEntry): number => (Number.isInteger(entry.count) && entry.count! > 0 ? entry.count! : entry.entries?.length ?? 0);
 /**
@@ -139,36 +219,50 @@ function drawn(entries: readonly NotificationEntry[]): NotificationEntry[] {
  * On a phone the bell gives way to a page: put `NotificationList` on the app's own page and link to it from the tab bar (`TabBarItem`
  * with `NotificationsGlyph` and its `dot`), the same page "View all" opens.
  */
-export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, onClearAll, onViewAll, viewAllHref, label = "Notifications", open, defaultOpen, onOpenChange, side = "bottom", align = "end", edge, initialFocus, className }: NotificationCenterProps) {
+export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, onClearAll, onViewAll, viewAllHref, label = "Notifications", open, defaultOpen, onOpenChange, side = "bottom", align = "end", edge, initialFocus, className, wrap, loading, loadingRows = 3, loadingLabel = "Loading notifications", empty = "Nothing yet.", directLabel = "for you", markAllReadReason, clearAllReason }: NotificationCenterProps) {
   const entries = drawn(given);
   const unread = unreadCount(entries);
+  const direct = directCount(entries);
+  const first = Boolean(loading) && entries.length === 0;
+  const firstLoad = useFirstLoad(first);
+  const ids = React.useId();
   const popup = React.useRef<PopupActions | null>(null);
   // Choosing an entry, or View all, leaves the center; Esc and an outside click close it before.
   const leave = () => popup.current?.close();
+  const name = unread > 0 ? `${label}, ${unread} unread${direct > 0 ? `, ${direct} ${directLabel}` : ""}` : label;
+  const markReason = markAllReadReason && unread > 0 ? markAllReadReason : undefined;
+  const clearReason = onClearAll && clearAllReason && entries.length > 0 ? clearAllReason : undefined;
+  const list = entries.length === 0 ? (
+    <p className="basalt-notifications-empty">{empty}</p>
+  ) : (
+    <>
+      {/* The scroller is the glide's host: the shared plate follows the pointer between entries (40 or 58 tall), behind them. */}
+      <GlidePlate notifications />
+      <Entries entries={entries} wrap={wrap} directLabel={directLabel} onChoose={(entry) => { onSelect?.(entry); leave(); }} />
+    </>
+  );
   return (
     <Popover open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange} actionsRef={popup}>
       <PopoverTrigger
         className="basalt-notifications-trigger"
         data-unread={unread > 0 ? "" : undefined}
-        render={<IconButton icon={NotificationsGlyph} label={unread > 0 ? `${label}, ${unread} unread` : label} edge={edge} className={className} />}
+        data-direct={direct > 0 ? "" : undefined}
+        render={<IconButton icon={NotificationsGlyph} label={name} edge={edge} className={className} />}
       />
       <PopoverContent side={side} align={align} initialFocus={initialFocus} className="basalt-notifications">
         <div className="basalt-notifications-head">
           <PopoverTitle className="basalt-notifications-title">{label}</PopoverTitle>
-          <span className="basalt-notifications-count">{unread} unread</span>
-          <MarkAllRead unread={unread} onMarkAllRead={onMarkAllRead} edge="end" />
+          {/* The longer line does not fit beside the title and the button at 360: "for you" is said and not drawn here. Before the first answer the seat is blank. */}
+          <span className="basalt-notifications-count">{first ? null : <>{unread} unread{direct > 0 ? <span className="basalt-visually-hidden">, {direct} {directLabel}</span> : null}</>}</span>
+          <MarkAllRead unread={unread} onMarkAllRead={onMarkAllRead} edge="end" reason={markReason} reasonId={`${ids}-mark`} />
+          {markReason ? <p id={`${ids}-mark`} className="basalt-notifications-reason">{markReason}</p> : null}
         </div>
-        {entries.length === 0 ? (
-          <p className="basalt-notifications-empty">Nothing yet.</p>
-        ) : (
-          // The scroller is the glide's host: the shared plate follows the pointer between entries (40 or 58 tall), behind them.
-          <div className="basalt-notifications-scroll">
-            <GlidePlate notifications />
-            <Entries entries={entries} onChoose={(entry) => { onSelect?.(entry); leave(); }} />
-          </div>
-        )}
+        {/* Before the first answer the shape is the scroller; after it, the list in its own place, as without a loading state. */}
+        {firstLoad.shown ? (
+          <FirstLoad first={first} label={loadingLabel} rows={loadingRows} wrap={wrap} className="basalt-notifications-scroll" onDone={firstLoad.finish} />
+        ) : entries.length === 0 ? list : <div className="basalt-notifications-scroll">{list}</div>}
         <div className="basalt-notifications-foot">
-          <ClearAll count={entries.length} onClearAll={onClearAll} edge="start" />
+          <ClearAll count={entries.length} onClearAll={onClearAll} edge="start" reason={clearReason} reasonId={`${ids}-clear`} />
           {viewAllHref ? (
             <a className="basalt-button" data-variant="ghost" data-size="sm" data-edge="end" href={viewAllHref} onClick={() => { onViewAll?.(); leave(); }}>
               <span className="basalt-button-label">View all</span>
@@ -176,6 +270,7 @@ export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, on
           ) : (
             <Button variant="ghost" size="sm" edge="end" onClick={() => { onViewAll?.(); leave(); }}>View all</Button>
           )}
+          {clearReason ? <p id={`${ids}-clear`} className="basalt-notifications-reason">{clearReason}</p> : null}
         </div>
       </PopoverContent>
     </Popover>
@@ -191,8 +286,6 @@ export interface NotificationListProps extends ListParts {
   /** The list's name for assistive technology. Default "Notifications". Give `aria-labelledby` instead to name it by the page's heading. */
   label?: string;
   "aria-labelledby"?: string;
-  /** What an empty list says. Default "Nothing yet." */
-  empty?: React.ReactNode;
   className?: string;
 }
 
@@ -202,60 +295,76 @@ export interface NotificationListProps extends ListParts {
  * bell's popover, with no popover, no title (the page's heading names it) and no glide: each entry paints its own plate. No rim: it is a list,
  * not an object. Paging is the app's (`ListBand` under it). With `onClearAll` a foot holds "Clear all" at its start, as the center's does.
  */
-export function NotificationList({ entries: given, onSelect, onMarkAllRead, onClearAll, head = true, label = "Notifications", "aria-labelledby": labelledBy, empty = "Nothing yet.", className }: NotificationListProps) {
+export function NotificationList({ entries: given, onSelect, onMarkAllRead, onClearAll, head = true, label = "Notifications", "aria-labelledby": labelledBy, empty = "Nothing yet.", className, wrap, loading, loadingRows = 3, loadingLabel = "Loading notifications", directLabel = "for you", markAllReadReason, clearAllReason }: NotificationListProps) {
   const entries = drawn(given);
   const unread = unreadCount(entries);
+  const direct = directCount(entries);
+  const first = Boolean(loading) && entries.length === 0;
+  const firstLoad = useFirstLoad(first);
+  const ids = React.useId();
+  const markReason = markAllReadReason && unread > 0 ? markAllReadReason : undefined;
+  const clearReason = onClearAll && clearAllReason && entries.length > 0 ? clearAllReason : undefined;
+  const list = entries.length === 0
+    ? <p className="basalt-notifications-empty">{empty}</p>
+    : <Entries entries={entries} wrap={wrap} directLabel={directLabel} onChoose={(entry) => onSelect?.(entry)} label={labelledBy ? undefined : label} labelledBy={labelledBy} />;
   return (
     <div className={join("basalt-notification-list", className)}>
       {head ? (
         <div className="basalt-notifications-head">
-          <span className="basalt-notifications-count">{unread} unread</span>
-          <MarkAllRead unread={unread} onMarkAllRead={onMarkAllRead} />
+          {/* "3 unread · 1 for you" on one line; before the first answer the seat is blank. */}
+          <span className="basalt-notifications-count">{first ? null : <>{unread} unread{direct > 0 ? <><DotSep spaced />{direct} {directLabel}</> : null}</>}</span>
+          <MarkAllRead unread={unread} onMarkAllRead={onMarkAllRead} reason={markReason} reasonId={`${ids}-mark`} />
+          {markReason ? <p id={`${ids}-mark`} className="basalt-notifications-reason">{markReason}</p> : null}
         </div>
       ) : null}
-      {entries.length === 0 ? (
-        <p className="basalt-notifications-empty">{empty}</p>
-      ) : (
-        <Entries entries={entries} onChoose={(entry) => onSelect?.(entry)} label={labelledBy ? undefined : label} labelledBy={labelledBy} />
-      )}
+      {firstLoad.shown ? <FirstLoad first={first} label={loadingLabel} rows={loadingRows} wrap={wrap} onDone={firstLoad.finish} /> : list}
       {onClearAll ? (
         // The center's foot without View all (this is the page it opens): Clear all at its start.
         <div className="basalt-notifications-foot">
-          <ClearAll count={entries.length} onClearAll={onClearAll} />
+          <ClearAll count={entries.length} onClearAll={onClearAll} reason={clearReason} reasonId={`${ids}-clear`} />
+          {clearReason ? <p id={`${ids}-clear`} className="basalt-notifications-reason">{clearReason}</p> : null}
         </div>
       ) : null}
     </div>
   );
 }
 
-function MarkAllRead({ unread, onMarkAllRead, edge }: { unread: number; onMarkAllRead?: () => void; edge?: ButtonEdge }) {
+interface Reasoned {
+  /** Why the action cannot run now: the button is off in place, still a stop, and described by the drawn reason. */
+  reason?: string;
+  reasonId?: string;
+}
+
+function MarkAllRead({ unread, onMarkAllRead, edge, reason, reasonId }: { unread: number; onMarkAllRead?: () => void; edge?: ButtonEdge } & Reasoned) {
   // Stays mounted and keeps focus when nothing is left to mark, as Clear does: disabled in place.
   return (
-    <Button variant="ghost" size="sm" edge={edge} className="basalt-notifications-mark" disabled={unread === 0} focusableWhenDisabled onClick={() => onMarkAllRead?.()}>
+    <Button variant="ghost" size="sm" edge={edge} className="basalt-notifications-mark" disabled={unread === 0 || Boolean(reason)} focusableWhenDisabled aria-describedby={reason ? reasonId : undefined} onClick={() => onMarkAllRead?.()}>
       Mark all as read
     </Button>
   );
 }
 
-function ClearAll({ count, onClearAll, edge }: { count: number; onClearAll?: () => void; edge?: ButtonEdge }) {
+function ClearAll({ count, onClearAll, edge, reason, reasonId }: { count: number; onClearAll?: () => void; edge?: ButtonEdge } & Reasoned) {
   if (!onClearAll) return null;
   // At the foot's start, apart from View all; stays mounted and keeps focus when nothing is left, as Mark all as read does.
   return (
-    <Button variant="ghost" size="sm" edge={edge} className="basalt-notifications-clear" disabled={count === 0} focusableWhenDisabled onClick={() => onClearAll()}>
+    <Button variant="ghost" size="sm" edge={edge} className="basalt-notifications-clear" disabled={count === 0 || Boolean(reason)} focusableWhenDisabled aria-describedby={reason ? reasonId : undefined} onClick={() => onClearAll()}>
       Clear all
     </Button>
   );
 }
 
-function Entries({ entries, onChoose, label, labelledBy }: { entries: readonly NotificationEntry[]; onChoose: (entry: NotificationEntry) => void; label?: string; labelledBy?: string }) {
+function Entries({ entries, onChoose, label, labelledBy, wrap, directLabel = "for you" }: { entries: readonly NotificationEntry[]; onChoose: (entry: NotificationEntry) => void; label?: string; labelledBy?: string; wrap?: boolean; directLabel?: string }) {
   return (
-    <ul className="basalt-notifications-list" aria-label={label} aria-labelledby={labelledBy}>
+    <DirectWords.Provider value={directLabel}>
+    <ul className="basalt-notifications-list" aria-label={label} aria-labelledby={labelledBy} data-wrap={wrap ? "" : undefined}>
       {entries.map((entry) => (isGroup(entry) ? <GroupItem key={entry.id} entry={entry} onChoose={onChoose} /> : (
         <li key={entry.id}>
           <NotificationRow entry={entry} onChoose={() => onChoose(entry)} />
         </li>
       )))}
     </ul>
+    </DirectWords.Provider>
   );
 }
 
@@ -294,13 +403,17 @@ interface GroupState {
 function NotificationRow({ entry, onChoose, group }: { entry: NotificationEntry; onChoose: (event: React.MouseEvent) => void; group?: GroupState }) {
   const status = entry.status ?? "neutral";
   const unread = isUnread(entry);
-  // A group's count is spoken inside the title (", 3 times"), so the name reads as one phrase; the drawn "×3" is hidden from it.
+  const direct = unread && isDirect(entry);
+  const directWords = React.useContext(DirectWords);
+  const repeat = group ? undefined : repeatOf(entry);
+  const times = group ? group.count : repeat;
+  // A count is spoken inside the title (", 3 times"), so the name reads as one phrase; the drawn "×3" is hidden from it.
   const title = (
     <span className="basalt-notification-title">
-      {unread ? <span className="basalt-visually-hidden">Unread: </span> : null}
+      {unread ? <span className="basalt-visually-hidden">{direct ? `Unread, ${directWords}: ` : "Unread: "}</span> : null}
       {entry.title}
       {/* Read in place and drawn at no size (`basalt-said`), so the text reads "Deploy finished, 3 times" with no space before the comma. */}
-      {group ? <span className="basalt-said">, {group.count} times</span> : null}
+      {times !== undefined ? <span className="basalt-said">, {times} times</span> : null}
     </span>
   );
   const body = (
@@ -309,13 +422,13 @@ function NotificationRow({ entry, onChoose, group }: { entry: NotificationEntry;
       <span className="basalt-notification-dot" aria-hidden="true" />
       <span className="basalt-notification-mark" aria-hidden="true">{status === "neutral" ? null : <Icon icon={MARKS[status]} size={16} />}</span>
       <span className="basalt-notification-text">
-        {group ? (
-          // The title is cut first; the count (the toast's "×3") and the chevron always show.
+        {times !== undefined ? (
+          // The title is cut first; the count (the toast's "×3") and a group's chevron always show.
           <span className="basalt-notification-head">
             {title}
-            <span className="basalt-notification-count" aria-hidden="true">×{group.count}</span>
+            <span className="basalt-notification-count" aria-hidden="true">×{times}</span>
             {/* The disclosure's convention, as DisclosureRow: the core chevron points to the end while closed (mirrored right to left) and down while open. */}
-            <span className="basalt-notification-caret" aria-hidden="true"><ControlIcon icon={group.open ? ChevronDownGlyph : ChevronRightGlyph} size={16} /></span>
+            {group ? <span className="basalt-notification-caret" aria-hidden="true"><ControlIcon icon={group.open ? ChevronDownGlyph : ChevronRightGlyph} size={16} /></span> : null}
           </span>
         ) : title}
         {entry.description ? <span className="basalt-notification-line">{entry.description}</span> : null}
@@ -326,6 +439,7 @@ function NotificationRow({ entry, onChoose, group }: { entry: NotificationEntry;
   const common = {
     className: "basalt-notification",
     "data-unread": unread ? "" : undefined,
+    "data-direct": direct ? "" : undefined,
     "data-status": status,
     "data-current": entry.current ? "" : undefined,
     onClick: onChoose,

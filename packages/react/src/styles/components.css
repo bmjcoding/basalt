@@ -2554,6 +2554,40 @@
     .basalt-table[data-fixed] { --_head-h: var(--basalt-size-tap-min); }
   }
 
+  /* A cell that wraps (cimip-gaps-3 T3, 1). The row is at least its density's height, as it is for a TableCall row: a wrapped cell (`data-wrap`, on a td or a
+     body row head) has the padding a one-line row already has round its line, (row - 18) / 2: 11 at 40, 7 compact, 13 comfortable and on touch, so one line is
+     exactly the row and each more line adds 18. Only the wrapped cell is padded, so a neighbour's badge cannot grow a one-line row. Every cell keeps the middle
+     alignment, so a grown row centres its short cells. It is never cut (no ellipsis, no stop, no plate); widths still come from the colgroup, so nothing
+     moves. A link that is the cell's child wraps with it and keeps its touch hit box. A numeric cell never carries the attribute. */
+  .basalt-table-container { --_row-h: var(--basalt-size-table-row); }
+  .basalt-table-container[data-row-density="compact"] { --_row-h: var(--basalt-size-control-md); }
+  .basalt-table-container[data-row-density="comfortable"] { --_row-h: var(--basalt-size-tap-min); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
+    .basalt-table-container[data-row-density] { --_row-h: var(--basalt-size-tap-min); }
+  }
+  /* A two-line call has its air in every table (cimip-gaps-3 T3, 2): space-2 above and below, so a call row is 54 in a rimmed table as in a flat one. */
+  .basalt-table-container .basalt-table :is(td, tbody th[scope="row"]):has(> .basalt-table-call) { padding-block: var(--basalt-space-2); }
+  .basalt-table-container .basalt-table :is(td, tbody th[scope="row"])[data-wrap] {
+    padding-block: calc((var(--_row-h) - var(--basalt-text-sm-line-height)) / 2);
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: break-word;
+  }
+  .basalt-table-container .basalt-table :is(td, th)[data-wrap] > a { white-space: normal; overflow: visible; text-overflow: clip; }
+  .basalt-table-container .basalt-table :is(td, th)[data-wrap] > a[data-new-tab] { display: inline; }
+  .basalt-table-container .basalt-table :is(td, th)[data-wrap] > a[data-new-tab] > .basalt-link-label { white-space: normal; overflow: visible; text-overflow: clip; }
+
+  /* A row that opens what it names (`TableRow linked`, cimip-gaps-3 T3, 5). The row stays a tr; its link stays the one control and keeps its own ring. Its cells
+     take the pointer cursor (a cut cell, which reads, and a control keep their own); while the row is hovered the opener's underline lifts to its ink; a press on
+     the row (not on a control or a cut cell) steps it to the selected wash, on every cell, a pinned one as one mixed colour. No chevron, no outline, no bar. */
+  .basalt-table tr[data-linked] > :is(td, th):not([data-cut]) { cursor: pointer; }
+  @media (hover: hover) {
+    .basalt-table tr[data-linked]:hover [data-row-opens] { text-decoration-color: currentColor; }
+  }
+  .basalt-table tbody tr[data-linked]:not([data-selected]):active:not(:has(:is(a[href], button, input, select, textarea, label, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="checkbox"], [role="switch"], [role="menuitem"], [data-cut]):active)) { background: var(--basalt-state-selected); }
+
   /* A cut cell can be read (decisions 138 and 139). The ellipsis and the row stay; a cut cell is a focus stop (`data-cut`, set by Table), and
      its focus ring is the flush-field -2 inset, because +2 would be cut by the cell's own clip and cross its neighbours. On hover (after
      the tooltip's wait) or focus its whole value opens in place over it, on a level-3 plate: the rim, shadow-overlay and radius 8, its
@@ -2775,6 +2809,11 @@
       .basalt-table[data-pinned] tbody tr:not([data-empty]):hover > :is(td, th[scope="row"]) { background-color: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 6%, var(--_surface, var(--basalt-surface-raised))) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 4%, var(--_surface, var(--basalt-surface-raised)))); }
     }
     .basalt-table[data-pinned] tbody tr[data-selected] > :is(td, th[scope="row"]) { background-color: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--_surface, var(--basalt-surface-raised))) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--_surface, var(--basalt-surface-raised)))); }
+  }
+  /* A linked row's press is the selected wash: on a pinned cell, the same one mixed colour. */
+  .basalt-table[data-pinned] tbody tr[data-linked]:not([data-selected]):active:not(:has(:is(a[href], button, input, select, textarea, label, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="checkbox"], [role="switch"], [role="menuitem"], [data-cut]):active)) > :is(td, th[scope="row"]) { background-color: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--_surface, var(--basalt-surface-raised))), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--_surface, var(--basalt-surface-raised)))); }
+  @supports not (color: light-dark(white, black)) {
+    .basalt-table[data-pinned] tbody tr[data-linked]:not([data-selected]):active:not(:has(:is(a[href], button, input, select, textarea, label, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="checkbox"], [role="switch"], [role="menuitem"], [data-cut]):active)) > :is(td, th[scope="row"]) { background-color: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--_surface, var(--basalt-surface-raised))) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--_surface, var(--basalt-surface-raised)))); }
   }
   /* The divider at the pinned edge is the one vertical line Basalt allows: structure, drawn only while the table is
      actually scrolled, and never a selection, sort or status mark. */
@@ -3506,9 +3545,35 @@
   .basalt-notification-group > .basalt-reveal-panel > .basalt-reveal-clip { margin-inline: calc(-1 * var(--basalt-space-1)); padding-inline: var(--basalt-space-1); }
   .basalt-notification-entries { margin: 0; padding: 0; padding-inline-start: calc(var(--basalt-size-dot) + var(--basalt-size-icon-sm) + 2 * var(--basalt-space-2-5)); list-style: none; }
 
+  /* The ringed dot (cimip-gaps-3 T3, 8c): unread and for the reader. The 6px dot inside a 1px ring, 1px apart, 10px across on the plain dot's centre, in primary
+     ink: the ring is a border and the disc a fill inside the padding (never an outline, never a gradient). It never moves, grows its seat or animates: in an
+     entry it reaches 2px into the gaps and the seat keeps its 6px, so reading it moves nothing. */
+  .basalt-notifications-trigger[data-unread][data-direct]::before { box-sizing: border-box; width: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); height: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); padding: var(--basalt-size-hairline); border: var(--basalt-size-hairline) solid currentColor; border-radius: var(--basalt-radius-full); background: currentColor; background-clip: content-box; top: calc(var(--basalt-space-1-5) - 2 * var(--basalt-size-hairline)); right: calc(var(--basalt-space-1-5) - 2 * var(--basalt-size-hairline)); color: var(--basalt-text-primary); }
+  .basalt-notification[data-direct] .basalt-notification-dot { position: relative; background: none; }
+  .basalt-notification[data-direct] .basalt-notification-dot::before { content: ""; position: absolute; inset: calc(-2 * var(--basalt-size-hairline)); box-sizing: border-box; width: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); height: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); padding: var(--basalt-size-hairline); border: var(--basalt-size-hairline) solid currentColor; border-radius: var(--basalt-radius-full); background: currentColor; background-clip: content-box; color: var(--basalt-text-primary); }
+  .basalt-tabbar-dot[data-kind="direct"] { box-sizing: border-box; width: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); height: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); padding: var(--basalt-size-hairline); border: var(--basalt-size-hairline) solid currentColor; border-radius: var(--basalt-radius-full); background: currentColor; background-clip: content-box; top: calc(var(--basalt-space-1) - 2 * var(--basalt-size-hairline)); inset-inline-end: calc(var(--basalt-space-1) - 2 * var(--basalt-size-hairline)); color: var(--basalt-text-primary); }
+  @media (forced-colors: active) {
+    .basalt-notifications-trigger[data-unread][data-direct]::before,
+    .basalt-tabbar-dot[data-kind="direct"],
+    .basalt-notification[data-direct] .basalt-notification-dot::before { forced-color-adjust: none; color: CanvasText; border: var(--basalt-size-hairline) solid CanvasText; background-color: CanvasText; }
+    .basalt-notification[data-direct] .basalt-notification-dot { border: 0; }
+    .basalt-notification[data-direct]:hover .basalt-notification-dot::before { color: HighlightText; border-color: HighlightText; background-color: HighlightText; }
+  }
+
+  /* `wrap` (8a): the title and the line wrap whole; the dot, the mark, the time and a count stay on the title's first line. */
+  .basalt-notifications-list[data-wrap] :is(.basalt-notification-title, .basalt-notification-line) { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; }
+  .basalt-notifications-list[data-wrap] .basalt-notification-head { align-items: flex-start; }
+  .basalt-notifications-list[data-wrap] .basalt-notification-caret { margin-block-start: calc((var(--basalt-text-base-line-height) - var(--basalt-size-icon-sm)) / 2); }
+  /* An action off with its reason (8d): one line (it may wrap) under the head's row (or the foot's), inside the band, from the band's start edge across its width. */
+  .basalt-notifications-head:has(> .basalt-notifications-reason), .basalt-notifications-foot:has(> .basalt-notifications-reason) { flex-wrap: wrap; row-gap: 0; }
+  .basalt-notifications-head:has(> .basalt-notifications-reason) > .basalt-notifications-count { flex-basis: 0; }
+  .basalt-notifications-reason { box-sizing: border-box; flex: 0 0 100%; margin: var(--basalt-space-1) 0 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+
   /* The page form (NotificationList): the same head band, without a title, its count lined up with the entries' dots; no rim and no level. */
   .basalt-notification-list > .basalt-notifications-foot { padding: var(--basalt-space-2) var(--basalt-space-1-5); }
   .basalt-notification-list > .basalt-notifications-head { padding-block: var(--basalt-space-2); padding-inline: calc(var(--basalt-space-1-5) + var(--basalt-space-3)) var(--basalt-space-1-5); }
+  /* Clear all's reason starts on the count's line and the entries' dots, as the head's does, not on the ghost button's own edge. */
+  .basalt-notification-list > .basalt-notifications-foot > .basalt-notifications-reason { padding-inline-start: var(--basalt-space-3); }
 
   /* ---- Command menu ---- */
 
@@ -7608,13 +7673,18 @@
      and last rows take the panel's inner corner so the ring follows it. Not DirectoryList, which is rimless, washless and on the page. */
   /* The list is the grid and every row a subgrid of it, so the leading seats, the words and the trailing values line up down the list whatever each row holds
      (a "Waiting" and an "Answered" badge start every title on one edge). The leading column is there only when a row has a seat. */
-  .basalt-panel-list { box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) auto; margin: 0; padding: 0; list-style: none; overflow: clip; border-radius: var(--basalt-radius-lg); background: var(--_surface, var(--basalt-surface-raised)); color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); }
+  .basalt-panel-list { box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) auto; margin: 0; padding: 0; list-style: none; overflow: clip; border-radius: var(--basalt-radius-lg); background: var(--_surface, var(--basalt-surface-raised)); color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); container-type: inline-size; }
   .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-lead) { grid-template-columns: auto minmax(0, 1fr) auto; }
+  /* Actions (cimip-gaps-3 T3, 4) are an end column of the shared grid, there only when a row has them, after the trailing fact. A row without actions runs its
+     trailing fact (or its words) to the row's end, so no row shows an empty seat. */
+  .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-actions) { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-actions):has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-lead) { grid-template-columns: auto minmax(0, 1fr) auto auto; }
   .basalt-panel-item { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; }
   /* A child that is not a PanelRow's item (an app's own li holding a DisclosureRow) takes the full row, never one of PanelRow's columns (G86): auto-placed,
      it would fill one track, and under 720 every other one would be the 0px column. */
   .basalt-panel-list > :not(.basalt-panel-item) { grid-column: 1 / -1; min-width: 0; }
-  .basalt-panel-item + .basalt-panel-item { border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  /* A divider between any two items, a PanelRow's or the app's own (a DisclosureRow's li). */
+  .basalt-panel-list > li + li { border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
   .basalt-panel-row {
     box-sizing: border-box;
     display: grid;
@@ -7638,21 +7708,79 @@
   .basalt-panel-row-words { grid-column: -3 / -2; }
   .basalt-panel-row:not(:has(> .basalt-panel-row-end)) > .basalt-panel-row-words { grid-column-end: -1; }
   .basalt-panel-row-end { grid-column: -2 / -1; justify-self: end; }
-  .basalt-panel-row:hover { background-color: var(--basalt-state-hover); transition-duration: var(--basalt-duration-instant); }
-  .basalt-panel-row:active { background-color: var(--basalt-state-selected); }
+  .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-actions) .basalt-panel-row-words { grid-column: -4 / -3; }
+  .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-actions) .basalt-panel-row-end { grid-column: -3 / -2; }
+  .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-actions) .basalt-panel-row-actions { grid-column: -2 / -1; }
+  .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-actions) .basalt-panel-row:not(:has(> .basalt-panel-row-actions)) > .basalt-panel-row-end { grid-column: -3 / -1; }
+  .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-actions) .basalt-panel-row:not(:has(> .basalt-panel-row-end, > .basalt-panel-row-actions)) > .basalt-panel-row-words { grid-column: -4 / -1; }
+  .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-actions) .basalt-panel-row:has(> .basalt-panel-row-actions):not(:has(> .basalt-panel-row-end)) > .basalt-panel-row-words { grid-column: -4 / -2; }
+  .basalt-panel-row:not([data-split], [data-static]):hover { background-color: var(--basalt-state-hover); transition-duration: var(--basalt-duration-instant); }
+  .basalt-panel-row:not([data-split], [data-static]):active { background-color: var(--basalt-state-selected); }
   .basalt-panel-row:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
-  .basalt-panel-item:first-child > .basalt-panel-row { border-start-start-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); border-start-end-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); }
-  .basalt-panel-item:last-child > .basalt-panel-row { border-end-start-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); border-end-end-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); }
+  .basalt-panel-item:first-child > .basalt-panel-row { --_row-r-start: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); border-start-start-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); border-start-end-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); }
+  .basalt-panel-item:last-child > .basalt-panel-row { --_row-r-end: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); border-end-start-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); border-end-end-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); }
   .basalt-panel-row-lead { display: flex; align-items: center; min-height: var(--basalt-text-base-line-height); }
   .basalt-panel-row-words { display: grid; gap: var(--basalt-space-0-5); min-width: 0; }
   .basalt-panel-row-title, .basalt-panel-row-description { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .basalt-panel-row-title { font-weight: var(--basalt-font-weight-medium); }
   .basalt-panel-row-description { color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
   .basalt-panel-row-end { color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-base-line-height); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  /* `wrap`: the title and the description wrap whole; the lead, the trailing fact and (from 480) the actions stay on the title's first line. */
+  .basalt-panel-row[data-wrap] :is(.basalt-panel-row-title, .basalt-panel-row-description) { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; }
+  /* The split row: a div, its title holding the trigger (the row's one link or button), whose cover reaches across the band; the actions, and any control in
+     the words, sit above it. Hover washes the band while the pointer is on it and not on one of those; a press steps it only while the trigger is pressed.
+     The trigger's focus is the band's flush -2 ring, drawn on its cover so it follows the panel's inner corners; each action keeps its own +2 ring. */
+  .basalt-panel-row[data-split] { position: relative; cursor: pointer; }
+  .basalt-panel-row-trigger { color: inherit; font: inherit; text-decoration: none; margin: 0; padding: 0; border: 0; background: none; cursor: pointer; text-align: inherit; }
+  .basalt-panel-row-trigger:focus-visible { outline: none; }
+  .basalt-panel-row-trigger::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-start-start-radius: var(--_row-r-start, 0);
+    border-start-end-radius: var(--_row-r-start, 0);
+    border-end-start-radius: var(--_row-r-end, 0);
+    border-end-end-radius: var(--_row-r-end, 0);
+  }
+  .basalt-panel-row-trigger:focus-visible::after { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+  .basalt-panel-row[data-split] :is(a[href], button, input, select, textarea, summary, label, [role="button"], [role="link"], [role="checkbox"], [role="switch"]):not(.basalt-panel-row-trigger) { position: relative; z-index: 1; }
+  .basalt-panel-row-actions { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--basalt-space-2); align-self: start; }
+  /* A small control on the title's line keeps the row's height on a fine pointer: it overhangs the 24px line by its own half difference. */
+  .basalt-panel-row-actions > .basalt-button[data-size="sm"] { margin-block: calc((var(--basalt-text-base-line-height) - var(--basalt-size-control-sm)) / 2); }
+  .basalt-panel-row[data-split]:hover:not(:has(.basalt-panel-row-actions :hover, :is(a[href], button, input, select, textarea, summary, label, [role="button"], [role="link"], [role="checkbox"], [role="switch"]):not(.basalt-panel-row-trigger):hover)) { background-color: var(--basalt-state-hover); transition-duration: var(--basalt-duration-instant); }
+  .basalt-panel-row[data-split]:has(.basalt-panel-row-trigger:active) { background-color: var(--basalt-state-selected); }
+  /* The static row: no target, no wash, no press, no pointer. */
+  .basalt-panel-row[data-static] { cursor: default; }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) {
     .basalt-panel-row { min-height: var(--basalt-size-tap-min); }
+    .basalt-panel-row-actions > .basalt-button[data-size="sm"] { margin-block: 0; }
   }
+  /* Under 480 of the list's width the actions are a line of their own under the words, on the words' start edge, space-2 above, wrapping space-2 apart; the
+     trailing fact stays on the title's line. */
+  /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px): a container query cannot read a token */
+  @container (width < 480px) {
+    .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-actions) .basalt-panel-row > :is(.basalt-panel-row-lead, .basalt-panel-row-words, .basalt-panel-row-end) { grid-row: 1; }
+    .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-actions) .basalt-panel-row > .basalt-panel-row-end { grid-column: -3 / -1; }
+    .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-actions) .basalt-panel-row:not(:has(> .basalt-panel-row-end)) > .basalt-panel-row-words { grid-column: -4 / -1; }
+    .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-actions) .basalt-panel-row > .basalt-panel-row-actions { grid-row: 2; grid-column: -4 / -1; justify-content: flex-start; margin-block-start: var(--basalt-space-2); }
+  }
+
+  /* A DisclosureRow in a PanelList (cimip-gaps-3 T3, 10): the band. Its trigger is padded as a PanelRow is, at least 44 tall on touch, with the full-bleed
+     hover wash (its ink still lifts), a press to the selected wash and the flush -2 ring; the first item's takes the panel's inner top corners, the last item's
+     the bottom ones while it is closed. Its type stays its own (13, secondary, the meta tertiary, the chevron at the end). The detail is padded to the band's
+     edges, a mark's indent added; the panel's clip is the room for a ring inside it. One rim: the panel's. */
+  .basalt-panel-list .basalt-disclosure-row { padding: var(--basalt-space-3) var(--basalt-space-4); border-radius: 0; transition: color var(--basalt-duration-fast) var(--basalt-ease-out), background-color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  @media (hover: hover) { .basalt-panel-list .basalt-disclosure-row:hover:not([data-disabled]) { background-color: var(--basalt-state-hover); } }
+  .basalt-panel-list .basalt-disclosure-row:active:not([data-disabled]) { background-color: var(--basalt-state-selected); }
+  .basalt-panel-list .basalt-disclosure-row:focus-visible { outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+  .basalt-panel-list > li:first-child .basalt-disclosure-row { border-start-start-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); border-start-end-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); }
+  .basalt-panel-list > li:last-child .basalt-disclosure-row:not([data-panel-open]) { border-end-start-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); border-end-end-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); }
+  .basalt-panel-list .basalt-disclosure-panel { margin-inline: 0; padding-inline: 0; }
+  .basalt-panel-list .basalt-disclosure-detail { padding: var(--basalt-space-1) var(--basalt-space-4) var(--basalt-space-3); }
+  .basalt-panel-list .basalt-disclosure[data-marked] .basalt-disclosure-detail { padding-inline-start: calc(var(--basalt-space-4) + var(--basalt-size-icon-sm) + var(--basalt-space-2)); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) { .basalt-panel-list .basalt-disclosure-row { padding-block: calc((var(--basalt-size-tap-min) - var(--basalt-text-sm-line-height)) / 2); } }
 
   /* ---- SelectableList: a list to choose several from, outside a table (cimip-gaps-2, B6) ----
      As a table's selection: a checkbox per row, the whole row its label; a chosen row is the selected wash as a band, its checked box the state (the wash alone
@@ -7895,6 +8023,10 @@
     .basalt-list-band-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--basalt-space-1) var(--basalt-space-2); }
     .basalt-list-band-row > .basalt-list-band-range { display: none; }
     .basalt-list-band-size { margin-inline-start: auto; }
+    /* At one page or none (cimip-gaps-3 T3, 9) the pager is not drawn (no hidden arrows holding 44px seats): the band's own range starts the row, on the gutter, and the page
+       size ends it, on one row. With onePage="size" the page size is alone. */
+    .basalt-list-band[data-whole] .basalt-list-band-row > .basalt-pagination { display: none; }
+    .basalt-list-band[data-whole]:not([data-one-page="size"]) .basalt-list-band-row > .basalt-list-band-range { display: block; }
   }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) {
@@ -7905,12 +8037,20 @@
       .basalt-list-band-size { margin-inline-start: auto; }
       .basalt-list-band-row > .basalt-pagination .basalt-pagination-pages { display: none; }
       .basalt-list-band-row > .basalt-pagination .basalt-pagination-summary { display: inline-block; }
+      /* At one page or none (cimip-gaps-3 T3, 9) the pager is not drawn (no hidden arrows holding 44px seats): the band's own range starts the row, on the gutter, and the page
+         size ends it, on one row. With onePage="size" the page size is alone. */
+      .basalt-list-band[data-whole] .basalt-list-band-row > .basalt-pagination { display: none; }
+      .basalt-list-band[data-whole]:not([data-one-page="size"]) .basalt-list-band-row > .basalt-list-band-range { display: block; }
     }
   }
+  /* onePage="size" in the wide form: the range and the pager keep their seats, unseen, and the page size stays where it is. */
+  .basalt-list-band[data-whole][data-one-page="size"] .basalt-list-band-row > :is(.basalt-list-band-range, .basalt-pagination) { visibility: hidden; }
   /* The count sits in the middle of the room between the arrows: its seat holds the widest form and the text is centred in it (the wide band's own count stays at the start). */
   .basalt-pagination-summary .basalt-list-band-range-seat { justify-items: center; }
   /* The list's foot (DECISIONS 227): under 720, with more than one page, the band's Previous, count and Next again, centred under the rows, with no seat under it. */
   .basalt-list-band-foot { display: none; padding-block: var(--basalt-space-2); }
+  /* keepFootRoom at one page or none: the foot holds its room and draws nothing; its count is hidden with its arrows (the band above says the range). */
+  .basalt-list-band-foot .basalt-pagination[data-whole] .basalt-pagination-summary { visibility: hidden; }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token */
   @media (width < 720px) {
     .basalt-list-band-foot:not([hidden]) { display: block; }
@@ -7985,6 +8125,23 @@
   .basalt-text[data-tone="inherit"] { color: inherit; }
   .basalt-text[data-mono] { font-family: var(--basalt-font-family-mono); }
   [data-selected] .basalt-text[data-tone="tertiary"], [data-highlighted] .basalt-text[data-tone="tertiary"] { color: var(--basalt-text-secondary); }
+  /* Cut text (`Text lines`, cimip-gaps-3 T3, 3): one line with an ellipsis, or a clamp of n lines whose height is capped at n of the reader's own lines (1lh, so a
+     user's line height under WCAG 1.4.12 shows whole lines), in the clamp's own rule. While it is cut it is read whole on the plate (peek-plate.ts): outside a
+     control it is a stop of its own, with the control ring at +2 (radius 6 for one line, 8 for a clamp) after Esc and before the plate opens; inside a control the
+     control is the stop. Without hover there is no plate inside a control, so there the clamp lifts and the text is whole at rest (as a listbox's options are on
+     touch), unless `peek={false}` says the press shows the whole text. A listbox option and an open-list row read their own rows, so the clamp stays there. */
+  .basalt-text[data-lines] { display: block; min-width: 0; overflow: hidden; }
+  .basalt-text[data-lines="1"] { text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
+  .basalt-text[data-lines]:not([data-lines="1"]) { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--_lines); line-clamp: var(--_lines); max-block-size: calc(var(--_lines) * 1lh); }
+  .basalt-text[data-cut] { border-radius: var(--basalt-radius-sm); }
+  .basalt-text[data-cut]:not([data-lines="1"]) { border-radius: var(--basalt-radius-md); }
+  .basalt-text[data-cut]:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* Under an open plate the text's (or its control's) own ring gives way to the plate's. */
+  .basalt-text[data-cut][data-peeking]:focus-visible, :is(a[href], button, summary, label, [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="checkbox"], [role="radio"], [role="switch"], [role="treeitem"])[data-peeking]:focus-visible { outline-color: transparent; }
+  @media (hover: none) {
+    :is(a[href], button, summary, label, [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="checkbox"], [role="radio"], [role="switch"], [role="treeitem"]) .basalt-text[data-lines]:not([data-peek="off"]):not(:is(.basalt-listbox, .basalt-open-list) *) { display: block; overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; -webkit-line-clamp: none; line-clamp: none; max-block-size: none; }
+  }
+  .basalt-peek[data-kind="text"] { padding: calc(var(--basalt-space-1-5) - var(--basalt-size-hairline)); overflow-wrap: break-word; }
   /* stylelint-disable-next-line unit-disallowed-list -- inline code is a fixed ratio of the text around it, whatever size that is; the type scale has no relative step */
   .basalt-inline-code, .basalt-rich-text :not(pre) > code { padding: var(--basalt-space-0-5) var(--basalt-space-1); border-radius: var(--basalt-radius-xs); background: var(--basalt-surface-sunken); color: var(--basalt-text-primary); box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline); font-family: var(--basalt-font-family-mono); font-size: 0.9em; font-weight: var(--basalt-font-weight-regular); line-height: inherit; }
 
@@ -9335,6 +9492,55 @@
   .basalt-disclosure[data-marked] .basalt-disclosure-detail { padding-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-2)); }
   .basalt-disclosure-detail > p { margin: 0; }
   @media (prefers-reduced-motion: reduce) { .basalt-disclosure-panel { transition: none; } }
+
+  /* ---- DisclosureList: disclosure rows as one ruled list on the parent's surface (cimip-gaps-3 T3, 7b) ----
+     No rim, level or fill; a divider between items, never above the first or below the last. A row is at least 40 (44 on touch), padded (40 - 18) / 2 above
+     and below, with no inline padding, so its words start on the list's line. If any row has a mark, every row keeps the mark's seat and every detail its indent. */
+  .basalt-disclosure-list { margin: 0; padding: 0; list-style: none; min-width: 0; }
+  .basalt-disclosure-list > li { min-width: 0; }
+  .basalt-disclosure-list > li + li { border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  .basalt-disclosure-list .basalt-disclosure-row { min-height: var(--basalt-size-table-row); padding-block: calc((var(--basalt-size-table-row) - var(--basalt-text-sm-line-height)) / 2); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) { .basalt-disclosure-list .basalt-disclosure-row { min-height: var(--basalt-size-tap-min); padding-block: calc((var(--basalt-size-tap-min) - var(--basalt-text-sm-line-height)) / 2); } }
+  .basalt-disclosure-list:has(.basalt-disclosure[data-marked]) > .basalt-disclosure:not([data-marked]) > .basalt-disclosure-row::before { content: ""; flex: none; width: var(--basalt-size-icon-sm); }
+  .basalt-disclosure-list:has(.basalt-disclosure[data-marked]) > .basalt-disclosure .basalt-disclosure-detail { padding-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-2)); }
+
+  /* ---- Disclosure: a line in prose that opens (cimip-gaps-3 T3, 7a) ----
+     The trigger hugs its words: the chevron leads in a 16px seat one line tall, then the title at 500 in primary, at the size and line height of where it
+     sits; it always wraps. Hover lifts the chevron to primary and underlines the title (the text button's underline); no wash. At least 28 tall on a fine
+     pointer, 44 on touch as real height; the control ring at +2, radius 6 (8 at 44). The detail is indented to the title's edge, space-2 under it, with no
+     size or ink of Basalt's; it opens by height over duration-slow and its clip reaches space-1-5 past it, so a ring inside is whole. No rim, fill or divider. */
+  .basalt-prose-disclosure { min-width: 0; }
+  .basalt-prose-disclosure-trigger {
+    box-sizing: border-box; display: inline-flex; align-items: flex-start; gap: var(--basalt-space-2); width: fit-content; max-width: 100%; min-height: var(--basalt-size-control-sm); margin: 0;
+    padding: max(var(--basalt-space-0), calc((var(--basalt-size-control-sm) - 1lh) / 2)) 0; border: 0; border-radius: var(--basalt-radius-sm); background: none; cursor: pointer;
+    color: var(--basalt-text-primary); font: inherit; font-weight: var(--basalt-font-weight-medium); text-align: start;
+  }
+  .basalt-prose-disclosure-chevron { display: flex; flex: none; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); height: 1lh; color: var(--basalt-text-secondary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-prose-disclosure-title { min-width: 0; overflow-wrap: anywhere; text-decoration: underline; text-decoration-color: transparent; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  @media (hover: hover) {
+    .basalt-prose-disclosure-trigger:hover:not([data-disabled]) .basalt-prose-disclosure-chevron { color: var(--basalt-text-primary); }
+    .basalt-prose-disclosure-trigger:hover:not([data-disabled]) .basalt-prose-disclosure-title { text-decoration-color: currentColor; }
+  }
+  .basalt-prose-disclosure-trigger:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-prose-disclosure-trigger[data-disabled] { color: var(--basalt-text-disabled); cursor: default; }
+  .basalt-prose-disclosure-trigger[data-disabled] .basalt-prose-disclosure-chevron { color: inherit; }
+  .basalt-prose-disclosure-trigger:not([data-panel-open]) .basalt-prose-disclosure-chevron:dir(rtl) { transform: scaleX(-1); }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
+    .basalt-prose-disclosure-trigger { min-height: var(--basalt-size-tap-min); padding-block: max(var(--basalt-space-0), calc((var(--basalt-size-tap-min) - 1lh) / 2)); border-radius: var(--basalt-radius-md); }
+  }
+  .basalt-prose-disclosure-panel { height: var(--collapsible-panel-height); overflow: hidden; margin-inline: calc(-1 * var(--basalt-space-1-5)); padding-inline: var(--basalt-space-1-5); transition: height var(--basalt-duration-slow) var(--basalt-ease-out); }
+  .basalt-prose-disclosure-panel[data-starting-style], .basalt-prose-disclosure-panel[data-ending-style] { height: 0; }
+  .basalt-prose-disclosure-panel[data-ending-style] { transition-duration: calc(var(--basalt-duration-slow) * 0.75); transition-timing-function: var(--basalt-ease-in); }
+  .basalt-prose-disclosure-detail { min-width: 0; padding-block: var(--basalt-space-2) 0; padding-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-2)); }
+  .basalt-prose-disclosure-detail > :first-child { margin-block-start: 0; }
+  .basalt-prose-disclosure-detail > :last-child { margin-block-end: 0; }
+  @media (prefers-reduced-motion: reduce) { .basalt-prose-disclosure-panel { transition: none; } }
+  @media (forced-colors: active) {
+    .basalt-prose-disclosure-chevron { color: CanvasText; }
+    .basalt-prose-disclosure-trigger[data-disabled] .basalt-prose-disclosure-chevron { color: GrayText; }
+  }
 
   /* ---- The activity list: a sentence a step at 13, wrapping, behind the plain badge's status seat (6, and a gap as wide): braille while it runs, the
      tertiary dot once done, the danger dot when it failed, the hollow ring while it waits. The running step is primary; done steps are secondary. ---- */

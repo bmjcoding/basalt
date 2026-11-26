@@ -1,6 +1,8 @@
 import { GRACE, LEAVE, WAIT } from "./cell-peek";
 
-// The plate that shows cut text whole on three parts (DECISIONS 168 and 170): a `Listbox` option, an `OpenList` row and the `StatusBar`'s message.
+// The plate that shows cut text whole on four parts (DECISIONS 168 and 170; cimip-gaps-3 T3, 3): a `Listbox` option, an `OpenList` row, the `StatusBar`'s
+// message and a `Text` with `lines` (the text's own box opened over it, its first line on the pixel the text starts on; inside a control, from the control's
+// hover and focus, and a press on it is a press on the control).
 // The list parts take the row itself, raised to level 3: the rim, `shadow-overlay`, radius 8, every word that was showing on the pixel it was on,
 // and the cut text carrying on below, so nothing is half covered and nothing sticks out from under it. It grows downward and its foot never ends in
 // the middle of a line of text. The status message's plate leaves the bar and lifts into the page above it, the slot's width, its foot `space-2`
@@ -14,7 +16,17 @@ import { GRACE, LEAVE, WAIT } from "./cell-peek";
 //
 // Nothing here runs when the module loads: the plate and the one Range that measures are made on first use and removed with the part.
 
-export type PeekKind = "listbox" | "open" | "status";
+export type PeekKind = "listbox" | "open" | "status" | "text";
+
+/**
+ * What a cut `Text` counts as its control: the nearest ancestor that is one by element or by widget role, never by a bare `tabindex` (a `main` or a
+ * heading that takes route focus, a dialog's popup, a focusable scroll region are not controls). Inside one, the control is the stop and the plate opens
+ * from its hover and focus.
+ */
+export const TEXT_CONTROL = 'a[href], button, summary, label, [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="checkbox"], [role="radio"], [role="switch"], [role="treeitem"]';
+
+/** Something focusable inside a cut `Text`: then the text only cuts, with no stop and no plate. */
+const HOLDS_A_STOP = 'a[href], button, input, select, textarea, summary, [tabindex], [role="checkbox"], [role="button"]';
 
 /** How long a finger holds a row before its plate opens, and how far it may drift while it does. */
 const HOLD = 500;
@@ -107,6 +119,10 @@ interface Adapter {
   focusTarget(): HTMLElement | null;
   /** A press on the plate is a press on its row. */
   press?(target: HTMLElement): void;
+  /** The element whose own ring gives way to the plate's while it is open: the target, unless this says otherwise. */
+  peekingOf?(target: HTMLElement): HTMLElement;
+  /** Whether a long press on touch opens the plate. */
+  holds?: boolean;
 }
 
 // ---- rows: the listbox's options and the open list's rows ----
@@ -304,6 +320,70 @@ function statusAdapter(message: HTMLElement, cut: (el: Element | null) => boolea
   };
 }
 
+// ---- a cut `Text`: one line or a clamp of n ----
+
+/** Whether a `Text` with `lines` is cut now: one line by its width (and the fractional overflow a Range shows), a clamp by its height. */
+function textCut(text: HTMLElement, cut: (el: Element | null) => boolean): boolean {
+  if (text.querySelector(HOLDS_A_STOP)) return false;
+  const lines = Number(text.getAttribute("data-lines"));
+  if (!(lines >= 1)) return false;
+  if (lines === 1) return cut(text);
+  return text.scrollHeight > text.clientHeight + 1;
+}
+
+function textAdapter(text: HTMLElement, host: HTMLElement | null, cut: (el: Element | null) => boolean): Adapter {
+  const doc = text.ownerDocument;
+  // A label's focus is on its control; every other control takes focus itself.
+  const focusable = (): HTMLElement | null => (host instanceof HTMLLabelElement ? host.control : host);
+  return {
+    targetOf: (node) => (node instanceof Node && (host ?? text).contains(node) ? text : null),
+    isCut: () => textCut(text, cut),
+    fill: (_target, plate) => {
+      const view = doc.documentElement;
+      plate.replaceChildren();
+      plate.dataset.kind = "text";
+      plate.removeAttribute("data-chosen");
+      const style = getComputedStyle(text);
+      plate.style.direction = style.direction;
+      for (const property of FONT) plate.style[property] = style[property];
+      plate.style.wordSpacing = style.wordSpacing;
+      plate.style.textAlign = style.textAlign;
+      plate.style.color = style.color;
+      const words = doc.createElement("span");
+      words.className = "basalt-peek-name";
+      words.textContent = wordsOf(text);
+      plate.append(words);
+      // The plate's first line starts on the pixel the text starts on: its padding and rim sit outside the text's box. It is at least the text's width and
+      // at most the wider of that and size-popover-max, never wider than the viewport less a gutter each side.
+      const rect = text.getBoundingClientRect();
+      const plateStyle = getComputedStyle(plate);
+      const inset = parseFloat(plateStyle.borderLeftWidth) + parseFloat(plateStyle.paddingLeft);
+      const own = rect.width + 2 * inset;
+      const room = `calc(${px(view.clientWidth)} - 2 * var(--basalt-space-2))`;
+      plate.style.minWidth = `min(${px(own)}, ${room})`;
+      plate.style.maxWidth = `min(max(${px(own)}, var(--basalt-size-popover-max)), ${room})`;
+      plate.style.left = "0px";
+      plate.style.top = "0px";
+      const box = plate.getBoundingClientRect();
+      const rtl = style.direction === "rtl";
+      const wanted = rtl ? rect.right + inset - box.width : rect.left - inset;
+      plate.style.left = `max(var(--basalt-space-2), min(${px(wanted)}, calc(${px(view.clientWidth - box.width)} - var(--basalt-space-2))))`;
+      plate.style.top = `max(var(--basalt-space-2), min(${px(rect.top - inset)}, calc(${px(view.clientHeight - box.height)} - var(--basalt-space-2))))`;
+    },
+    focusTarget: () => {
+      const active = doc.activeElement;
+      if (!host) return active === text && text.hasAttribute("data-cut") && text.matches(":focus-visible") ? text : null;
+      const control = focusable();
+      return control && active === control && control.matches(":focus-visible") ? text : null;
+    },
+    // A press on the plate is a press on the control round the text; on a text that is its own stop it does nothing.
+    press: host ? () => host.click() : undefined,
+    peekingOf: () => (host ? focusable() ?? host : text),
+    // Outside a control a long press opens it; inside one the long press stays the browser's (a link's menu) and the control's.
+    holds: !host,
+  };
+}
+
 // ---- the controller: when the plate opens and closes ----
 
 /** A running plate controller: `stop` removes it, and `sync` lets it see a pointer or focus that arrived before it loaded. */
@@ -315,7 +395,12 @@ export function attachPeek(root: HTMLElement, kind: PeekKind, zIndex: string | u
   if (!found) return { stop: () => {}, sync: () => {} };
   const win: Window & typeof globalThis = found;
   const cut = measurer(doc);
-  const adapter = kind === "listbox" ? listboxAdapter(root, cut) : kind === "open" ? openListAdapter(root, cut) : statusAdapter(root, cut);
+  // A `Text` inside a listbox option or an open-list row only cuts: those parts open their own plate over a cut row (or wrap on touch).
+  if (kind === "text" && root.closest('[role="option"], [data-open-row]')) return { stop: () => {}, sync: () => {} };
+  const host = kind === "text" ? root.parentElement?.closest<HTMLElement>(TEXT_CONTROL) ?? null : null;
+  const adapter = kind === "listbox" ? listboxAdapter(root, cut) : kind === "open" ? openListAdapter(root, cut) : kind === "text" ? textAdapter(root, host, cut) : statusAdapter(root, cut);
+  // Where hover and focus are heard: the control round a text (and a label's control, which can sit outside it), else the part itself.
+  const hosts = kind === "text" && host ? [host, ...(host instanceof HTMLLabelElement && host.control && !host.contains(host.control) ? [host.control] : [])] : [root];
   let plate: HTMLDivElement | null = null;
   let current: HTMLElement | null = null;
   let hovered: HTMLElement | null = null;
@@ -342,7 +427,8 @@ export function attachPeek(root: HTMLElement, kind: PeekKind, zIndex: string | u
       if (event.pointerType === "touch") return;
       plateHovered = false;
       // Off the plate and not back onto its row: the pointer has left both.
-      if (!(event.relatedTarget instanceof Node && current?.contains(event.relatedTarget))) hovered = null;
+      const to = event.relatedTarget;
+      if (!(to instanceof Node && (current?.contains(to) || (host !== null && hosts.some((at) => at.contains(to)))))) hovered = null;
       settle();
     });
     // The plate keeps focus where it is, and a press on it is a press on its row.
@@ -370,8 +456,8 @@ export function attachPeek(root: HTMLElement, kind: PeekKind, zIndex: string | u
     adapter.fill(target, p);
     p.setAttribute("data-open", "");
     peeking?.removeAttribute("data-peeking");
-    peeking = target;
-    target.setAttribute("data-peeking", "");
+    peeking = adapter.peekingOf?.(target) ?? target;
+    peeking.setAttribute("data-peeking", "");
   };
 
   function close() {
@@ -415,7 +501,7 @@ export function attachPeek(root: HTMLElement, kind: PeekKind, zIndex: string | u
   const onOver = (event: PointerEvent) => {
     if (event.pointerType === "touch") return;
     const target = adapter.targetOf(event.target);
-    if (!target || !root.contains(target) || target === hovered) return;
+    if (!target || !(root.contains(target) || target === root) || target === hovered) return;
     hovered = target;
     win.clearTimeout(wait);
     if (current === target) { win.clearTimeout(leave); return; }
@@ -430,7 +516,8 @@ export function attachPeek(root: HTMLElement, kind: PeekKind, zIndex: string | u
     const target = adapter.targetOf(event.target);
     if (!target || target !== hovered) return;
     const to = event.relatedTarget;
-    if (to instanceof Node && (target.contains(to) || plate?.contains(to))) return;
+    // Inside a control the pointer is on the text while it is anywhere on the control.
+    if (to instanceof Node && (target.contains(to) || plate?.contains(to) || (host !== null && hosts.some((at) => at.contains(to))))) return;
     hovered = null;
     win.clearTimeout(wait);
     if (suppressed === target) suppressed = null;
@@ -469,9 +556,9 @@ export function attachPeek(root: HTMLElement, kind: PeekKind, zIndex: string | u
   let holdFrom: { x: number; y: number } | null = null;
   let swallowClick = false;
   const onDown = (event: PointerEvent) => {
-    if (event.pointerType !== "touch" || kind !== "open") return;
+    if (event.pointerType !== "touch" || !(kind === "open" || adapter.holds)) return;
     const target = adapter.targetOf(event.target);
-    if (!target || !root.contains(target) || !adapter.isCut(target)) return;
+    if (!target || !(root.contains(target) || target === root) || !adapter.isCut(target)) return;
     holdFrom = { x: event.clientX, y: event.clientY };
     win.clearTimeout(hold);
     hold = win.setTimeout(() => { swallowClick = true; open(target, { touch: true }); }, HOLD);
@@ -502,24 +589,35 @@ export function attachPeek(root: HTMLElement, kind: PeekKind, zIndex: string | u
   const measure = () => {
     frame = 0;
     const now = adapter.isCut(root);
-    if (now !== wasCut) { wasCut = now; onCut(now); }
+    if (now !== wasCut) {
+      wasCut = now;
+      // A cut `Text` is marked, and outside a control it is a stop of its own; inside one the control stays the one stop.
+      if (kind === "text") {
+        root.toggleAttribute("data-cut", now);
+        if (!host) { if (now) root.setAttribute("tabindex", "0"); else root.removeAttribute("tabindex"); }
+      }
+      onCut(now);
+    }
     refresh();
   };
   const schedule = () => { if (!frame) frame = win.requestAnimationFrame(measure); };
 
   // ---- scroll and resize carry the plate with its row ----
   const onScroll = () => { if (current && plate) refresh(); };
-  const onResize = () => { if (kind === "status") schedule(); else refresh(); };
+  const measured = kind === "status" || kind === "text";
+  const onResize = () => { if (measured) schedule(); else refresh(); };
 
-  root.addEventListener("pointerover", onOver);
-  root.addEventListener("pointerout", onOut);
-  root.addEventListener("focusin", onFocusChange);
-  root.addEventListener("focusout", onFocusChange);
-  root.addEventListener("pointerdown", onDown);
-  root.addEventListener("pointermove", onMove);
-  root.addEventListener("pointerup", onUp);
-  root.addEventListener("pointercancel", onUp);
-  root.addEventListener("contextmenu", onMenu);
+  for (const at of hosts) {
+    at.addEventListener("pointerover", onOver);
+    at.addEventListener("pointerout", onOut);
+    at.addEventListener("focusin", onFocusChange);
+    at.addEventListener("focusout", onFocusChange);
+    at.addEventListener("pointerdown", onDown);
+    at.addEventListener("pointermove", onMove);
+    at.addEventListener("pointerup", onUp);
+    at.addEventListener("pointercancel", onUp);
+    at.addEventListener("contextmenu", onMenu);
+  }
   if (kind === "listbox") { root.addEventListener("keydown", onRootKey); root.addEventListener("blur", onRootBlur); }
   doc.addEventListener("click", onClickCapture, true);
   doc.addEventListener("pointerdown", onDocDown, true);
@@ -529,19 +627,26 @@ export function attachPeek(root: HTMLElement, kind: PeekKind, zIndex: string | u
 
   let resize: ResizeObserver | undefined;
   let mutation: MutationObserver | undefined;
-  if (kind === "status") {
-    // The message is a stop only while its text is cut: measured when it is drawn, when its box or its words change, and when the fonts arrive.
+  let spacing: MutationObserver | undefined;
+  if (measured) {
+    // The message (or the text) is a stop only while it is cut: measured when it is drawn, when its box or its words change, and when the fonts arrive.
     resize = new win.ResizeObserver(schedule);
     resize.observe(root);
     mutation = new win.MutationObserver(schedule);
-    mutation.observe(root, { childList: true, characterData: true, subtree: true });
+    mutation.observe(root, { childList: true, characterData: true, subtree: true, ...(kind === "text" ? { attributes: true, attributeFilter: ["data-lines", "style"] } : null) });
     void doc.fonts?.ready.then(schedule);
+    if (kind === "text") {
+      // A reader's own spacing (WCAG 1.4.12) can change what is cut without changing the text's box: a root style or class, or a style sheet.
+      spacing = new win.MutationObserver(schedule);
+      spacing.observe(doc.documentElement, { attributes: true, attributeFilter: ["style", "class", "lang", "dir"] });
+      doc.fonts?.addEventListener("loadingdone", schedule);
+    }
     measure();
   }
 
   // Hover and focus that began while this module was loading: the pointer is already on a row (the deepest hovered element is its target), or focus is in.
   const sync = () => {
-    const hot = [...root.querySelectorAll(":hover")].pop() ?? (root.matches(":hover") ? root : null);
+    const hot = hosts.map((at) => [...at.querySelectorAll(":hover")].pop() ?? (at.matches(":hover") ? at : null)).find(Boolean) ?? null;
     if (hot) onOver({ target: hot, pointerType: "mouse" } as unknown as PointerEvent);
     onFocusChange();
   };
@@ -554,15 +659,23 @@ export function attachPeek(root: HTMLElement, kind: PeekKind, zIndex: string | u
     watch.disconnect();
     resize?.disconnect();
     mutation?.disconnect();
-    root.removeEventListener("pointerover", onOver);
-    root.removeEventListener("pointerout", onOut);
-    root.removeEventListener("focusin", onFocusChange);
-    root.removeEventListener("focusout", onFocusChange);
-    root.removeEventListener("pointerdown", onDown);
-    root.removeEventListener("pointermove", onMove);
-    root.removeEventListener("pointerup", onUp);
-    root.removeEventListener("pointercancel", onUp);
-    root.removeEventListener("contextmenu", onMenu);
+    spacing?.disconnect();
+    doc.fonts?.removeEventListener("loadingdone", schedule);
+    for (const at of hosts) {
+      at.removeEventListener("pointerover", onOver);
+      at.removeEventListener("pointerout", onOut);
+      at.removeEventListener("focusin", onFocusChange);
+      at.removeEventListener("focusout", onFocusChange);
+      at.removeEventListener("pointerdown", onDown);
+      at.removeEventListener("pointermove", onMove);
+      at.removeEventListener("pointerup", onUp);
+      at.removeEventListener("pointercancel", onUp);
+      at.removeEventListener("contextmenu", onMenu);
+    }
+    if (kind === "text") {
+      root.removeAttribute("data-cut");
+      if (!host) root.removeAttribute("tabindex");
+    }
     root.removeEventListener("keydown", onRootKey);
     root.removeEventListener("blur", onRootBlur);
     doc.removeEventListener("click", onClickCapture, true);

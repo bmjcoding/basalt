@@ -112,6 +112,8 @@
     border-radius: var(--basalt-radius-full);
     background-color: currentColor;
   }
+  /* data-dot-kind="direct" on the cell: the dot in a 1px ring, 10px across on the plain dot's centre, in primary ink (new and addressed to the reader). */
+  .tab-bar-item[data-dot-kind="direct"] .tab-bar-dot { box-sizing: border-box; width: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); height: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); padding: var(--basalt-size-hairline); border: var(--basalt-size-hairline) solid currentColor; border-radius: var(--basalt-radius-full); background: currentColor; background-clip: content-box; top: calc(var(--basalt-space-1) - 2 * var(--basalt-size-hairline)); inset-inline-end: calc(var(--basalt-space-1) - 2 * var(--basalt-size-hairline)); color: var(--basalt-text-primary); }
   @media (hover: hover) and (pointer: fine) {
     .tab-bar-item:hover .tab-bar-glyph { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
   }
@@ -131,6 +133,7 @@
     .tab-bar-item:is(:hover, :active) .tab-bar-glyph { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
     .tab-bar[data-keys] .tab-bar-item:is(:hover, :active) .tab-bar-glyph { forced-color-adjust: auto; background-color: transparent; color: inherit; }
     .tab-bar-dot { forced-color-adjust: none; background-color: CanvasText; }
+    .tab-bar-item[data-dot-kind="direct"] .tab-bar-dot { color: CanvasText; border-color: CanvasText; }
   }
 
   /* ---- The version as the last row of More's sheet (DECISIONS 320): under a divider, space-2 below the list, 44 tall, at 13/18, on the nav glyphs' edge. ---- */

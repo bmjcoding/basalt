@@ -1,0 +1,17 @@
+@layer basalt {
+
+  /* ---- The plate that shows cut text whole (React's cell peek and text plate; peek.js) ----
+     Level 3: the rim, shadow-overlay, radius 8, fading in over duration-base on ease-out and out at 0.75 on ease-in, never a scale. It is aria-hidden; opened by the keyboard
+     it carries the control ring at +2. A cell's plate holds the cell's words on the pixel they were on; a text's plate is the text's box opened over it, its words space-1-5
+     inside the rim, its first line on the pixel the text starts on. */
+  .cell-peek { box-sizing: border-box; position: fixed; z-index: var(--basalt-layer-tooltip); display: flex; align-items: center; width: max-content; border: var(--basalt-size-hairline) solid var(--basalt-border-rim); border-top-color: var(--basalt-border-rim-top); border-radius: var(--basalt-radius-md); background: var(--basalt-surface-3); box-shadow: var(--basalt-shadow-overlay); white-space: normal; overflow-wrap: break-word; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity calc(var(--basalt-duration-base) * 0.75) var(--basalt-ease-in), visibility var(--basalt-duration-instant) linear calc(var(--basalt-duration-base) * 0.75); }
+  .cell-peek[data-open] { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity var(--basalt-duration-base) var(--basalt-ease-out); }
+  .cell-peek[data-focus] { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .cell-peek[data-kind="text"] { display: block; padding: calc(var(--basalt-space-1-5) - var(--basalt-size-hairline)); }
+  /* A cut text that is its own stop: the control ring at +2 (radius 6 for one line, 8 for a clamp) before the plate opens and after Esc; under an open plate it gives way. */
+  [data-lines][data-cut] { border-radius: var(--basalt-radius-sm); }
+  [data-lines][data-cut]:not([data-lines="1"]) { border-radius: var(--basalt-radius-md); }
+  [data-lines][data-cut]:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  [data-lines][data-cut][data-peeking]:focus-visible { outline-color: transparent; }
+  @media (forced-colors: active) { .cell-peek { background: Canvas; border-color: CanvasText; } }
+}

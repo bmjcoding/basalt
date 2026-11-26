@@ -86,13 +86,16 @@ describe("what a body gets", () => {
   test("tables and filters come in as modules, each by its own markup: a plain table brings the table alone, and prose that merely names one gets none", () => {
     assert.deepEqual(used("<table><tr><td>x</td></tr></table>"), ["table"], "a plain table is the table module only");
     assert.deepEqual(used('<p class="table-hint" hidden></p>'), ["table"], "the scroll hint is the table module's");
-    assert.deepEqual(used("<table data-fixed><tr><td>x</td></tr></table>"), ["glyph", "table", "still-table"], "a fixed table brings the still table, with the glyphs its sort seat draws");
-    assert.deepEqual(used("<table><thead><tr><th data-sortable>x</th></tr></thead></table>"), ["glyph", "table", "still-table"], "a sortable header does too");
-    assert.deepEqual(used('<table data-pinned="1"><tr><td>x</td></tr></table>'), ["glyph", "table", "still-table"]);
-    assert.deepEqual(used('<div class="table-empty">x</div>'), ["glyph", "table", "still-table"], "the empty row's block names the still table");
+    assert.deepEqual(used("<table data-fixed><tr><td>x</td></tr></table>"), ["glyph", "peek", "table", "still-table"], "a fixed table brings the still table, with the glyphs its sort seat draws and the plate its cut cells open (peek)");
+    assert.deepEqual(used("<table><thead><tr><th data-sortable>x</th></tr></thead></table>"), ["glyph", "peek", "table", "still-table"], "a sortable header does too");
+    assert.deepEqual(used('<table data-pinned="1"><tr><td>x</td></tr></table>'), ["glyph", "peek", "table", "still-table"]);
+    assert.deepEqual(used('<div class="table-empty">x</div>'), ["glyph", "peek", "table", "still-table"], "the empty row's block names the still table");
     assert.deepEqual(used('<div class="filter" data-label="Status"><label><input type="checkbox" value="a"> A</label></div>'), ["glyph", "forms", "choice", "glide", "filter", "popover"], "a filter brings the checklist's popup, its plate, the glyphs and the boxes, whichever form the count picks");
     assert.deepEqual(used('<p class="filter-result">Showing 3 of 24 runs</p>'), ["glyph", "choice", "glide", "filter", "popover"], "so does the result line, which the filter writes");
     assert.deepEqual(used("<p>A sortable table, a still table, a filter, a chip and a result line are words here.</p>"), []);
+    // cimip-gaps-3 T3: cut text is read on the peek module's plate, which a page that clamps text gets without the table.
+    assert.deepEqual(used('<p data-lines="2">A long description</p>'), ["peek"], "bare data-lines brings peek and no table");
+    assert.deepEqual(used('<a href="#f"><span data-lines="1">a-long-file-name.pdf</span></a>'), ["peek"], "inside a link too");
     const filter = compose('<div class="filter" data-label="Status"></div>', { fonts: false });
     for (const name of ["plus", "check"]) assert.ok(filter.glyphs.includes(name), `a filter draws the ${name} glyph, so the page carries it`);
     // DECISIONS 138 and 139 (E2): the trigger's chevron and the band's search are the core glyphs, written into the module; the Phosphor icons are not on the page.

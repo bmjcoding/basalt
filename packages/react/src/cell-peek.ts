@@ -41,12 +41,15 @@ function isCut(cell: HTMLElement, range: Range): boolean {
 /** A cell that holds something focusable (a link, a button, a checkbox), or that the app made a stop itself, has its own stop. */
 const ownsAStop = (cell: HTMLElement) => (cell.hasAttribute("tabindex") && !cell.hasAttribute("data-cut")) || cell.querySelector(FOCUSABLE) !== null;
 
-/** The cells that can be cut: data cells, row headers and plain column headers (a sortable header is a button with its own stop). */
-const cutCandidates = (table: HTMLTableElement) => [...table.querySelectorAll<HTMLElement>("tbody > tr:not([data-empty]) > :is(td, th), thead > tr > th:not([data-sortable])")];
+/**
+ * The cells that can be cut: data cells, row headers and plain column headers (a sortable header is a button with its own stop). A cell that wraps
+ * (`data-wrap`) is never cut, so it is no stop and opens no plate.
+ */
+const cutCandidates = (table: HTMLTableElement) => [...table.querySelectorAll<HTMLElement>("tbody > tr:not([data-empty]) > :is(td, th):not([data-wrap]), thead > tr > th:not([data-sortable])")];
 
 /** The cells of one row that can be cut (the same set `cutCandidates` finds, for one row). */
 const rowCandidates = (row: HTMLTableRowElement): HTMLElement[] => {
-  if (row.matches("tbody > tr:not([data-empty])")) return [...row.querySelectorAll<HTMLElement>(":scope > :is(td, th)")];
+  if (row.matches("tbody > tr:not([data-empty])")) return [...row.querySelectorAll<HTMLElement>(":scope > :is(td, th):not([data-wrap])")];
   if (row.matches("thead > tr")) return [...row.querySelectorAll<HTMLElement>(":scope > th:not([data-sortable])")];
   return [];
 };
@@ -101,6 +104,8 @@ export function useCellPeek(table: React.RefObject<HTMLTableElement | null>, ena
         const cut = isCut(cell, reading);
         if (cut !== cell.hasAttribute("data-cut")) changes.push([cell, cut]);
       }
+      // A cell that has started to wrap since it was measured is cut no longer.
+      for (const cell of root.querySelectorAll<HTMLElement>("[data-wrap][data-cut]")) changes.push([cell, false]);
       reading.setStart(doc, 0);
       reading.collapse(true);
       for (const [cell, cut] of changes) {
@@ -293,7 +298,7 @@ export function useCellPeek(table: React.RefObject<HTMLTableElement | null>, ena
     });
     resize.observe(root);
     const mutation = new win.MutationObserver(named);
-    mutation.observe(root, { childList: true, subtree: true, characterData: true });
+    mutation.observe(root, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["data-wrap"] });
     const spacing = new win.MutationObserver(scheduleAll);
     spacing.observe(doc.documentElement, { attributes: true, attributeFilter: ["style", "class", "lang", "dir"] });
     // A style sheet need not be in `<head>`: a user-style extension appends a `<style>` to `<html>`, and a sheet can arrive as a `<link>` that loads later. Any
