@@ -188,11 +188,19 @@ export function Heatmap({ title, heading = 3, source, days, summary, format, for
   // ---- picking: hover, a tap that holds, a drag that scrubs, and the keys
   const latestObserved = (() => { for (let i = lastIndex; i >= 0; i -= 1) if (days[i]!.value !== null) return i; return lastIndex; })();
   const [hover, setHover] = React.useState<number | null>(null);
-  const [pinned, setPinned] = React.useState<number | null>(null);
-  const [focusDay, setFocusDay] = React.useState<number | null>(null);
+  // The picks are ordered: a tap or a drag after a key wins, and a key after a tap wins, so a drag moves the readout even with focus in the grid.
+  const order = React.useRef(0);
+  const [held, setHeld] = React.useState<{ day: number; n: number } | null>(null);
+  const setPinned = (day: number | null) => setHeld(day === null ? null : { day, n: (order.current += 1) });
+  const pinned = held?.day ?? null;
+  const [focusPick, setFocusPick] = React.useState<{ day: number; n: number } | null>(null);
+  const setFocusDay = (day: number) => setFocusPick({ day, n: (order.current += 1) });
+  const focusDay = focusPick?.day ?? null;
   const [focusWithin, setFocusWithin] = React.useState(false);
   const stop = Math.max(drawnFrom, Math.min(lastIndex, focusDay ?? latestObserved));
-  const picked = focusWithin ? stop : hover ?? pinned ?? latestObserved;
+  // Hover picks; else the newer of a held tap or drag and the focused day (while focus is in the grid); else the latest observed day.
+  const touchFirst = held !== null && (!focusWithin || held.n > (focusPick?.n ?? 0));
+  const picked = hover ?? (touchFirst ? held.day : focusWithin ? stop : pinned) ?? latestObserved;
   const cellRefs = React.useRef<(HTMLDivElement | null)[]>([]);
 
   const at = (index: number) => {

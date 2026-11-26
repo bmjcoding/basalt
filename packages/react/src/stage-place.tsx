@@ -41,7 +41,8 @@ export function StagePlace({ current, total, label, done = false, formatCount = 
       <span className="basalt-stage-place-count-text">{count}</span>
     </span>
   );
-  if (!valid) return <span {...props} style={style} className={join("basalt-stage-place", className)}>{label ? <><span className="basalt-stage-place-label">{label}</span><span className="basalt-visually-hidden"> </span></> : null}{countSeat}</span>;
+  // Out of range: the count alone, without the label or the marks.
+  if (!valid) return <span {...props} style={style} className={join("basalt-stage-place", className)}>{countSeat}</span>;
   const pills = total <= 8;
   const marks = pills ? (
     <span className="basalt-stage-place-pills" aria-hidden="true">

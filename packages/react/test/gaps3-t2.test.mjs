@@ -9,6 +9,10 @@ import { createRequire } from "node:module";
 import { after, before, describe, test } from "node:test";
 
 import { fixturePage, launch, settle } from "./support.mjs";
+// The pure exports are read in Node from the built package: the fixture page exposes no `window.B`.
+import { heatBounds, heatKey, heatLevel } from "../dist/heatmap.js";
+import { STAGE_WORDS } from "../dist/run-format.js";
+import { formatUntil } from "../dist/time-format.js";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 
@@ -82,6 +86,20 @@ describe("ShareBar", () => {
     assert.ok(await page.evaluate((el) => el === document.activeElement && el.isConnected, before), "focus stays on the same link");
     const tall = await page.evaluate(() => [...document.querySelectorAll(".basalt-share-item[data-acts]")].map((el) => el.getBoundingClientRect().height));
     for (const h of tall) assert.ok(h >= 44 - 0.5, `a legend item that acts is ${h}px on touch`);
+    await page.close();
+  });
+
+  test("the caller's ref is the same ul across a change of form", async () => {
+    const { page } = await open(`
+function App() { const ref = React.useRef(null); window.bar = ref; return <div id="box" style={{ width: 2400 }}><B.ShareBar ref={ref} parts={${PARTS}} /></div>; }
+${render("<App />")}`);
+    const first = await page.evaluate(() => { window.firstBar = window.bar.current; return window.bar.current?.tagName; });
+    assert.equal(first, "UL");
+    assert.equal(await page.$eval(".basalt-share", (el) => el.dataset.form), "inline");
+    await page.$eval("#box", (el) => { el.style.width = "200px"; });
+    await settle(page);
+    assert.equal(await page.$eval(".basalt-share", (el) => el.dataset.form), "legend");
+    assert.ok(await page.evaluate(() => window.bar.current === window.firstBar && window.bar.current === document.querySelector(".basalt-share")));
     await page.close();
   });
 
@@ -181,14 +199,28 @@ describe("Stages", () => {
     await page.close();
   });
 
-  test("every Record<StageState, …> has nine keys with t1's idle (STAGE_WORDS has warning); a StageBadge without states is as wide as it is today", async () => {
-    const { page } = await open(render(`<div><B.StageBadge id="today" state="queued" /></div>`));
-    const words = await page.evaluate(() => Object.keys(window.B.STAGE_WORDS));
-    assert.ok(words.includes("warning"));
-    // "Warning" is narrower than "Canceled": the seat is the one it was.
-    const seat = await page.$eval(".basalt-run-badge-measure", (el) => el.getBoundingClientRect().width);
-    const canceled = await page.evaluate(() => { const b = document.createElement("span"); b.className = "basalt-badge"; b.textContent = "Canceled"; document.body.append(b); return b.getBoundingClientRect().width; });
-    assert.ok(seat >= canceled);
+  test("the state set is exactly nine (t1's idle and T2's warning), and STAGE_WORDS has a word for each", () => {
+    // On the combined tree (t1 merged): idle is the eighth state and warning the ninth. Every Record<StageState, …> is typed against this union, so the
+    // typecheck holds the other records to the same nine keys.
+    assert.deepEqual(Object.keys(STAGE_WORDS).sort(), ["canceled", "failed", "idle", "queued", "retrying", "running", "skipped", "success", "warning"]);
+    assert.equal(STAGE_WORDS.warning, "Warning");
+  });
+
+  test("a StageBadge with no states keeps the seat it had before warning: not wider and not narrower, in both variants", async () => {
+    // The previous seat: the seven words it held before cimip-gaps-3, in the same Badge, measured beside today's. "Warning" is narrower than "Canceled".
+    const SEVEN = `{ queued: "Queued", running: "Running", success: "Passed", failed: "Failed", skipped: "Skipped", canceled: "Canceled", retrying: "Retrying" }`;
+    const { page } = await open(render(`<div>
+      <div id="now-outline"><B.StageBadge state="queued" /></div>
+      <div id="was-outline"><B.Badge status="neutral"><B.Reserve show="" alternatives={${SEVEN}} /></B.Badge></div>
+      <div id="now-plain"><B.StageBadge variant="plain" state="queued" /></div>
+      <div id="was-plain"><B.Badge variant="plain" size={16} status="neutral"><B.Reserve show="" alternatives={${SEVEN}} /></B.Badge></div>
+    </div>`));
+    for (const variant of ["outline", "plain"]) {
+      const now = await page.$eval(`#now-${variant} .basalt-run-badge-measure`, (el) => el.getBoundingClientRect().width);
+      const was = await page.$eval(`#was-${variant} .basalt-badge`, (el) => el.getBoundingClientRect().width);
+      assert.ok(now <= was + 0.5, `${variant}: the seat grew from ${was} to ${now}`);
+      assert.ok(now >= was - 0.5, `${variant}: the seat shrank from ${was} to ${now}`);
+    }
     await page.close();
   });
 
@@ -198,6 +230,15 @@ describe("Stages", () => {
     assert.equal(new Set(xs.map((x) => x.toFixed(1))).size, 1, `${xs}`);
     const counts = await page.evaluate(() => [...document.querySelectorAll(".basalt-stage-place-count-text")].map((el) => el.textContent));
     assert.deepEqual(counts, ["0 of 5", "1 of 5", "3 of 5", "5 of 5", "5 of 5"]);
+    await page.close();
+  });
+
+  test("StagePlace out of range draws the count alone, without the label or the marks", async () => {
+    const { page } = await open(render(`<div><B.StagePlace id="one" current={1} total={1} label="Proof" /><B.StagePlace id="past" current={7} total={5} label="Proof" /></div>`));
+    for (const id of ["one", "past"]) {
+      assert.equal(await page.$$eval(`#${id} .basalt-stage-place-label, #${id} .basalt-stage-place-pills, #${id} .basalt-stage-place-track`, (els) => els.length), 0);
+      assert.equal(await page.$$eval(`#${id} .basalt-stage-place-count`, (els) => els.length), 1);
+    }
     await page.close();
   });
 
@@ -249,9 +290,8 @@ ${render("<App />")}`);
 
 // ---- 4. Time
 describe("Time words", () => {
-  test("formatUntil at 12:41, 0:59, 0:00, 2:15:00 and 3 days, with an exact dateTime", async () => {
-    const { page } = await open(render("<div />"));
-    const got = await page.evaluate(() => [761, 59, 0, 8100, 259200].map((s) => window.B.formatUntil(s * 1000, 0)));
+  test("formatUntil at 12:41, 0:59, 0:00, 2:15:00 and 3 days, with an exact dateTime", () => {
+    const got = [761, 59, 0, 8100, 259200].map((s) => formatUntil(s * 1000, 0));
     assert.deepEqual(got, [
       { text: "in 12 min", dateTime: "PT12M41S" },
       { text: "in under 1 min", dateTime: "PT59S" },
@@ -259,7 +299,6 @@ describe("Time words", () => {
       { text: "in 2 hr 15 min", dateTime: "PT2H15M0S" },
       { text: "in 3 days", dateTime: "P3DT0H0M0S" },
     ]);
-    await page.close();
   });
 
   test("the words reach Now within a second; nothing changes under the hold", async () => {
@@ -271,6 +310,23 @@ describe("Time words", () => {
     await held.page.waitForTimeout(2200);
     assert.equal(await held.page.$eval(".basalt-countdown [data-on]", (el) => el.textContent), first);
     await held.page.close();
+  });
+
+  test("Countdown words: the time's duration is current to the second while the words hold; the hold freezes both", async () => {
+    const { page } = await open(render(`<B.Countdown form="words" to={Date.now() + 12 * 60_000 + 41_500} />`));
+    const read = () => page.$eval(".basalt-countdown", (el) => ({ words: el.querySelector("[data-on]").textContent, dateTime: el.getAttribute("datetime") }));
+    const a = await read();
+    await page.waitForTimeout(2100);
+    const b = await read();
+    assert.equal(b.words, a.words, "the words have not changed");
+    assert.notEqual(b.dateTime, a.dateTime, "the duration moved on");
+    assert.match(b.dateTime, /^PT12M3\dS$/);
+    await page.evaluate(() => document.documentElement.setAttribute("data-loops", "held"));
+    await page.waitForTimeout(100);
+    const c = await read();
+    await page.waitForTimeout(2100);
+    assert.deepEqual(await read(), c, "nothing moves under the hold");
+    await page.close();
   });
 
   test("DateAge precision=minute today, yesterday and another year", async () => {
@@ -414,6 +470,56 @@ function App() {
     assert.equal(await page.$eval(".basalt-event-feed [role='status']", (el) => el.textContent), "3 new events");
     await page.close();
   });
+
+  // Fix pass 1 (Astra): only lines prepended above the newest held one are news; a repeat burst is said again; a released rule is passed over for focus.
+  const SPOKEN = `
+function App() {
+  const [lines, setLines] = React.useState([{ k: "e3", n: 3 }, { k: "e2", n: 2 }, { k: "e1", n: 1 }]);
+  window.add = () => setLines((was) => [{ k: "e" + (was.length + 10), n: was.length + 10 }, ...was]);
+  window.older = () => setLines((was) => [...was, { k: "old" + was.length, n: 0 }]);
+  window.replace = () => setLines([{ k: "x1", n: 101 }, { k: "x2", n: 102 }]);
+  window.ruled = () => setLines((was) => [{ k: "r" + was.length, rule: true }, { k: "e" + (was.length + 20), n: was.length + 20 }, ...was]);
+  return <div style={{ height: 1400 }}><B.EventLog order="newest" label="Loaves">{lines.map((line) => line.rule ? <B.EventLogRule key={line.k}>Today</B.EventLogRule> : <B.EventLine key={line.k} verb="Baked" object={"Batch " + line.n} time="06:00" href={"#" + line.k} />)}</B.EventLog></div>;
+}
+`;
+  const spoken = (page) => page.$eval(".basalt-event-feed [role='status']", (el) => el.textContent);
+
+  test("an older line appended below, or a whole replaced list, is not news: nothing is said", async () => {
+    const { page } = await open(SPOKEN + render("<App />"));
+    await page.evaluate(() => window.older());
+    await page.waitForTimeout(700);
+    assert.equal(await spoken(page), "");
+    await page.evaluate(() => window.replace());
+    await page.waitForTimeout(700);
+    assert.equal(await spoken(page), "");
+    await page.close();
+  });
+
+  test("two equal one-line bursts separated by the quiet interval are both said, each as a new node", async () => {
+    const { page } = await open(SPOKEN + render("<App />"));
+    await page.evaluate(() => window.add());
+    await page.waitForTimeout(700);
+    assert.equal(await spoken(page), "1 new event");
+    const first = await page.$(".basalt-event-feed [role='status'] > span");
+    await page.waitForTimeout(10_200);
+    await page.evaluate(() => window.add());
+    await page.waitForTimeout(700);
+    assert.equal(await spoken(page), "1 new event");
+    assert.equal(await first.evaluate((el) => el.isConnected), false, "the second saying is a new node, so it is spoken");
+    await page.close();
+  });
+
+  test("a release whose first row is a rule focuses the first released event line", async () => {
+    const { page } = await open(SPOKEN + render("<App />"));
+    await page.focus(".basalt-event-line");
+    await page.evaluate(() => window.ruled());
+    await settle(page);
+    await page.click(".basalt-event-feed-dock .basalt-back-to-top");
+    await settle(page);
+    assert.equal(await page.evaluate(() => document.activeElement?.closest(".basalt-event-item") === document.querySelector(".basalt-event-log > li:nth-child(2)")), true);
+    assert.match(await page.evaluate(() => document.activeElement?.textContent ?? ""), /Batch 23/);
+    await page.close();
+  });
 });
 
 // ---- 8. Heatmap
@@ -444,6 +550,26 @@ describe("Heatmap", () => {
     await page.close();
   });
 
+  test("a touch drag across several days moves the readout with focus already in the grid", async () => {
+    const { page } = await open(map(84, "i"), PHONE);
+    await page.focus(".basalt-heatmap-cell[tabindex='0']");
+    const readout = () => page.$eval(".basalt-heatmap-readout", (el) => [...el.querySelectorAll(".basalt-reserve > [data-on]")].map((s) => s.textContent).join(" | "));
+    const before = await readout();
+    // A sideways drag along the Monday row, from the second week to the fifth, as a finger (CDP touch events).
+    const row = await page.$$eval(".basalt-heatmap-row:nth-child(2) .basalt-heatmap-cell", (cells) => cells.map((c) => { const r = c.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, i: Number(c.dataset.i) }; }));
+    const [from, to] = [row[1], row[4]];
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: from.x, y: from.y }] });
+    for (let k = 1; k <= 6; k += 1) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: from.x + ((to.x - from.x) * k) / 6, y: from.y }] });
+    const during = await readout();
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    assert.notEqual(during, before);
+    const date = new Date(Date.UTC(2025, 10, 27) + to.i * 86_400_000);
+    const written = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(date);
+    assert.equal(during, `${written} | ${to.i} batches`);
+    await page.close();
+  });
+
   test("the cut at 390 with 53 weeks and its note, cutNote given written dates", async () => {
     const { page } = await open(map(371, "i % 5", `cutNote={(a, b) => \`\${a}|\${b}\`}`), PHONE);
     const note = await page.$eval(".basalt-heatmap-cut", (el) => el.textContent);
@@ -453,9 +579,8 @@ describe("Heatmap", () => {
     await page.close();
   });
 
-  test("peaks of 0, 1, 2, 3 and 5 with no thresholds, and 0.8: no key item repeats, none is empty, the peak is level 4", async () => {
-    const { page } = await open(render("<div />"));
-    const got = await page.evaluate(() => [0, 1, 2, 3, 5, 0.8].map((peak) => window.B.heatKey([{ date: "2026-11-01", value: 0 }, { date: "2026-11-02", value: peak }]).map((k) => k.words)));
+  test("peaks of 0, 1, 2, 3 and 5 with no thresholds, and 0.8: no key item repeats, none is empty, the peak is level 4", () => {
+    const got = [0, 1, 2, 3, 5, 0.8].map((peak) => heatKey([{ date: "2026-11-01", value: 0 }, { date: "2026-11-02", value: peak }]).map((k) => k.words));
     assert.deepEqual(got[0], ["0"]);
     assert.deepEqual(got[1], ["0", "1 and over"]);
     assert.deepEqual(got[2], ["0", "1", "2 and over"]);
@@ -463,9 +588,8 @@ describe("Heatmap", () => {
     assert.deepEqual(got[4], ["0", "1", "2", "3", "4 and over"]);
     assert.deepEqual(got[5], ["0", "Under 0.2", "0.2 to under 0.4", "0.4 to under 0.6", "0.6 and over"]);
     for (const list of got) assert.equal(new Set(list).size, list.length);
-    const levels = await page.evaluate(() => [1, 2, 3, 5, 0.8].map((peak) => window.B.heatLevel(peak, window.B.heatBounds([0, peak]).bounds)));
+    const levels = [1, 2, 3, 5, 0.8].map((peak) => heatLevel(peak, heatBounds([0, peak]).bounds));
     assert.deepEqual(levels, [4, 4, 4, 4, 4]);
-    await page.close();
   });
 
   test("the table is fixed layout with a pinned date and holds every day; forced-colour shapes", async () => {

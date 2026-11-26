@@ -1,5 +1,6 @@
 import * as React from "react";
 
+import { useMergedRef } from "./merged-ref";
 import { NewTabGlyph, NewTabWords, opensNewTab } from "./new-tab";
 import { safeHref } from "./safe-href";
 import { shareOf } from "./share-of";
@@ -77,11 +78,13 @@ const shareWords = (share: number, many: boolean) =>
  * 157, Q4); a part that rounds to 100 beside a part that is not empty reads ">99%" and is spoken "more than 99 percent" (DECISIONS 167, Q11b), since "100%"
  * would say the rest is nothing; every other share is a whole number. The root is a `ul` and each part one `li` in either form.
  */
-export function ShareBar({ parts, size = "sm", format, form = "auto", newTabLabel, className, style, ...props }: ShareBarProps) {
+export function ShareBar({ parts, size = "sm", format, form = "auto", newTabLabel, className, style, ref: given, ...props }: ShareBarProps) {
   const kept = parts.filter((part) => Number.isFinite(part.value) && part.value > 0);
   const shares = shareOf(kept.map((part) => part.value));
   const total = kept.reduce((sum, part) => sum + part.value, 0);
   const ref = React.useRef<HTMLUListElement>(null);
+  // The caller's ref and the measure's are one element in either form.
+  const setRef = useMergedRef(ref, given);
   const [measured, setMeasured] = React.useState<{ form: "inline" | "legend"; lengths: number[] | null; gap: number }>({ form: form === "legend" ? "legend" : "inline", lengths: null, gap: 0 });
   const drawn = form === "auto" ? measured.form : form;
   const acts = kept.some((part) => part.href !== undefined || part.onSelect !== undefined);
@@ -141,7 +144,7 @@ export function ShareBar({ parts, size = "sm", format, form = "auto", newTabLabe
   const lengths = legend ? measured.lengths : null;
   let start = 0;
   return (
-    <ul {...props} ref={ref} role="list" className={join("basalt-share", className)} data-size={size} data-form={drawn} data-acts={acts ? "" : undefined} style={{ "--_count": kept.length, ...style } as React.CSSProperties}>
+    <ul {...props} ref={setRef} role="list" className={join("basalt-share", className)} data-size={size} data-form={drawn} data-acts={acts ? "" : undefined} style={{ "--_count": kept.length, ...style } as React.CSSProperties}>
       {kept.map((part, index) => {
         const share = shares[index]!;
         const before = kept.slice(0, index).reduce((sum, p) => sum + p.value, 0);

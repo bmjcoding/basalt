@@ -69,7 +69,7 @@
   "CopyButton": 19383,
   "CopyGlyph": 2884,
   "CountNames": 127061,
-  "Countdown": 4564,
+  "Countdown": 4907,
   "CoverageStrip": 2297,
   "DataFlowDiagram": 113055,
   "DateAge": 5844,
@@ -98,7 +98,7 @@
   "Elapsed": 2591,
   "EmptyState": 942,
   "EventLine": 1976,
-  "EventLog": 10732,
+  "EventLog": 10927,
   "EventLogRule": 460,
   "EventText": 385,
   "EventTime": 715,
@@ -115,7 +115,7 @@
   "GanttDiagram": 128276,
   "GlidePlate": 4209,
   "Heading": 799,
-  "Heatmap": 22362,
+  "Heatmap": 22542,
   "HistoryGlyph": 3004,
   "HomeGlyph": 2945,
   "Icon": 384,
@@ -261,7 +261,7 @@
   "SequenceDiagram": 113052,
   "ServiceBlueprintDiagram": 125542,
   "SettingsGlyph": 3100,
-  "ShareBar": 8197,
+  "ShareBar": 8458,
   "Sheet": 70793,
   "SheetActions": 208,
   "SheetBody": 1841,
@@ -299,7 +299,7 @@
   "StageBadge": 5212,
   "StageList": 34921,
   "StageMark": 17668,
-  "StagePlace": 1444,
+  "StagePlace": 1297,
   "StageRail": 35045,
   "StaleNote": 2906,
   "Stat": 10669,
@@ -454,8 +454,8 @@
   }
  },
  "package": {
-  "bytes": 1092235,
-  "gzip": 363501
+  "bytes": 1092593,
+  "gzip": 363720
  },
  "styles": {
   "bytes": 540437,

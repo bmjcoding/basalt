@@ -145,7 +145,7 @@ export function EventLog({ label, locale = "en-US", widest = widestDayStamp(loca
         </div>
         <span ref={feed.head} className="basalt-event-feed-head" aria-hidden="true" />
         {list}
-        {announce ? <span className="basalt-visually-hidden" role="status" aria-live="polite">{feed.spoken}</span> : null}
+        {announce ? <span className="basalt-visually-hidden" role="status" aria-live="polite">{feed.spoken.text ? <span key={feed.spoken.n}>{feed.spoken.text}</span> : null}</span> : null}
       </div>
     </WidestContext.Provider>
   );
@@ -172,7 +172,8 @@ function useNewestFirst(on: boolean, children: React.ReactNode, list: React.RefO
   const revealed = React.useRef<string[]>([]);
   const head = React.useRef<HTMLSpanElement>(null);
   const rootEl = React.useRef<HTMLDivElement | null>(null);
-  const [spoken, setSpoken] = React.useState("");
+  // The polite line's words and a count of times said: each saying is a new node in the live region, so a second "1 new event" is spoken too.
+  const [spoken, setSpoken] = React.useState<{ text: string; n: number }>({ text: "", n: 0 });
 
   const items = on ? (React.Children.toArray(children).filter(React.isValidElement) as React.ReactElement[]) : [];
   if (on && process.env.NODE_ENV !== "production" && items.some((item) => !String(item.key).startsWith(".$"))) console.warn("Basalt EventLog: a newest-first log's lines each need a stable `key`, or an arrival cannot be told from a line already drawn.");
@@ -218,8 +219,10 @@ function useNewestFirst(on: boolean, children: React.ReactNode, list: React.RefO
     if (wasPressed) {
       // A press lands at once, brings the head into view at once, and focuses the first new line (a plain line takes tabindex -1, with no ring).
       head.current?.scrollIntoView({ block: "nearest" });
-      const first = nodes[0];
-      const target = first?.querySelector<HTMLElement>("[data-event-line]") ?? first?.querySelector<HTMLElement>(".basalt-event-line");
+      // The released rows are the first `landed` rows; the first event line among them takes focus, past a rule that arrived with them.
+      const released = nodes.slice(0, landed.length);
+      const holder = released.find((li) => li.querySelector(".basalt-event-line"));
+      const target = holder?.querySelector<HTMLElement>("[data-event-line]") ?? holder?.querySelector<HTMLElement>(".basalt-event-line");
       if (target) { if (!target.hasAttribute("data-event-line")) target.tabIndex = -1; target.focus({ preventScroll: true }); }
       return;
     }
@@ -278,7 +281,7 @@ function useNewestFirst(on: boolean, children: React.ReactNode, list: React.RefO
   }, [on, settle]);
 
   // ---- the one polite line: the count, 400ms after a burst's last arrival, then not again for 10 seconds (the next says the total since)
-  const heard = React.useRef<Set<string> | null>(null);
+  const heard = React.useRef<string[] | null>(null);
   const since = React.useRef(0);
   const lastSaid = React.useRef(-Infinity);
   const timer = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -286,14 +289,18 @@ function useNewestFirst(on: boolean, children: React.ReactNode, list: React.RefO
   React.useEffect(() => {
     if (!on) return;
     const known = heard.current;
-    const lines = items.filter((item) => item.type !== EventLogRule).map((item) => String(item.key));
-    heard.current = new Set(keys);
+    heard.current = keys;
     if (!known) return;
-    const fresh = lines.filter((key) => !known.has(key)).length;
+    // Only arrivals count, by the feed's own rule: lines new since the last render that stand above the first line that was there. A line added
+    // below is not news, and a render that keeps none of the last lines is a new list, so nothing is said.
+    const was = new Set(known);
+    const firstKept = keys.findIndex((key) => was.has(key));
+    if (firstKept < 0) return;
+    const fresh = items.slice(0, firstKept).filter((item) => item.type !== EventLogRule && !was.has(String(item.key))).length;
     if (!fresh || !announce) return;
     since.current += fresh;
     clearTimeout(timer.current);
-    const say = () => { lastSaid.current = Date.now(); setSpoken(newLabel(since.current)); since.current = 0; };
+    const say = () => { lastSaid.current = Date.now(); const text = newLabel(since.current); setSpoken((was) => ({ text, n: was.n + 1 })); since.current = 0; };
     timer.current = setTimeout(function wait() {
       const left = lastSaid.current + QUIET_MS - Date.now();
       if (left > 0) { timer.current = setTimeout(wait, left); return; }

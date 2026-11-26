@@ -5,6 +5,7 @@ import type { TimeOptions } from "./time-format";
 import { DotSep } from "./dot-sep";
 import { useLoops } from "./loops";
 import { Reserve } from "./reserve";
+import { useMergedRef } from "./merged-ref";
 import { join } from "./utils";
 
 // ---- Time parts (DECISIONS 162, X11; V13 and V14) ----
@@ -117,8 +118,10 @@ function CountdownClock({ to, done = "Now", fixed, widest, className, ...props }
 }
 
 /** The words form: one shared timer by the second, and a render only when the words change, so the words turn within a second of each boundary. */
-function CountdownWords({ to, done = "Now", fixed, format, widest, className, ...props }: CountdownPartProps) {
+function CountdownWords({ to, done = "Now", fixed, format, widest, className, ref, ...props }: CountdownPartProps) {
   const { held } = useLoops();
+  const own = React.useRef<HTMLTimeElement>(null);
+  const setRef = useMergedRef(own, ref);
   const target = new Date(to).getTime();
   const wordsAt = React.useCallback((t: number) => {
     const ms = target - t;
@@ -131,8 +134,12 @@ function CountdownWords({ to, done = "Now", fixed, format, widest, className, ..
     // Frozen under the hold; written afresh on release.
     if (held) return;
     setNow(Date.now());
-    return subscribe((t) => setNow((previous) => (wordsAt(previous) === wordsAt(t) ? previous : t)));
-  }, [fixed, held, wordsAt]);
+    // The words draw again only when they change; the duration is the real time left, written on the element each second (held with the words).
+    return subscribe((t) => {
+      own.current?.setAttribute("datetime", formatUntil(target, t)?.dateTime ?? "PT0S");
+      setNow((previous) => (wordsAt(previous) === wordsAt(t) ? previous : t));
+    });
+  }, [fixed, held, wordsAt, target]);
   const left = formatUntil(target, now);
   const text = left ? (format ? format(target - now) : left.text) : null;
   const last = React.useRef("");
@@ -140,7 +147,7 @@ function CountdownWords({ to, done = "Now", fixed, format, widest, className, ..
   const drawn = useDrawn();
   const running = fixed === undefined;
   return (
-    <time key={running && !drawn ? "server" : "client"} suppressHydrationWarning={running || undefined} {...props} dateTime={left?.dateTime ?? "PT0S"} className={join("basalt-time basalt-countdown", className)} data-form="words">
+    <time key={running && !drawn ? "server" : "client"} suppressHydrationWarning={running || undefined} {...props} ref={setRef} dateTime={left?.dateTime ?? "PT0S"} className={join("basalt-time basalt-countdown", className)} data-form="words">
       <Reserve live={running} suppressHydrationWarning={running || undefined} show={text ? "left" : "done"} alternatives={{ left: text ?? last.current, done, ...(widest ? { widest } : {}) }} />
     </time>
   );

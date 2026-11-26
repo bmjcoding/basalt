@@ -315,7 +315,9 @@ test("no module in dist builds a registry or reads a primitive's part when it lo
     if (path.basename(file) === "command-panel.js") continue;
     // The release notes' Sources popup and the rail's tooltip are lazy too, with Base UI inlined so they share no chunk (build.mjs): its module-level
     // tables are Base UI's own, and load only when a reader first reaches for a source line, or a rail shows a version.
-    if (["release-sources.js", "rail-tooltip.js"].includes(path.basename(file))) continue;
+    // The anchored popover (cimip-gaps-3 T2: Stat's hint and a rail stage's detail) is the third, the same way: Base UI's popover inlined, its tables
+    // (ariaHiddenCounterMap, uncontrolledElementsSet) allocated only when a hint or a rail's node first opens one.
+    if (["release-sources.js", "rail-tooltip.js", "anchored-popover.js"].includes(path.basename(file))) continue;
     const source = fs.readFileSync(file, "utf8");
     // `var x = /* @__PURE__ */ new Set()` is still an allocation at load
     for (const match of source.matchAll(/^(?:var|let|const) \w+ = (?:\/\*.*?\*\/ )?(?:new (?:Map|Set|WeakMap|WeakSet|Intl\.\w+|RegExp)\(|Base\w+\.\w+;)/gm)) offenders.push(`${path.relative(dist, file)}: ${match[0]}`);
@@ -449,7 +451,8 @@ test("Meter carries Base UI's Meter and no other part, no Phosphor and no Shiki"
 // cimip-gaps-3 T2 (measured with this file's own graph() and bundle() on origin/main ac962cec and on the T2 head; each limit the head's measure rounded up to the
 // next 50, raised only by the increase): ShareBar 1,411 on main, 8,197 on the head (1,500 to 8,250: tones, the floors and the one-line fit measured before paint, the legend, parts
 // that are links or buttons through safeHref, and the core new-tab arrow); CoverageStrip 1,570, 2,297 (2,000 to 2,300: the events' lane and sentence). Neither loads Base UI or Phosphor.
-for (const [name, limit] of [["trailingMean", 800], ["ShareBar", 8_250], ["CoverageStrip", 2_300], ["MarksRow", 1_200]]) {
+// T2 fix pass 1 (Astra): ShareBar keeps the caller's ref (useMergedRef): 8,197 to 8,458 measured, so 8,250 to 8,500.
+for (const [name, limit] of [["trailingMean", 800], ["ShareBar", 8_500], ["CoverageStrip", 2_300], ["MarksRow", 1_200]]) {
   test(`${name} alone is small and loads no Base UI, no Phosphor and no Shiki (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -610,7 +613,7 @@ test("the whole package up front, tracked subpaths, and styles.css, minified and
 test("importing every file in dist allocates no registry or formatter, reads no browser global, and throws nothing", async () => {
   const { execFileSync } = await import("node:child_process");
   const dist = path.join(pkg, "dist");
-  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && !["command-panel.js", "release-sources.js", "rail-tooltip.js"].includes(path.basename(f)) && !["head/theme.js", "head/loops.js"].includes(f.split(path.sep).join("/"))).sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
+  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && !["command-panel.js", "release-sources.js", "rail-tooltip.js", "anchored-popover.js"].includes(path.basename(f)) && !["head/theme.js", "head/loops.js"].includes(f.split(path.sep).join("/"))).sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
   assert.ok(files.length > 200, `${files.length} files in dist`);
   const script = `
     import { pathToFileURL } from "node:url";
@@ -805,4 +808,28 @@ test("RunTimeline with RunStep loads Base UI's button and nothing else of Base U
   assert.ok(bytes < 42_950, `RunTimeline bundle is ${bytes} bytes (limit 42,950)`);
   assert.deepEqual(inputs.filter((f) => /cmdk|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|progress|meter|tooltip)\//.test(f)), "an unrelated Base UI part");
+});
+
+// cimip-gaps-3 T2: Stat's hint and a rail stage's detail open the anchored popover, which is lazy (anchored-popover.js, built on its own with Base UI's
+// popover inlined): neither Stat nor StageRail has it in its static graph, and each reaches it only through a dynamic import.
+test("Stat and StageRail load the anchored popover only on demand", async () => {
+  for (const name of ["Stat", "StageRail"]) {
+    const result = await esbuild.build({
+      stdin: { contents: `import { ${name} } from "./dist/index.js"; console.log(${name});`, resolveDir: pkg, loader: "js" },
+      bundle: true, minify: true, format: "esm", splitting: true, outdir: path.join(pkg, ".bundle-check"), write: false, metafile: true,
+      external: ["react", "react-dom", "react/jsx-runtime"], logLevel: "silent",
+    });
+    const outputs = result.metafile.outputs;
+    const entry = Object.keys(outputs).find((file) => outputs[file].entryPoint === "<stdin>");
+    const seen = new Set();
+    const visit = (file) => { if (seen.has(file)) return; seen.add(file); for (const imported of outputs[file].imports) if (!imported.external && imported.kind !== "dynamic-import") visit(imported.path); };
+    visit(entry);
+    const holds = (file) => Object.keys(outputs[file].inputs).some((input) => /dist\/anchored-popover\.js$/.test(input));
+    assert.deepEqual([...seen].filter(holds), [], `${name} loads the anchored popover up front`);
+    assert.ok(Object.keys(outputs).some((file) => !seen.has(file) && holds(file)), `${name} never reaches the anchored popover`);
+    const dynamic = [...seen].flatMap((file) => outputs[file].imports.filter((imported) => imported.kind === "dynamic-import").map((imported) => imported.path));
+    assert.ok(dynamic.some((file) => holds(file)), `${name} reaches the anchored popover only through a dynamic import`);
+    const statics = [...seen].flatMap((file) => Object.keys(outputs[file].inputs));
+    assert.deepEqual(statics.filter((input) => /@base-ui\/react\/(esm\/)?popover/.test(input)), [], `${name} loads Base UI's popover up front`);
+  }
 });
