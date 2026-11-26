@@ -9769,10 +9769,12 @@
     justify-content: center;
     align-self: center;
     /* The glyph's own width in the line; its 44 is the hit box below, reaching (44 - 16) / 2 either side, and the margin keeps that clear of a
-       neighbour's box (a gap of space-2 is already there). Last in its row it sits on the row's end. */
+       neighbour's box before it (a gap of space-2 is already there); what follows it (the head's actions) takes the same margin. It always ends its row
+       or is followed by the actions, so nothing is added after it: a popover's focus guards mounted beside it while it is open move nothing. */
     width: var(--basalt-size-icon-sm);
     height: var(--basalt-text-base-line-height);
-    margin: 0 calc((var(--basalt-size-tap-min) - var(--basalt-size-icon-sm)) / 2 - var(--basalt-space-2));
+    margin: 0;
+    margin-inline-start: calc((var(--basalt-size-tap-min) - var(--basalt-size-icon-sm)) / 2 - var(--basalt-space-2));
     padding: 0;
     border: 0;
     border-radius: var(--basalt-radius-sm);
@@ -9785,7 +9787,7 @@
   .basalt-stream-more:active, .basalt-stream-more[aria-expanded="true"] { color: var(--basalt-text-primary); }
   .basalt-stream-more:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* The hit box: the line plus the room above it (space-3 in a head, space-1 in a seat), never below. */
-  .basalt-stream-more:last-child { margin-inline-end: 0; }
+  .basalt-stream-head > .basalt-stream-more ~ .basalt-stream-actions { margin-inline-start: calc((var(--basalt-size-tap-min) - var(--basalt-size-icon-sm)) / 2 - var(--basalt-space-2)); }
   .basalt-stream-more::before { content: ""; position: absolute; inset: calc(-1 * var(--basalt-space-3)) calc(-1 * (var(--basalt-size-tap-min) - var(--basalt-size-icon-sm)) / 2) 0; }
   /* In a seat the time link's own hit box reaches past its words too: space-2 more keeps the two clear. */
   .basalt-stream-seat > .basalt-stream-time-link { margin-inline-end: var(--basalt-space-2); }
@@ -9820,6 +9822,7 @@
   @media (width >= 720px) and (hover: hover) and (pointer: fine) {
     .basalt-stream-more { display: none; }
     .basalt-stream-quiet { display: inline-flex; }
+    .basalt-stream-head > .basalt-stream-more ~ .basalt-stream-actions { margin-inline-start: 0; }
     .basalt-stream-quiet, .basalt-stream-seat { opacity: 0; pointer-events: none; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
     .basalt-stream-message:is(:hover, :focus-within, :has([aria-expanded="true"])) :is(.basalt-stream-quiet, .basalt-stream-seat) { opacity: 1; pointer-events: auto; transition-duration: var(--basalt-duration-instant); }
     .basalt-stream-seat > .basalt-stream-quiet { margin-block: calc((var(--basalt-text-base-line-height) - var(--basalt-size-control-xs)) / 2); }
