@@ -142,7 +142,7 @@
 
   /* More's rows that are not destinations (React's TabBarMore before): under the title and above the list, a divider under them; each full width, 44 tall. */
   .tab-bar-before { display: flex; flex-direction: column; gap: var(--basalt-space-1); margin-bottom: var(--basalt-space-2); padding-bottom: var(--basalt-space-2); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
-  .tab-bar-before > * { box-sizing: border-box; width: 100%; min-height: var(--basalt-size-tap-min); justify-content: flex-start; }
+  .tab-bar-before > * { box-sizing: border-box; width: 100%; min-height: var(--basalt-size-tap-min); justify-content: flex-start; padding-inline: calc(var(--basalt-space-1-5) + var(--basalt-space-3)); }
   /* A short window: the bar is in the flow at the end of the page, with its safe-area padding, still in the landmark tree. */
   @media (height < %bp-short%) and (width < %bp-md%) {
     :root:root:root { --basalt-bottom-offset: var(--basalt-space-0); }
