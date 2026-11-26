@@ -115,7 +115,7 @@
   "GanttDiagram": 128276,
   "GlidePlate": 4209,
   "Heading": 799,
-  "Heatmap": 22375,
+  "Heatmap": 22362,
   "HistoryGlyph": 3004,
   "HomeGlyph": 2945,
   "Icon": 384,
@@ -454,8 +454,8 @@
   }
  },
  "package": {
-  "bytes": 1092249,
-  "gzip": 363511
+  "bytes": 1092235,
+  "gzip": 363501
  },
  "styles": {
   "bytes": 540437,
