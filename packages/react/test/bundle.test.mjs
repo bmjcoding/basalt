@@ -407,8 +407,9 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // build (+13,857, nearly all of it LoadingShape for the first load). T3 fix 1 (Astra's item 8) moves the first load into a lazy module built on its own
 // (notification-shape.js, build.mjs), so a bell that never waits carries none of it: 155,936 measured (+2,676 on main: wrap, counts, the direct mark, the
 // reasons, the stand-ins and the loader). The limit is that measure rounded up to the next 50: 153,300 to 155,950. Re-measured at the merge with origin/main
-// c67926bf: main 153,260, the head 155,936.
-for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 155_950]]) {
+// c67926bf: main 153,260, the head 155,936; then 155,982 once the first load's fallback is busy (a held first paint waits for the shape's code), the limit
+// 155,950 to 156,000.
+for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 156_000]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);
