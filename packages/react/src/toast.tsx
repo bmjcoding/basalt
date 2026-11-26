@@ -144,6 +144,8 @@ interface Controller {
   actionWords: (label: string) => string;
   /** Said before the announcer mounted (a toast shown on load). */
   early: Array<[string, boolean]>;
+  /** The toast whose action was announced last: F6 takes the reader to that action, the one the words promised. */
+  promised: string | null;
 }
 
 const ControllerContext = /* @__PURE__ */ React.createContext<Controller | null>(null);
@@ -151,7 +153,7 @@ const ControllerContext = /* @__PURE__ */ React.createContext<Controller | null>
 const defaultActionWords = (label: string) => `${label} is available. Press F6 to reach it.`;
 
 function createController(): Controller {
-  return { api: null, items: new Map(), queue: [], limit: 3, seq: 0, say: null, actionWords: defaultActionWords, early: [] };
+  return { api: null, items: new Map(), queue: [], limit: 3, seq: 0, say: null, actionWords: defaultActionWords, early: [], promised: null };
 }
 
 // The app's key as `aria-keyshortcuts` says it: "Mod+Z" is "Meta+Z" on Apple's systems and "Control+Z" elsewhere (DECISIONS 244); any other string is as written.
@@ -159,7 +161,8 @@ const ariaKeys = (keys: string) => keys.replace(/\bMod\b/g, isApplePlatform() ? 
 
 const statusOf = (options: Pick<ToastOptions, "status">): ToastStatus => options.status ?? "neutral";
 
-function announce(c: Controller, options: ToastOptions, suffix = "") {
+function announce(c: Controller, id: string, options: ToastOptions, suffix = "") {
+  if (options.action) c.promised = id;
   const said = `${options.title}${suffix}${options.description ? `. ${options.description}` : ""}`;
   // The action's sentence is its own: after a full stop it follows on, after a bare phrase it gets one.
   const text = options.action ? `${said}${/[.!?]$/.test(said) ? " " : ". "}${c.actionWords(options.action.label)}` : said;
@@ -185,6 +188,7 @@ function toBase(c: Controller, entry: Entry, stamp: number) {
     data,
     onClose: () => {
       c.items.delete(entry.id);
+      if (c.promised === entry.id) c.promised = null;
       drain(c);
     },
   };
@@ -200,7 +204,7 @@ function enter(c: Controller, entry: Entry) {
   c.items.set(entry.id, entry);
   c.api?.add(toBase(c, entry, ++c.seq));
   // Running work is not announced, step by step or at all: only its result is (see `update`).
-  if (!entry.options.running) announce(c, entry.options, entry.count > 1 ? `, ${entry.count} times` : "");
+  if (!entry.options.running) announce(c, entry.id, entry.options, entry.count > 1 ? `, ${entry.count} times` : "");
 }
 
 /** Room for one more: below the limit, or by closing the oldest toast that is not the only copy and is not focused. */
@@ -231,7 +235,7 @@ function show(c: Controller, options: ToastOptions): string {
       found.options = options;
       if (live) {
         c.api?.update(live.id, toBase(c, live, ++c.seq));
-        announce(c, options, `, ${live.count} times`);
+        announce(c, live.id, options, `, ${live.count} times`);
       }
       return found.id;
     }
@@ -261,8 +265,11 @@ function update(c: Controller, id: string, patch: ToastUpdate) {
   // A changed result is said whole, with its action's sentence if it has one. An action that appears, or whose label changes, with the
   // result as it was, is said alone: the listener has the result already. An action that goes says nothing.
   const actionNews = !!next.action && next.action.label !== prev.action?.label;
-  if (settled && (ends || prev.title !== next.title || prev.description !== next.description)) announce(c, next);
-  else if (settled && actionNews) say(c, c.actionWords(next.action!.label), statusOf(next) === "danger");
+  if (settled && (ends || prev.title !== next.title || prev.description !== next.description)) announce(c, id, next);
+  else if (settled && actionNews) {
+    c.promised = id;
+    say(c, c.actionWords(next.action!.label), statusOf(next) === "danger");
+  }
 }
 
 /** Only the page it echoed showed this toast's news: it has no other home, and it is not work under way. */
@@ -409,7 +416,24 @@ function useColumnRight(column: React.RefObject<HTMLElement | null> | undefined,
   return right;
 }
 
+/** A toast's action that can take focus: not on a toast that is leaving or held back by the limit. */
+const ACTION = ":not([data-ending-style]):not([inert]) .basalt-toast-action";
+
+/**
+ * F6 lands on the action the spoken hint promised ("Retry is available. Press F6 to reach it."): the action of the toast whose action was announced last,
+ * else the newest toast's action (the stack is newest first). Base UI's F6 focuses the stack's region, the one way a key reaches it (it is not a tab stop);
+ * a press on its background is not a key, and is not focus-visible, so it moves nothing. With no action to reach, focus stays on the region, as before.
+ * Tab, Shift+Tab and the way back to the page are Base UI's.
+ */
+function toAction(c: Controller | null, event: React.FocusEvent<HTMLDivElement>) {
+  const region = event.currentTarget;
+  if (event.target !== region || !region.matches(":focus-visible")) return;
+  const promised = c?.promised ? region.querySelector<HTMLElement>(`.basalt-toast[data-toast-id="${CSS.escape(c.promised)}"]${ACTION}`) : null;
+  (promised ?? region.querySelector<HTMLElement>(`.basalt-toast${ACTION}`))?.focus({ preventScroll: true });
+}
+
 function ToastStack({ column }: { column?: React.RefObject<HTMLElement | null> }) {
+  const controller = React.useContext(ControllerContext);
   const away = useAway();
   // The stack is fixed to the window's bottom: while an on-screen keyboard is up it sits above the keyboard.
   useScreenKeyboardLayout();
@@ -422,6 +446,7 @@ function ToastStack({ column }: { column?: React.RefObject<HTMLElement | null> }
       data-away={away ? "" : undefined}
       // The stack is a named region for F6, but not a live one: the text-only regions above announce the results.
       aria-live="off"
+      onFocus={(event) => toAction(controller, event)}
       render={(props, state) => (
         <ExpandedContext.Provider value={state.expanded}>
           <div {...props} />
@@ -525,6 +550,10 @@ function ToastItem({ toast, front, swipe }: { toast: ReturnType<typeof BaseToast
   return (
     <BaseToast.Root
       toast={toast}
+      // A toast is a named group, not a dialog: Base UI's root says `dialog` (`alertdialog` when urgent) without being modal, and an app asking
+      // "is a dialog open" would count every toast. It keeps its name, its description and its place in the tab order.
+      role="group"
+      aria-modal={undefined}
       swipeDirection={[...swipe]}
       data-level={1}
       data-toast-id={toast.id}
@@ -547,7 +576,8 @@ function ToastItem({ toast, front, swipe }: { toast: ReturnType<typeof BaseToast
             {data.count > 1 ? (
               <>
                 <span className="basalt-toast-count" aria-hidden="true">×{data.count}</span>
-                <span className="basalt-visually-hidden">, {data.count} times</span>
+                {/* Read in place and drawn at no size, so the title's text reads "Saved, 2 times" and not "Saved , 2 times". */}
+                <span className="basalt-said">, {data.count} times</span>
               </>
             ) : null}
           </BaseToast.Title>

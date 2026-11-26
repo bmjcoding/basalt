@@ -96,8 +96,15 @@ describe("stacked and the hint", () => {
     const arrows = (key) => page.locator(`#fig-${key} .${P}-hint > span:first-child kbd`).evaluateAll((ks) => ks.map((k) => k.textContent).filter((t) => /^[←↑↓→]$/.test(t)));
     assert.deepEqual(await arrows("architecture"), ["←", "↑", "↓", "→"]);
     assert.deepEqual(await arrows("sequence"), ["←", "→"]);
-    const sentence = await page.locator(`#fig-architecture .${P}-drawing`).evaluate((d) => d.getAttribute("aria-describedby").split(" ").map((id) => document.getElementById(id)?.textContent).join(" "));
-    assert.match(sentence, /the nearest part in that direction/);
+    // The keys sentence describes the entry card, the one holding the tab stop (cimip-gaps-3, G17). The arrows above moved the stop, which leaves it off
+    // the card they reach until focus leaves the figure: Tab out of the cards, and Shift+Tab back to the stop, first.
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Shift+Tab");
+    await frames(page, 2);
+    assert.equal(await page.evaluate((P) => document.activeElement?.matches(`#fig-architecture .${P}-node[tabindex="0"]`), P), true, "back on the stop");
+    const keys = await page.locator(`#fig-architecture .${P}-node[tabindex="0"]`).getAttribute("aria-describedby");
+    assert.ok(keys, "the entry card is described again");
+    assert.match(await page.locator(`[id="${keys}"]`).textContent(), /the nearest part in that direction/);
     await page.close();
   });
 });

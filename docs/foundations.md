@@ -496,7 +496,8 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     `aria-keyshortcuts`.
   - **What a screen reader hears.** Only the result, once, from two live regions that hold only text and exist before the
     first toast: assertive for danger, polite for the rest. Running steps are never announced. The visible stack is a
-    named region ("Notifications") that F6 reaches, and is not itself live, so nothing is read twice.
+    named region ("Notifications") and is not itself live, so nothing is read twice. F6 lands on the newest toast's action, as the spoken
+    hint says; with no toast that has one it lands on the region. Each toast is a named group, not a dialog: it never counts as an open dialog.
     While the region itself holds focus, its box draws nothing and the control ring follows the front toast's box at +2, so the next Tab moves the ring 0px, including in forced colours (DECISIONS 156).
   - **The stack.** Three at most, bottom right at `space-4` from the edges; from 720 it stands above what is pinned at the bottom (an app's
     foot, and an on-screen keyboard). **Under 720 it hangs from the bar** (DECISIONS 274, the owner's pick of option B; found by CoachStakk's
@@ -605,8 +606,11 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     is a `div` whose label is the `dt` and whose figure, note and source are `dd`s.
   - **Words joined by a dot** (`DotSep`, `DotLine`; the skill's `.dot-sep`; the wording audit's W8). A status line is words with a middle dot between them ("In design · Pilot planned"). The dot is
     drawn by the stylesheet (`::before`, with an empty alternative text, so it is not read; a plain `content` first for a browser that does not take the alternative), and the words are joined for a
-    screen reader and a text scan by a visually hidden ", " in the same element, so the text and the accessible name both read "In design, Pilot planned" and never "In design · , Pilot planned". The
-    drawing is as it was (the dot, and a space each side where `spaced` is set); `Stat`'s source line, `DateAge`'s age and `OptionChips`' unavailable note are built from the same `DotSep`.
+    screen reader and a text scan by a ", " in the same element, inline and drawn at no size (`basalt-said`), so the text (`innerText` too) and the accessible name both read "In design, Pilot planned" and
+    never "In design · , Pilot planned" or "In design , Pilot planned". The drawing is as it was (the dot, and a space each side where `spaced` is set); `Stat`'s source line, `DateAge`'s age and
+    `OptionChips`' unavailable note are built from the same `DotSep`. Where a line wraps, the dot stays with the word before it and the next line starts with a word: a spaced dot's own
+    spaces do not wrap, and `DotLine` holds each fact and its dot in one span that does not wrap (`basalt-dot-keep`), the fact in a box-less span (`display: contents`) that wraps as the line does,
+    so after an inline block (a badge) the dot stays too and only the dot is glued to the fact's end; a line that never wraps says `--basalt-dot-line-wrap: nowrap` (`AppHeader`'s facts do). A count's spoken ", 3 times" (a toast, a notification group) is the same kind of text.
   - **A value, its unit and its label are words apart.** Where a number and its unit (or a label and its figure) are separate elements with no space between them, a visually hidden space ends the first, so the
     text and the accessible name read "9,586 a day" and not "9,586a day": the `TimeChart`'s headline and its legend rows, `Stat`'s label, figure and note, a `Meter`'s unseen wording and a share bar's figure.
     The hidden space takes no room, so nothing moves; in the skill a value and its unit have a space in the markup or a `.visually-hidden` one.
@@ -1973,8 +1977,11 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
 ### Keyboard, tracing and motion
 
 - Where lines are drawn the drawing is one tab stop: a `role="group"` with `aria-roledescription="diagram"`, named by the title and
-  described by the summary and a sentence about the keys. Each node is a focusable `role="img"` named by a sentence that says what it
-  is, where it sits, and what it connects from and to. → ↓ ← ↑ move to the nearest part in that direction: first a part in the same row
+  described by the summary. The node that holds the tab stop is described by a sentence about the keys: hidden, so a page of figures
+  never reads it in its flow, and said as a reader tabs in, not again on each arrow (the hint on screen is hidden from assistive
+  technology). Each node is a focusable `role="img"` named by a sentence that begins with its visible name and says what it is, where it
+  sits, and what it connects from and to (G17 of cimip-gaps-3, DECISIONS 385). Basalt's foot buttons are named by their words, then the
+  figure's title; an app's action keeps its own name and is described by the title. → ↓ ← ↑ move to the nearest part in that direction: first a part in the same row
   or column, then the lowest of tracks along the arrow plus twice the tracks across it. The rule runs on a part's column and rows,
   never on its measured centre, and a figure whose parts cannot all be reached that way keeps the author's order. Stacked, the keys
   are the author's order. Home and End the ends, Esc clears. No live region. The SVG is `aria-hidden`. A layout change keeps focus on the same node, and never moves it, even into a stack with no stops.
@@ -3235,10 +3242,14 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
 - **Inline-label rows** (`InlineFields`, `InlineField`; V10, R12): V10 had no majority, so option (a) stands. A label in `size-field-label-inline` (80), then a bare field; each row's bottom line is
   `border-field` (equal to `border-input` outside more contrast, so a field's boundary steps with the others); on focus a real 2px outline at −2 inset round the row; at least 44 tall, a textarea grows its row; 16px on touch.
 - **The Send hint** (`ActionShortcut`; V11): Send stays primary with `aria-keyshortcuts="Meta+Enter"`; the two chips stand beside it as a hint, hidden on touch until a hardware key.
-- **Single-key shortcuts** (`useShortcuts`, `useSingleKeys`, `SingleKeysSwitch`, `ShortcutList`; V12): an app-level hook that ignores keys with a modifier, keys typed in a field and anything inside
-  `[data-own-keys]`, plus a "Single-key shortcuts" Switch in the help dialog (default on, stored lazily as `basalt-keys`; off takes every key, `?` included). The help dialog also has a visible opener that is not a single key.
-- **Route focus** (`useRouteFocus`; X10): after a client-side page change, scroll to the top, set `document.title` and focus the page's title with no ring; a change that came from a control's own
-  value leaves focus on the control (WCAG 3.2.2). The announcement is `StatusLine`.
+- **Single-key shortcuts** (`useShortcuts`, `useSingleKeys`, `SingleKeysSwitch`, `ShortcutList`; V12): an app-level hook that ignores keys with a modifier, keys typed in a field, anything inside
+  `[data-own-keys]` and a key pressed inside a dialog, sheet, popover, the command menu, a menu or a listbox (an app's own `role="dialog"` too; a toast is not one; back on the page the keys run), plus a "Single-key shortcuts" Switch in the help dialog (default on, stored lazily as `basalt-keys`; off takes every key, `?` included). The help dialog also has a visible opener that is not a single key.
+- **Route focus** (`useRouteFocus`; X10): after a client-side page change, scroll to the top (unless `scroll={false}`: a stream that opens at its end, a page reached by Back), set
+  `document.title` and focus the page's title with no ring (`AppHeader`'s `h1` takes `tabIndex={-1}` and `titleRef`); a change that came from a control's own value leaves focus on the control
+  (WCAG 3.2.2). Route focus wins: a popup that is closing (the command menu a page was chosen in) is waited for, and the focus it hands back does not take the reader off the new page
+  (held two frames, only when a popup was open as the page changed, so a page's own focus stands). A title that arrives with the page's data is landed on when it arrives, unless the reader
+  has pressed a key or the pointer, or the page has changed again (no deadline), and `document.title` follows the title the page gives once it has it.
+  `useFocusNet` (opt-in, once in the shell) lands focus on the same place when the focused control is removed and focus falls to nothing with no dialog open. The announcement is `StatusLine`.
 - **Time parts** (`formatStamp`, `formatClock`, `formatDay`, `formatCountdown`, `formatAge`, `Clock`, `Countdown`, `DateAge`; V13, V14; DECISIONS 207): a clock a person reads (`Clock`, `formatClock`, a `Stat`'s time, a day and a clock) follows the locale, so
   12-hour in `en-US` ("6:42 PM", "Nov 7, 8:02 AM"), with a numeric hour; a stamp to the second (`formatStamp`, the session log, `SourceStamp`, `CommandBlock`'s time) is a log's and stays 24-hour ("18:42:07"). Every
   formatter and part that writes a time takes `locale`, default `en-US`, so a server's render and the browser's agree on the hour; `dateTime` attributes stay ISO. A countdown is a length of time, not a clock. A relative age is written only beside its absolute date, never alone and never in a
@@ -3252,7 +3263,8 @@ the lead; the owner sees the pictures before merge). Every part serves any app w
 
 - **The composer** (`Composer`). The field is Basalt's `Textarea` with an accessible name (`label`) and no visible label; the placeholder says where the message goes too. Under it a row:
   the app's own actions at its start (ghost `sm` buttons: attach, a format toggle) and Send, a primary Button, always the row's last, at its end. The status is in that row, after the app's actions: `text-xs` in tertiary ink, one line, cut with an ellipsis (the live region holds
-  the whole text), a polite live region that is always mounted: who is typing (`typingStatus`: "Ana is typing", "Ana and Ben are typing", "Ana, Ben, and Cy are typing", "4 people
+  the whole text), a live region that is always mounted and polite while the field has focus (`statusLive`: `"focus"` by default, `"always"` or `"off"`), so "is typing" reaches the
+  person writing and not one reading round it: who is typing (`typingStatus`: "Ana is typing", "Ana and Ben are typing", "Ana, Ben, and Cy are typing", "4 people
   are typing") or anything the app says there. When its words do not fit beside the actions it takes a row of its own under them, and Send stays on the first row. With no status no line
   is held. The first of the app's actions, when ghost, takes `edge="start"`: its glyph is on the field's line. The field starts at `rows` lines (default 2, the textarea's own least) and grows with its text a line at a time
   to `maxRows` (default 8), then scrolls; it has no resize handle, since its height is its text's. Where the browser cannot size a field to its content (`field-sizing`), it is measured, within

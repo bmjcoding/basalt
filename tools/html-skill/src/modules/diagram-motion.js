@@ -38,6 +38,9 @@ import { attachMotion, motionErrors } from "../../../../packages/react/src/diagr
         b.setAttribute('aria-pressed', String(Boolean(B.loops && B.loops.held())));
         b.insertAdjacentHTML('beforeend', '<span class="btn-check" data-glyph="pause" aria-hidden="true">' + _.glyphSeat('pause') + '</span>');
       });
+      // Each names its figure (G17 of cimip-gaps-3): its own words (the button itself, referenced), then the title, as React's.
+      var titleId = figure.getAttribute('aria-labelledby');
+      if (titleId) [[run, '-play'], [pause, '-pause']].forEach(function (p) { p[0].id = titleId.replace(/-title$/, '') + p[1]; p[0].setAttribute('aria-labelledby', p[0].id + ' ' + titleId); });
       run.hidden = pause.hidden = true;
       foot.appendChild(run);
       foot.appendChild(pause);

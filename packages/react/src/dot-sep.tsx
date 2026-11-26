@@ -3,9 +3,9 @@ import * as React from "react";
 import { join } from "./utils";
 
 // One way to draw a status as words joined by a middle dot (the wording audit's W8). The dot is drawn by the stylesheet (`::before`, with an empty alternative text, so
-// it is not read) and the words are joined for assistive technology and for a plain-text scan by a visually hidden ", ": the text and the accessible name both read
-// "In design, Pilot planned", and the drawing is "In design · Pilot planned". The old pair (an `aria-hidden` dot and a hidden comma) left both in a text scan: "In design · , Pilot planned".
-// Nothing here runs when the module loads.
+// it is not read) and the words are joined for assistive technology and for a plain-text scan by a ", " that is read and drawn at no size (`basalt-said`): the text and
+// the accessible name both read "In design, Pilot planned", and the drawing is "In design · Pilot planned". The ", " is inline text, not an absolute box, so a text scan
+// (`innerText`) and a name built from the content do not put a space before the comma ("In design , Pilot planned"). Nothing here runs when the module loads.
 
 export interface DotSepProps extends Omit<React.ComponentProps<"span">, "children"> {
   /**
@@ -15,11 +15,15 @@ export interface DotSepProps extends Omit<React.ComponentProps<"span">, "childre
   spaced?: boolean;
 }
 
-/** The separator between two words of a dot-separated line: a drawn dot that is not read, and a ", " that is read and not drawn. Put it where the dot goes, with no spaces around it in the text. */
+/**
+ * The separator between two words of a dot-separated line: a drawn dot that is not read, and a ", " that is read and not drawn. Put it where the dot goes, with no spaces
+ * around it in the text. A spaced dot stays with the word before it: a line that wraps there starts with the next word, never with "·". After a fact drawn as an inline
+ * block (a badge) the browser may break before the dot whatever the dot does; `DotLine` keeps those together.
+ */
 export function DotSep({ spaced = false, className, ...props }: DotSepProps) {
   return (
     <span {...props} className={join("basalt-dot-sep", className)} data-spaced={spaced ? "" : undefined}>
-      <span className="basalt-visually-hidden">, </span>
+      <span className="basalt-said">, </span>
     </span>
   );
 }
@@ -32,17 +36,24 @@ export interface DotLineProps extends Omit<React.ComponentProps<"span">, "childr
 /**
  * A status line: its children, joined by a dot ("In design · Pilot planned"). Read, it is "In design, Pilot planned". Every dot-separated line Basalt draws is built from the same
  * `DotSep`, so it reads the same.
+ *
+ * Where the line wraps, a dot stays with the end of the fact before it and the next line starts with a fact, a fact drawn as an inline block (a badge) included.
+ * Each fact but the last is held with its dot in a span that does not wrap (`basalt-dot-keep`), and the fact sits in a box-less span (`display: contents`) that
+ * gives it the line's own wrapping back, so a fact of words, or of several spans, wraps as the line does and only the dot is glued to its end. A line that never
+ * wraps (one line cut with an ellipsis) sets `--basalt-dot-line-wrap: nowrap` on itself or a parent; `AppHeader`'s facts do.
  */
 export function DotLine({ children, className, ...props }: DotLineProps) {
   const items = React.Children.toArray(children);
+  const last = items.length - 1;
   return (
     <span {...props} className={join("basalt-dot-line", className)}>
-      {items.map((item, index) => (
-        <React.Fragment key={React.isValidElement(item) && item.key !== null ? item.key : index}>
-          {index > 0 ? <DotSep spaced /> : null}
-          {item}
-        </React.Fragment>
-      ))}
+      {items.map((item, index) => {
+        const key = React.isValidElement(item) && item.key !== null ? item.key : index;
+        if (index === last) return <React.Fragment key={key}>{item}</React.Fragment>;
+        // An inline block has a break after it whatever follows, unless the box it sits in does not wrap: the keep is that box (the fact's span has none of
+        // its own), and the fact's words and spans take the line's wrapping from the span around them.
+        return <span key={key} className="basalt-dot-keep"><span className="basalt-dot-fact">{item}</span><DotSep spaced /></span>;
+      })}
     </span>
   );
 }
