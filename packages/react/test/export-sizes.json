@@ -17,7 +17,7 @@
   "AmbientMark": 569,
   "AppBrand": 563,
   "AppFootnote": 811,
-  "AppHeader": 3337,
+  "AppHeader": 3378,
   "AppPage": 246,
   "AppPageHead": 2037,
   "AppSection": 548,
@@ -74,7 +74,7 @@
   "CommandList": 35388,
   "CommandMenu": 89522,
   "Composer": 53715,
-  "ConnectionBar": 18817,
+  "ConnectionBar": 19023,
   "CopyButton": 19501,
   "CopyGlyph": 2884,
   "CountNames": 127061,
@@ -386,7 +386,7 @@
   "TooltipProvider": 97626,
   "TrashGlyph": 2906,
   "TravelSpinner": 2100,
-  "Tray": 95189,
+  "Tray": 95866,
   "TrayRow": 502,
   "TrendsGlyph": 2924,
   "VersionLink": 1962,
@@ -475,11 +475,11 @@
   }
  },
  "package": {
-  "bytes": 1139886,
-  "gzip": 378700
+  "bytes": 1140808,
+  "gzip": 379012
  },
  "styles": {
-  "bytes": 603595,
-  "gzip": 76203
+  "bytes": 603616,
+  "gzip": 76209
  }
 }
