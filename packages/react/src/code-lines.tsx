@@ -95,6 +95,13 @@ export const continues = (line: CodeRun[] | undefined) => line?.at(-1)?.text.end
 export interface CodeLineProps {
   /** What sits in the gutter: a prompt, a status mark, or nothing (an empty seat). */
   gutter?: React.ReactNode;
+  /** No gutter seat at all: a numbered block with no prompt has only the numbers' column. */
+  bare?: boolean;
+  /**
+   * The line's number, in a column of its own before the gutter (`CodeBlock lineNumbers`): a real span, `aria-hidden` and never selected, so
+   * copy and a screen reader never take it. `null` keeps the column's seat empty.
+   */
+  number?: number | null;
   kind?: string;
   /** In a stage transcript given `keep`, a line older than the newest stages: it steps back once, to tertiary ink. */
   receded?: boolean;
@@ -106,10 +113,11 @@ export interface CodeLineProps {
  * `user-select: none`, so a selection never takes it, and what is in it that is only a symbol (a prompt) is `aria-hidden`.
  * `CodeBlock` with a prompt and `Terminal` draw their lines with this one.
  */
-export function CodeLine({ gutter, kind, receded, children }: CodeLineProps) {
+export function CodeLine({ gutter, bare = false, number, kind, receded, children }: CodeLineProps) {
   return (
     <span className="basalt-code-line" data-kind={kind} data-receded={receded ? "" : undefined}>
-      <span className="basalt-code-gutter">{gutter}</span>
+      {number !== undefined ? <span className="basalt-code-number" aria-hidden="true">{number}</span> : null}
+      {bare ? null : <span className="basalt-code-gutter">{gutter}</span>}
       <span className="basalt-code-text">{children}</span>
     </span>
   );

@@ -151,6 +151,13 @@ export const GLYPHS = {
     family: "rich", label: "Delete", ph: "Trash",
     s: [L(6, 7, 7, 20.5), L(7, 20.5, 17, 20.5), L(17, 20.5, 18, 7), L(4, 7, 20, 7), L(9.5, 3.5, 14.5, 3.5), L(10.25, 11, 10.25, 16.5), L(13.75, 11, 13.75, 16.5)],
   },
+  // Send (cimip-gaps-3 t6): the fifth richer action. An arrowhead of straight lines (the arrows, the chevrons and play already
+  // draw one) with its notch and a fold from the notch: five lines, so a rich glyph. The same drawing at rest and selected: no
+  // seam and no morph pair. It does not mirror by itself; a component that seats it in a direction mirrors it under :dir(rtl).
+  send: {
+    family: "rich", label: "Send", ph: "PaperPlaneRight",
+    s: [L(4, 4.5, 20.5, 12), L(20.5, 12, 4, 19.5), L(4, 19.5, 7.5, 12), L(7.5, 12, 4, 4.5), L(7.5, 12, 13.5, 12)],
+  },
 
 
   // ------------------------------------------------------------------------------------------- navigation
@@ -189,6 +196,14 @@ export const GLYPHS = {
     family: "rich", nav: true, label: "More", ph: "DotsThreeCircle", where: "the top right corner",
     s: [L(4, 4, 20, 4), L(20, 4, 20, 20), L(20, 20, 4, 20), L(4, 20, 4, 4), P(8, 12), P(12, 12), P(16, 12)],
     seam: [1, "start"], loops: [[0, 1, 2, 3]], knock: [4, 5, 6],
+  },
+  // Keyboard (cimip-gaps-3 t6): an object glyph. A case wider than more-nav's box, three keys and a spacebar, open at the top
+  // right corner; selected closes it, fills the case and cuts the keys out.
+  keyboard: {
+    family: "rich", nav: true, label: "Keyboard", ph: "Keyboard", where: "the top right corner of the case",
+    s: [L(3.5, 5.5, 20.5, 5.5), L(20.5, 5.5, 20.5, 18.5), L(20.5, 18.5, 3.5, 18.5), L(3.5, 18.5, 3.5, 5.5),
+        P(7.75, 9.75), P(12, 9.75), P(16.25, 9.75), L(8.5, 14.25, 15.5, 14.25)],
+    seam: [1, "start"], loops: [[0, 1, 2, 3]], knock: [4, 5, 6, 7],
   },
   calendar: {
     family: "rich", nav: true, label: "Week", ph: "CalendarBlank", where: "the top right corner of the page",

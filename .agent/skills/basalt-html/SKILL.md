@@ -48,6 +48,7 @@ Markup your script builds (a `.row`) isn't seen: add `<!-- basalt:use rows -->` 
 - **filter** `.filter`: write only labelled checkboxes, the script builds the control; one `.filter-result` for each list.
 - **option-chips** `.option-chips`: native radios, eight at most; an unavailable one is `aria-disabled`, not `disabled`.
 - **code** `.code`: `tabindex="0"` goes on `pre.code-body` (it scrolls), with `<code>` inside; `.tok-k` and kin only in it.
+- **rich-text** `.rich-text`: round a renderer's elements; no width of its own; never a pasted string of markup.
 - **callout** `.callout`: the icon, then one `<div>` holding `.callout-title` and `.callout-body`.
 - **status** `.status`, `.badge`: `data-status` draws the mark, none is the word alone; never one without a word.
 - **accent** `data-accent="cobalt"`: the one accent, on `<html>` or a section; `none` turns it off.
