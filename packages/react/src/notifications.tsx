@@ -128,6 +128,15 @@ export interface NotificationCenterProps extends ListParts {
 /** The older spelling of `NotificationCenterProps`; it stays as an alias. */
 export type NotificationCentreProps = NotificationCenterProps;
 
+/** The list's body with a loading state: stand-in entries as bones before the first answer, then the list in the same box (the shape's own phases). */
+function Shaped({ first, label, rows, wrap, className, children }: { first: boolean; label: string; rows: number; wrap?: boolean; className?: string; children: React.ReactNode }) {
+  return (
+    <LoadingShape loading={first} label={label} className={className} shape={() => <Entries entries={standIns(rows)} wrap={wrap} onChoose={() => {}} />}>
+      {children}
+    </LoadingShape>
+  );
+}
+
 /** The words after "Unread, " on an unread direct entry: the list's `directLabel`. */
 const DirectWords = /* @__PURE__ */ React.createContext("for you");
 
@@ -219,9 +228,7 @@ export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, on
           entries.length === 0 ? list : <div className="basalt-notifications-scroll">{list}</div>
         ) : (
           // With a loading state the shape is the scroller: stand-in entries as bones before the first answer, then the list in the same box.
-          <LoadingShape loading={first} label={loadingLabel} className="basalt-notifications-scroll" shape={() => <Entries entries={standIns(loadingRows)} wrap={wrap} onChoose={() => {}} />}>
-            {list}
-          </LoadingShape>
+          <Shaped first={first} label={loadingLabel} rows={loadingRows} wrap={wrap} className="basalt-notifications-scroll">{list}</Shaped>
         )}
         <div className="basalt-notifications-foot">
           <ClearAll count={entries.length} onClearAll={onClearAll} edge="start" reason={clearReason} reasonId={`${ids}-clear`} />
@@ -279,9 +286,7 @@ export function NotificationList({ entries: given, onSelect, onMarkAllRead, onCl
         </div>
       ) : null}
       {loading === undefined ? list : (
-        <LoadingShape loading={first} label={loadingLabel} shape={() => <Entries entries={standIns(loadingRows)} wrap={wrap} onChoose={() => {}} />}>
-          {list}
-        </LoadingShape>
+        <Shaped first={first} label={loadingLabel} rows={loadingRows} wrap={wrap}>{list}</Shaped>
       )}
       {onClearAll ? (
         // The center's foot without View all (this is the page it opens): Clear all at its start.

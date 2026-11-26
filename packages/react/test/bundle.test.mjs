@@ -204,7 +204,10 @@ test("Menu does not pull in Shiki", async () => {
 // all of them (9,706 bytes, limit 10,500); the limit is back at 8,000.
 // Representative single imports. Each of these once dragged in a neighbouring component's
 // primitives (a Popover or Tooltip from a module-scope alias, Base UI from NumberTicker's module).
-for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 4_000], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 8_000]]) {
+// cimip-gaps-3 T3 (item 3, Text lines): measured with this file's own bundle() on origin/main ac962cec and on the T3 head: Text 922 on main, 17,398 with T3. The
+// growth is the text plate (peek-plate.js, 14,851 bytes), a dynamic import that this unsplit bundle inlines; under splitting Text's static graph is 2,390 (1,056
+// on main) and a Text without `lines` runs no hook and loads nothing. The limit rises by the increase, 4,000 to 17,400.
+for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 17_400], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 8_000]]) {
   test(`${name} alone is small and loads no Base UI`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -383,7 +386,10 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // cimip-gaps-3 E2 (DECISIONS 246, measured with this file's own graph() on origin/main 9f17176f, after #152, and on the E2 head; each limit the head's
 // measure rounded up to the next 50): ToastProvider 94,053 on main, 94,456 with E2 (+403: the toast's group role, F6 to the promised action), 93,500 to
 // 94,500; NotificationCentre 153,235 on main, 153,260 with E2 (+25: initialFocus), 153,250 to 153,300.
-for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 153_300]]) {
+// cimip-gaps-3 T3 (item 8, measured with graph() on origin/main ac962cec and on the T3 head): NotificationCentre 153,260 on main, 167,117 with T3 (+13,857:
+// LoadingShape and its measuring for the first load, about 13.7 KB, then wrap, counts, the direct mark and the reasons). A lazy shape was tried and refused by
+// the build's lazy-module rule (loading-shape.js is a root module whose chunk imports another). The limit rises by the increase, 153,300 to 167,150.
+for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 167_150]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);
