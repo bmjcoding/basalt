@@ -565,7 +565,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
       if (!stops) return;
       // A toggle card (DECISIONS 392, 4): Enter acts on keydown, once, with no modifier; Space is held off the page's scroll and acts on its keyup.
       if (!node.hasAttribute("href") && event.key === "Enter") { if (!event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); press(node.dataset.node!); } return; }
-      if (!node.hasAttribute("href") && event.key === " ") { event.preventDefault(); if (!event.repeat) spaceOn.current = node.dataset.node!; return; }
+      // Space with Ctrl, Meta or Alt is not a press and is left alone; Shift+Space presses, held off the page's scroll.
+      if (!node.hasAttribute("href") && event.key === " ") { if (event.ctrlKey || event.metaKey || event.altKey) { spaceOn.current = null; return; } event.preventDefault(); if (!event.repeat) spaceOn.current = node.dataset.node!; return; }
       // The model is mirrored right to left, so the table is already physical.
       const to = keyTarget(model, node.dataset.node!, event.key, dynRef.current.layout === "drawn");
       if (!to) return;
@@ -581,7 +582,8 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
       if (event.key !== " " || spaceOn.current === null) return;
       const id = spaceOn.current;
       spaceOn.current = null;
-      if (nodeOf(event.target)?.dataset.node !== id || !traces(model, dynRef.current)) return;
+      // A keyup with Ctrl, Meta or Alt down cancels the armed press.
+      if (event.ctrlKey || event.metaKey || event.altKey || nodeOf(event.target)?.dataset.node !== id || !traces(model, dynRef.current)) return;
       event.preventDefault();
       press(id);
     },

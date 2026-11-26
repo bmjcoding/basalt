@@ -1988,7 +1988,7 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   pointer and focus leave. A press on the held card, a press on the drawing's ground, or Esc with focus in the figure releases it. One
   card at most is held. While focus or a pointer is on another card, that card's trace shows and the held one returns after. The held
   card carries the underline: `size-indicator` in primary ink (the focal card's own ink on the focal card) on its bottom inside edge, as
-  wide as its content and never its padding; a decision's is under its words, as wide as their box, inside the diamond and clear of its
+  wide as its content and never its padding (a terminal's stays on the straight part of its bottom edge); a decision's is under its words, as wide as their box, inside the diamond and clear of its
   four points. `Highlight` in forced colours. It fades over `duration-fast`, with or without reduced motion. The rim does not change and
   nothing moves. It does not print. **Status:** not yet heard in a screen reader.
 - **On touch** a hint line says a tap highlights, a card that answers a tap is at least 44px tall, and "Clear highlight" is last in the

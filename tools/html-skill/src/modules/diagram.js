@@ -250,7 +250,8 @@ import { applyTrace, autoType, buildModel, entranceDrawn, escapeHtml, figureKey,
       // A toggle card: Enter acts on keydown, once, with no modifier; Space is held off the page's scroll and acts on its keyup.
       var toggle = !node.hasAttribute('href');
       if (toggle && event.key === 'Enter') { if (!event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); press(node.getAttribute('data-node')); } return; }
-      if (toggle && event.key === ' ') { event.preventDefault(); if (!event.repeat) spaceOn = node.getAttribute('data-node'); return; }
+      // Space with Ctrl, Meta or Alt is not a press and is left alone; Shift+Space presses, held off the page's scroll.
+      if (toggle && event.key === ' ') { if (event.ctrlKey || event.metaKey || event.altKey) { spaceOn = null; return; } event.preventDefault(); if (!event.repeat) spaceOn = node.getAttribute('data-node'); return; }
       var to = keyTarget(model, node.getAttribute('data-node'), event.key, state.layout === 'drawn');
       if (!to) return;
       event.preventDefault();
@@ -263,7 +264,8 @@ import { applyTrace, autoType, buildModel, entranceDrawn, escapeHtml, figureKey,
       var id = spaceOn;
       spaceOn = null;
       var node = nodeOf(event.target);
-      if (!node || node.getAttribute('data-node') !== id || !traces(model, state)) return;
+      // A keyup with Ctrl, Meta or Alt down cancels the armed press.
+      if (event.ctrlKey || event.metaKey || event.altKey || !node || node.getAttribute('data-node') !== id || !traces(model, state)) return;
       event.preventDefault();
       press(id);
     }

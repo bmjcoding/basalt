@@ -74,6 +74,21 @@ describe("the skill's diagram cards (DECISIONS 392)", () => {
     await context.close();
   });
 
+  test("Space ignores Ctrl, Meta and Alt, unprevented; Shift+Space presses once without scrolling", async () => {
+    const { page, context } = await open();
+    const sel = card("architecture", "browser");
+    await page.locator(sel).focus();
+    await page.evaluate(() => { window.__prevented = []; document.addEventListener("keydown", (e) => { if (e.key === " ") window.__prevented.push(e.defaultPrevented); }); });
+    for (const mod of ["Control", "Meta", "Alt"]) await page.keyboard.press(`${mod}+Space`);
+    assert.equal(await page.locator(sel).getAttribute("aria-pressed"), "false");
+    assert.deepEqual(await page.evaluate(() => window.__prevented), [false, false, false]);
+    const y = await page.evaluate(() => scrollY);
+    await page.keyboard.press("Shift+Space");
+    assert.equal(await page.locator(sel).getAttribute("aria-pressed"), "true");
+    assert.equal(await page.evaluate(() => scrollY), y);
+    await context.close();
+  });
+
   test("Esc: from a card with a hold, it releases and stops; from the foot with a hold, it releases and stops; outside, the hold stays", async () => {
     const { page, context } = await open();
     await page.evaluate(() => { window.__esc = 0; document.addEventListener("keydown", (e) => { if (e.key === "Escape") window.__esc++; }); });

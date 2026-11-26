@@ -10,7 +10,7 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import { after, before, describe, test } from "node:test";
 
-import { fixturePage, launch } from "./support.mjs";
+import { contrast, fixturePage, launch, pixels } from "./support.mjs";
 
 const require = createRequire(import.meta.url);
 const axeSource = fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
@@ -161,6 +161,36 @@ describe("a traced card is a toggle button, and a press is one change (DECISIONS
     await page.mouse.move(box.x + box.width - 1, box.y + box.height / 2, { steps: 4 });
     await page.mouse.up();
     assert.ok((await page.evaluate(() => getSelection().toString())).length > 0, "the words are selected");
+    assert.equal(await pressed(page, sel), "false");
+    await page.close();
+  });
+
+  test("Space ignores Ctrl, Meta and Alt and leaves them unprevented, a keyup with one down cancels an armed press, and Shift+Space and Shift+Enter press", async () => {
+    const { page } = await every();
+    const sel = card("architecture", "browser");
+    await page.locator(sel).focus();
+    await watchPressed(page, sel);
+    await page.evaluate(() => { window.__prevented = []; document.addEventListener("keydown", (e) => { if (e.key === " ") window.__prevented.push(e.defaultPrevented); }); });
+    for (const mod of ["Control", "Meta", "Alt"]) await page.keyboard.press(`${mod}+Space`);
+    await frames(page, 2);
+    assert.equal(await changes(page), 0, "Ctrl, Meta and Alt with Space change nothing");
+    assert.deepEqual(await page.evaluate(() => window.__prevented), [false, false, false], "and are not prevented");
+    // Armed, then a modifier goes down before the keyup: cancelled.
+    await page.keyboard.down("Space");
+    await page.keyboard.down("Control");
+    await page.keyboard.up("Space");
+    await page.keyboard.up("Control");
+    await frames(page, 2);
+    assert.equal(await changes(page), 0, "a keyup with Ctrl down cancels the armed press");
+    const y = await page.evaluate(() => scrollY);
+    await page.keyboard.press("Shift+Space");
+    await frames(page, 2);
+    assert.equal(await changes(page), 1, "Shift+Space presses once");
+    assert.equal(await page.evaluate(() => scrollY), y, "without scrolling");
+    assert.equal(await pressed(page, sel), "true");
+    await page.keyboard.press("Shift+Enter");
+    await frames(page, 2);
+    assert.equal(await changes(page), 2, "Shift+Enter presses");
     assert.equal(await pressed(page, sel), "false");
     await page.close();
   });
@@ -449,12 +479,12 @@ const SHAPES = [
 ];
 const markOf = (page, sel) => page.locator(sel).evaluate((el, P) => {
   const decision = el.dataset.shape === "decision";
-  const on = decision ? el.querySelector(`.${P}-words`) : el;
+  const on = decision ? el.querySelector(`.${P}-words`) : el.dataset.shape === "terminal" ? el.querySelector(`.${P}-cap`) : el;
   const cs = getComputedStyle(on, "::after");
   const sys = (value) => { const i = document.createElement("i"); i.style.color = value; el.append(i); const c = getComputedStyle(i).color; i.remove(); return c; };
   const terminal = el.dataset.shape === "terminal";
-  // space-3, or a terminal's space-5.
-  const inset = terminal ? 20 : 12;
+  // space-3, or a terminal's larger of space-5 and its inner radius (half its padding box's height: the picture review).
+  const inset = terminal ? Math.max(20, el.clientHeight / 2) : 12;
   return {
     height: Number.parseFloat(cs.height), width: Number.parseFloat(cs.width), opacity: cs.opacity, bg: cs.backgroundColor,
     want: decision ? on.getBoundingClientRect().width : el.clientWidth - 2 * inset,
@@ -511,35 +541,153 @@ describe("the held mark", () => {
   });
 });
 
-describe("a decision's mark (the decider's answer 2)", () => {
-  /** The mark's corners and the diamond, in the node's own box. */
-  const geometry = (page, id) => page.locator(card("flowchart", id)).evaluate((el, P) => {
-    const n = el.getBoundingClientRect(), w = el.querySelector(`.${P}-words`).getBoundingClientRect();
-    const cs = getComputedStyle(el.querySelector(`.${P}-words`), "::after");
-    // space-1-5 under the words' box.
-    const gap = 6;
-    const top = w.bottom + gap, h = Number.parseFloat(cs.height), width = Number.parseFloat(cs.width);
+describe("a decision's mark (the decider's answer 2 and the picture review)", () => {
+  /** The mark's place and the diamond's: the gap under the words' box, the width, and the corners' least distance from the diamond's sloped edges. */
+  const geometry = (page, sel) => page.locator(sel).evaluate((el, P) => {
+    const n = el.getBoundingClientRect(), words = el.querySelector(`.${P}-words`), w = words.getBoundingClientRect();
+    const cs = getComputedStyle(words, "::after");
+    const h = Number.parseFloat(cs.height), width = Number.parseFloat(cs.width);
+    const top = w.bottom - Number.parseFloat(cs.bottom) - h;
+    const a = n.width / 2, b = n.height / 2, cx = n.left + a, cy = n.top + b;
     const corners = [[w.left, top], [w.left + width, top], [w.left, top + h], [w.left + width, top + h]];
-    // Inside the diamond: |dx| / half-width + |dy| / half-height at most 1.
-    const inside = corners.every(([x, y]) => Math.abs(x - (n.left + n.width / 2)) / (n.width / 2) + Math.abs(y - (n.top + n.height / 2)) / (n.height / 2) <= 1);
-    return { h, width, words: w.width, inside, node: [n.width, n.height] };
+    // The distance from each corner to the nearest sloped edge, |dx| / a + |dy| / b = 1, measured square to it.
+    const edge = Math.min(...corners.map(([x, y]) => (1 - Math.abs(x - cx) / a - Math.abs(y - cy) / b) / Math.sqrt(1 / a ** 2 + 1 / b ** 2)));
+    return { h, width, words: w.width, gap: top - w.bottom, edge, node: [n.width, n.height] };
   }, P);
-  test("2px on two decisions of different sizes, as wide as the words' box, its corners inside the contour, and the diamond's size the same held and not", async () => {
+  test("2px, space-1 under the words' box and as wide as it, clear of the diamond's edges by 3.9px at least, the diamond's size the same held and not", async () => {
     const { page } = await every();
     const ids = ["who", "med", "first"];
     const before = {};
-    for (const id of ids) before[id] = (await geometry(page, id)).node;
+    for (const id of ids) before[id] = (await geometry(page, card("flowchart", id))).node;
     const sizes = new Set(Object.values(before).map(([, h]) => Math.round(h)));
     assert.ok(sizes.size > 1, `two decisions of different sizes (${JSON.stringify(before)})`);
     for (const id of ids) {
       await page.locator(card("flowchart", id)).click();
       await page.waitForTimeout(400);
-      const g = await geometry(page, id);
+      const g = await geometry(page, card("flowchart", id));
       assert.equal(g.h, 2, `${id}: 2px`);
+      assert.ok(Math.abs(g.gap - 4) < 0.5, `${id}: space-1 under the words (${g.gap})`);
       assert.ok(Math.abs(g.width - g.words) < 0.5, `${id}: as wide as its words (${g.width}, ${g.words})`);
-      assert.ok(g.inside, `${id}: inside the diamond`);
+      assert.ok(g.edge >= 3.9, `${id}: ${g.edge}px from the diamond's edge`);
       assert.deepEqual(g.node, before[id], `${id}: the diamond's size is unchanged`);
     }
     await page.close();
   });
+  // The worst case: the flattest diamond (5:1, a 320px track) with words about 115px wide.
+  const FLAT = { type: "flowchart", title: "The flattest decision", summary: "A decision.", legend: { main: "The usual path" },
+    nodes: [{ id: "start", name: "Change requested", shape: "terminal", col: 1, row: 1 }, { id: "dec", name: "Owners approved?", shape: "decision", col: 1, row: 2 }, { id: "ship", name: "Ship it", col: 1, row: 3 }, { id: "stop", name: "Sent back", shape: "terminal", col: 2, row: 2 }],
+    edges: [{ from: "start", to: "dec", kind: "main" }, { from: "dec", to: "ship", kind: "main", label: "yes" }, { from: "dec", to: "stop", label: "no" }] };
+  test("the worst case, about 115px of words in a 320px track: at least 3.9px from the diamond's edge", async () => {
+    const { page } = await fixturePage(browser, `const { type, ...F } = ${JSON.stringify(FLAT)};
+createRoot(document.getElementById("root")).render(<div id="box" style={{ width: 688 }}><B.FlowchartDiagram id="fig" {...F} /></div>);`, { theme: "dark", standards: true, viewport: { width: 1200, height: 900 } });
+    await page.waitForSelector("#fig[data-layout]");
+    const sel = `#fig .${P}-node[data-node="dec"]`;
+    for (let k = 0; k < 6; k++) {
+      const w = await page.locator(sel).evaluate((el) => el.getBoundingClientRect().width);
+      if (Math.abs(w - 320) < 1) break;
+      await page.evaluate((d) => { const b = document.getElementById("box"); b.style.width = `${b.getBoundingClientRect().width + d}px`; }, (320 - w) * 2);
+      await frames(page);
+    }
+    await page.locator(sel).click();
+    await page.waitForTimeout(400);
+    const g = await geometry(page, sel);
+    assert.ok(Math.abs(g.node[0] - 320) < 1, `a 320px track (${g.node[0]})`);
+    assert.ok(Math.abs(g.words - 115) < 12, `words about 115px wide (${g.words})`);
+    assert.ok(g.edge >= 3.9, `${g.edge}px from the diamond's edge`);
+    await page.close();
+  });
+});
+
+describe("a terminal's mark stays on the straight part of its edge (the picture review)", () => {
+  const TERMINALS = { type: "flowchart", title: "Terminals", summary: "Three terminals.", legend: { main: "The usual path" },
+    nodes: [
+      { id: "one", name: "Start", shape: "terminal", col: 1, row: 1 },
+      { id: "two", name: "Agent asks to run a command", detail: "approval.requested", detailMono: true, shape: "terminal", col: 1, row: 2 },
+      { id: "three", name: "Recorded, then sent to every member of the room until each one has acknowledged it", detail: "approval.recorded", detailMono: true, shape: "terminal", col: 1, row: 3 },
+    ],
+    edges: [{ from: "one", to: "two", kind: "main" }, { from: "two", to: "three", kind: "main" }] };
+  /** The mark's corners against the inner contour: the padding box, a capsule of radius half its height. */
+  const corners = (page, id) => page.locator(`#fig .${P}-node[data-node="${id}"]`).evaluate((el, P) => {
+    const cap = el.querySelector(`.${P}-cap`), c = cap.getBoundingClientRect(), cs = getComputedStyle(cap, "::after");
+    const r = Math.min(c.width, c.height) / 2, left = c.left + Number.parseFloat(cs.left), width = Number.parseFloat(cs.width), h = Number.parseFloat(cs.height);
+    const pts = [[left, c.bottom - h], [left + width, c.bottom - h], [left, c.bottom], [left + width, c.bottom]];
+    const inside = ([x, y]) => {
+      const nx = Math.min(Math.max(x, c.left + r), c.right - r), ny = Math.min(Math.max(y, c.top + r), c.bottom - r);
+      return Math.hypot(x - nx, y - ny) <= r + 0.01;
+    };
+    return { height: el.getBoundingClientRect().height, inset: Number.parseFloat(cs.left), r, inside: pts.every(inside) };
+  }, P);
+  for (const touch of [false, true]) {
+    test(`one-, two- and three-line terminals${touch ? " at the 44px touch floor" : ""}: every corner inside the inner contour, inset by the larger of space-5 and the radius`, async () => {
+      const { page } = await fixturePage(browser, `const { type, ...F } = ${JSON.stringify(TERMINALS)};
+createRoot(document.getElementById("root")).render(<div style={{ width: 360 }}><B.FlowchartDiagram id="fig" {...F} /></div>);`, { theme: "dark", standards: true, viewport: { width: 400, height: 900 }, ...(touch ? { hasTouch: true, isMobile: true } : {}) });
+      await page.waitForSelector("#fig[data-layout]");
+      const heights = [];
+      for (const id of ["one", "two", "three"]) {
+        const t = page.locator(`#fig .${P}-node[data-node="${id}"]`);
+        if (touch) await t.tap(); else await t.click();
+        await page.waitForTimeout(400);
+        const got = await corners(page, id);
+        heights.push(Math.round(got.height));
+        assert.ok(got.inside, `${id}: inside the inner contour (${JSON.stringify(got)})`);
+        assert.ok(Math.abs(got.inset - Math.max(20, got.r)) < 0.5, `${id}: inset ${got.inset}, radius ${got.r}`);
+      }
+      assert.equal(new Set(heights).size, 3, `three heights (${heights})`);
+      if (touch) assert.ok(heights[0] >= 44, `the touch floor (${heights[0]})`);
+      await page.close();
+    });
+  }
+});
+
+describe("a schema table's mark under its last line (the picture review)", () => {
+  const SCHEMA = { type: "schema", title: "Two tables", summary: "Runs reference incidents.", legend: { plain: "A foreign key" },
+    tables: [
+      { name: "incidents", col: 1, row: 1, more: 4, columns: [{ name: "id", key: "PK", type: "uuid" }, { name: "title", type: "text" }] },
+      { name: "runs", col: 2, row: 1, columns: [{ name: "id", key: "PK", type: "uuid" }, { name: "incident_id", key: "FK", type: "uuid", references: "incidents.id" }] },
+    ] };
+  test("6px under a \"+ n more\" line and 8px under a column row, from the line's box", async () => {
+    const { page } = await fixturePage(browser, `const { type, ...F } = ${JSON.stringify(SCHEMA)};
+createRoot(document.getElementById("root")).render(<div style={{ width: 1104 }}><B.SchemaDiagram id="fig" {...F} /></div>);`, { theme: "dark", standards: true, viewport: { width: 1200, height: 900 } });
+    await page.waitForSelector("#fig[data-layout='drawn']");
+    const gap = async (id) => {
+      await page.locator(`#fig .${P}-node[data-node="${id}"]`).click();
+      await page.waitForTimeout(400);
+      return page.locator(`#fig .${P}-node[data-node="${id}"]`).evaluate((el, P) => {
+        const r = el.getBoundingClientRect(), cs = getComputedStyle(el, "::after");
+        const markTop = r.bottom - Number.parseFloat(getComputedStyle(el).borderBottomWidth) - Number.parseFloat(cs.bottom) - Number.parseFloat(cs.height);
+        const more = el.querySelector(`.${P}-more`);
+        // The last line's box: the "+ n more" block's content, or the last row's name (a flex item, its own line's height).
+        const line = more ? more.getBoundingClientRect().bottom - Number.parseFloat(getComputedStyle(more).paddingBottom) : [...el.querySelectorAll(`.${P}-cname`)].at(-1).getBoundingClientRect().bottom;
+        return Math.round((markTop - line) * 100) / 100;
+      }, P);
+    };
+    assert.equal(await gap("incidents"), 6, "under + n more");
+    assert.equal(await gap("runs"), 8, "under a column row");
+    await page.close();
+  });
+});
+
+describe("a critical schedule card's mark (the picture review)", () => {
+  for (const mode of [{ theme: "dark" }, { theme: "light" }, { theme: "dark", forcedColors: "active" }]) {
+    test(`${mode.forcedColors ? "forced colours" : mode.theme}: 2px of the card's own fill between the mark and its 2px contour; the contour 2px on every side, held or not`, async () => {
+      const { page } = await every(mode);
+      const sel = `${fig("schedule")} .${P}-node:has(> .${P}-sched-contour[data-critical])[aria-pressed]`;
+      const el = page.locator(sel).first();
+      const widths = () => el.evaluate((n, P) => { const c = getComputedStyle(n.querySelector(`.${P}-sched-contour`)); return [c.borderTopWidth, c.borderRightWidth, c.borderBottomWidth, c.borderLeftWidth]; }, P);
+      assert.deepEqual(await widths(), ["2px", "2px", "2px", "2px"], "not held");
+      await el.click();
+      await page.mouse.move(2, 2);
+      await page.waitForTimeout(400);
+      assert.deepEqual(await widths(), ["2px", "2px", "2px", "2px"], "held");
+      const r = await el.evaluate((n) => { const b = n.getBoundingClientRect(); return { x: Math.round(b.left + b.width / 2), bottom: Math.round(b.bottom) }; });
+      // From the bottom up: the contour (2), the card's fill (2), the mark (2), then the fill above it.
+      const col = (await pixels(page, { x: r.x, y: r.bottom - 8, width: 1, height: 8 })).reverse();
+      const [contour, gapA, gapB, mark, fillAbove] = [col[0], col[2], col[3], col[4], col[6]];
+      const same = (a, b) => a.every((v, i) => Math.abs(v - b[i]) <= 2);
+      assert.ok(same(gapA, fillAbove) && same(gapB, fillAbove), `2px of fill between (${JSON.stringify(col)})`);
+      assert.ok(contrast(mark, gapA) >= 3, `the mark stands off the fill (${JSON.stringify(col)})`);
+      assert.ok(contrast(contour, gapA) >= 3, `the contour stands off the fill (${JSON.stringify(col)})`);
+      await page.close();
+    });
+  }
 });

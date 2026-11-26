@@ -1475,7 +1475,9 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
   n.shape === "decision" ? h("svg", { class: `${P}-diamond`, viewBox: "0 0 100 100", preserveAspectRatio: "none", "aria-hidden": "true", focusable: "false" }, h("path", { d: "M50 0L100 50L50 100L0 50Z" })) : null,
   // A mark (DECISIONS 292, 2.6): an empty span, the form a background image, so its colours cannot be restyled and nothing of the file reaches the page.
   n.mark ? h("span", { class: `${P}-mark`, "aria-hidden": "true", style: n.mark.onLight ? `--_ml:${cssUrl(n.mark.onLight)};--_md:${cssUrl(n.mark.onDark ?? n.mark.onLight)}` : undefined }) : null,
-  n.shape === "table" ? tableText(P, n, m) : m.ext?.card ? m.ext.card(P, m, n, dyn) : nodeText(P, m, n));
+  n.shape === "table" ? tableText(P, n, m) : m.ext?.card ? m.ext.card(P, m, n, dyn) : nodeText(P, m, n),
+  // A terminal's held mark is drawn by its cap, the padding box as a size container, so it can be inset by the capsule's radius (DECISIONS 392).
+  n.shape === "terminal" ? h("span", { class: `${P}-cap`, "aria-hidden": "true" }) : null);
 }
 
 function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
