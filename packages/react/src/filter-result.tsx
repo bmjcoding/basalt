@@ -33,10 +33,9 @@ export function FilterResult({ children, spoken, reserve, delay = 400, className
   const said = spoken ?? (typeof children === "string" ? children : "");
   const sizer = React.useRef<HTMLSpanElement | null>(null);
   React.useEffect(() => {
-    if (process.env.NODE_ENV === "production" || warnedField || !sizer.current) return;
-    if (sizer.current.querySelector("input, select, textarea, button, [id]")) {
+    if (process.env.NODE_ENV !== "production" && !warnedField && sizer.current?.querySelector("input,select,textarea,button,[id]")) {
       warnedField = true;
-      console.warn("Basalt FilterResult: `reserve` is a sizing copy and holds no form field, button or `id`: an unseen field still submits and still blocks a submit");
+      console.warn("Basalt FilterResult: `reserve` is a sizing copy and holds no form field or id");
     }
   });
   return (

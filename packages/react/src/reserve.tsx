@@ -31,18 +31,17 @@ let warnedLive = false;
  * accessibility tree, not focusable, not selectable and not found by find-in-page. So the cell holds the size of its largest
  * wording and nothing beside it moves when the words do. The cell is an inline grid with its wordings at the start; `justify-items: end` on it (through `className`) puts a narrower one against the end.
  */
-export function Reserve({ show, alternatives, alternativeClassNames, className, live, block = false, ...props }: ReserveProps) {
+export function Reserve({ show, alternatives, alternativeClassNames, className, live, block, ...props }: ReserveProps) {
   const cell = React.useRef<HTMLElement | null>(null);
   React.useEffect(() => {
-    if (process.env.NODE_ENV === "production" || !block || warnedLive || !cell.current) return;
-    if (cell.current.querySelector("input, select, textarea, [role=status], [role=alert], [role=log], [aria-live]:not([aria-live=off])")) {
+    if (process.env.NODE_ENV !== "production" && block && !warnedLive && cell.current?.querySelector("input,select,textarea,[role=status],[role=alert],[role=log],[aria-live=polite],[aria-live=assertive]")) {
       warnedLive = true;
-      console.warn("Basalt Reserve: a `block` alternative holds a form field or a live region; its unseen copies would still submit, block a submit or speak. Say the change through one StatusLine");
+      console.warn("Basalt Reserve block: an alternative holds a form field or a live region, which its unseen copies keep");
     }
   });
   const Tag = block ? "div" : "span";
   return (
-    <Tag {...(props as React.HTMLAttributes<HTMLElement>)} ref={block ? (cell as React.Ref<HTMLDivElement>) : undefined} data-block={block ? "" : undefined} className={join("basalt-reserve", className)}>
+    <Tag {...(props as React.HTMLAttributes<HTMLElement>)} ref={cell as React.Ref<HTMLDivElement>} data-block={block ? "" : undefined} className={join("basalt-reserve", className)}>
       {Object.entries(alternatives).map(([key, node]) => {
         const off = key !== show;
         return <Tag key={key} className={alternativeClassNames?.[key]} data-on={off ? undefined : ""} aria-hidden={off || undefined} inert={off || undefined} suppressHydrationWarning={live}>{node}</Tag>;

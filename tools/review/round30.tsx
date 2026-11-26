@@ -197,7 +197,7 @@ function ModalDemo({ state }: { state: string }) {
       {caption("A page with a button whose label morphs, a stepper and a slider, and a dialog open over it. The label keeps announcing while the dialog is closed; while it is open nothing outside it is reachable.")}
       <div style={row}>
         <Button><TextMorph text="Continue" /></Button>
-        <Stepper steps={[{ id: "a", label: "Name it" }, { id: "b", label: "Route it" }]} value="a" onValueChange={() => {}} />
+        <Stepper steps={[{ id: "a", label: "Name it" }, { id: "b", label: "Route it" }]} value="a" onValueChange={() => {}} onDone={() => {}} />
       </div>
       <Slider label="Volume" defaultValue={30} />
       <Dialog defaultOpen={state === "open"}>

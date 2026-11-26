@@ -157,7 +157,7 @@ function StepperDemo({ state }: { state: string }) {
   return (
     <div style={{ ...col, maxWidth: 520 }}>
       {caption("Back and Next move through the steps. The group is named, and the step's name is read with where the user is: once, from the step name's own live region.")}
-      <div ref={box}><Stepper steps={STEPS} value={value} onValueChange={setValue} /></div>
+      <div ref={box}><Stepper steps={STEPS} value={value} onValueChange={setValue} onDone={() => {}} /></div>
       <Tree target={box} title="What a screen reader is given" />
     </div>
   );
