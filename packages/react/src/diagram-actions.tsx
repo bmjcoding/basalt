@@ -20,6 +20,8 @@ export interface DiagramActionsProps {
   onPress?: () => void;
   /** The diagram's name, for the development warnings. */
   component: string;
+  /** The page's figure's title: each button is described by it, so an action names its figure on a page of several (its name is its words). */
+  describedBy?: string;
 }
 
 let warned: Set<string> | undefined;
@@ -31,7 +33,7 @@ function warnOnce(message: string, error?: boolean) {
   else console.warn(message);
 }
 
-export function DiagramActions({ actions, viewer, context, onPress, component }: DiagramActionsProps) {
+export function DiagramActions({ actions, viewer, context, onPress, component, describedBy }: DiagramActionsProps) {
   const seen = new Set<string>();
   // Development only, and once: the page's foot says it, so the viewer's copy of the same list is not a second warning.
   if (process.env.NODE_ENV !== "production" && !viewer) {
@@ -59,6 +61,7 @@ export function DiagramActions({ actions, viewer, context, onPress, component }:
             className="basalt-diagram-action"
             disabled={action.disabled}
             focusableWhenDisabled
+            aria-describedby={describedBy}
             onClick={() => {
               if (action.disabled) return undefined;
               onPress?.();

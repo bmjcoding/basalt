@@ -140,7 +140,7 @@ import { ROUND_71 } from "./round71";
 import { ROUND_72 } from "./round72";
 import { ROUND_73 } from "./round73";
 import { ROUND_74 } from "./round74";
-import { ROUND_75 } from "./round75";
+import { ROUND_80 } from "./round80";
 
 export interface Step {
   id: string;
@@ -722,4 +722,4 @@ ROUNDS.push(ROUND_71);
 ROUNDS.push(ROUND_72);
 ROUNDS.push(ROUND_73);
 ROUNDS.push(ROUND_74);
-ROUNDS.push(ROUND_75);
+ROUNDS.push(ROUND_80);

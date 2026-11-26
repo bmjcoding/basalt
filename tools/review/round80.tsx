@@ -1,4 +1,4 @@
-// Round 75: cimip-gaps-3 topic t6, built from the council's decision (DECISIONS 385: the owner's handoff, "full send"): find, keys, code, glyphs and content.
+// Round 80: cimip-gaps-3 topic t6, built from the council's decision (DECISIONS 385: the owner's handoff, "full send"): find, keys, code, glyphs and content.
 // CommandMenu's foot, count and empty slot; the app's match marks and a row that cannot run (in the modal and the list); the menu rows for the loop hold and
 // single keys and MenuText; the send and keyboard glyphs; Nav md's label at 18/26; CodeBlock's line numbers and its sideways line; RichText. Built by Opus;
 // the implementation has not been reviewed; the browser tests are written and not run (DECISIONS 359).
@@ -39,7 +39,7 @@ import type { Command, CommandGroup, GlyphIcon } from "../../packages/react/src/
 import type { Round } from "./rounds";
 
 const label: React.CSSProperties = { margin: "0 0 var(--basalt-space-2)", fontSize: "var(--basalt-text-xs-size)", lineHeight: "var(--basalt-text-xs-line-height)", color: "var(--basalt-text-secondary)" };
-const PAIR = ".r75-pair { display: grid; gap: var(--basalt-space-6); grid-template-columns: minmax(0, 1fr); } @media (min-width: 720px) { .r75-pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }";
+const PAIR = ".r80-pair { display: grid; gap: var(--basalt-space-6); grid-template-columns: minmax(0, 1fr); } @media (min-width: 720px) { .r80-pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }";
 const NOT_REVIEWED = "Built from the council's t6 decision (DECISIONS 385); the implementation has not been reviewed. The browser tests are written and not run (DECISIONS 359).";
 
 // ---- Two unlike domains: a recipe box and a build server ----
@@ -203,12 +203,12 @@ function Glyphs() {
   const big = (node: React.ReactNode, words: string) => <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--basalt-space-2)", color: "var(--basalt-text-primary)", fontSize: "var(--basalt-text-sm-size)" }}>{node}{words}</span>;
   return (
     <div style={{ display: "grid", gap: "var(--basalt-space-8)" }}>
-      <div className="r75-pair">
+      <div className="r80-pair">
         <style>{PAIR}</style>
         <Sheet title="The new two, beside more-nav, play and external" names={["send", "keyboard", "more-nav", "play", "external"]} />
         <Sheet title="Send as the fifth richer action" names={["copy", "edit", "trash", "download", "send"]} />
       </div>
-      <div className="r75-pair">
+      <div className="r80-pair">
         <div>
           <p style={label}>Today (main): Phosphor Bold draws them</p>
           <div style={{ display: "flex", gap: "var(--basalt-space-6)", flexWrap: "wrap" }}>
@@ -232,12 +232,12 @@ function Glyphs() {
 
 // ---- 6. Nav md's label ----
 
-const TODAY_NAV = ".r75-today .basalt-nav-label { font-size: var(--basalt-text-xl-size); line-height: var(--basalt-text-xl-line-height); letter-spacing: var(--basalt-text-xl-tracking); }";
+const TODAY_NAV = ".r80-today .basalt-nav-label { font-size: var(--basalt-text-xl-size); line-height: var(--basalt-text-xl-line-height); letter-spacing: var(--basalt-text-xl-tracking); }";
 const title: React.CSSProperties = { margin: "0 0 var(--basalt-space-3)", padding: "0 var(--basalt-space-3)", font: "var(--basalt-font-weight-semibold) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans)", letterSpacing: "var(--basalt-text-lg-tracking)", color: "var(--basalt-text-primary)" };
 
 function Sidebar({ today, name, items }: { today: boolean; name: string; items: [string, GlyphIcon][] }) {
   return (
-    <div className={today ? "r75-today" : undefined} style={{ minWidth: 0 }}>
+    <div className={today ? "r80-today" : undefined} style={{ minWidth: 0 }}>
       <p style={label}>{today ? "Today (main): the label at 20/28, larger than the app's title" : "This build: the label at 18/26, the title's size"}</p>
       <p style={title}>{name}</p>
       <Nav aria-label={name}>
@@ -253,22 +253,22 @@ function NavPair() {
   return (
     <div style={{ display: "grid", gap: "var(--basalt-space-8)" }}>
       <style>{`${PAIR} ${TODAY_NAV}`}</style>
-      <div className="r75-pair"><Sidebar today name="Recipe box" items={recipes} /><Sidebar today={false} name="Recipe box" items={recipes} /></div>
-      <div className="r75-pair"><Sidebar today name="Build server" items={builds} /><Sidebar today={false} name="Build server" items={builds} /></div>
+      <div className="r80-pair"><Sidebar today name="Recipe box" items={recipes} /><Sidebar today={false} name="Recipe box" items={recipes} /></div>
+      <div className="r80-pair"><Sidebar today name="Build server" items={builds} /><Sidebar today={false} name="Build server" items={builds} /></div>
     </div>
   );
 }
 
 // ---- 7. CodeBlock ----
 
-const TODAY_CODE = ".r75-today .basalt-code-hint { display: none !important; }";
+const TODAY_CODE = ".r80-today .basalt-code-hint { display: none !important; }";
 const RECIPE_CLI = "bake --loaves 2 --oven 220c\r\n\r\nrest --minutes 40 \\\n  --cover damp-cloth\nslice --thickness 12mm --keep-the-heel-for-breadcrumbs-on-sunday\n";
 const DEPLOY = "curl --request POST https://builds.example.com/api/v2/pipelines/main/trigger --header 'Authorization: Bearer $TOKEN' --data '{}'";
 
 function Code({ state }: { state: string }) {
   const before = state === "before";
   return (
-    <div className={before ? "r75-today" : undefined} style={{ display: "grid", gap: "var(--basalt-space-6)", maxWidth: 640 }}>
+    <div className={before ? "r80-today" : undefined} style={{ display: "grid", gap: "var(--basalt-space-6)", maxWidth: 640 }}>
       <style>{TODAY_CODE}</style>
       <p style={label}>{before ? "Today (main): a block wider than its box says nothing under it" : "This build: line numbers (an opt-in), and the sideways line under any block wider than its box"}</p>
       <CodeBlock title="bake.sh" language="sh" code={RECIPE_CLI} lineNumbers={!before} startLine={12} />
@@ -318,8 +318,8 @@ function Rich() {
   );
 }
 
-export const ROUND_75: Round = {
-  id: "75",
+export const ROUND_80: Round = {
+  id: "80",
   title: "cimip-gaps-3 t6: find, keys, code, glyphs and content",
   reviewed: false,
   summary:

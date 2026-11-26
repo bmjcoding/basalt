@@ -52,7 +52,7 @@ const read = (p, key, prefix) => p.evaluate(({ key, prefix }) => {
   const o = fig.querySelector(`.${prefix}-drawing`).getBoundingClientRect();
   const boxes = [...fig.querySelectorAll(`.${prefix}-node`)].map((n) => { const r = n.getBoundingClientRect(); return [n.dataset.node, Math.round((r.left - o.left) * 2) / 2, Math.round((r.top - o.top) * 2) / 2, Math.round(r.width * 2) / 2, Math.round(r.height * 2) / 2]; });
   const style = (sel) => { const el = fig.querySelector(sel); if (!el) return null; const s = getComputedStyle(el); return [s.backgroundColor, s.borderTopColor, s.borderTopWidth, s.borderRadius, s.color, s.fontSize, s.fontWeight, s.lineHeight, s.fontFamily, s.paddingTop, s.paddingLeft]; };
-  return { layout: fig.getAttribute("data-layout"), ink, boxes, styles: [`.${prefix}-node`, `.${prefix}-node[data-focal]`, `.${prefix}-name`, `.${prefix}-kind`, `.${prefix}-detail`, `.${prefix}-label`, `.${prefix}-legend`, `.${prefix}-summary`, `.${prefix}-title`, `.${prefix}-hint`, `.${prefix}-gbox`, `.${prefix}-lane-name`, `.${prefix}-row`, `.${prefix}-tname`, `.${prefix}-msg`, `.${prefix}-band`].map(style) };
+  return { layout: fig.getAttribute("data-layout"), ink, boxes, styles: [`.${prefix}-node`, `.${prefix}-node[data-focal]`, `.${prefix}-name`, `.${prefix}-kind`, `.${prefix}-detail`, `.${prefix}-label`, `.${prefix}-legend`, `.${prefix}-summary`, `.${prefix}-title`, `.${prefix}-hint`, `.${prefix}-gbox`, `.${prefix}-lane-name`, `.${prefix}-row`, `.${prefix}-tname`, `.${prefix}-msg`, `.${prefix}-band`, `.${prefix}-list-head`].map(style) };
 }, { key, prefix });
 
 describe("parity with React", () => {
@@ -75,6 +75,27 @@ describe("parity with React", () => {
       await skill.context.close();
     });
   }
+});
+
+describe("the title and the list's sub-headings (DECISIONS 386)", () => {
+  test("the title is text-base at 600 at every heading level, and the list's sub-headings are text-sm at 600, as React draws them", async () => {
+    const figs = [2, 3, 6].flatMap((heading) => [["a", "architecture"], ["s", "sequence"]].map(([k, key]) => `<figure class="diagram" id="fig-${k}${heading}"><script type="application/json" data-diagram>${JSON.stringify({ ...DATA[key], heading })}</script></figure>`));
+    const skill = await openHtml(browser, compose(`<title>Titles</title><main style="max-width:1104px;margin:0 auto;padding:16px;display:grid;gap:64px">${figs.join("")}</main>`).html, { scheme: "dark", width: 1440 });
+    for (const heading of [2, 3, 6]) for (const key of [`a${heading}`, `s${heading}`]) {
+      await skill.page.click(`#fig-${key} .diagram-toggle`);
+      const r = await skill.page.evaluate((key) => {
+        const fig = document.querySelector(`#fig-${key}`), title = fig.querySelector(".diagram-title"), head = fig.querySelector(".diagram-list-head");
+        const t = getComputedStyle(title), h = getComputedStyle(head);
+        return { tag: title.tagName, title: [t.fontSize, t.lineHeight, t.fontWeight], headTag: head.tagName, head: [h.fontSize, h.fontWeight] };
+      }, key);
+      assert.equal(r.tag, `H${heading}`, `${key}: the title's level`);
+      assert.deepEqual(r.title, ["14px", "20px", "600"], `${key}: the title's size`);
+      assert.equal(r.headTag, `H${Math.min(6, heading + 1)}`, `${key}: the sub-heading's level`);
+      assert.deepEqual(r.head, ["13px", "600"], `${key}: the sub-heading's size`);
+    }
+    assert.deepEqual(skill.errors, []);
+    await skill.context.close();
+  });
 });
 
 describe("the page before script (1.19)", () => {
