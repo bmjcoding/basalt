@@ -3551,11 +3551,13 @@
   /* An action off with its reason (8d): one line (it may wrap) under the head's row (or the foot's), inside the band, from the band's start edge across its width. */
   .basalt-notifications-head:has(> .basalt-notifications-reason), .basalt-notifications-foot:has(> .basalt-notifications-reason) { flex-wrap: wrap; row-gap: 0; }
   .basalt-notifications-head:has(> .basalt-notifications-reason) > .basalt-notifications-count { flex-basis: 0; }
-  .basalt-notifications-reason { flex: 0 0 100%; margin: var(--basalt-space-1) 0 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
+  .basalt-notifications-reason { box-sizing: border-box; flex: 0 0 100%; margin: var(--basalt-space-1) 0 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
 
   /* The page form (NotificationList): the same head band, without a title, its count lined up with the entries' dots; no rim and no level. */
   .basalt-notification-list > .basalt-notifications-foot { padding: var(--basalt-space-2) var(--basalt-space-1-5); }
   .basalt-notification-list > .basalt-notifications-head { padding-block: var(--basalt-space-2); padding-inline: calc(var(--basalt-space-1-5) + var(--basalt-space-3)) var(--basalt-space-1-5); }
+  /* Clear all's reason starts on the count's line and the entries' dots, as the head's does, not on the ghost button's own edge. */
+  .basalt-notification-list > .basalt-notifications-foot > .basalt-notifications-reason { padding-inline-start: var(--basalt-space-3); }
 
   /* ---- Command menu ---- */
 

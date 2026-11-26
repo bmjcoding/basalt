@@ -12,6 +12,7 @@ import {
   Badge,
   Button,
   Card,
+  CardContent,
   Disclosure,
   DisclosureList,
   DisclosureRow,
@@ -47,7 +48,7 @@ import type { NotificationEntry } from "../../packages/react/src/index";
 import type { Round } from "./rounds";
 
 const label: React.CSSProperties = { margin: "0 0 var(--basalt-space-2)", fontSize: "var(--basalt-text-xs-size)", lineHeight: "var(--basalt-text-xs-line-height)", color: "var(--basalt-text-secondary)" };
-const stack: React.CSSProperties = { display: "grid", gap: "var(--basalt-space-6)", minWidth: 0 };
+const stack: React.CSSProperties = { display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "var(--basalt-space-6)", minWidth: 0 };
 const PAIR = ".r75-pair { display: grid; gap: var(--basalt-space-6); grid-template-columns: minmax(0, 1fr); } @media (min-width: 1024px) { .r75-pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }";
 const NOT_REVIEWED = "Decided by the council (cimip-gaps-3 T3, t3/decision.md, with its revisions after the final positions); built by Opus; the implementation is not reviewed. The browser tests are written and not run (DECISIONS 359).";
 const hold = (state: string, name: string) => state === name || state.startsWith(`${name}-`);
@@ -193,21 +194,25 @@ function CutText({ state }: { state: string }) {
           <p style={label}>A product's description, two lines (its own stop: focus opens it whole on the plate)</p>
           <Text id="r75-desc" size="sm" tone="secondary" lines={2}>Hand-thrown stoneware mug, glazed in a speckled oat finish, holds 350 ml, dishwasher safe, each one a little different from the next because every glaze pools on its own.</Text>
         </div>
-        <div style={{ maxWidth: 320 }}>
+        <div style={{ maxWidth: 240 }}>
           <p style={label}>Files, one cut line each, inside their links (the link is the stop; without hover the name is whole)</p>
-          <ul id="r75-files" style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: "var(--basalt-space-2)" }}>
-            {FILES.map((f) => <li key={f}><Link href={`#${f}`} onClick={(e: React.MouseEvent) => e.preventDefault()}><Text as="span" size="sm" lines={1}>{f}</Text></Link></li>)}
+          <ul id="r75-files" style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: "var(--basalt-space-2)" }}>
+            {FILES.map((f) => <li key={f} style={{ minWidth: 0 }}><Link href={`#${f}`} onClick={(e: React.MouseEvent) => e.preventDefault()}><Text as="span" size="sm" lines={1}>{f}</Text></Link></li>)}
           </ul>
         </div>
       </div>
       <div style={stack}>
-        <Card style={{ maxWidth: 340 }}>
+        <div style={{ maxWidth: 340 }}>
           <p style={label}>A recipe card's excerpt: the card links to the recipe, so peek is off</p>
-          <a href="#recipe" className="basalt-link" onClick={(e) => e.preventDefault()} style={{ display: "block", textDecoration: "none" }}>
-            <Text as="span" weight="medium" lines={1}>Brown butter sourdough waffles</Text>
-            <Text as="span" size="sm" tone="secondary" lines={2} peek={false}>An overnight batter that uses the discard from your starter, browned butter for depth and a hot iron for a crisp shell with a soft middle.</Text>
-          </a>
-        </Card>
+          <Card>
+            <CardContent>
+              <a href="#recipe" className="basalt-link" onClick={(e) => e.preventDefault()} style={{ display: "block", textDecoration: "none" }}>
+                <Text as="span" weight="medium" lines={1}>Brown butter sourdough waffles</Text>
+                <Text as="span" size="sm" tone="secondary" lines={2} peek={false}>An overnight batter that uses the discard from your starter, browned butter for depth and a hot iron for a crisp shell with a soft middle.</Text>
+              </a>
+            </CardContent>
+          </Card>
+        </div>
         <div style={{ maxWidth: 220 }}>
           <p style={label}>Short text is not cut: no stop, no plate</p>
           <Text size="sm" lines={1}>Ready for pickup</Text>
@@ -373,7 +378,7 @@ function Notifications({ state }: { state: string }) {
       <div className="r75-pair">
         <style>{PAIR}</style>
         <div>
-          <p style={label}>A library's notifications page: wrap, "3 unread · 1 for you", a count on an entry, the ringed dot, and Clear all off with its reason</p>
+          <p style={label}>A library's notifications page: wrap, "2 unread · 1 for you", a count on an entry, the ringed dot, and Clear all off with its reason</p>
           <NotificationList entries={LOANS_NOTES} wrap onMarkAllRead={() => {}} onClearAll={() => {}} clearAllReason="Clearing waits for the nightly export." />
         </div>
         <div>
@@ -387,8 +392,8 @@ function Notifications({ state }: { state: string }) {
 
 function Tabs() {
   return (
-    <div style={{ minHeight: 200 }}>
-      <p style={label}>The phone tab bar: Messages with a plain dot, Notifications with the ringed dot (dotKind="direct"); the current page is the filled glyph alone</p>
+    <div style={{ minHeight: 200, padding: "var(--basalt-space-4)" }}>
+      <p style={label}>The phone tab bar: Messages with a plain dot, Alerts with the ringed dot (dotKind="direct"); the current page is the filled glyph alone</p>
       <TabBar>
         <TabBarItem href="#home" icon={HomeGlyph} current>Home</TabBarItem>
         <TabBarItem href="#messages" icon={MessagesGlyph} dot="New activity">Messages</TabBarItem>
