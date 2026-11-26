@@ -25,7 +25,7 @@ import { diagramToPng, diagramToSvg, exportName } from "../../../../packages/rea
     a.remove();
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
   }
-  function button(words, run) {
+  function button(words, run, titleId, suffix) {
     var b = document.createElement('button');
     b.type = 'button';
     b.className = 'btn diagram-download';
@@ -34,6 +34,11 @@ import { diagramToPng, diagramToSvg, exportName } from "../../../../packages/rea
     var label = document.createElement('span');
     label.textContent = words;
     b.appendChild(label);
+    // On the page each names its figure (G17 of cimip-gaps-3): its words, then the title, as the foot's other buttons. The viewer's dialog names its own.
+    if (titleId) {
+      label.id = titleId.replace(/-title$/, '') + suffix;
+      b.setAttribute('aria-labelledby', label.id + ' ' + titleId);
+    }
     b.addEventListener('click', run);
     return b;
   }
@@ -74,10 +79,11 @@ import { diagramToPng, diagramToSvg, exportName } from "../../../../packages/rea
       say(REFUSED);
       png.setAttribute('aria-describedby', note.id);
     }
+    var titleId = dialog ? null : fig.getAttribute('aria-labelledby');
     var svg = button('Download SVG', function () {
       reset();
       diagramToSvg(fig).then(function (b) { save(b, exportName(fig, 'svg')); }, function (error) { say(FAILED.svg); console.error(error); });
-    });
+    }, titleId, '-svg-words');
     var png = button('Download PNG', function () {
       if (off) return;
       reset();
@@ -88,7 +94,7 @@ import { diagramToPng, diagramToSvg, exportName } from "../../../../packages/rea
         // The policy's refusal is named by the export (DiagramPolicyError), never read from its words.
         if (error && error.name === 'DiagramPolicyError') { refused = true; refuse(); } else say(FAILED.png);
       });
-    });
+    }, titleId, '-png-words');
     var clear = foot.querySelector('.diagram-clear');
     foot.insertBefore(svg, clear);
     foot.insertBefore(png, clear);
