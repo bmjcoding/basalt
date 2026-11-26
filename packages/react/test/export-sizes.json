@@ -106,7 +106,7 @@
   "Fieldset": 6390,
   "FileInput": 43205,
   "FilterResult": 1039,
-  "FilterToolbar": 21921,
+  "FilterToolbar": 21979,
   "FlowchartDiagram": 113076,
   "Form": 8898,
   "FormGrid": 558,
@@ -448,8 +448,8 @@
   }
  },
  "package": {
-  "bytes": 1067763,
-  "gzip": 355861
+  "bytes": 1067819,
+  "gzip": 355878
  },
  "styles": {
   "bytes": 523987,
