@@ -850,6 +850,14 @@
       },
       "$description": "Side sheet width, capped by the viewport."
     },
+    "sheet-width-wide": {
+      "$type": "dimension",
+      "$value": {
+        "value": 720,
+        "unit": "px"
+      },
+      "$description": "A wide side sheet (SheetContent size=\"wide\"), for reading a record while the list stays behind it: size-breakpoint-container-lg (640) plus the body's two space-5, with room for a classic scrollbar, so the parts inside draw their wide forms. From 720 it is capped at the window less space-12, so a strip of scrim stays to press; under 720 it is the window's width."
+    },
     "command-width": {
       "$type": "dimension",
       "$value": {
@@ -1090,6 +1098,14 @@
         "unit": "px"
       },
       "$description": "A component's own width, in a container query, below which panels stop sharing one seat and a bar of tabs drops from 56 to 48 (DECISIONS 154, X6 and D12). A container query cannot read a token, so CSS writes this number beside a lint exception that names the token."
+    },
+    "breakpoint-short": {
+      "$type": "dimension",
+      "$value": {
+        "value": 480,
+        "unit": "px"
+      },
+      "$description": "A window's height, not its width: under it nothing is pinned to the window's top or bottom (the header, a banner, a foot, the tab bar and the status bar are in the flow), because a 56px bar, a 56px tab bar and one 44px foot row would be more than a third of the window. It catches a phone in landscape and a short window, and no portrait phone or laptop. A media query cannot read a token, so CSS writes this number beside a lint exception that names the token."
     },
     "chart-line": {
       "$type": "dimension",

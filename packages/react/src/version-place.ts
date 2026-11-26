@@ -13,6 +13,9 @@ export const VersionPlaceContext = /* @__PURE__ */ React.createContext<VersionPl
 /** The app shell's `version`, for More's sheet to draw as its last row. */
 export const VersionContext = /* @__PURE__ */ React.createContext<React.ReactNode>(null);
 
+/** The app shell's `footnote` (an `AppFootnote`), for More's sheet to draw as a row above the version row. */
+export const FootnoteContext = /* @__PURE__ */ React.createContext<React.ReactNode>(null);
+
 /**
  * The rail's tooltip, handed down by `AppShell`, which already carries it for `Nav`. So a `VersionLink` in a site's footer or on an account page
  * loads no tooltip at all.

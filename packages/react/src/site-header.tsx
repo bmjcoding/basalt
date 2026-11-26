@@ -55,6 +55,14 @@ export interface SiteHeaderProps extends Omit<React.ComponentProps<"header">, "c
   themeToggle?: React.ReactNode;
   /** At most one primary `Button`. It leaves the bar under 720 and sits at the foot of the narrow menu, full width. Never a danger Button. */
   action?: React.ReactNode;
+  /**
+   * The person's account, for an app page under a site header: one ghost control (a `Button` or `IconButton` that opens a `Menu`), named for the person.
+   * From 720 it is last in the bar, after `action` (give it `edge="end"`). Under 720, with a narrow menu (the bar has links or an action), it leaves the bar
+   * and is a row of the menu, under the links and above the foot's action; with no narrow menu it stays in the bar in the Menu button's place. It is
+   * rendered in both places and the stylesheet shows one, so give it no `id`: it mounts twice, its effects run twice, and state held inside it is not
+   * shared between the two.
+   */
+  account?: React.ReactNode;
   /** The landmark's name. Default "Primary". */
   navLabel?: string;
   /** The narrow menu's trigger and dialog name. Default "Menu". */
@@ -86,12 +94,12 @@ function merge<T>(...refs: Array<React.Ref<T> | undefined>): React.RefCallback<T
  * inside a 44px target; hover is the pill at the selected wash with the ink to primary, one shared pill gliding as `Nav`'s
  * does; the current page is primary at 600 with no background. Under 720 it is brand, `LoopsToggle`, the tools and a Menu button.
  */
-export function SiteHeader({ brand, lockup, brandLabel, homeHref = "/", links = [], loopsToggle, tools, themeToggle, action, navLabel = "Primary", menuLabel = "Menu", closeLabel = "Close menu", solid = false, phase, className, ...props }: SiteHeaderProps) {
+export function SiteHeader({ brand, lockup, brandLabel, homeHref = "/", links = [], loopsToggle, tools, themeToggle, action, account, navLabel = "Primary", menuLabel = "Menu", closeLabel = "Close menu", solid = false, phase, className, ...props }: SiteHeaderProps) {
   const bar = React.useRef<HTMLElement>(null);
   const setRef = React.useMemo(() => merge<HTMLElement>(bar, props.ref), [props.ref]);
   const { top, jump } = useAtTop(!solid);
   const header = (
-    <header {...props} ref={setRef} data-solid={solid ? "" : undefined} data-top={top ? "" : undefined} data-jump={jump ? "" : undefined} data-pinned-edge="top" className={join("basalt-chrome basalt-site-header", className)}>
+    <header {...props} ref={setRef} data-solid={solid ? "" : undefined} data-menu={links.length || action ? "" : undefined} data-top={top ? "" : undefined} data-jump={jump ? "" : undefined} data-pinned-edge="top" className={join("basalt-chrome basalt-site-header", className)}>
       <SiteLockupDefs lockup={lockup}>
         <div className="basalt-site-bar">
           <SiteBrand href={homeHref} label={brandLabel} lockup={lockup}>{brand}</SiteBrand>
@@ -102,6 +110,7 @@ export function SiteHeader({ brand, lockup, brandLabel, homeHref = "/", links = 
             {themeToggle}
             {tools}
             {action ? <span className="basalt-site-action">{action}</span> : null}
+            {account ? <span className="basalt-site-account">{account}</span> : null}
             {links.length || action ? (
               <SiteMenu
                 brand={<SiteBrand href={homeHref} label={brandLabel} lockup={lockup}>{brand}</SiteBrand>}
@@ -110,6 +119,7 @@ export function SiteHeader({ brand, lockup, brandLabel, homeHref = "/", links = 
                 themeToggle={themeToggle}
                 loops={Boolean(loopsToggle)}
                 action={action}
+                account={account}
                 navLabel={navLabel}
                 menuLabel={menuLabel}
                 closeLabel={closeLabel}

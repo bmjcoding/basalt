@@ -24,6 +24,12 @@
   }
   dialog.sheet[open] { display: flex; flex-direction: column; }
   .sheet[data-side="right"], .sheet[data-side="left"] { top: 0; bottom: 0; width: min(var(--basalt-size-sheet-width), 100%); }
+  /* A wide side sheet (React's SheetContent size="wide"): a record read while the list stays behind it. The window's width under 720; from 720
+     size-sheet-width-wide at most the window less space-12. Its title takes the page's h1 step, 18/26. */
+  .sheet[data-size="wide"]:is([data-side="right"], [data-side="left"]) { width: 100%; }
+  /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the scrim's strip; a fixed-length token cannot say it */
+  @media (width >= %bp-md%) { .sheet[data-size="wide"]:is([data-side="right"], [data-side="left"]) { width: min(var(--basalt-size-sheet-width-wide), calc(100vw - var(--basalt-space-12))); } }
+  .sheet[data-size="wide"] .sheet-head .dialog-title { font-size: var(--basalt-text-lg-size); line-height: var(--basalt-text-lg-line-height); letter-spacing: var(--basalt-text-lg-tracking); }
   .sheet[data-side="right"] { inset-inline: auto 0; border-left: var(--basalt-size-hairline) solid var(--basalt-border-rim); transform: translateX(100%); }
   .sheet[data-side="left"] { inset-inline: 0 auto; border-right: var(--basalt-size-hairline) solid var(--basalt-border-rim); transform: translateX(-100%); }
   /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */

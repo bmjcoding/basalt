@@ -2,12 +2,16 @@ import * as React from "react";
 
 import { Avatar } from "./composition";
 import { DotSep } from "./dot-sep";
+import { MoreGlyph } from "./glyphs/more";
+import { Icon } from "./icon";
 import { useArrival } from "./arrival";
 import type { ArrivalProps } from "./arrival";
-import { inLevel, usePanelLevel } from "./layers";
+import { inLevel, useFloatingLayer, usePanelLevel, usePopupLevel } from "./layers";
 import { join } from "./utils";
 
 export type { ArrivalProps } from "./arrival";
+
+declare const process: { env: { NODE_ENV?: string } };
 
 // ---- The stream ----
 // A conversation or a timeline, oldest first: a support thread, a team chat, a document's comments, an agent's run, a project's history. One
@@ -75,14 +79,31 @@ export interface StreamMessageProps extends ArrivalProps, Omit<React.ComponentPr
   joined?: boolean;
   /** More of the head, after the time, in tertiary at 12: a `Presence`, "Edited", a badge. */
   meta?: React.ReactNode;
-  /** Controls at the end of the head (a menu, "Stop"). A joined message has no head, so none. */
+  /**
+   * Controls at the end of the head (a menu, "Stop"), always drawn. An action the reader must not miss belongs here, never only in `quietActions`. A
+   * joined message has no head, so none.
+   */
   actions?: React.ReactNode;
+  /**
+   * One or two ghost `xs` (24) icon controls for what a reader does now and then (reply, react, copy a link); more go in one menu. With a fine pointer
+   * from 720 they are revealed while the message is hovered, holds focus or holds an open popup (in the tab order at rest, never taking a press while
+   * hidden): at the head's end, before `actions`, or, in a joined message, in a seat at the end of its words' first line. Everywhere else the message
+   * draws one More control that opens them in a popover, so there is always a route to them. Write the same nodes for a headed and a joined message.
+   * A joined message that begins with a block (a quote, a card) clears the seat's line: carry these on a headed message instead.
+   */
+  quietActions?: React.ReactNode;
+  /** The More control's name on touch. Default "Actions for the message from {author}, {time}". */
+  quietActionsLabel?: string;
+  /** The time is a link to the entry (its own page or anchor): tertiary at rest, primary with the link's underline on hover and focus (on touch the underline is drawn at rest). */
+  timeHref?: string;
+  /** The time link's name. Default "Message from {author}, {time}". */
+  timeLabel?: string;
   /** The words, and any blocks (a `StreamQuote`, a `DisclosureRow`, an `ActivityList`, a card in a `StreamBlock`). */
   children: React.ReactNode;
 }
 
 /** A message: an avatar, a name, a time and the words. See the module note. */
-export function StreamMessage({ author, avatar, time, dateTime, joined = false, meta, actions, arrived, arrivedLabel = DEFAULT_ARRIVED, onArrivedEnd, className, children, ...props }: StreamMessageProps) {
+export function StreamMessage({ author, avatar, time, dateTime, joined = false, meta, actions, quietActions, quietActionsLabel, timeHref, timeLabel, arrived, arrivedLabel = DEFAULT_ARRIVED, onArrivedEnd, className, children, ...props }: StreamMessageProps) {
   const arrival = useArrival<HTMLLIElement>({ arrived, onArrivedEnd });
   // The label of the block in it that is arrived (one at a time), and whether one ever was, so the word keeps its room after.
   const [block, setBlock] = React.useState<string | null>(null);
@@ -94,6 +115,16 @@ export function StreamMessage({ author, avatar, time, dateTime, joined = false, 
   const wordEver = arrival.ever || (showHead && blockEver !== null);
   const wordLabel = arrival.on ? arrivedLabel : (block ?? blockEver ?? arrivedLabel);
   const timeEl = <time className="basalt-stream-time" dateTime={dateTime}>{time}</time>;
+  const timeLink = timeHref !== undefined ? <a href={timeHref} aria-label={timeLabel ?? `Message from ${author}, ${time}`} className="basalt-stream-time-link">{timeEl}</a> : null;
+  const quiet = quietActions != null ? (
+    <>
+      <span className="basalt-stream-quiet">{quietActions}</span>
+      <QuietMore label={quietActionsLabel ?? `Actions for the message from ${author}, ${time}`}>{quietActions}</QuietMore>
+    </>
+  ) : null;
+  // A message with no head drawn carries its time link and its quiet actions in a seat at the end of its words' first line.
+  const seat = !showHead && (timeLink !== null || quiet !== null) ? <span className="basalt-stream-seat">{timeLink}{quiet}</span> : null;
+  if (process.env.NODE_ENV !== "production" && seat !== null) warnBlockFirst(children);
   return (
     <li {...props} {...arrival.attrs} data-joined={showHead ? undefined : ""} className={join("basalt-stream-message", className)}>
       <span className="basalt-stream-gutter" aria-hidden="true">{showHead ? (avatar ?? <Avatar name={author} size={32} />) : null}</span>
@@ -101,22 +132,76 @@ export function StreamMessage({ author, avatar, time, dateTime, joined = false, 
         {showHead ? (
           <div className="basalt-stream-head">
             <span className="basalt-stream-author">{author}</span>
-            {timeEl}
+            {timeLink ?? timeEl}
             {meta ? <span className="basalt-stream-meta">{meta}</span> : null}
             {wordEver ? <ArrivedWord on={wordOn} label={wordLabel} /> : null}
+            {quiet}
             {actions ? <span className="basalt-stream-actions">{actions}</span> : null}
           </div>
         ) : (
-          <span className="basalt-visually-hidden">{author}, {timeEl}: </span>
+          // While the seat draws the time (a link named with it), the prefix says the author alone, so the time is said once.
+          <span className="basalt-visually-hidden">{author}{timeLink !== null ? null : <>, {timeEl}</>}: </span>
         )}
         <HeadContext.Provider value={head}>
           <WordContext.Provider value={{ on: wordOn, ever: wordEver, label: wordLabel }}>
-            <div className="basalt-stream-text">{children}</div>
+            <div className="basalt-stream-text">{seat}{children}</div>
           </WordContext.Provider>
         </HeadContext.Provider>
       </div>
     </li>
   );
+}
+
+/** The words' own first lines: a block anything else, which clears the seat's line. */
+const LINES = new Set(["p", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6"]);
+let warnedBlock = false;
+/** Development only: a joined message whose words begin with a block, which then starts under the seat's line. */
+function warnBlockFirst(children: React.ReactNode) {
+  if (warnedBlock) return;
+  const first = React.Children.toArray(children)[0];
+  if (!React.isValidElement(first) || (typeof first.type === "string" && LINES.has(first.type))) return;
+  warnedBlock = true;
+  console.warn("Basalt StreamMessage: a joined message with quietActions or timeHref begins with a block, which starts under the seat's line (20px more above it). Carry them on a headed message, or leave them off and use the block's own head.");
+}
+
+// The More popover loads the first time a reader reaches for More (stream-more.tsx): the message draws More, and the popup, its positioning and
+// Floating UI come only when someone asks. Pointing at or focusing More starts the load; pressing it opens the popover as soon as it is there.
+// Assigned on first use, so loading this module does nothing.
+type QuietModule = typeof import("./stream-more");
+let quietLoading: Promise<QuietModule> | undefined;
+const loadQuiet = () => (quietLoading ??= import("./stream-more").catch((error) => { quietLoading = undefined; throw error; }));
+
+/**
+ * The quiet actions' touch form: one More control (an ellipsis at 16 in secondary, no plate at rest, `aria-haspopup="dialog"`) that opens the same
+ * controls in a popover, its opener's level plus one. Esc and a press outside close it and focus returns to More; a press on a control in it closes
+ * it, unless that control opens a popup of its own. With a fine pointer from 720 the stylesheet hides it and shows the inline controls.
+ */
+function QuietMore({ label, children }: { label: string; children: React.ReactNode }) {
+  const [Popup, setPopup] = React.useState<QuietModule["QuietPopup"] | null>(null);
+  const [open, setOpen] = React.useState(false);
+  const layer = useFloatingLayer();
+  const level = usePopupLevel();
+  const warm = () => { loadQuiet().catch(() => {}); };
+  const press = (event: React.MouseEvent) => {
+    const control = (event.target as Element).closest("button, a[href], [role='menuitem']");
+    if (control && !control.hasAttribute("aria-haspopup")) setOpen(false);
+  };
+  const trigger = (
+    <button
+      type="button"
+      aria-label={label}
+      aria-haspopup="dialog"
+      aria-expanded={open}
+      className="basalt-stream-more"
+      onPointerEnter={Popup ? undefined : warm}
+      onFocus={Popup ? undefined : warm}
+      onClick={Popup ? undefined : () => loadQuiet().then((module) => { setPopup(() => module.QuietPopup); setOpen(true); })}
+    >
+      <Icon icon={MoreGlyph} size={16} />
+    </button>
+  );
+  if (!Popup) return trigger;
+  return <Popup open={open} onOpenChange={setOpen} trigger={trigger} level={level} layer={layer} label={label}>{inLevel(level, <div className="basalt-cluster" onClick={press}>{children}</div>)}</Popup>;
 }
 
 export interface StreamNoteProps extends ArrivalProps, Omit<React.ComponentProps<"li">, "children" | "ref" | "tabIndex"> {

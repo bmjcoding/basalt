@@ -220,6 +220,12 @@ export interface CalloutProps extends Omit<React.ComponentProps<"div">, "title">
    * the heading takes the title's type. Without it the title is not a heading.
    */
   heading?: 2 | 3 | 4 | 5 | 6;
+  /**
+   * A fact beside the title: a `Presence`, a `Badge`, a time. It sits after the title on its baseline, `space-2` from it, and goes whole to a line of
+   * its own above the body when the two do not fit (only a `meta` wider than the callout itself wraps inside). Plain words in it are 13/18 at 400 in
+   * secondary. With `heading`, the heading holds the title alone and `meta` is read after it. The status icon is never replaced.
+   */
+  meta?: React.ReactNode;
   /** What to do about it. */
   children?: React.ReactNode;
   /** Actions, usually one or two small buttons. */
@@ -236,7 +242,7 @@ export interface CalloutProps extends Omit<React.ComponentProps<"div">, "title">
  * decision, or information the reader shouldn't miss. Status is the icon's shape and colour plus
  * the words; the surface stays neutral.
  */
-export function Callout({ status = "info", title, heading, children, actions, live, className, ...props }: CalloutProps) {
+export function Callout({ status = "info", title, heading, meta, children, actions, live, className, ...props }: CalloutProps) {
   const level = usePanelLevel();
   const Title = heading ? (`h${heading}` as const) : "div";
   return (
@@ -249,7 +255,12 @@ export function Callout({ status = "info", title, heading, children, actions, li
     >
       <Icon icon={CALLOUT_ICON[status]} size={16} className="basalt-callout-icon" />
       <div className="basalt-callout-body">
-        <Title className="basalt-callout-title">{title}</Title>
+        {meta != null ? (
+          <div className="basalt-callout-head">
+            <Title className="basalt-callout-title">{title}</Title>
+            <div className="basalt-callout-meta">{meta}</div>
+          </div>
+        ) : <Title className="basalt-callout-title">{title}</Title>}
         {children ? <div className="basalt-callout-text">{inLevel(level, children)}</div> : null}
         {actions ? <div className="basalt-callout-actions">{inLevel(level, actions)}</div> : null}
       </div>

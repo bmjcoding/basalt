@@ -349,7 +349,8 @@ test("no module in dist builds a registry or reads a primitive's part when it lo
     // tables are Base UI's own, and load only when a reader first reaches for a source line, or a rail shows a version.
     // The anchored popover (cimip-gaps-3 T2: Stat's hint and a rail stage's detail) is the third, the same way: Base UI's popover inlined, its tables
     // (ariaHiddenCounterMap, uncontrolledElementsSet) allocated only when a hint or a rail's node first opens one.
-    if (["release-sources.js", "rail-tooltip.js", "anchored-popover.js"].includes(path.basename(file))) continue;
+    // A stream message's More popover (cimip-gaps-3 T5) is the fourth, the same way: its tables load only when a reader on touch first presses More.
+    if (["release-sources.js", "rail-tooltip.js", "anchored-popover.js", "stream-more.js"].includes(path.basename(file))) continue;
     const source = fs.readFileSync(file, "utf8");
     // `var x = /* @__PURE__ */ new Set()` is still an allocation at load
     for (const match of source.matchAll(/^(?:var|let|const) \w+ = (?:\/\*.*?\*\/ )?(?:new (?:Map|Set|WeakMap|WeakSet|Intl\.\w+|RegExp)\(|Base\w+\.\w+;)/gm)) offenders.push(`${path.relative(dist, file)}: ${match[0]}`);
@@ -671,7 +672,7 @@ test("the whole package up front, tracked subpaths, and styles.css, minified and
 test("importing every file in dist allocates no registry or formatter, reads no browser global, and throws nothing", async () => {
   const { execFileSync } = await import("node:child_process");
   const dist = path.join(pkg, "dist");
-  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && !["command-panel.js", "release-sources.js", "rail-tooltip.js", "anchored-popover.js"].includes(path.basename(f)) && !["head/theme.js", "head/loops.js"].includes(f.split(path.sep).join("/"))).sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
+  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && !["command-panel.js", "release-sources.js", "rail-tooltip.js", "anchored-popover.js", "stream-more.js"].includes(path.basename(f)) && !["head/theme.js", "head/loops.js"].includes(f.split(path.sep).join("/"))).sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
   assert.ok(files.length > 200, `${files.length} files in dist`);
   const script = `
     import { pathToFileURL } from "node:url";
@@ -824,10 +825,19 @@ test("ReleaseNotes loads no popup up front: no popover, no positioning, no Float
 
 // AppShell measured alone (the size table): 103,887 before the version, 115,101 with the rail's tooltip up front, 104,373 with it on demand; with
 // splitting its static graph measures 104,964, so the limit is 105,000.
+// cimip-gaps-3 T5 (graph() on origin/main c67926bf and on the T5 head): 104,924 on main, 105,239 with T5 (+315: `rail`, `banner`, `footnote` and the
+// title context a phone page head registers in), so the limit goes up by that increase, 105,000 to 105,315.
 test("AppShell loads the rail's tooltip for the version on demand", async () => {
   const { inputs, bytes } = await graph("AppShell");
   assert.deepEqual(inputs.filter((input) => /rail-tooltip/.test(input)), []);
-  assert.ok(bytes < 105_000, `AppShell: ${bytes} bytes (limit 105,000)`);
+  assert.ok(bytes < 105_315, `AppShell: ${bytes} bytes (limit 105,315)`);
+});
+
+// cimip-gaps-3 T5: a stream message's More popover (the quiet actions' touch form) loads the first time a reader reaches for More, from stream-more.js,
+// built on its own with Base UI's popover inlined. With it up front StreamMessage measured 130,133 in the size table; on demand, 19,831.
+test("StreamMessage loads no popup up front: no popover, no positioning, no Floating UI until More is pressed", async () => {
+  const { inputs } = await graph("StreamMessage");
+  assert.deepEqual(inputs.filter((input) => /@floating-ui\/(dom|core|react-dom)|floating-ui-react|@base-ui\/react\/popover|stream-more|useAnchorPositioning/.test(input)), []);
 });
 
 // DECISIONS 316, ruling 3: TextButton draws its end icon through ControlIcon, so a chevron that opens something in place morphs; measured 11,412 (10,600 to 11,450).

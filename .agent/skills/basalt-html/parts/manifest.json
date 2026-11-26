@@ -44,7 +44,10 @@
       "float",
       "modal",
       "btn",
-      "icon"
+      "icon",
+      "section-description",
+      "message-page",
+      "message-page-body"
     ],
     "usage": 3650
   },
@@ -83,7 +86,8 @@
         "version-link-number",
         "version-link-pre",
         "version-link-date",
-        "site-footer-legal-row"
+        "site-footer-legal-row",
+        "topbar-account"
       ],
       "budget": 19951,
       "usage": 3200,
@@ -481,7 +485,9 @@
       "classes": [
         "callout",
         "callout-title",
-        "callout-body"
+        "callout-body",
+        "callout-head",
+        "callout-meta"
       ],
       "budget": 1150,
       "usage": 700
@@ -1656,7 +1662,8 @@
         "topbar-menu",
         "topbar-menu-actions",
         "topbar-menu-foot",
-        "topbar-menu-loops"
+        "topbar-menu-loops",
+        "topbar-menu-account"
       ],
       "requires": [
         "topbar",
@@ -1696,7 +1703,14 @@
         "app-actions",
         "app-heading",
         "app-facts",
-        "app-version"
+        "app-version",
+        "app-lockup",
+        "app-lockup-mark",
+        "app-lockup-lines",
+        "app-footnote",
+        "app-page-head",
+        "app-page-title",
+        "app-echo"
       ],
       "requires": [
         "topbar",
@@ -1784,7 +1798,8 @@
         "tab-bar-label",
         "tab-bar-dot",
         "tab-bar-sheet-head",
-        "tab-bar-version"
+        "tab-bar-version",
+        "tab-bar-before"
       ],
       "viewportFit": true,
       "budget": 5900,

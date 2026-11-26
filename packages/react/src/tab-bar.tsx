@@ -10,7 +10,7 @@ import type { IconComponent } from "./types";
 import { useScreenKeyboardLayout } from "./screen-keyboard";
 import { useKeysMark } from "./use-media";
 import { join } from "./utils";
-import { VersionContext, VersionPlaceContext } from "./version-place";
+import { FootnoteContext, VersionContext, VersionPlaceContext } from "./version-place";
 
 // The phone tab bar (decisions 96): the destinations of an app under 720, always glyph over label. It is navigation, so a
 // `nav` of links with `aria-current="page"`, never a tablist. Solid `surface-page` with a hairline on top: the header is the
@@ -102,15 +102,21 @@ export interface TabBarMoreProps {
   dotKind?: "plain" | "direct";
   /** The destinations that did not fit: `NavItem`s, drawn as `Nav` rows in the bottom sheet. */
   children: React.ReactNode;
+  /**
+   * Rows that are not destinations, under the sheet's title and above the `Nav`, a divider under them: each child full width, 44 tall, on the `Nav`
+   * rows' inset (`LoopsToggle`'s Button form, "Pause animations", say). They are outside the `nav` landmark, and a press on one leaves the sheet open.
+   */
+  before?: React.ReactNode;
 }
 
 /**
  * The last cell when there are more than five destinations: a button that opens the rest in a bottom `Sheet`. Inside `AppShell` with a `version`,
  * the sheet's last row is that version, under a divider (DECISIONS 320, 1.2).
  */
-export function TabBarMore({ icon = MoreNavGlyph, label = "More", current, dot, dotKind, children }: TabBarMoreProps) {
+export function TabBarMore({ icon = MoreNavGlyph, label = "More", current, dot, dotKind, before, children }: TabBarMoreProps) {
   const [open, setOpen] = React.useState(false);
   const version = React.useContext(VersionContext);
+  const footnote = React.useContext(FootnoteContext);
   const closeOnLink = (event: React.MouseEvent) => { if ((event.target as Element).closest("a")) setOpen(false); };
   const name = current ? `${label}, ${current}, current page` : label;
   return (
@@ -125,7 +131,9 @@ export function TabBarMore({ icon = MoreNavGlyph, label = "More", current, dot, 
             <SheetTitle>{label}</SheetTitle>
             <SheetClose render={<IconButton icon={CloseGlyph} label={`Close ${label.toLowerCase()}`} edge="end" />} />
           </div>
+          {before != null ? <div className="basalt-tabbar-before">{before}</div> : null}
           <Nav aria-label={label} onClick={closeOnLink}>{children}</Nav>
+          {footnote != null ? <div className="basalt-tabbar-footnote"><VersionPlaceContext.Provider value="more">{footnote}</VersionPlaceContext.Provider></div> : null}
           {version ? <div className="basalt-tabbar-version" onClick={closeOnLink}><VersionPlaceContext.Provider value="more">{version}</VersionPlaceContext.Provider></div> : null}
         </SheetContent>
       </Sheet>

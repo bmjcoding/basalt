@@ -68,12 +68,20 @@ export interface SheetContentProps extends Omit<DialogContentProps, "size"> {
    * back to its top. The first value is not a change. The app swaps the body and the foot; the sheet moves focus.
    */
   step?: string | number;
+  /**
+   * A side sheet's width. `wide` (`size-sheet-width-wide`, 720px; at most the window less `space-12` from 720, so a strip of scrim stays to press; the
+   * window's width under 720) holds a record the reader reads while the list stays behind it: its body (680) clears `size-breakpoint-container-lg`, so
+   * the parts inside draw their wide forms. Its title is the page's step, 18/26 (the standard sheet and the form dialog keep 20/28), and its first focus
+   * is the title, as a wide dialog's is; `initialFocus` wins. A form stays a form dialog; a whole workspace stays a page. Ignored on `top` and `bottom`.
+   */
+  size?: "default" | "wide";
 }
 
 export { Dialog as Sheet, DialogTrigger as SheetTrigger, DialogTitle as SheetTitle, DialogDescription as SheetDescription, DialogClose as SheetClose, DialogActions as SheetActions };
 
 /** A modal side panel for a task or detail, with native dialog focus and dismissal behaviour. */
-export function SheetContent({ side = "right", className, style, children, ref, step, ...props }: SheetContentProps) {
+export function SheetContent({ side = "right", className, style, children, ref, step, size = "default", initialFocus, ...props }: SheetContentProps) {
+  const wide = size === "wide" && (side === "left" || side === "right");
   const layer = useModalLayer();
   const popup = React.useRef<HTMLDivElement | null>(null);
   const keepRef = React.useCallback((node: HTMLDivElement | null) => {
@@ -96,7 +104,7 @@ export function SheetContent({ side = "right", className, style, children, ref, 
     <ModalHost.Provider value={popup}>
     <BaseDialog.Portal>
       <BaseDialog.Backdrop data-side={side} className="basalt-dialog-backdrop basalt-sheet-backdrop" style={{ zIndex: layer.backdrop }} />
-      <BaseDialog.Popup {...props} ref={popupRef} data-side={side} data-level={MODAL_LEVEL} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-sheet", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
+      <BaseDialog.Popup {...props} ref={popupRef} data-side={side} data-size={wide ? "wide" : undefined} initialFocus={initialFocus ?? (wide ? () => popup.current?.querySelector<HTMLElement>(".basalt-dialog-title") ?? true : undefined)} data-level={MODAL_LEVEL} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-sheet", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
     </BaseDialog.Portal>
     </ModalHost.Provider>
     </ModalDepth.Provider>
