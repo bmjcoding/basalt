@@ -228,10 +228,10 @@
   "Reveal": 20409,
   "RoutesGlyph": 3009,
   "RunAnnouncer": 448,
-  "RunStage": 27824,
-  "RunStep": 27610,
+  "RunStage": 27953,
+  "RunStep": 27708,
   "RunTimeline": 22714,
-  "RunTimer": 6693,
+  "RunTimer": 6763,
   "RunsGlyph": 3128,
   "STAGE_WORDS": 168,
   "STATUS_MESSAGE_MS": 26,
@@ -295,9 +295,9 @@
   "Spinner": 1509,
   "Stage": 1219,
   "StageBadge": 5440,
-  "StageList": 1306,
+  "StageList": 1332,
   "StageMark": 19314,
-  "StageRail": 1258,
+  "StageRail": 1524,
   "Stat": 2215,
   "StateDiagram": 120064,
   "Stats": 314,
@@ -341,7 +341,7 @@
   "TabsList": 39633,
   "TabsPanel": 36621,
   "TabsPanels": 331,
-  "Terminal": 43510,
+  "Terminal": 43577,
   "Text": 922,
   "TextButton": 11393,
   "TextMorph": 4681,
@@ -446,8 +446,8 @@
   }
  },
  "package": {
-  "bytes": 1060106,
-  "gzip": 353574
+  "bytes": 1060488,
+  "gzip": 353682
  },
  "styles": {
   "bytes": 514930,

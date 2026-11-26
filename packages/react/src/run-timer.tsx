@@ -184,10 +184,13 @@ export function RunTimer({ start, end, carried = 0, since, scale: own = "seconds
     return formatRunTime(g, grain).text;
   };
   const text = from === undefined ? "\u00a0" : draw(ms);
-  // What the tick compares: the drawn figure and, when given, the spoken words, so neither goes stale while the other holds.
+  // What the tick compares: the drawn figure and, when given, the spoken words, so neither goes stale while the other holds; at the minute grain also
+  // the machine value (an app's formatter can hold its text across many minutes, and `dateTime` must still move each minute); and always the scale the
+  // length needs, so a list widens at 60 s however the app writes the figure. A render that changes no text writes no text.
   const spokenKey = (at: number) => (spoken ? `\u0000${spoken(atGrain(at), grain)}` : "");
-  textAt.current = (t) => { if (from === undefined) return "\u00a0"; const at = lengthAt(t); return draw(at) + spokenKey(at); };
-  shown.current = from === undefined ? text : text + spokenKey(ms);
+  const machineKey = (at: number) => `\u0000${grain === "minute" ? formatRunTime(atGrain(at), grain).dateTime : ""}\u0000${scaleFor(at)}`;
+  textAt.current = (t) => { if (from === undefined) return "\u00a0"; const at = lengthAt(t); return draw(at) + spokenKey(at) + machineKey(at); };
+  shown.current = from === undefined ? text : text + spokenKey(ms) + machineKey(ms);
 
   // A time that outgrows its scale is written whole; the list widens every seat together.
   const needed = from === undefined ? scale : scaleFor(ms);

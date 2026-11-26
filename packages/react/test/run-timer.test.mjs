@@ -386,3 +386,31 @@ describe("the minute grain under reduced motion", () => {
     assert.equal(await page.evaluate(() => window.__changes), 0);
   });
 });
+
+// cimip-gaps-3 T1, fix pass 1: an app's formatter can hold its text across many minutes; under reduced motion the machine value still moves each minute
+// and the list's scale still changes at 60 s, while the text is written only when it changes.
+describe("a coarse formatter under reduced motion", () => {
+  test("an hours formatter: dateTime moves at each minute, the list's seat widens at 60 s, and the text is written only when it changes", async () => {
+    const page = await open(`const hours = (ms, grain) => grain === "minute" ? Math.floor(ms / 3_600_000) + "h" : Math.floor(ms / 1000) + "s";
+${RUN(`<B.StageList label="Kiln stages"><B.RunStage name="Fire" state="running" start={10_000 - 50_000} format={hours} /></B.StageList>`)}`, REDUCED);
+    const sel = ".basalt-run-stage time";
+    const read = () => page.evaluate((s) => { const t = document.querySelector(s); return { text: t.querySelector("[data-on]").textContent, iso: t.getAttribute("datetime"), width: t.getBoundingClientRect().width }; }, sel);
+    const start = await read();
+    assert.deepEqual([start.text, start.iso], ["0h", "PT0M"]);
+    await page.evaluate((s) => {
+      window.__text = 0; window.__iso = 0;
+      const t = document.querySelector(s);
+      new MutationObserver((m) => { for (const r of m) if (r.type === "attributes") window.__iso += 1; else if (r.target.closest?.("[data-on]") || r.target.parentElement?.closest("[data-on]")) window.__text += 1; }).observe(t, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["datetime"] });
+    }, sel);
+    await page.clock.runFor(11_000);
+    const minute = await read();
+    assert.deepEqual([minute.text, minute.iso], ["0h", "PT1M"], "the machine value moved at the boundary");
+    assert.ok(minute.width > start.width, `the list's scale changed at 60 s, so the seat widened (${start.width} to ${minute.width})`);
+    for (const want of ["PT2M", "PT3M", "PT4M"]) {
+      await page.clock.runFor(60_000);
+      assert.equal((await read()).iso, want);
+    }
+    assert.equal(await page.evaluate(() => window.__text), 0, "the drawn text never changed, so it was never written");
+    assert.ok(await page.evaluate(() => window.__iso) >= 4, "dateTime was written at each minute");
+  });
+});

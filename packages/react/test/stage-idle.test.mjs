@@ -51,7 +51,8 @@ describe("the eighth state, in the source", () => {
 
 const IDLE = `
 function App() {
-  return <div style={{ padding: 24, display: "grid", gap: 24, width: 640, fontSize: 13 }}>
+  return <main style={{ padding: 24, display: "grid", gap: 24, width: 640, fontSize: 13 }}>
+    <h1 style={{ margin: 0, fontSize: 18 }}>Runs not yet reached</h1>
     <B.StageList label="Build stages">
       <B.RunStage name="Fetch" state="success" start={0} end={1_400} />
       <B.RunStage name="Compile" state="running" start={Date.now() - 4_000} />
@@ -69,7 +70,7 @@ function App() {
       <B.RunStep state="success" start={0} end={1_000}>Write it up</B.RunStep>
     </B.RunTimeline>
     <span id="badge"><B.StageBadge state="idle" states={["idle", "queued", "success"]} /></span>
-  </div>;
+  </main>;
 }
 createRoot(document.getElementById("root")).render(<App />);`;
 

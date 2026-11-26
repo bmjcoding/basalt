@@ -24,8 +24,14 @@ after(async () => { await browser?.close(); });
 
 const px = (page, expr) => page.evaluate((e) => { const d = document.createElement("div"); d.style.width = e; document.body.append(d); const w = d.getBoundingClientRect().width; d.remove(); return w; }, expr);
 
+// A valid outline for axe: h1, h2, h3, then h4 and h5 headings of the page's own so the level-6 title skips none.
 const EMPTY = `createRoot(document.getElementById("root")).render(<main style={{ display: "grid", gap: 16, width: 600, padding: 24 }}>
-  ${[1, 2, 3, 6].map((l) => `<B.EmptyState id="l${l}" headingLevel={${l}} title="No saved recipes" description="Recipes you save appear here." />`).join("\n  ")}
+  <B.EmptyState id="l1" headingLevel={1} title="No saved recipes" description="Recipes you save appear here." />
+  <B.EmptyState id="l2" headingLevel={2} title="No saved recipes" description="Recipes you save appear here." />
+  <B.EmptyState id="l3" headingLevel={3} title="No saved recipes" description="Recipes you save appear here." />
+  <B.Heading level={4} size="sm">Pantry</B.Heading>
+  <B.Heading level={5} size="sm">Spices</B.Heading>
+  <B.EmptyState id="l6" headingLevel={6} title="No saved recipes" description="Recipes you save appear here." />
   <B.EmptyState id="md" titleSize="md" title="No field notes yet" description="Notes from a survey walk appear here." />
   <B.EmptyState id="lg" titleSize="lg" title="No field notes yet" description="Notes from a survey walk appear here." />
 </main>);`;
@@ -50,7 +56,10 @@ describe("EmptyState's title", () => {
 });
 
 const MEDIA = `<svg viewBox="0 0 320 160" aria-hidden="true" style={{ display: "block", width: "100%" }}><rect width="320" height="160" fill="var(--basalt-surface-sunken)" /></svg>`;
+// A valid outline for axe: the page's h1 and a section's h2 above the cards' h3 titles.
 const CARDS = `createRoot(document.getElementById("root")).render(<main style={{ display: "grid", gap: 24, width: "min(560px, 100%)", padding: 16, boxSizing: "border-box" }}>
+  <B.Heading level={1} size="lg">Studio</B.Heading>
+  <B.Heading level={2} size="md">Shortcuts</B.Heading>
   <B.LinkCard id="plain" href="#a" title="Tide atlas" description="Charts for every harbour." state="2026" />
   <B.LinkCard id="display" titleSize="display" href="#a" title="Tide atlas" description="Charts for every harbour." state="2026" />
   <B.LinkCard id="md" titleSize="md" href="#b" title="Field notes" description="The survey's walks." state="12" />
@@ -126,24 +135,34 @@ describe("LinkCard's title sizes", () => {
   }
 
   for (const [label, options] of [["under 720", { viewport: { width: 390, height: 1800 } }], ["on a coarse pointer", { viewport: { width: 1024, height: 1800 }, hasTouch: true, isMobile: true }]]) {
-    test(`${label}: a compact card's hit area is 44 tall with no change to layout, and in a stack a tap on a card's words is that card's`, async () => {
+    // Two cards 4px apart (the decided rule for stacked links, foundations' "Links stacked one per line": each card's words are a label painted over every
+    // neighbour's box, so a box takes only room no words are in, and a tap on a card's own words is always that card's).
+    test(`${label}: a compact card is laid out at its line; across each card's words a tap is that card's, and anywhere in its 44px box it is a link`, async () => {
       const { page } = await fixturePage(browser, CARDS, { theme: "dark", ...options });
       await settle(page);
       const r = await page.evaluate(() => {
-        const c = document.querySelector("#s1");
-        const box = c.getBoundingClientRect();
-        const hit = getComputedStyle(c, "::before");
         const at = (x, y) => document.elementFromPoint(x, y)?.closest(".basalt-link-card")?.id ?? null;
-        const s1 = document.querySelector("#s1 .basalt-link-card-title").getBoundingClientRect();
-        const s2 = document.querySelector("#s2 .basalt-link-card-title").getBoundingClientRect();
-        return { height: box.height, hit: parseFloat(hit.height), above: at(box.left + 4, box.top - 10), s1: at(s1.left + 4, s1.top + s1.height / 2), s2: at(s2.left + 4, s2.top + 2), s1Bottom: at(s1.left + 4, s1.bottom - 2) };
+        const cards = ["s1", "s2"].map((id) => { const card = document.getElementById(id); return { id, box: card.getBoundingClientRect(), words: card.querySelector(".basalt-link-card-title").getBoundingClientRect() }; });
+        const gap = cards[1].box.top - cards[0].box.bottom;
+        const wrong = [];
+        const dead = [];
+        for (const [i, c] of cards.entries()) {
+          const other = cards[1 - i];
+          // Across the words: every column and row of the title's own box, 1px inside its edges.
+          for (let x = c.words.left + 1; x < c.words.right - 1; x += 6) for (const y of [c.words.top + 1, c.words.top + c.words.height / 2, c.words.bottom - 1]) if (at(x, y) !== c.id) wrong.push([c.id, Math.round(x), Math.round(y), at(x, y)]);
+          // The card's own 44px box, centred on it: wherever it is outside the other card's words, a tap lands on a link.
+          const mid = c.box.top + c.box.height / 2;
+          for (let y = mid - 21; y <= mid + 21; y += 3) for (const x of [c.words.left + 2, c.box.left + c.box.width / 2, c.box.right - 2]) {
+            const inOther = x >= other.words.left && x <= other.words.right && y >= other.words.top && y <= other.words.bottom;
+            if (!inOther && !at(x, y)) dead.push([c.id, Math.round(x), Math.round(y)]);
+          }
+        }
+        return { heights: cards.map((c) => c.box.height), gap, wrong, dead };
       });
-      assert.equal(r.height, 20, "the layout is the title's line");
-      assert.equal(r.hit, 44);
-      assert.equal(r.above, "s1", "10px above the card is still the card");
-      assert.equal(r.s1, "s1");
-      assert.equal(r.s1Bottom, "s1", "the low edge of a card's words is its own, not the next card's box");
-      assert.equal(r.s2, "s2", "the top of the next card's words is the next card's");
+      assert.deepEqual(r.heights, [20, 20], "the layout is the title's line: no change to layout");
+      assert.equal(r.gap, 4, "the two cards are 4px apart");
+      assert.deepEqual(r.wrong, [], "a tap on a card's words is always that card's");
+      assert.deepEqual(r.dead, [], "no dead tap inside a card's 44px box");
       await page.close();
     });
   }

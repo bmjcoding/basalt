@@ -80,6 +80,8 @@
   .run-rail > .run-stage:not(:last-child)::after { border-block-start-color: var(--basalt-text-secondary); transform: scaleX(0); transform-origin: left; }
   .run-rail > .run-stage:not(:last-child):dir(rtl)::after { transform-origin: right; }
   .run-rail > .run-stage[data-state="success"]:not(:last-child)::after { transform: scaleX(1); transition: transform var(--basalt-duration-slower) var(--basalt-ease-out); }
+  /* The link before a stage that has not started stays empty, even after a passed stage. */
+  .run-rail > .run-stage:not(:last-child):has(+ [data-state="idle"])::after { transform: scaleX(0); }
   @media (prefers-reduced-motion: reduce) { .run-rail > .run-stage::after { transition: none !important; } }
   :root[data-loops="held"] .run-rail > .run-stage::after { transition: none !important; }
   @media (forced-colors: active) { .run-rail > .run-stage::before { border-color: GrayText; } .run-rail > .run-stage::after { border-color: CanvasText; } }

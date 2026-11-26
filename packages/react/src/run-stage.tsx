@@ -18,6 +18,8 @@ declare const process: { env: { NODE_ENV?: string } };
 
 /** Where a `RunStage` is drawn: set by `StageList` and `StageRail`. */
 export const RunStagesContext = React.createContext<"list" | "rail" | null>(null);
+/** On a rail, the state of the next node: the link before a stage that has not started (idle) stays empty, even after a passed stage. */
+export const RailNextContext = React.createContext<StageState | undefined>(undefined);
 
 export interface RunStageProps {
   /** The stage's name: "Test". It never wraps. */
@@ -81,6 +83,7 @@ const RAIL_WORDS = { failed: STAGE_WORDS.failed, skipped: STAGE_WORDS.skipped, c
 /** One stage. In a `StageList` a row; in a `StageRail` a node. */
 export function RunStage({ name, state, word, meta, start, end, format, spoken, detail, action, className }: RunStageProps) {
   const kind = React.useContext(RunStagesContext) ?? "list";
+  const next = React.useContext(RailNextContext);
   const said = word ?? STAGE_WORDS[state];
   const drawn = DRAWN[kind][state];
   const nameRef = React.useRef<HTMLSpanElement>(null);
@@ -105,7 +108,7 @@ export function RunStage({ name, state, word, meta, start, end, format, spoken, 
       <li className={join("basalt-run-stage", className)} data-state={state}>
         <span className="basalt-run-stage-markrow">
           <StageMark state={state} />
-          <span className="basalt-run-stage-link" data-filled={state === "success" ? "" : undefined} aria-hidden="true"><span className="basalt-run-stage-fill" /></span>
+          <span className="basalt-run-stage-link" data-filled={state === "success" && next !== "idle" ? "" : undefined} aria-hidden="true"><span className="basalt-run-stage-fill" /></span>
         </span>
         <span className="basalt-run-stage-name" ref={nameRef} tabIndex={-1}>
           {name}

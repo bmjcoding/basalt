@@ -478,8 +478,9 @@ test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async
   // 41,750 (main's) to 42,200 in DECISIONS 336, then 42,550 with the open items' ruling (the shared copy state, copy-result.ts, and the close on a refused icon-only copy): its copies are hung, its words form keeps its words with the done seat, and a refused copy shows the close.
   // cimip-gaps-3 E1 (DECISIONS 246): RunTimer's `spoken` and its fresh-words tick add 313. E5: with the shared chunk gone (diagram-actions built on its own, build.mjs)
   // Terminal measures 42,889 (43,011 on main), so the limit is 43,050 to 42,900. It was 42,570 before PR #143, already 20 over the old 42,550.
-  // cimip-gaps-3 T1: RunTimer's minute grain under reduced motion (read before paint) adds 730: 42,889 on main, 43,619 here, so the limit is 42,900 to 43,630.
-  assert.ok(bytes < 43_630, `Terminal bundle is ${bytes} bytes`);
+  // cimip-gaps-3 T1: RunTimer's minute grain under reduced motion (read before paint, its tick on the minute's machine value and scale) adds 797: 42,889 on
+  // main, 43,686 here, so the limit is 42,900 to 43,697.
+  assert.ok(bytes < 43_697, `Terminal bundle is ${bytes} bytes`);
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
 });
@@ -771,10 +772,11 @@ test("AppShell loads the rail's tooltip for the version on demand", async () => 
 // RunStage 39,229, 22,900 (39,250 to 22,950). StageMark 14,451 (31,147 on main), StageBadge 5,414 (22,072), RunAnnouncer 582 (19,047) and formatRunTime 649 (19,114)
 // are under the limits E1 left as they were, and none of them loads Base UI again.
 // cimip-gaps-3 T1: the idle mark (Phosphor's CircleDashed, one file, as the other marks), the badge's `states` seat and RunTimer's minute grain, each
-// limit raised by its own increase, main to here: StageMark 14,451 to 19,448 (+4,997; 14,500 to 19,497), StageBadge 5,414 to 5,678 (+264; 5,450 to
-// 5,714), RunTimer 6,091 to 6,827 (+736; 6,100 to 6,836), RunStage 22,181 to 27,958 (+5,777; 22,200 to 27,977), StageList, RunStage 22,948 to 28,723
-// (+5,775; 22,950 to 28,725), StageRail, RunStage 22,900 to 28,675 (+5,775; 22,950 to 28,725). formatRunTime 649 to 684 stays under its 750.
-for (const [name, limit, phosphor] of [["StageMark", 19_497, true], ["StageBadge", 5_714, false], ["RunTimer", 6_836, false], ["RunAnnouncer", 600, false], ["formatRunTime", 750, false], ["RunStage", 27_977, true], ["StageList, RunStage", 28_725, true], ["StageRail, RunStage", 28_725, true]]) {
+// limit raised by its own increase, main to here (with fix pass 1: the tick on the minute's machine value, and the empty link before an idle node):
+// StageMark 14,451 to 19,448 (+4,997; 14,500 to 19,497), StageBadge 5,414 to 5,678 (+264; 5,450 to 5,714), RunTimer 6,091 to 6,897 (+806; 6,100 to
+// 6,906), RunStage 22,181 to 28,087 (+5,906; 22,200 to 28,106), StageList, RunStage 22,948 to 28,852 (+5,904; 22,950 to 28,854), StageRail, RunStage
+// 22,900 to 29,051 (+6,151; 22,950 to 29,101). formatRunTime 649 to 684 stays under its 750.
+for (const [name, limit, phosphor] of [["StageMark", 19_497, true], ["StageBadge", 5_714, false], ["RunTimer", 6_906, false], ["RunAnnouncer", 600, false], ["formatRunTime", 750, false], ["RunStage", 28_106, true], ["StageList, RunStage", 28_854, true], ["StageRail, RunStage", 29_101, true]]) {
   test(`${name} alone loads no Base UI${phosphor ? "" : " and no Phosphor"} (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -791,10 +793,10 @@ for (const [name, limit, phosphor] of [["StageMark", 19_497, true], ["StageBadge
 // scroll, focus and landing) adds about 730 bytes: measured 42,569 on the merged tree, so the limit is 42,600.
 // cimip-gaps-3 E1 (DECISIONS 246): RunStep's `format` and `spoken` and RunTimer's add 371. E5: with the shared chunk gone (diagram-actions built on its own,
 // build.mjs) it measures 42,941 (46,635 on main), so the limit is 46,650 to 42,950.
-// cimip-gaps-3 T1: the idle mark (CircleDashed) and RunTimer's minute grain: 42,930 on main, 48,722 here (+5,792), so the limit is 42,950 to 48,742.
-test("RunTimeline with RunStep loads Base UI's button and nothing else of Base UI (48,742 bytes at most)", async () => {
+// cimip-gaps-3 T1: the idle mark (CircleDashed) and RunTimer's minute grain: 42,930 on main, 48,818 here (+5,888), so the limit is 42,950 to 48,838.
+test("RunTimeline with RunStep loads Base UI's button and nothing else of Base UI (48,838 bytes at most)", async () => {
   const { bytes, inputs } = await graph("RunTimeline, RunStep");
-  assert.ok(bytes < 48_742, `RunTimeline bundle is ${bytes} bytes (limit 48,742)`);
+  assert.ok(bytes < 48_838, `RunTimeline bundle is ${bytes} bytes (limit 48,838)`);
   assert.deepEqual(inputs.filter((f) => /cmdk|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|progress|meter|tooltip)\//.test(f)), "an unrelated Base UI part");
 });

@@ -102,6 +102,15 @@ describe("against React", () => {
     assert.equal(fill, "matrix(1, 0, 0, 1, 0, 0)", "a passed stage's link is full");
     await context.close();
   });
+
+  // cimip-gaps-3 T1: success → idle leaves the link empty; success → running fills it.
+  test("success then idle: the link stays empty; success then running: it fills", async () => {
+    const row = (states) => `<div style="width: 640px; padding: 24px"><ol class="run-rail" aria-label="Kiln">${states.map((s, i) => `<li class="run-stage" data-state="${s}"><span class="run-mark" data-state="${s}" aria-hidden="true"></span><span class="run-stage-name">Node ${i}</span><span class="run-stage-word">${WORDS[s]}</span><span class="run-stage-time">2.1 s</span></li>`).join("")}</ol></div>`;
+    const { page: s, context } = await openHtml(browser, page(row(["success", "idle", "idle"]) + row(["success", "running", "idle"])), { scheme: "dark" });
+    const fills = await s.evaluate(() => [...document.querySelectorAll(".run-rail")].map((rail) => getComputedStyle(rail.querySelector(".run-stage"), "::after").transform));
+    assert.deepEqual(fills, ["matrix(0, 0, 0, 1, 0, 0)", "matrix(1, 0, 0, 1, 0, 0)"]);
+    await context.close();
+  });
 });
 
 describe("stage lines", () => {

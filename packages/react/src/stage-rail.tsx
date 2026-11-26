@@ -1,6 +1,7 @@
 import * as React from "react";
 
-import { countStages, RunStagesContext } from "./run-stage";
+import { countStages, RailNextContext, RunStagesContext } from "./run-stage";
+import type { StageState } from "./run-format";
 import { useRunTimeScale } from "./run-timer";
 import { warnRun } from "./run-warn";
 import { join } from "./utils";
@@ -18,6 +19,13 @@ export interface StageRailProps {
   className?: string;
   /** Two to six `RunStage` nodes, in order. */
   children: React.ReactNode;
+}
+
+/** Each node is told the next node's state, so the link before a stage that has not started stays empty (cimip-gaps-3 T1). */
+function withNext(children: React.ReactNode) {
+  const rows = React.Children.toArray(children);
+  const states = rows.map((row) => (React.isValidElement<{ state?: StageState }>(row) ? row.props.state : undefined));
+  return rows.map((row, i) => (React.isValidElement(row) ? <RailNextContext.Provider key={row.key ?? i} value={states.slice(i + 1).find((s) => s !== undefined)}>{row}</RailNextContext.Provider> : row));
 }
 
 /**
@@ -38,7 +46,7 @@ export function StageRail({ label, timeScale = "seconds", className, children }:
   return (
     <div className={join("basalt-run-rail-box", className)}>
       <ol className="basalt-run-rail" aria-label={label} data-count={count} style={{ "--_count": count } as React.CSSProperties}>
-        <RunStagesContext.Provider value="rail">{provide(children)}</RunStagesContext.Provider>
+        <RunStagesContext.Provider value="rail">{provide(withNext(children))}</RunStagesContext.Provider>
       </ol>
     </div>
   );
