@@ -71,6 +71,8 @@
         head.appendChild(again);
       }
       main.insertBefore(head, main.firstChild);
+      // The bar's own title gives way under 720 only now that the page has one.
+      header.setAttribute('data-phone-title-ready', '');
       var echo = document.createElement('span');
       echo.className = 'app-echo';
       echo.setAttribute('aria-hidden', 'true');

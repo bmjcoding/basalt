@@ -260,6 +260,17 @@ function tops(boxes: Array<HTMLElement | null>): Map<string, number> {
   return out;
 }
 
+/** A drawn row's height now, by its key, in the panel or the sheet. */
+function rowHeight(boxes: Array<HTMLElement | null>, key: string): number | undefined {
+  if (typeof document === "undefined") return undefined;
+  for (const box of boxes) {
+    for (const element of box?.querySelectorAll<HTMLElement>(`[${ROW_KEY}]`) ?? []) {
+      if (element.getAttribute(ROW_KEY) === key && element.offsetHeight) return element.offsetHeight;
+    }
+  }
+  return undefined;
+}
+
 /** Where an arrival is tried, in order: where it belongs, the tray's end, its start; then it waits until the pointer leaves. */
 type Step = "natural" | "end" | "start" | "wait";
 const STEPS: readonly Step[] = ["natural", "end", "start", "wait"];
@@ -277,6 +288,10 @@ function useHold(panel: React.RefObject<HTMLElement | null>, sheet: React.RefObj
   const committed = React.useRef<Place[]>([]);
   const heights = React.useRef(new Map<string, number>());
   const [trial, setTrial] = React.useState<{ keys: string; step: number } | null>(null);
+  // A seat corrected after a departure moved a row (a row that changed size since its last measure): drawn again before paint.
+  const [, setFixed] = React.useState(0);
+  // The departures of the change being drawn, keyed like the arrivals' batch, so the position check runs on every departure too.
+  let departing = "";
   const before = React.useRef<{ keys: string; tops: Map<string, number> } | null>(null);
   const waiting = React.useRef(new Set<string>());
   const natural: Place[] = rows.map((row) => ({ key: keyOf(row), stay: Boolean(row.props.stay) }));
@@ -287,14 +302,20 @@ function useHold(panel: React.RefObject<HTMLElement | null>, sheet: React.RefObj
     for (const place of committed.current) {
       if (place.seat !== undefined) kept.push(place);
       else if (live.has(place.key)) kept.push({ key: place.key, stay: Boolean(live.get(place.key)!.props.stay) });
-      else kept.push({ key: place.key, stay: place.stay, seat: heights.current.get(place.key) ?? 0 });
+      else {
+        // The row that leaves is measured now, in render, while the DOM is still the one it is drawn in (it may have wrapped or grown since the
+        // last commit); the height from the last commit is only the fallback.
+        kept.push({ key: place.key, stay: place.stay, seat: rowHeight([panel.current, sheet.current], place.key) ?? heights.current.get(place.key) ?? 0 });
+        departing += `${place.key}\u0000`;
+      }
     }
     const drawnKeys = new Set(kept.filter((place) => place.seat === undefined).map((place) => place.key));
     const arrivals = natural.filter((place) => !drawnKeys.has(place.key) && !waiting.current.has(place.key));
     batch = arrivals.map((place) => place.key).join("\u0000");
     const step = STEPS[trial?.keys === batch ? trial.step : 0]!;
-    // The tops before the first try, read in render while the DOM is still the last commit's.
-    if (arrivals.length > 0 && before.current?.keys !== batch && typeof document !== "undefined") before.current = { keys: batch, tops: tops([panel.current, sheet.current]) };
+    // The tops before the first try, read in render while the DOM is still the last commit's: for an arrival, and for a departure alone.
+    const change = batch || (departing ? `-${departing}` : "");
+    if (change && before.current?.keys !== change && typeof document !== "undefined") before.current = { keys: change, tops: tops([panel.current, sheet.current]) };
     items = kept;
     if (arrivals.length > 0 && step !== "wait") {
       if (step === "end") items = [...kept, ...arrivals];
@@ -334,6 +355,25 @@ function useHold(panel: React.RefObject<HTMLElement | null>, sheet: React.RefObj
       }
       if (STEPS[step] === "wait") for (const key of batch.split("\u0000")) waiting.current.add(key);
       before.current = null;
+    } else if (!batch && departing && before.current?.keys === `-${departing}`) {
+      // A departure alone: the seat must hold every drawn row where it was. Where a row after a new seat moved, that seat takes the difference,
+      // and the tray is drawn again before paint.
+      const was = before.current.tops;
+      before.current = null;
+      const now = tops([panel.current, sheet.current]);
+      const left = new Set(departing.split("\u0000").filter(Boolean));
+      let corrected = false;
+      const fixed = items.map((place, i) => {
+        if (place.seat === undefined || !left.has(place.key)) return place;
+        const next = items.slice(i + 1).find((item) => item.seat === undefined && was.has(item.key) && now.has(item.key));
+        const delta = next ? now.get(next.key)! - was.get(next.key)! : 0;
+        if (Math.abs(delta) <= 0.5) return place;
+        corrected = true;
+        return { ...place, seat: Math.max(0, place.seat - delta) };
+      });
+      committed.current = fixed;
+      if (corrected) setFixed((n) => n + 1);
+      return;
     }
     if (!sameOrder(committed.current, items)) committed.current = items;
   });

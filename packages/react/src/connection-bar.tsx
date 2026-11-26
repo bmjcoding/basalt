@@ -137,7 +137,21 @@ export function ConnectionBar({ status, words, detail, since, action, contained 
     return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- a state is said when it is drawn, not when the app's words object is new
   }, [drawn]);
-  const hold = (on: boolean) => { held.current = on; if (!on) leave(); };
+  // The pointer and focus hold "Back online" separately: it leaves only when neither is on it.
+  const hover = React.useRef(false);
+  const focus = React.useRef(false);
+  const hold = (kind: "hover" | "focus", on: boolean) => {
+    (kind === "hover" ? hover : focus).current = on;
+    held.current = hover.current || focus.current;
+    if (!held.current) leave();
+  };
+  // A band that has gone takes no pointer or focus with it: the next one starts unheld.
+  React.useEffect(() => {
+    if (shown !== null) return;
+    hover.current = false;
+    focus.current = false;
+    held.current = false;
+  }, [shown]);
   const state = shown;
   const restored = state === "restored";
   const mark = state === "reconnecting" ? <Spinner variant="braille" size={16} />
@@ -157,10 +171,10 @@ export function ConnectionBar({ status, words, detail, since, action, contained 
           data-leaving={leaving ? "" : undefined}
           data-contained={contained ? "" : undefined}
           className={join("basalt-connection-bar", className)}
-          onPointerEnter={(event) => { onPointerEnter?.(event); hold(true); }}
-          onPointerLeave={(event) => { onPointerLeave?.(event); hold(false); }}
-          onFocus={(event) => { onFocus?.(event); hold(true); }}
-          onBlur={(event) => { onBlur?.(event); if (!event.currentTarget.contains(event.relatedTarget as Node | null)) hold(false); }}
+          onPointerEnter={(event) => { onPointerEnter?.(event); hold("hover", true); }}
+          onPointerLeave={(event) => { onPointerLeave?.(event); hold("hover", false); }}
+          onFocus={(event) => { onFocus?.(event); hold("focus", true); }}
+          onBlur={(event) => { onBlur?.(event); if (!event.currentTarget.contains(event.relatedTarget as Node | null)) hold("focus", false); }}
         >
           <div className="basalt-connection-bar-row">
             <span className="basalt-connection-bar-seat" aria-hidden="true">{mark}</span>

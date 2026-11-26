@@ -153,13 +153,14 @@ export function StreamMessage({ author, avatar, time, dateTime, joined = false, 
 }
 
 /** The words' own first lines: a block anything else, which clears the seat's line. */
-const LINES = new Set(["p", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6"]);
+// A function, not a set: loading this module allocates nothing (no module-scope side effects).
+const isLine = (tag: string) => /^(?:p|ul|ol|h[1-6])$/.test(tag);
 let warnedBlock = false;
 /** Development only: a joined message whose words begin with a block, which then starts under the seat's line. */
 function warnBlockFirst(children: React.ReactNode) {
   if (warnedBlock) return;
   const first = React.Children.toArray(children)[0];
-  if (!React.isValidElement(first) || (typeof first.type === "string" && LINES.has(first.type))) return;
+  if (!React.isValidElement(first) || (typeof first.type === "string" && isLine(first.type))) return;
   warnedBlock = true;
   console.warn("Basalt StreamMessage: a joined message with quietActions or timeHref begins with a block, which starts under the seat's line (20px more above it). Carry them on a headed message, or leave them off and use the block's own head.");
 }

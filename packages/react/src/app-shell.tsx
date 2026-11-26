@@ -327,7 +327,10 @@ function useHeadingHandoff(own: React.RefObject<HTMLElement | null>, heading: HT
     const doc = heading.ownerDocument;
     const win = doc.defaultView;
     if (!win) return undefined;
-    let held: HTMLElement | null = null;
+    // Attached to a new heading (a page change replaced the page's head), focus may already be on one of the two: it sends no new focusin, so the
+    // tracking starts from what holds focus now.
+    const active = doc.activeElement;
+    let held: HTMLElement | null = active === heading || active === own.current ? (active as HTMLElement) : null;
     const into = (event: FocusEvent) => {
       const target = event.target as HTMLElement | null;
       held = target === heading || target === own.current ? target : null;

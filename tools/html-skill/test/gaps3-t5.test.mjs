@@ -66,6 +66,15 @@ describe("the app page", () => {
     }
   });
 
+  test("with no script the bar keeps its title under 720: the original gives way only once the page head is built (fix pass 1, item 3)", async () => {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, javaScriptEnabled: false, colorScheme: "dark" });
+    const page = await context.newPage();
+    await page.setContent(html(SHELL({ header: 'data-phone-title="page"', main: "<p>Readings</p>" })));
+    assert.equal(await page.locator(".app-title").evaluate((el) => getComputedStyle(el).display === "none"), false, "the bar's title is still drawn");
+    assert.equal(await page.locator(".app-page-head").count(), 0);
+    await context.close();
+  });
+
   test("data-rail keeps the 72px rail from 1024, the lockup's lines hidden there; the footnote is not drawn in the rail", async () => {
     const { page, context } = await open(SHELL({ shell: "data-rail", foot: '<div class="app-footnote"><div><p>Night shift</p><p class="faint">Since 06:00</p></div></div>' }), { width: 1440 });
     assert.equal(Math.round((await box(page, ".app-sidebar")).width), 72);

@@ -176,7 +176,8 @@
   }
   @media (width < %bp-md%) {
     .app-page-head[data-phone-only]:first-child { margin-top: calc(var(--basalt-space-4) - var(--basalt-space-6)); }
-    .app-header[data-phone-title="page"] .app-bar > :is(.app-heading, .app-title) { display: none; }
+    /* Only once the script has put the page's head in main (data-phone-title-ready): with no script the bar keeps its title. */
+    .app-header[data-phone-title="page"][data-phone-title-ready] .app-bar > :is(.app-heading, .app-title) { display: none; }
     .app-header[data-phone-title="page"] .app-echo { display: block; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--basalt-font-weight-semibold) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-lg-tracking); opacity: 0; transition: opacity calc(var(--basalt-duration-fast) * 0.75) var(--basalt-ease-in); }
     .app-header[data-phone-title="page"] .app-echo[data-shown] { opacity: 1; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
   }

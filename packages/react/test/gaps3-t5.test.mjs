@@ -116,7 +116,7 @@ describe("the app page's rhythm", () => {
   });
 
   test("in a head of 480 or more on touch the title's first line and the control share a centre; under 480 of its own width the head stacks", async () => {
-    const { page } = await open(render(`<div id="wide" style={{ width: 520 }}><B.AppSection><B.AppSectionHead title="Tides" actions={<B.Button size="sm">Export</B.Button>} /></B.AppSection></div><div id="narrow" style={{ width: 420 }}><B.AppSection><B.AppSectionHead title="Tides" actions={<B.Button size="sm">Export</B.Button>} /></B.AppSection></div>`), PHONE);
+    const { page } = await open(render(`<><div id="wide" style={{ width: 520 }}><B.AppSection><B.AppSectionHead title="Tides" actions={<B.Button size="sm">Export</B.Button>} /></B.AppSection></div><div id="narrow" style={{ width: 420 }}><B.AppSection><B.AppSectionHead title="Tides" actions={<B.Button size="sm">Export</B.Button>} /></B.AppSection></div></>`), PHONE);
     const centre = await page.evaluate(() => {
       const title = document.querySelector("#wide .basalt-app-section-title");
       const style = getComputedStyle(title);
@@ -125,6 +125,9 @@ describe("the app page's rhythm", () => {
       return [top + parseFloat(style.lineHeight) / 2, button.top + button.height / 2];
     });
     assert.ok(Math.abs(centre[0] - centre[1]) <= 0.5, `centres ${centre}`);
+    // A head in a plain 520 wrapper (its own container) takes the 44 line: the row reads it, and the title is padded down to it (fix pass 1, item 4).
+    assert.equal(await page.$eval("#wide .basalt-app-head-row", (el) => getComputedStyle(el).getPropertyValue("--_head-line").trim()), "44px");
+    assert.ok(parseFloat(await page.$eval("#wide .basalt-app-section-title", (el) => getComputedStyle(el).paddingTop)) >= 10 - 0.5);
     assert.equal(await page.$eval("#narrow .basalt-app-head-row", (el) => getComputedStyle(el).flexDirection), "column");
     await page.close();
   });
@@ -213,6 +216,22 @@ ${render("<App />")}`, WIDE);
     await settle(page);
     assert.equal(await page.evaluate(() => !!window.pick()?.closest("main")), true);
     assert.equal(await page.evaluate(() => document.activeElement === window.pick()), true, "focus moved to the title now shown");
+    await page.close();
+  });
+
+  test("after a page change replaced the phone head, focus on either title follows across 720 both ways (fix pass 1, item 2)", async () => {
+    const { page } = await open(`
+function App() { const [step, setStep] = React.useState(1); window.next = () => setStep((n) => n + 1); const bar = React.useRef(null); const own = React.useRef(null); window.pick = B.shownHeading(bar, own);
+  return ${SHELL(`<B.AppPageHead key={step} phoneOnly titleRef={own} title={"Order " + step} />`, { header: `<B.AppHeader titleRef={bar} title={"Order " + step} phoneTitle="page" />` })}; }
+${render("<App />")}`, WIDE);
+    await page.evaluate(() => window.next());
+    await settle(page);
+    await page.evaluate(() => window.pick().focus());
+    for (const width of [390, 1440, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await settle(page);
+      assert.equal(await page.evaluate(() => document.activeElement === window.pick()), true, `focus is on the shown title at ${width}`);
+    }
     await page.close();
   });
 
@@ -533,8 +552,27 @@ function App() { const [status, setStatus] = React.useState("connected"); window
   </B.AppShell></>; }
 ${render("<App />")}`;
 
+  /** A page on the fake clock: open() waits two frames, which a paused clock never draws, so this one advances the clock itself. */
+  const openOnClock = async (body) => {
+    const { page, errors } = await fixturePage(browser, body, { theme: "dark", standards: true, ...WIDE, clock: true });
+    await page.addStyleTag({ content: "body { margin: 0; }" });
+    await page.clock.runFor(50);
+    // Every change of the two live regions, in order, so each drawn state can be shown to be said once.
+    await page.evaluate(() => {
+      window.said = [];
+      const record = () => document.querySelectorAll('[aria-live]').forEach((region) => {
+        if (region.__watched) return;
+        region.__watched = true;
+        new MutationObserver(() => { if (region.textContent) window.said.push(region.textContent); }).observe(region, { childList: true, characterData: true, subtree: true });
+      });
+      record();
+      new MutationObserver(record).observe(document.body, { childList: true, subtree: true });
+    });
+    return { page, errors };
+  };
+
   test("nothing for a 900ms outage; Reconnecting at 1000ms; disconnected at once and assertive; Back online for 5000ms, held on hover; a newer status cancels an older timer", async () => {
-    const { page } = await open(APP, { ...WIDE, clock: true });
+    const { page } = await openOnClock(APP);
     await page.evaluate(() => window.set("reconnecting"));
     await page.clock.runFor(900);
     await page.evaluate(() => window.set("connected"));
@@ -551,7 +589,8 @@ ${render("<App />")}`;
     await page.evaluate(() => window.set("connected"));
     await page.clock.runFor(10);
     assert.equal(await page.$eval(".basalt-connection-bar-word", (el) => el.textContent), "Back online");
-    await page.hover(".basalt-connection-bar");
+    // A pointer moved by coordinates: an actionability wait for a stable box needs frames a paused clock does not draw.
+    await page.mouse.move(...(await page.$eval(".basalt-connection-bar", (el) => { const r = el.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })));
     await page.clock.runFor(6000);
     assert.ok(await page.$(".basalt-connection-bar"), "held while the pointer is on it");
     await page.mouse.move(0, 800);
@@ -564,6 +603,28 @@ ${render("<App />")}`;
     await page.evaluate(() => window.set("reconnecting"));
     await page.clock.runFor(5100);
     assert.equal(await page.$eval(".basalt-connection-bar-word", (el) => el.textContent), "Reconnecting", "the stale Back online timer did not end the bar");
+    // Each drawn state said once, in the order drawn (the outage under a second said nothing).
+    assert.deepEqual(await page.evaluate(() => window.said), ["Reconnecting", "Disconnected", "Back online", "Offline", "Back online", "Reconnecting"]);
+    await page.close();
+  });
+
+  test("Back online stays while focus is inside it, past 5000ms and after the pointer leaves (fix pass 1, item 6)", async () => {
+    // The band takes focus from script here (the app passes tabIndex), as a screen reader's or a keyboard's focus on its words would hold it.
+    const { page } = await openOnClock(APP.replace("<B.ConnectionBar status={status} />", "<B.ConnectionBar status={status} tabIndex={-1} />"));
+    await page.evaluate(() => window.set("offline"));
+    await page.clock.runFor(10);
+    await page.evaluate(() => window.set("connected"));
+    await page.clock.runFor(10);
+    // A pointer moved by coordinates: an actionability wait for a stable box needs frames a paused clock does not draw.
+    await page.mouse.move(...(await page.$eval(".basalt-connection-bar", (el) => { const r = el.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })));
+    await page.evaluate(() => document.querySelector(".basalt-connection-bar").focus());
+    await page.clock.runFor(6000);
+    await page.mouse.move(0, 800);
+    await page.clock.runFor(500);
+    assert.ok(await page.$(".basalt-connection-bar"), "held while focus is inside, after the pointer left");
+    await page.evaluate(() => document.activeElement?.blur());
+    await page.clock.runFor(500);
+    assert.equal(await page.$(".basalt-connection-bar"), null, "it leaves once neither holds it");
     await page.close();
   });
 
@@ -611,6 +672,21 @@ ${render("<App />")}`;
       await page.close();
     });
   }
+
+  test("a row that wrapped after a resize leaves under the pointer in a foot at its cap: the button under the pointer moves 0px (fix pass 1, item 1)", async () => {
+    const { page } = await open(TRAY("foot"), { viewport: { width: 1440, height: 420 } });
+    await page.evaluate(() => window.set(["a", "b", "c", "d", "e", "f"]));
+    await settle(page);
+    // The first row wraps to more lines after its last measure: the window narrows, and its words grow.
+    await page.setViewportSize({ width: 900, height: 420 });
+    await page.evaluate(() => { document.querySelector('[data-tray-key="a"] .basalt-tray-words').textContent += " and a long note that wraps onto more lines at this width"; });
+    const box = await rect(page, ".act-b");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.evaluate(() => window.set(["b", "c", "d", "e", "f"]));
+    await settle(page);
+    assert.deepEqual(await rect(page, ".act-b"), box, "a departure alone moved nothing");
+    await page.close();
+  });
 
   test("focus is never on body after a row leaves, with and without a held seat; an arrival is drawn at once under keyboard focus", async () => {
     for (const held of [false, true]) {

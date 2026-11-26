@@ -2142,7 +2142,9 @@
   @media (pointer: coarse), (width < 720px) {
     /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container (480px): a container query cannot read a custom property */
     @container (width >= 480px) {
-      .basalt-app-head[data-actions] { --_head-line: var(--basalt-size-tap-min); }
+      /* The head is its own container, so the line is set on the row inside it, which the query can match (a rule on the container itself would
+         ask the container above it). */
+      .basalt-app-head[data-actions] > .basalt-app-head-row { --_head-line: var(--basalt-size-tap-min); }
       .basalt-app-head[data-actions] .basalt-app-head-actions { margin-block: 0; min-height: var(--_head-line); }
       .basalt-app-head[data-actions] :is(.basalt-app-section-title, .basalt-app-page-title) { padding-block-start: calc((var(--_head-line) - var(--_line)) / 2); }
     }
