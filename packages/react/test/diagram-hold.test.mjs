@@ -554,7 +554,7 @@ describe("a decision's mark (the decider's answer 2 and the picture review)", ()
     const edge = Math.min(...corners.map(([x, y]) => (1 - Math.abs(x - cx) / a - Math.abs(y - cy) / b) / Math.sqrt(1 / a ** 2 + 1 / b ** 2)));
     return { h, width, words: w.width, gap: top - w.bottom, edge, node: [n.width, n.height] };
   }, P);
-  test("2px, space-1 under the words' box and as wide as it, clear of the diamond's edges by 3.9px at least, the diamond's size the same held and not", async () => {
+  test("2px, space-1 under the words' box and as wide as it, clear of the diamond's edges by 3.9px at least from the card's box (about 2px of fill to the drawn contour), the diamond's size the same held and not", async () => {
     const { page } = await every();
     const ids = ["who", "med", "first"];
     const before = {};
@@ -568,7 +568,7 @@ describe("a decision's mark (the decider's answer 2 and the picture review)", ()
       assert.equal(g.h, 2, `${id}: 2px`);
       assert.ok(Math.abs(g.gap - 4) < 0.5, `${id}: space-1 under the words (${g.gap})`);
       assert.ok(Math.abs(g.width - g.words) < 0.5, `${id}: as wide as its words (${g.width}, ${g.words})`);
-      assert.ok(g.edge >= 3.9, `${id}: ${g.edge}px from the diamond's edge`);
+      assert.ok(g.edge >= 3.9, `${id}: ${g.edge}px from the diamond's box edge`);
       assert.deepEqual(g.node, before[id], `${id}: the diamond's size is unchanged`);
     }
     await page.close();
@@ -577,7 +577,7 @@ describe("a decision's mark (the decider's answer 2 and the picture review)", ()
   const FLAT = { type: "flowchart", title: "The flattest decision", summary: "A decision.", legend: { main: "The usual path" },
     nodes: [{ id: "start", name: "Change requested", shape: "terminal", col: 1, row: 1 }, { id: "dec", name: "Owners approved?", shape: "decision", col: 1, row: 2 }, { id: "ship", name: "Ship it", col: 1, row: 3 }, { id: "stop", name: "Sent back", shape: "terminal", col: 2, row: 2 }],
     edges: [{ from: "start", to: "dec", kind: "main" }, { from: "dec", to: "ship", kind: "main", label: "yes" }, { from: "dec", to: "stop", label: "no" }] };
-  test("the worst case, about 115px of words in a 320px track: at least 3.9px from the diamond's edge", async () => {
+  test("the worst case, about 115px of words in a 320px track: at least 3.9px from the diamond's edge, measured from the card's box (about 2px of fill to the drawn contour)", async () => {
     const { page } = await fixturePage(browser, `const { type, ...F } = ${JSON.stringify(FLAT)};
 createRoot(document.getElementById("root")).render(<div id="box" style={{ width: 688 }}><B.FlowchartDiagram id="fig" {...F} /></div>);`, { theme: "dark", standards: true, viewport: { width: 1200, height: 900 } });
     await page.waitForSelector("#fig[data-layout]");
@@ -593,7 +593,7 @@ createRoot(document.getElementById("root")).render(<div id="box" style={{ width:
     const g = await geometry(page, sel);
     assert.ok(Math.abs(g.node[0] - 320) < 1, `a 320px track (${g.node[0]})`);
     assert.ok(Math.abs(g.words - 115) < 12, `words about 115px wide (${g.words})`);
-    assert.ok(g.edge >= 3.9, `${g.edge}px from the diamond's edge`);
+    assert.ok(g.edge >= 3.9, `${g.edge}px from the diamond's box edge`);
     await page.close();
   });
 });
