@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { useFloatingLayer } from "./layers";
+import { useMergedRef } from "./merged-ref";
 import { usePeekPlate } from "./use-peek";
 
 /**
@@ -10,14 +11,8 @@ import { usePeekPlate } from "./use-peek";
 export function PeekText({ as, props }: { as: "p" | "span" | "div"; props: Record<string, unknown> & { ref?: React.Ref<HTMLElement> } }): React.JSX.Element {
   const { ref, ...rest } = props;
   const node = React.useRef<HTMLElement | null>(null);
-  const setRef = React.useCallback(
-    (element: HTMLElement | null) => {
-      node.current = element;
-      if (typeof ref === "function") ref(element);
-      else if (ref) (ref as React.MutableRefObject<HTMLElement | null>).current = element;
-    },
-    [ref],
-  );
+  // The caller's ref keeps React 19's cleanup: a callback ref that returns a function has it called on detach.
+  const setRef = useMergedRef(node, ref);
   usePeekPlate(node, "text", { zIndex: useFloatingLayer()?.zIndex });
   return React.createElement(as, { ...rest, ref: setRef });
 }

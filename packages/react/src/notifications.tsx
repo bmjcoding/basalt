@@ -13,7 +13,8 @@ import { ChevronRightGlyph } from "./glyphs/chevron-right";
 import { NotificationsGlyph } from "./glyphs/notifications";
 import { DotSep } from "./dot-sep";
 import { Icon } from "./icon";
-import { LoadingShape } from "./loading-shape";
+import { InShapeContext } from "./in-shape";
+import type { NotificationShapeProps } from "./notification-shape";
 import { GlidePlate } from "./plate";
 import { standIn } from "./shape-data";
 import { useReveal } from "./reveal";
@@ -128,12 +129,42 @@ export interface NotificationCenterProps extends ListParts {
 /** The older spelling of `NotificationCenterProps`; it stays as an alias. */
 export type NotificationCentreProps = NotificationCenterProps;
 
-/** The list's body with a loading state: stand-in entries as bones before the first answer, then the list in the same box (the shape's own phases). */
-function Shaped({ first, label, rows, wrap, className, children }: { first: boolean; label: string; rows: number; wrap?: boolean; className?: string; children: React.ReactNode }) {
+// The first load's shape (LoadingShape and its measuring, about 13 KB) is a module of its own, notification-shape.tsx, fetched only while a list waits for its
+// first answer, so a bell or a page list that never waits carries none of it. It is made on first use; nothing runs when this module loads.
+let shapeModule: Promise<typeof import("./notification-shape")> | undefined;
+const loadShape = () => {
+  shapeModule ??= import("./notification-shape").catch((error) => { shapeModule = undefined; throw error; });
+  return shapeModule;
+};
+let lazyShape: React.LazyExoticComponent<(props: NotificationShapeProps) => React.JSX.Element> | undefined;
+const shapePart = () => (lazyShape ??= React.lazy(() => loadShape().then((m) => ({ default: m.NotificationShape }))));
+
+/**
+ * Whether the list's place shows the first load's shape: from a first load (a loading state and no entries) until the shape has finished, its hold
+ * included. The populated list is drawn in its own place whatever `loading` says, so a refresh (or `loading` given later) never remounts its entries.
+ */
+function useFirstLoad(first: boolean) {
+  const [done, setDone] = React.useState(!first);
+  // A list that is emptied and waits again shows the shape again.
+  if (first && done) setDone(false);
+  React.useEffect(() => { if (first) void loadShape().catch(() => {}); }, [first]);
+  const finish = React.useCallback(() => setDone(true), []);
+  return { shown: first || !done, finish };
+}
+
+/**
+ * The first load: stand-in entries as bones, in the list's own box. Until the shape's code has arrived the box holds the same stand-ins unseen, so it is the
+ * waiting phase's height and nothing moves when the shape arrives.
+ */
+function FirstLoad({ first, label, rows, wrap, className, onDone }: { first: boolean; label: string; rows: number; wrap?: boolean; className?: string; onDone: () => void }) {
+  const Shape = shapePart();
+  // The stand-ins are told they are drawn in a shape by the package's own context: the lazy module inlines its copy of LoadingShape, whose provider is not
+  // the one a part in the package reads.
+  const standing = () => <InShapeContext.Provider value={1}><Entries entries={standIns(rows)} wrap={wrap} onChoose={() => {}} /></InShapeContext.Provider>;
   return (
-    <LoadingShape loading={first} label={label} className={className} shape={() => <Entries entries={standIns(rows)} wrap={wrap} onChoose={() => {}} />}>
-      {children}
-    </LoadingShape>
+    <React.Suspense fallback={<div className={className}><div aria-hidden="true" inert style={{ visibility: "hidden" }}>{standing()}</div></div>}>
+      <Shape loading={first} label={label} className={className} shape={standing} onDone={onDone} />
+    </React.Suspense>
   );
 }
 
@@ -192,6 +223,7 @@ export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, on
   const unread = unreadCount(entries);
   const direct = directCount(entries);
   const first = Boolean(loading) && entries.length === 0;
+  const firstLoad = useFirstLoad(first);
   const ids = React.useId();
   const popup = React.useRef<PopupActions | null>(null);
   // Choosing an entry, or View all, leaves the center; Esc and an outside click close it before.
@@ -224,12 +256,10 @@ export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, on
           <MarkAllRead unread={unread} onMarkAllRead={onMarkAllRead} edge="end" reason={markReason} reasonId={`${ids}-mark`} />
           {markReason ? <p id={`${ids}-mark`} className="basalt-notifications-reason">{markReason}</p> : null}
         </div>
-        {loading === undefined ? (
-          entries.length === 0 ? list : <div className="basalt-notifications-scroll">{list}</div>
-        ) : (
-          // With a loading state the shape is the scroller: stand-in entries as bones before the first answer, then the list in the same box.
-          <Shaped first={first} label={loadingLabel} rows={loadingRows} wrap={wrap} className="basalt-notifications-scroll">{list}</Shaped>
-        )}
+        {/* Before the first answer the shape is the scroller; after it, the list in its own place, as without a loading state. */}
+        {firstLoad.shown ? (
+          <FirstLoad first={first} label={loadingLabel} rows={loadingRows} wrap={wrap} className="basalt-notifications-scroll" onDone={firstLoad.finish} />
+        ) : entries.length === 0 ? list : <div className="basalt-notifications-scroll">{list}</div>}
         <div className="basalt-notifications-foot">
           <ClearAll count={entries.length} onClearAll={onClearAll} edge="start" reason={clearReason} reasonId={`${ids}-clear`} />
           {viewAllHref ? (
@@ -269,6 +299,7 @@ export function NotificationList({ entries: given, onSelect, onMarkAllRead, onCl
   const unread = unreadCount(entries);
   const direct = directCount(entries);
   const first = Boolean(loading) && entries.length === 0;
+  const firstLoad = useFirstLoad(first);
   const ids = React.useId();
   const markReason = markAllReadReason && unread > 0 ? markAllReadReason : undefined;
   const clearReason = onClearAll && clearAllReason && entries.length > 0 ? clearAllReason : undefined;
@@ -285,9 +316,7 @@ export function NotificationList({ entries: given, onSelect, onMarkAllRead, onCl
           {markReason ? <p id={`${ids}-mark`} className="basalt-notifications-reason">{markReason}</p> : null}
         </div>
       ) : null}
-      {loading === undefined ? list : (
-        <Shaped first={first} label={loadingLabel} rows={loadingRows} wrap={wrap}>{list}</Shaped>
-      )}
+      {firstLoad.shown ? <FirstLoad first={first} label={loadingLabel} rows={loadingRows} wrap={wrap} onDone={firstLoad.finish} /> : list}
       {onClearAll ? (
         // The center's foot without View all (this is the page it opens): Clear all at its start.
         <div className="basalt-notifications-foot">

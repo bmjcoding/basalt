@@ -204,8 +204,12 @@ createRoot(document.getElementById("root")).render(<div style={{ padding: 24, di
   <button type="button" id="button" onClick={() => { window.pressed = (window.pressed || 0) + 1; }} style={{ width: 200 }}><B.Text as="span" lines={1}>{long}</B.Text></button>
   <label id="label" style={{ display: "flex", gap: 8, width: 240 }}><input type="checkbox" id="box" /><B.Text as="span" lines={1}>{long}</B.Text></label>
   <main id="main" tabIndex={-1}><B.Text id="inmain" lines={1}>{long}</B.Text></main>
-  <B.Dialog defaultOpen><B.DialogContent><B.DialogTitle>Recipe</B.DialogTitle><B.Text id="indialog" lines={1}>{long}</B.Text></B.DialogContent></B.Dialog>
 </div>);`;
+
+// A dialog that opens on its own takes focus from the page's controls, so it has a fixture of its own.
+const TEXT_DIALOG = `
+const long = "The quarterly results for every region, with the returns and the refunds that came after the books had closed, read whole here.";
+createRoot(document.getElementById("root")).render(<B.Dialog defaultOpen><B.DialogContent><B.DialogTitle>Recipe</B.DialogTitle><div style={{ width: 240 }}><B.Text id="indialog" lines={1}>{long}</B.Text></div></B.DialogContent></B.Dialog>);`;
 
 describe("Text lines and peek (T3, 3)", () => {
   test("a clamp of 2 at a user line height of 1.5 shows two whole lines and no part of a third in a stretched grid", async () => {
@@ -260,9 +264,13 @@ describe("Text lines and peek (T3, 3)", () => {
     await page.close();
   });
   test("inside main tabindex=-1 and inside a dialog a cut Text is its own stop with its own plate", async () => {
-    const page = await open(TEXT);
+    const main = await open(TEXT);
+    await main.waitForTimeout(2200);
+    assert.equal(await main.locator("#inmain").getAttribute("tabindex"), "0", "inside main tabindex=-1");
+    await main.close();
+    const page = await open(TEXT_DIALOG);
     await page.waitForTimeout(2200);
-    for (const id of ["inmain", "indialog"]) assert.equal(await page.locator(`#${id}`).getAttribute("tabindex"), "0", id);
+    assert.equal(await page.locator("#indialog").getAttribute("tabindex"), "0", "inside a dialog");
     await page.locator("#indialog").focus();
     await page.keyboard.press("Shift+Tab");
     await page.keyboard.press("Tab");
@@ -279,10 +287,11 @@ describe("Text lines and peek (T3, 3)", () => {
     assert.equal((await lines("excerpt")).white, "nowrap");
     await page.close();
   });
-  test("Text without lines loads no peek chunk", async () => {
-    const page = await open(`createRoot(document.getElementById("root")).render(<B.Text>Plain words</B.Text>);`);
+  test("a Text without lines runs no plate; a cut Text beside it does (the positive control; the chunk itself is bundle.test.mjs's split-graph test)", async () => {
+    const page = await open(`createRoot(document.getElementById("root")).render(<div style={{ width: 200 }}><B.Text id="plain">Plain words that would never fit in two hundred pixels on one line</B.Text><B.Text id="cut" lines={1}>Plain words that would never fit in two hundred pixels on one line</B.Text></div>);`);
     await page.waitForTimeout(2500);
-    assert.equal(await page.evaluate(() => performance.getEntriesByType("resource").some((r) => /peek-plate/.test(r.name))), false);
+    assert.deepEqual(await page.locator("#plain").evaluate((el) => [el.hasAttribute("data-lines"), el.hasAttribute("data-cut"), el.getAttribute("tabindex")]), [false, false, null], "no hook ran on plain text");
+    assert.deepEqual(await page.locator("#cut").evaluate((el) => [el.hasAttribute("data-cut"), el.getAttribute("tabindex")]), [true, "0"], "the plate's module ran for the cut text");
     await page.close();
   });
 });
@@ -493,7 +502,10 @@ describe("Notifications (T3, 8)", () => {
     await none.close();
   });
   test("loading keeps one height from waiting to bones, says its label once after the grace, never shows 0 unread or the empty words; a refresh keeps each action", async () => {
-    const page = await open(NOTES("", "[]").replace("useState(false)", "useState(true)"), { clock: true });
+    // The clock is paused from the start: advance it before reading anything (settle() waits for frames, which a paused clock never draws).
+    const { page, errors } = await fixturePage(browser, NOTES("", "[]").replace("useState(false)", "useState(true)"), { theme: "dark", viewport: { width: 1440, height: 900 }, clock: true });
+    page.errors = errors;
+    await page.clock.runFor(50);
     const height = () => page.locator(".basalt-notifications-scroll").evaluate((el) => el.getBoundingClientRect().height);
     const waiting = await height();
     await page.clock.runFor(350);
@@ -510,6 +522,34 @@ describe("Notifications (T3, 8)", () => {
     assert.equal(await page.locator(".basalt-notifications-mark").getAttribute("aria-disabled"), null, "on, as it was");
     await page.close();
   });
+});
+
+describe("Notifications: a refresh keeps the list's nodes (T3 fix 1, item 1)", () => {
+  for (const from of ["undefined", "false"]) {
+    test(`loading ${from} to true with entries shown keeps a focused entry in an open group, the same node, and the group open`, async () => {
+      const page = await open(`
+const ENTRIES = [
+  { id: "g1", title: "Sam and Ada replied", time: "3h ago", entries: [{ id: "g1a", title: "Sam replied", time: "3h ago", unread: true }, { id: "g1b", title: "Ada replied", time: "4h ago" }] },
+  { id: "r1", title: "Stock count finished", time: "Yesterday" },
+];
+function Page() {
+  const [loading, setLoading] = React.useState(${from});
+  window.refresh = () => setLoading(true);
+  return <B.NotificationList entries={ENTRIES} loading={loading} onMarkAllRead={() => {}} />;
+}
+createRoot(document.getElementById("root")).render(<div style={{ padding: 24, width: 480 }}><Page /></div>);`);
+      await page.locator(".basalt-notification[data-group]").click();
+      await settle(page);
+      const inner = page.locator(".basalt-notification-entries .basalt-notification").first();
+      await inner.focus();
+      await page.evaluate(() => { window.held = document.activeElement; });
+      await page.evaluate(() => window.refresh());
+      await settle(page);
+      assert.equal(await page.evaluate(() => document.activeElement === window.held && window.held.isConnected), true, "the focused entry is the same node and keeps focus");
+      assert.equal(await page.locator(".basalt-notification[data-group]").getAttribute("aria-expanded"), "true", "the group stays open");
+      await page.close();
+    });
+  }
 });
 
 // ---- 9 and 11: ListBand at one page ----

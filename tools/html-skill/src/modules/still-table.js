@@ -173,9 +173,10 @@
       ring: function (cell) { return document.activeElement === cell && cell.matches(':focus-visible'); },
       fill: fill
     });
-    // A cell that wraps (data-wrap) is never cut: no stop, no plate.
+    // A cell that wraps (data-wrap) is never cut: no stop, no plate. A cell that has started to wrap since it was marked is cut no longer, as React's (cell-peek.ts).
     function mark() {
       frame = 0;
+      table.querySelectorAll('[data-wrap][data-cut]').forEach(function (cell) { cell.removeAttribute('data-cut'); cell.removeAttribute('tabindex'); plate.close(cell); });
       table.querySelectorAll('tbody > tr:not([data-empty]) > :is(td, th):not([data-wrap]), thead > tr > th:not([data-sortable])').forEach(function (cell) {
         var own = (cell.hasAttribute('tabindex') && !cell.hasAttribute('data-cut')) || cell.querySelector(FOCUSABLE);
         if (own) return;
@@ -187,7 +188,7 @@
     function schedule() { if (!frame) frame = requestAnimationFrame(mark); }
     // Which cells are cut changes with the table's box, its rows, its text and a user's own spacing (WCAG 1.4.12), which a style sets without touching the table's box.
     new ResizeObserver(schedule).observe(table);
-    new MutationObserver(schedule).observe(table, { childList: true, subtree: true, characterData: true });
+    new MutationObserver(schedule).observe(table, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['data-wrap'] });
     var styles = new MutationObserver(schedule);
     styles.observe(document.head, { childList: true, subtree: true, characterData: true });
     styles.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class', 'lang', 'dir'] });

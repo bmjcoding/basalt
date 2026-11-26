@@ -15,6 +15,7 @@ import { StatusSizeContext } from "./status-size";
 import type { StatusSize } from "./status-size";
 import type { Side } from "./types";
 import { join } from "./utils";
+import { useMergedRef } from "./merged-ref";
 import { warnRun } from "./run-warn";
 
 declare const process: { env: { NODE_ENV?: string } };
@@ -405,14 +406,8 @@ export const TableRow: React.NamedExoticComponent<TableRowProps> = /* @__PURE__ 
   const from = React.useRef<{ x: number; y: number } | null>(null);
   const warned = React.useRef(false);
   const node = React.useRef<HTMLTableRowElement | null>(null);
-  const setRef = React.useCallback(
-    (element: HTMLTableRowElement | null) => {
-      node.current = element;
-      if (typeof ref === "function") ref(element);
-      else if (ref) (ref as React.MutableRefObject<HTMLTableRowElement | null>).current = element;
-    },
-    [ref],
-  );
+  // The caller's ref keeps React 19's cleanup: a callback ref that returns a function has it called on detach.
+  const setRef = useMergedRef(node, ref);
   React.useLayoutEffect(() => {
     // The opener is marked, so the style sheet can lift its underline while the row is hovered (it is found by order, which a selector cannot say).
     const row = node.current;

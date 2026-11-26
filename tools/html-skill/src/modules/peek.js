@@ -32,7 +32,10 @@
       // The plate keeps focus where it is, and a press on it is a press on what it covers.
       plate.addEventListener('pointerdown', function (e) { if (cfg.press) e.preventDefault(); });
       plate.addEventListener('click', function () { var t = current; if (!t || !cfg.press) return; close(); cfg.press(t); });
-      document.body.appendChild(plate);
+      // In the top-layer surface its element sits in (a modal <dialog>, an open popover), or the page: appended to the body, a plate over a modal dialog's text
+      // would be under the dialog and inert.
+      var surface = cfg.hosts[0].closest('dialog[open], [popover]');
+      (surface || document.body).appendChild(plate);
       return plate;
     }
     function open(el, touch) {
