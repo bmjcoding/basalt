@@ -305,7 +305,7 @@
   "SitePage": 230,
   "SitePhaseSlot": 230,
   "Skeleton": 382,
-  "SkipLink": 1370,
+  "SkipLink": 1574,
   "Slide": 397,
   "Slider": 38283,
   "SocialLink": 38648,
@@ -475,11 +475,11 @@
   }
  },
  "package": {
-  "bytes": 1139682,
-  "gzip": 378645
+  "bytes": 1139886,
+  "gzip": 378700
  },
  "styles": {
-  "bytes": 602943,
-  "gzip": 76132
+  "bytes": 603595,
+  "gzip": 76203
  }
 }
