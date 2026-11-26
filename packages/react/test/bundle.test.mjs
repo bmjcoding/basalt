@@ -99,7 +99,10 @@ async function lazyGraph(names, extra = "") {
 // cimip-gaps-3 E5: E1 had raised this limit to main's measure, because PR #143 built the lazy diagram-actions.js in the main build, so it imported
 // Button's dist chunk and an app's bundler put Button and Base UI's button in a chunk every root import loaded. diagram-actions is built on its own now
 // (build.mjs), and the limit is the measure on the E5 branch, rounded up to the next 50: Sparkline 23,197 on main, 4,765 (23,200 to 4,800).
-for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 4_800], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_550], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 3_400], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_100]]) {
+// cimip-gaps-3 T2 (measured with this file's own graph() and bundle() on origin/main ac962cec and on the T2 head; each limit the head's measure rounded up to the
+// next 50, raised only by the increase): Sparkline 4,765 on main, 9,060 on the head (4,800 to 9,100: the side scale from the data's own range, the real-pixel plot and its
+// ResizeObserver, times and their lane by formatClock and formatDay, two marks and their key, and the image's name from the data).
+for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_100], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_550], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 3_400], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_100]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -204,7 +207,9 @@ test("Menu does not pull in Shiki", async () => {
 // all of them (9,706 bytes, limit 10,500); the limit is back at 8,000.
 // Representative single imports. Each of these once dragged in a neighbouring component's
 // primitives (a Popover or Tooltip from a module-scope alias, Base UI from NumberTicker's module).
-for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 4_000], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 8_000]]) {
+// cimip-gaps-3 T2 (measured with this file's own graph() and bundle() on origin/main ac962cec and on the T2 head; each limit the head's measure rounded up to the
+// next 50, raised only by the increase): Sparkline alone 4,631 on main, 8,926 on the head (8,000 to 8,950), for the same parts as above.
+for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 4_000], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 8_950]]) {
   test(`${name} alone is small and loads no Base UI`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -441,7 +446,10 @@ test("Meter carries Base UI's Meter and no other part, no Phosphor and no Shiki"
 // The charts port (DECISIONS 153): the trend helper is a few hundred bytes and does not pull the chart in; the share bar, coverage strip and marks row are plain elements and load no
 // Base UI and no icon; the range meter carries Base UI's Meter and nothing else of it; the phase chart is the chart plus its lane. Measured (bytes): trailingMean 435, ShareBar 1,022,
 // CoverageStrip 1,379, MarksRow 683, RangeMeter 9,454, TimeChart 46,915, PhaseChart 49,465. The short bar plot (`compact`, DECISIONS 160) added 120 bytes to TimeChart (46,973 to 47,093); PhaseChart is 49,643.
-for (const [name, limit] of [["trailingMean", 800], ["ShareBar", 1_500], ["CoverageStrip", 2_000], ["MarksRow", 1_200]]) {
+// cimip-gaps-3 T2 (measured with this file's own graph() and bundle() on origin/main ac962cec and on the T2 head; each limit the head's measure rounded up to the
+// next 50, raised only by the increase): ShareBar 1,411 on main, 8,197 on the head (1,500 to 8,250: tones, the floors and the one-line fit measured before paint, the legend, parts
+// that are links or buttons through safeHref, and the core new-tab arrow); CoverageStrip 1,570, 2,297 (2,000 to 2,300: the events' lane and sentence). Neither loads Base UI or Phosphor.
+for (const [name, limit] of [["trailingMean", 800], ["ShareBar", 8_250], ["CoverageStrip", 2_300], ["MarksRow", 1_200]]) {
   test(`${name} alone is small and loads no Base UI, no Phosphor and no Shiki (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -478,7 +486,8 @@ test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async
   // 41,750 (main's) to 42,200 in DECISIONS 336, then 42,550 with the open items' ruling (the shared copy state, copy-result.ts, and the close on a refused icon-only copy): its copies are hung, its words form keeps its words with the done seat, and a refused copy shows the close.
   // cimip-gaps-3 E1 (DECISIONS 246): RunTimer's `spoken` and its fresh-words tick add 313. E5: with the shared chunk gone (diagram-actions built on its own, build.mjs)
   // Terminal measures 42,889 (43,011 on main), so the limit is 43,050 to 42,900. It was 42,570 before PR #143, already 20 over the old 42,550.
-  assert.ok(bytes < 42_900, `Terminal bundle is ${bytes} bytes`);
+  // cimip-gaps-3 T2: the warning stage line (its mark, its word): 42,889 on main, 42,947 on the head (42,900 to 42,950).
+  assert.ok(bytes < 42_950, `Terminal bundle is ${bytes} bytes`);
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
 });
@@ -769,14 +778,19 @@ test("AppShell loads the rail's tooltip for the version on demand", async () => 
 // `spoken` and the rail's whole seconds are about 312 of it); RunStage 38,512, 22,181 (38,550 to 22,200); StageList, RunStage 39,277, 22,948 (39,300 to 22,950); StageRail,
 // RunStage 39,229, 22,900 (39,250 to 22,950). StageMark 14,451 (31,147 on main), StageBadge 5,414 (22,072), RunAnnouncer 582 (19,047) and formatRunTime 649 (19,114)
 // are under the limits E1 left as they were, and none of them loads Base UI again.
-for (const [name, limit, phosphor] of [["StageMark", 14_500, true], ["StageBadge", 5_450, false], ["RunTimer", 6_100, false], ["RunAnnouncer", 600, false], ["formatRunTime", 750, false], ["RunStage", 22_200, true], ["StageList, RunStage", 22_950, true], ["StageRail, RunStage", 22_950, true]]) {
+// cimip-gaps-3 T2 (measured with this file's own graph() and bundle() on origin/main ac962cec and on the T2 head; each limit the head's measure rounded up to the
+// next 50, raised only by the increase): StageMark 14,451 on main, 17,802 on the head (14,500 to 17,850: Phosphor's Warning, the ninth state's mark); StageBadge
+// 5,414, 5,450 (5,450 to 5,500: the warning status); RunStage 22,181, 33,826 (22,200 to 33,850); StageList, RunStage 22,948, 35,076 (22,950 to 35,100); StageRail, RunStage
+// 22,900, 35,200 (22,950 to 35,250): the Warning mark, the clock seat (formatClock and formatStatTime), the stage's own disclosure (its chevron morph, ControlIcon, the
+// popup level) and the rail's popover, which is lazy (anchored-popover.js, built on its own with Base UI's popover inlined), so none of them loads Base UI.
+for (const [name, limit, phosphor] of [["StageMark", 17_850, true], ["StageBadge", 5_500, false], ["RunTimer", 6_100, false], ["RunAnnouncer", 600, false], ["formatRunTime", 750, false], ["RunStage", 33_850, true], ["StageList, RunStage", 35_100, true], ["StageRail, RunStage", 35_250, true]]) {
   test(`${name} alone loads no Base UI${phosphor ? "" : " and no Phosphor"} (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
     assert.deepEqual(inputs.filter((f) => /@base-ui|cmdk|shiki/.test(f)), [], `${name} loads Base UI, cmdk or Shiki`);
     assert.deepEqual(inputs.filter((f) => /run-timeline/.test(f)), [], `${name} pays for RunTimeline's counter`);
     const marks = inputs.filter((f) => /@phosphor-icons/.test(f)).map((f) => path.basename(f).replace(/\.es\.js$|\.mjs$|\.js$/, ""));
-    if (phosphor) assert.deepEqual([...new Set(marks)].filter((m) => !/^(IconBase|context|SSRBase)$/.test(m)).sort(), ["CheckCircle", "Circle", "MinusCircle", "Prohibit", "XCircle"]);
+    if (phosphor) assert.deepEqual([...new Set(marks)].filter((m) => !/^(IconBase|context|SSRBase)$/.test(m)).sort(), ["CheckCircle", "Circle", "MinusCircle", "Prohibit", "Warning", "XCircle"]);
     else assert.deepEqual(marks, []);
   });
 }

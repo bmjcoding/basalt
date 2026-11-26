@@ -10,4 +10,23 @@
   .stat-note { font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); color: var(--basalt-text-secondary); }
   /* Where the figure came from and when (React's Stat source): tertiary, pinned to the foot of the stat's cell, so sources line up across a row even when one stat has no note. */
   .stat-source { margin-block-start: auto; font: var(--basalt-font-weight-regular) var(--bh-xs); font-variant-numeric: tabular-nums; color: var(--basalt-text-tertiary); }
+  /* A stat that links (cimip-gaps-3 T2, item 2): React's. The link is round the figure and stretched over the cell, so the whole cell is the target; the core
+     arrow after the figure, space-2 away, secondary; hover anywhere lifts the label and the arrow to primary; the control ring at +2 round the cell. */
+  .stat[data-linked], .stat:has(> .stat-value > .stat-link) { position: relative; }
+  .stat-link { color: inherit; text-decoration: none; outline: none; -webkit-tap-highlight-color: transparent; }
+  .stat-link::after { content: ""; position: absolute; inset: 0; border-radius: var(--basalt-radius-sm); }
+  .stat-link:focus-visible::after { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .stat-cue { display: inline-grid; place-items: center; margin-inline-start: var(--basalt-space-2); color: var(--basalt-text-secondary); vertical-align: middle; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .stat-link .ext { color: var(--basalt-text-secondary); }
+  .stat:has(> .stat-value > .stat-link):hover :is(.stat-label, .stat-cue) { color: var(--basalt-text-primary); }
+  /* A value not observed: the words at text-base, 400, tertiary, on the figure's baseline. */
+  .stat-value[data-missing] { color: var(--basalt-text-tertiary); font-weight: var(--basalt-font-weight-regular); font-size: var(--basalt-text-base-size); letter-spacing: normal; }
+  /* The hint: Phosphor Info at 16 in a 20px seat after the label, secondary at rest and primary on hover, the control ring at +2, above the stretched link;
+     44 by 44 on touch with no change to layout. It opens the popover module's panel. */
+  .stat-hint { position: relative; z-index: 1; display: inline-grid; place-items: center; inline-size: var(--basalt-size-icon-md); block-size: var(--basalt-size-icon-md); margin-block: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-icon-md)) / 2); margin-inline-start: var(--basalt-space-1); padding: 0; border: 0; border-radius: var(--basalt-radius-xs); background: none; color: var(--basalt-text-secondary); vertical-align: top; cursor: pointer; }
+  .stat-hint:hover { color: var(--basalt-text-primary); }
+  .stat-hint:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  @media (pointer: coarse), (width < %bp-md%) {
+    .stat-hint::before { content: ""; position: absolute; top: 50%; left: 50%; width: var(--basalt-size-tap-min); height: var(--basalt-size-tap-min); transform: translate(-50%, -50%); }
+  }
 }

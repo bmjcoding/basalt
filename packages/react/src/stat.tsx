@@ -3,10 +3,11 @@ import * as React from "react";
 
 import { NOT_OBSERVED } from "./description-list";
 import { DotSep } from "./dot-sep";
-import { Popover, PopoverContent, PopoverDescription, PopoverTitle, PopoverTrigger } from "./feedback";
 import { ArrowRightGlyph } from "./glyphs/arrow-right";
 import { ExternalGlyph } from "./glyphs/external";
 import { Icon } from "./icon";
+import { inLevel, useFloatingLayer, usePopupLevel } from "./layers";
+import { lazyAnchoredPopover } from "./lazy-popover";
 import { NewTabWords, opensNewTab } from "./new-tab";
 import { safeHref } from "./safe-href";
 import { join } from "./utils";
@@ -92,19 +93,31 @@ export function Stat({ label, value, note, source, time, timeZone, now, locale, 
   });
 
   const cue = newTab ? ExternalGlyph : ArrowRightGlyph;
+  // The hint's popover is loaded when it first opens, so a stat with a hint that is never pressed loads no popover.
+  const hintRef = React.useRef<HTMLButtonElement>(null);
+  const hintLevel = usePopupLevel();
+  const hintLayer = useFloatingLayer();
+  const hintId = `${ids}h`;
+  const [hintOpen, setHintOpen] = React.useState(false);
+  const [hintEver, setHintEver] = React.useState(false);
+  if (hintOpen && !hintEver) setHintEver(true);
+  const HintPopover = hint !== undefined && hintEver ? lazyAnchoredPopover() : null;
   return (
     <div {...props} ref={root} className={join("basalt-stat", className)} data-linked={linked ? "" : undefined} data-missing={absent ? "" : undefined}>
       {/* The label, the figure and the note are separate elements with no space between them, so a text scan (and a name built from the content) would run them together: a hidden space ends each. */}
       <dt className="basalt-stat-label">
         <span id={labelId}>{label}</span>
         {hint !== undefined ? (
-          <Popover>
-            <PopoverTrigger className="basalt-stat-hint" aria-label={hintName}><Icon icon={InfoIcon} size={16} /></PopoverTrigger>
-            <PopoverContent side="bottom" align="start">
-              <PopoverTitle>{hintTitle ?? label}</PopoverTitle>
-              <PopoverDescription render={<div />}>{hint}</PopoverDescription>
-            </PopoverContent>
-          </Popover>
+          <button ref={hintRef} type="button" className="basalt-stat-hint" aria-label={hintName} aria-haspopup="dialog" aria-expanded={hintOpen} aria-controls={hintOpen ? hintId : undefined} onClick={() => setHintOpen((was) => !was)}>
+            <Icon icon={InfoIcon} size={16} />
+          </button>
+        ) : null}
+        {HintPopover ? (
+          <React.Suspense fallback={null}>
+            <HintPopover open={hintOpen} onOpenChange={setHintOpen} anchor={hintRef} level={hintLevel} layer={hintLayer} wrap={(node) => inLevel(hintLevel, node)} id={hintId} title={hintTitle ?? label}>
+              <div className="basalt-popover-description">{hint}</div>
+            </HintPopover>
+          </React.Suspense>
         ) : null}
         <span className="basalt-visually-hidden"> </span>
       </dt>

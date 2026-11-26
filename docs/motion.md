@@ -161,6 +161,14 @@ A chart (decision 101) is drawn at rest on its first paint, unless it is its pag
 | The phase chart's open week (DECISIONS 153, vote 17) | The plate behind the plot and the lane slides to the chosen week over `duration-slow` on `ease-out` (the segmented control's rule); under reduced motion it sets in place, and in forced colours it is an outline. Picking a day on the plot does not move it. |
 | A marks row's new values (DECISIONS 153, consent row 11) | Each mark glides to its height over `duration-slow`; none under reduced motion. The share bar, the coverage strip, the marks row and the range meter draw at rest and are never a page's one entrance; the range meter's marker glides over `duration-slow`. |
 | The entrance (`entrance` on a chart that is its page's one) | Each mark draws once on a first visit over `duration-figure`; a change of data mid-entrance takes over and glides every mark from where it is drawn. |
+| A share bar's legend indicator (cimip-gaps-3 T2) | The 2px line under the hovered or focused part's segment fades in over `duration-fast`; nothing else dims or moves | The same (opacity only) | The same |
+| A heatmap (cimip-gaps-3 T2) | At rest, never a page's entrance; a changed value's fill crosses over `duration-slow` on `ease-out`; picking is instant. Nothing loops | The fill lands at once | The same |
+
+## The event log's newest-first feed
+
+cimip-gaps-3 T2 (see [foundations](foundations.md#lists-and-facts)). An arrival shown at once fades in over `duration-base` and the lines under it move down by transform over
+`duration-slow` on `ease-out`, as `Reflow` does (past 48 lines, at once). Under reduced motion they land at once and the arrival fades over 100ms (`duration-fast`). A waiting arrival is
+not in the DOM: nothing moves. The release control fades over `duration-fast` and never slides; a press lands the waiting lines at once, with no travel. The hold makes every arrival wait.
 
 ## The clear bar and framed art
 
@@ -208,6 +216,8 @@ Status: decided by the council for the owner's handoff (DECISIONS 302, 304, 307,
 | A run timeline's roll | Each row inside the window moves by transform from where it was drawn over `slow` on `ease-out`, the ink stepping on the same clock; the arriving step fades over `base`; past 48 counted rows it lands at once | Lands at once; the arrival fades over 100ms | Lands at once |
 | A stage transcript's step back | A colour step over `fast`; nothing moves | The same | Lands at once |
 | The queued breath | See Spinners | Still, at full | Still, at full |
+| A `StagePlace`'s advance (cimip-gaps-3 T2) | The long pill moves to the new current (the widths and inks) over `slow` on `ease-out` | Lands at once | Lands at once |
+| A stage's own disclosure (cimip-gaps-3 T2) | The chevron turns right to down by the morph; the detail opens with the stage detail's clip | The detail lands at once | Lands at once |
 
 ## Spinners
 

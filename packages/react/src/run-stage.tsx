@@ -1,9 +1,10 @@
 import * as React from "react";
 
 import { ControlIcon, loadFlight } from "./control-icon";
-import { Popover, PopoverContent, PopoverTitle } from "./feedback";
 import { ChevronDownGlyph } from "./glyphs/chevron-down";
 import { ChevronRightGlyph } from "./glyphs/chevron-right";
+import { inLevel, useFloatingLayer, usePopupLevel } from "./layers";
+import { lazyAnchoredPopover } from "./lazy-popover";
 import { Reserve } from "./reserve";
 import { STAGE_WORDS } from "./run-format";
 import type { Moment, StageState } from "./run-format";
@@ -157,6 +158,11 @@ export function RunStage({ name, state, word, meta, start, end, format, spoken, 
   const nameRef = React.useRef<HTMLSpanElement>(null);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const detailId = React.useId();
+  const popId = React.useId();
+  const popLevel = usePopupLevel();
+  const popLayer = useFloatingLayer();
+  // Mounted once first opened, so its close plays; never before, so a rail that never opens one loads no popover.
+  const [everOpened, setEverOpened] = React.useState(false);
   const timer = clock ? <StageClock start={start} list={kind === "list"} options={options} /> : <RunTimer start={start} end={end} format={format} spoken={spoken} whenHeld="hidden" />;
 
   // ---- the stage's own disclosure (3d)
@@ -232,6 +238,8 @@ export function RunStage({ name, state, word, meta, start, end, format, spoken, 
     }
     // The node is one button in both forms (a popover on the rail, the detail in place when the rail is drawn as the list), so crossing 480 keeps focus on it.
     const popoverOpen = isOpen && !inPlace && hasContent;
+    if (popoverOpen && !everOpened) setEverOpened(true);
+    const RailPopover = lazyAnchoredPopover();
     return (
       <li className={join("basalt-run-stage", className)} data-state={state} data-collapsible="">
         {link}
@@ -240,7 +248,8 @@ export function RunStage({ name, state, word, meta, start, end, format, spoken, 
           type="button"
           className="basalt-run-stage-node"
           aria-expanded={hasContent ? isOpen : undefined}
-          aria-controls={hasContent && inPlace ? detailId : undefined}
+          aria-controls={hasContent ? (inPlace ? detailId : popoverOpen ? popId : undefined) : undefined}
+          aria-haspopup={hasContent && !inPlace ? "dialog" : undefined}
           onClick={() => { if (hasContent) setOpen(!isOpen); }}
           onPointerEnter={() => void loadFlight()}
           onFocus={() => void loadFlight()}
@@ -253,18 +262,10 @@ export function RunStage({ name, state, word, meta, start, end, format, spoken, 
           {status}
         </button>
         {inPlace ? detailNode : null}
-        {hasContent && !inPlace ? (
-          <Popover
-            open={popoverOpen}
-            onOpenChange={(next, details) => {
-              // The press on the node itself toggles it (below): an outside press that is the node does not close it first.
-              const target = details.event.target;
-              if (!next && target instanceof Node && triggerRef.current?.contains(target)) return;
-              if (next !== isOpen) setOpen(next);
-            }}
-          >
-            <PopoverContent anchor={triggerRef} align="center" finalFocus={triggerRef} className="basalt-run-stage-pop" data-state={state}>
-              <PopoverTitle>{name}</PopoverTitle>
+        {hasContent && !inPlace && (popoverOpen || everOpened) ? (
+          // The rail's popover is loaded when a node first opens one, so a rail that never does carries no popover.
+          <React.Suspense fallback={null}>
+            <RailPopover open={popoverOpen} onOpenChange={(next) => { if (next !== isOpen) setOpen(next); }} anchor={triggerRef} align="center" level={popLevel} layer={popLayer} wrap={(node) => inLevel(popLevel, node)} id={popId} className="basalt-run-stage-pop" state={state} title={name}>
               <p className="basalt-run-stage-pop-state">
                 <span className="basalt-run-stage-word">{said}</span>
                 {start !== undefined ? <>{" "}{timer}</> : null}
@@ -273,8 +274,8 @@ export function RunStage({ name, state, word, meta, start, end, format, spoken, 
                 {detail}
                 {hasAction ? <div className="basalt-run-stage-action">{action}</div> : null}
               </div>
-            </PopoverContent>
-          </Popover>
+            </RailPopover>
+          </React.Suspense>
         ) : null}
       </li>
     );

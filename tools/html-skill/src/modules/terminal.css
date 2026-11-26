@@ -54,6 +54,9 @@
   .terminal-line[data-kind="stage"][data-state="done"], .terminal-line[data-kind="stage"][data-state="done"] .terminal-mark { color: var(--basalt-text-secondary); }
   .terminal-line[data-kind="stage"]:is([data-state="skipped"], [data-state="canceled"]), .terminal-line[data-kind="stage"]:is([data-state="skipped"], [data-state="canceled"]) .terminal-mark { color: var(--basalt-text-tertiary); }
   .terminal-line[data-kind="stage"][data-state="failed"] :is(.terminal-mark, .terminal-text) { color: var(--basalt-status-danger); }
+  /* A stage that ended with a warning: the triangle in status-warning in the gutter, its word first in primary at 500 (never warning ink on text). */
+  .terminal-line[data-kind="stage"][data-state="warning"] .terminal-mark { color: var(--basalt-status-warning); }
+  .terminal-line[data-kind="stage"][data-state="warning"] .terminal-word { font-weight: var(--basalt-font-weight-medium); }
   .terminal-stage { display: flex; justify-content: space-between; gap: var(--basalt-space-4); }
   .terminal-duration { flex: none; color: var(--basalt-text-tertiary); font-variant-numeric: tabular-nums; }
   .terminal .code-body[data-stages] > .terminal-lines { width: 100%; }

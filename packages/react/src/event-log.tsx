@@ -1,8 +1,8 @@
 import * as React from "react";
 
-import { Button } from "./button";
 import { REFLOW_BOUND } from "./constants";
 import { ArrowUpGlyph } from "./glyphs/arrow-up";
+import { Icon } from "./icon";
 import { useLoops } from "./loops";
 import { useReducedMotion } from "./motion";
 import { Reserve } from "./reserve";
@@ -128,18 +128,20 @@ export function EventLog({ label, locale = "en-US", widest = widestDayStamp(loca
     <WidestContext.Provider value={widest}>
       <div className="basalt-event-feed" {...feed.rootProps}>
         <div className="basalt-back-to-top-dock basalt-event-feed-dock">
-          <Button
-            size="sm"
-            variant="secondary"
-            icon={ArrowUpGlyph}
-            className="basalt-back-to-top"
+          {/* Button's own markup (a secondary sm with the core arrow-up), written here so a log that never waits does not load Button. */}
+          <button
+            type="button"
+            data-variant="secondary"
+            data-size="sm"
+            className="basalt-button basalt-back-to-top"
             data-shown={feed.waiting > 0 ? "" : undefined}
             tabIndex={feed.waiting > 0 ? undefined : -1}
             aria-hidden={feed.waiting > 0 ? undefined : true}
             onClick={feed.release}
           >
-            {newLabel(Math.max(1, feed.waiting))}
-          </Button>
+            <Icon icon={ArrowUpGlyph} size={16} />
+            <span className="basalt-button-label">{newLabel(Math.max(1, feed.waiting))}</span>
+          </button>
         </div>
         <span ref={feed.head} className="basalt-event-feed-head" aria-hidden="true" />
         {list}

@@ -17,9 +17,11 @@
     if (state === 'failed') return seat(icon('XCircle', { size: 16 }), 'Failed');
     if (state === 'skipped') return seat('%glyph-svg:minus%');
     if (state === 'canceled') return seat(icon('Prohibit', { size: 16 }));
+    // An ending with a warning (cimip-gaps-3 T2): the Warning triangle in status-warning, its word drawn first.
+    if (state === 'warning') return seat(icon('Warning', { size: 16 }));
     return '<span ' + (worded ? 'aria-hidden="true"' : 'role="img" aria-label="Running"') + ' class="terminal-braille"><braille-spinner></braille-spinner></span>';
   }
-  var STAGE_WORDS = { skipped: 'Skipped', canceled: 'Canceled' };
+  var STAGE_WORDS = { skipped: 'Skipped', canceled: 'Canceled', warning: 'Warning' };
 
   /** Words that change in place stand in one grid cell: [key, html] pairs, the one shown marked. The cell is as wide as the widest. */
   function swap(show, forms) {

@@ -14,6 +14,8 @@
   .run-mark[data-state="queued"] { animation: bh-run-breath var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite alternate; }
   .run-mark[data-state="failed"] { color: var(--basalt-status-danger); }
   .run-mark:is([data-state="skipped"], [data-state="canceled"]) { color: var(--basalt-text-tertiary); }
+  /* An ending with a warning (cimip-gaps-3 T2): the outline Warning triangle in status-warning; its word is primary at 500, drawn in a list, a rail and a step. */
+  .run-mark[data-state="warning"] { color: var(--basalt-status-warning); }
   /* The ring: React's, a 1.5px stroke whose quarter is full ink, 14 across (React's circle and its stroke) in the 16px seat, turning in duration-loop-ring.
      It is the seat's ::before, so the seat itself never turns or changes size. */
   .run-mark:is([data-state="running"], [data-state="retrying"]) { color: var(--basalt-text-primary); }
@@ -45,6 +47,7 @@
   .run-stage:is([data-state="queued"], [data-state="skipped"], [data-state="canceled"]) .run-stage-name { color: var(--basalt-text-secondary); }
   .run-stage:is([data-state="running"], [data-state="retrying"]) .run-stage-word { color: var(--basalt-text-primary); }
   .run-stage[data-state="failed"] .run-stage-word { color: var(--basalt-status-danger); font-weight: var(--basalt-font-weight-medium); }
+  .run-stage[data-state="warning"] .run-stage-word { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
   .run-stage:is([data-state="queued"], [data-state="skipped"], [data-state="canceled"]) .run-stage-word { color: var(--basalt-text-tertiary); }
   /* stylelint-disable-next-line unit-disallowed-list -- the 1px clip box of the visually-hidden pattern; it must be exactly 1px */
   .run-stages > .run-stage[data-state="success"] > .run-stage-word, .run-rail > .run-stage:is([data-state="queued"], [data-state="running"], [data-state="success"]) > .run-stage-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
@@ -75,6 +78,7 @@
   .run-rail .run-stage-name { display: block; margin-block-start: var(--basalt-space-1); max-inline-size: 100%; }
   .run-rail .run-stage-word, .run-rail .run-stage-time { grid-row: 3; grid-column: 1; margin-block-start: var(--basalt-space-1); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); min-inline-size: 0; text-align: center; }
   .run-rail .run-stage:is([data-state="failed"], [data-state="skipped"], [data-state="canceled"], [data-state="retrying"]) .run-stage-time { visibility: hidden; }
+  .run-rail .run-stage[data-state="warning"] .run-stage-time { visibility: hidden; }
   .run-rail .run-stage-meta, .run-rail .run-stage-detail { display: none; }
   .run-rail > .run-stage:not(:last-child)::before, .run-rail > .run-stage:not(:last-child)::after { content: ""; position: absolute; inset-block-start: calc(var(--basalt-space-1) + var(--basalt-size-icon-sm) / 2); inset-inline-start: calc(50% + var(--basalt-size-icon-sm) / 2 + var(--basalt-space-2)); inline-size: calc(100% - var(--basalt-size-icon-sm) - var(--basalt-space-4)); border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-input); }
   .run-rail > .run-stage:not(:last-child)::after { border-block-start-color: var(--basalt-text-secondary); transform: scaleX(0); transform-origin: left; }
@@ -110,5 +114,23 @@
   @container (width < %bp-container-lg%) {
     .run-steps > .run-step { grid-template-columns: var(--basalt-size-icon-sm) minmax(0, 1fr); }
     .run-step-meta { grid-column: 2; justify-self: start; text-align: start; white-space: normal; }
+  }
+
+  /* "Stage 3 of 5" in a row (cimip-gaps-3 T2, 3b): React's StagePlace, static. Pills size-track tall, full radius, space-0-5 apart: passed (data-form
+     "passed") 10px solid secondary, the current 14px solid primary, the rest 10px with a border-input edge. With no current pill (not started, or done)
+     the long pill's extra space-1 is held at the end, so the words start at one x. The count's seat is as wide as its data-widest ("5 of 5"). */
+  .run-place { display: inline-flex; align-items: center; gap: var(--basalt-space-2); max-inline-size: 100%; min-inline-size: 0; vertical-align: middle; }
+  .run-place-pills { display: inline-flex; flex: none; gap: var(--basalt-space-0-5); }
+  .run-place-pills:not(:has(> [data-form="current"])) { padding-inline-end: var(--basalt-space-1); }
+  .run-place-pills > i { box-sizing: border-box; flex: none; inline-size: var(--basalt-space-2-5); block-size: var(--basalt-size-track); border: var(--basalt-size-hairline) solid transparent; border-radius: var(--basalt-radius-full); background: var(--basalt-text-secondary); }
+  .run-place-pills > i[data-form="current"] { inline-size: var(--basalt-space-3-5); background: var(--basalt-text-primary); }
+  .run-place-pills > i[data-form="empty"] { border-color: var(--basalt-border-input); background: transparent; }
+  .run-place-label { min-inline-size: 0; overflow: hidden; color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--bh-sm); white-space: nowrap; text-overflow: ellipsis; }
+  .run-place-count { display: inline-grid; flex: none; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--bh-xs); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .run-place-count::before { content: attr(data-widest); content: attr(data-widest) / ""; grid-area: 1 / 1; visibility: hidden; }
+  .run-place-count > span { grid-area: 1 / 1; }
+  @media (forced-colors: active) {
+    .run-place-pills > i { forced-color-adjust: none; background: CanvasText; }
+    .run-place-pills > i[data-form="empty"] { border-color: CanvasText; background: transparent; }
   }
 }
