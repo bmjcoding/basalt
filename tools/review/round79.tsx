@@ -320,7 +320,7 @@ function Connection({ state }: { state: string }) {
 }
 
 // ---- 12. The tray
-const TRAY_TODAY = `.r79-today .basalt-tray-band { order: -1; } .r79-today .basalt-tray-row { align-items: baseline; --_row-line: var(--basalt-text-sm-line-height); } .r79-today .basalt-tray-words { padding-block-start: 0; } .r79-today .basalt-tray-mark, .r79-today .basalt-tray-actions { align-items: baseline; height: auto; min-height: 0; }`;
+const TRAY_TODAY = `.r79-today .basalt-tray-band { order: -1; border-top: 0; border-radius: inherit; } .r79-today .basalt-tray-row[data-stay] { border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); } .r79-today .basalt-tray-row { align-items: baseline; --_row-line: var(--basalt-text-sm-line-height); } .r79-today .basalt-tray-words { padding-block-start: 0; } .r79-today .basalt-tray-mark, .r79-today .basalt-tray-actions { align-items: baseline; height: auto; min-height: 0; }`;
 function TrayDemo({ state }: { state: string }) {
   const today = mode(state).startsWith("before");
   const rows = bakery(state) ? (
