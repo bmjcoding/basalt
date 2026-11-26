@@ -20,7 +20,8 @@ import { attachZoom, drawnSize, measureViewerFigure, revealIn, VIEWER_KEYS, view
     var kit = _.diagramKit;
     var still = Object.assign({}, spec, { motion: 'still' });
     // An automatic figure's key hint is read from a placed model, as React's (unplaced, every card is in one cell).
-    var model = kit.buildModel(still, { placement: Array.isArray(still.placement) ? still.placement[0] : still.placement });
+    // Its list sits under the dialog's h2, whatever the page's heading: h3 sub-headings and h4 group lines, as React's. The model's alone.
+    var model = kit.buildModel(Object.assign({}, still, { heading: 2 }), { placement: Array.isArray(still.placement) ? still.placement[0] : still.placement });
     var id = 'dgv' + (++serial);
     var key = kit.figureKey('diagram', model);
     var hint = viewerHint(kit.hintEntries(model, true)).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + esc(e.words) + '</span>'; }).join('');
@@ -160,6 +161,12 @@ import { attachZoom, drawnSize, measureViewerFigure, revealIn, VIEWER_KEYS, view
     button.setAttribute('aria-haspopup', 'dialog');
     // Words only, as React's (a deviation from 9.1): the core set draws no expand glyph.
     button.innerHTML = '<span>Expand</span>';
+    // Named for its figure (G17 of the console's log): "Expand", then the title, as React's.
+    var titleId = page.getAttribute('aria-labelledby');
+    if (titleId) {
+      button.firstChild.id = titleId.replace(/-title$/, '') + '-expand-words';
+      button.setAttribute('aria-labelledby', button.firstChild.id + ' ' + titleId);
+    }
     var toggle = foot.querySelector('.diagram-toggle');
     if (toggle && toggle.nextSibling) foot.insertBefore(button, toggle.nextSibling); else foot.appendChild(button);
     var onClick = function () { openViewer(page, spec, ctx, button); };

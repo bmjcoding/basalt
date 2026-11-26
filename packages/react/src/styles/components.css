@@ -5098,7 +5098,7 @@
   /* The figure sets its own display, so the attribute's own rule is written out for it. */
   .basalt-diagram[hidden] { display: none; }
   .basalt-diagram-head { display: flex; flex-direction: column; gap: var(--basalt-space-0-5); min-width: 0; }
-  .basalt-diagram-title { margin: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-md-size) / var(--basalt-text-md-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-md-tracking); }
+  .basalt-diagram-title { margin: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-base-tracking); }
   .basalt-diagram-source { margin: 0; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
 
   /* The drawing. Stacked: one column in the author's order, at most size-breakpoint-container wide on the start edge (the schema's grid of
@@ -5642,6 +5642,10 @@
   .basalt-diagram-list-head { margin: var(--basalt-space-4) 0 var(--basalt-space-2); color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
   .basalt-diagram-list-head:first-child { margin-block-start: 0; }
   .basalt-diagram-list-group { margin: var(--basalt-space-3) 0 var(--basalt-space-1); color: var(--basalt-text-primary); font-size: inherit; font-weight: var(--basalt-font-weight-medium); line-height: inherit; }
+  /* A list's heads are headings of whatever level the figure's title sets: their tracking and wrap are the figure's, never a page's rule for the tag
+     (the skill's core sets both on h1 to h4, which reached a figure with heading 2 and the viewer's h3; cimip-gaps-3). In React this is what inheritance
+     gives already. */
+  .basalt-diagram-list-head, .basalt-diagram-list-group { letter-spacing: inherit; text-wrap: inherit; }
   .basalt-diagram-list-items { display: flex; flex-direction: column; gap: var(--basalt-space-1); margin: 0; padding-inline-start: var(--basalt-space-5); }
   .basalt-diagram-list-exits { margin: var(--basalt-space-1) 0 0; padding-inline-start: var(--basalt-space-5); }
   @media (pointer: coarse) {
