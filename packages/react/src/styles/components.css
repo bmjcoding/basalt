@@ -1000,6 +1000,9 @@
     scroll-behavior: auto;
   }
   .basalt-tabs-scroll::-webkit-scrollbar { display: none; }
+  /* While content is hidden past a side, the port's padding (the ring's room) would show a cut tab and the divider past the column: that side is clipped at the
+     column's edge (TabsList writes the two insets). A side with nothing past it is not clipped, so the ring at +2 keeps its room. */
+  .basalt-tabs-scroll[data-clip] { clip-path: inset(0 var(--_clip-right, 0) 0 var(--_clip-left, 0)); }
   .basalt-tabs-scroll > .basalt-tabs-list { box-sizing: border-box; width: max-content; min-width: 100%; }
   .basalt-tabs-scroll .basalt-tab { flex: none; scroll-margin-inline: var(--basalt-space-6); }
   @media print { .basalt-tabs-scroll { overflow: visible; } }

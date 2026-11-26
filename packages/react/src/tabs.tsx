@@ -7,7 +7,7 @@ import { ChosenLabel } from "./chosen";
 import { FieldGroupContext } from "./field-group";
 import { useMergedRef } from "./merged-ref";
 import { Pill } from "./pill";
-import { revealIn } from "./scroll-reveal";
+import { clipToColumn, revealIn } from "./scroll-reveal";
 import type { ChangeDetails, ChoiceValue, Orientation, PartProps } from "./types";
 import { join, withClass } from "./utils";
 
@@ -160,16 +160,24 @@ export function TabsList({ className, children, ref, ...props }: TabsListProps) 
     const scroller = port.current;
     const element = list.current;
     if (!scroller || !element || orientation === "vertical") return undefined;
-    const reveal = (tab: Element | null) => revealIn(scroller, tab);
+    const clip = () => clipToColumn(scroller, element);
+    const reveal = (tab: Element | null) => { revealIn(scroller, tab); clip(); };
     const chosen = () => element.querySelector('[role="tab"][aria-selected="true"]');
     reveal(chosen());
     const onFocus = (event: FocusEvent) => reveal((event.target as Element | null)?.closest('[role="tab"]') ?? null);
     element.addEventListener("focusin", onFocus);
+    scroller.addEventListener("scroll", clip, { passive: true });
+    const sizes = new ResizeObserver(clip);
+    sizes.observe(scroller);
+    sizes.observe(element);
     const choice = new MutationObserver(() => reveal(chosen()));
     choice.observe(element, { attributes: true, attributeFilter: ["aria-selected"], subtree: true });
     return () => {
       element.removeEventListener("focusin", onFocus);
+      scroller.removeEventListener("scroll", clip);
+      sizes.disconnect();
       choice.disconnect();
+      scroller.removeAttribute("data-clip");
     };
   }, [orientation]);
   const row = (
