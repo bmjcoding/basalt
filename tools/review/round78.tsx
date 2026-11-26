@@ -272,7 +272,7 @@ function Previews({ state }: { state: string }) {
         <DialogContent form size="wide">
           <SheetHeader closeLabel="Close"><DialogTitle>Write an invitation</DialogTitle></SheetHeader>
           <SheetBody>
-            <DialogDescription>Guests get the card on the right by email.</DialogDescription>
+            <DialogDescription>Guests get the preview card by email.</DialogDescription>
             <FormPreview
               preview={<Card><CardContent><CardTitle>{title || "Untitled"}</CardTitle><CardDescription>{when}</CardDescription><p style={{ margin: "var(--basalt-space-2) 0 0", fontSize: "var(--basalt-text-base-size)" }}>{note}</p></CardContent></Card>}
             >
@@ -463,11 +463,13 @@ function Steps({ state }: { state: string }) {
     <Pair>
       <div ref={setupBox} style={stack}>
         <Caption>A workspace's setup: Next waits for a plan, says why under the row, and keeps focus. The reason keeps its room once a plan is chosen.</Caption>
-        <SegmentedControl aria-label="Plan" value={plan} onValueChange={setPlan}>
-          <Segment value="solo">Solo</Segment>
-          <Segment value="studio">Studio</Segment>
-          <Segment value="company">Company</Segment>
-        </SegmentedControl>
+        <div>
+          <SegmentedControl aria-label="Plan" value={plan} onValueChange={setPlan}>
+            <Segment value="solo">Solo</Segment>
+            <Segment value="studio">Studio</Segment>
+            <Segment value="company">Company</Segment>
+          </SegmentedControl>
+        </div>
         <Stepper steps={SETUP} value={setup} onValueChange={setSetup} nextDisabled={setup === "plan" && !plan} nextReason="Choose a plan to go on." onDone={() => {}} />
       </div>
       <div ref={printBox} style={stack}>

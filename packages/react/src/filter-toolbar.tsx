@@ -121,7 +121,8 @@ export function FilterToolbar({
       return undefined;
     }
     const settle = () => element.setAttribute("data-settled", "");
-    if (parseFloat(getComputedStyle(element).transitionDuration) === 0) {
+    // Open from the first frame, under reduced motion, or with no height change running: settled at once.
+    if (parseFloat(getComputedStyle(element).transitionDuration) === 0 || !element.getAnimations().some((animation) => animation instanceof CSSTransition)) {
       settle();
       return undefined;
     }
