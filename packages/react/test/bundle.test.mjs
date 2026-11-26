@@ -99,7 +99,7 @@ async function lazyGraph(names, extra = "") {
 // cimip-gaps-3 E5: E1 had raised this limit to main's measure, because PR #143 built the lazy diagram-actions.js in the main build, so it imported
 // Button's dist chunk and an app's bundler put Button and Base UI's button in a chunk every root import loaded. diagram-actions is built on its own now
 // (build.mjs), and the limit is the measure on the E5 branch, rounded up to the next 50: Sparkline 23,197 on main, 4,765 (23,200 to 4,800).
-// cimip-gaps-3 t4 (forms and controls), measured with this file's own graph() on origin/main ac962cec and on the t4 head; each limit raised by the increase alone.
+// cimip-gaps-3 t4 (forms and controls), measured with this file's own graph() on origin/main ac962cec and again on c67926bf (the same figures), and on the t4 head; each limit raised by the increase alone.
 // Reserve's `block` and its development check (Reserve is in Button, so in everything that draws one) add 117 to 120 bytes: Button 18,544 to 18,662 (18,550 to 18,668),
 // Drawer 19,106 to 19,224 (19,100 to 19,218; main was already 6 over its limit), NotificationCentre 153,260 to 153,378 (153,300 to 153,418), DirectoryList 20,925 to 21,043
 // (20,950 to 21,068), Reveal 20,521 to 20,639 (20,550 to 20,668), CopyButton 19,485 to 19,603 (19,500 to 19,618), ReleaseNotes 68,405 to 68,523 (68,450 to 68,568), StageBadge
