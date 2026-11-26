@@ -77,7 +77,7 @@ export function deploymentType(): DiagramTypeExt {
     type: "deployment",
     as: "architecture",
     routed: true,
-    stop: "a part",
+    stop: ["a part", "part"],
     prepare,
     adopt,
     card: (P, m, n) => card(P, m, n),

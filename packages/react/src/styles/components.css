@@ -5196,6 +5196,28 @@
   .basalt-diagram[data-measured] .basalt-diagram-node[data-shape="decision"] .basalt-diagram-diamond { display: block; }
   .basalt-diagram-node[data-shape="decision"][data-near] .basalt-diagram-diamond path { stroke: var(--basalt-text-secondary); }
   .basalt-diagram-node[data-shape="decision"][data-focal] .basalt-diagram-diamond path { fill: var(--basalt-diagram-focal); stroke: var(--basalt-diagram-focal); }
+  /* The held card (DECISIONS 392, 2): the horizontal tab's underline, size-indicator in primary ink (the focal card's own ink on the focal card), on the
+     card's bottom inside edge, inset by the card's own inline padding so it is as wide as the content and never the padding. Square ends, no shadow; in over
+     duration-fast, out at 0.75x, with or without reduced motion. Nothing else changes: the rim, the fill, the weight and the size stay, and no route moves. */
+  .basalt-diagram-node[aria-pressed]::after, .basalt-diagram-node[data-shape="decision"][aria-pressed] .basalt-diagram-words::after {
+    content: "";
+    position: absolute;
+    inset-inline: var(--_held-x, var(--basalt-space-3));
+    bottom: var(--_held-y, 0);
+    height: var(--basalt-size-indicator);
+    background: var(--basalt-text-primary);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity calc(var(--basalt-duration-fast) * 0.75) var(--basalt-ease-in);
+  }
+  .basalt-diagram-node[data-held]::after, .basalt-diagram-node[data-shape="decision"][data-held] .basalt-diagram-words::after { opacity: 1; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-diagram-node[data-focal][aria-pressed]::after, .basalt-diagram-node[data-shape="decision"][data-focal][aria-pressed] .basalt-diagram-words::after { background: var(--basalt-diagram-focal-ink); }
+  .basalt-diagram-node[data-shape="terminal"] { --_held-x: var(--basalt-space-5); }
+  /* A decision's is under its words (the decider's answer 2): as wide as their box, space-1-5 below it, inside the diamond and clear of its four points. */
+  .basalt-diagram-node[data-shape="decision"][aria-pressed]::after { content: none; }
+  .basalt-diagram-node[data-shape="decision"] .basalt-diagram-words { --_held-x: 0; --_held-y: calc(-1 * (var(--basalt-space-1-5) + var(--basalt-size-indicator))); }
+  /* A schedule's critical contour is drawn inside its card's box: the mark sits inside it. */
+  .basalt-diagram-node:has(> .basalt-diagram-sched-contour[data-critical]) { --_held-y: calc(var(--basalt-size-chart-line) - var(--basalt-size-hairline)); }
 
   /* A card that is a link (DECISIONS 306, 1.4): the card is the link and the figure's roving stop. Its cue is foundations' arrow (the core arrow-right, or
      external for a new tab) at 16, space-1-5 after the name's last word, which it never leaves: secondary at rest (the focal card's quiet ink), primary
@@ -5541,7 +5563,9 @@
   .basalt-diagram-hint > span { display: inline-flex; align-items: center; gap: var(--basalt-space-1); }
   /* On touch (DECISIONS 306, 1.5), where lines are drawn, the hint's seat says how to trace; nowhere else. */
   .basalt-diagram-tap-hint { display: none; margin: 0; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
-  .basalt-diagram[data-touch][data-layout="drawn"] > .basalt-diagram-tap-hint, .basalt-diagram[data-touch][data-layout="stacked"]:not([data-bare], [data-type="sequence"], [data-type="schema"]) > .basalt-diagram-tap-hint { display: block; }
+  /* Each hint is in the markup only where the layout traces (DECISIONS 392); elsewhere it is hidden. */
+  .basalt-diagram[data-touch] > .basalt-diagram-tap-hint:not([hidden]) { display: block; }
+  .basalt-diagram > .basalt-diagram-hint[hidden] { display: none; }
   .basalt-diagram[data-touch] > .basalt-diagram-hint { display: none; }
   /* A card that answers a tap is at least size-tap-min tall on touch. */
   .basalt-diagram[data-touch] .basalt-diagram-node { min-height: var(--basalt-size-tap-min); }
@@ -5687,6 +5711,9 @@
     .basalt-diagram .basalt-diagram-node[data-focal] .basalt-diagram-th { border-bottom-color: Canvas; }
     .basalt-diagram .basalt-diagram-node[data-focal]:focus-visible { outline: var(--basalt-size-focus-width) solid Highlight; }
     .basalt-diagram .basalt-diagram-node[data-focal][data-shape="decision"] .basalt-diagram-diamond path { fill: CanvasText; stroke: CanvasText; }
+    /* The held mark is Highlight, Canvas on the focal card (DECISIONS 392, 2). */
+    .basalt-diagram .basalt-diagram-node[aria-pressed]::after, .basalt-diagram .basalt-diagram-node[data-shape="decision"][aria-pressed] .basalt-diagram-words::after { forced-color-adjust: none; background: Highlight; }
+    .basalt-diagram .basalt-diagram-node[data-focal][aria-pressed]::after, .basalt-diagram .basalt-diagram-node[data-shape="decision"][data-focal][aria-pressed] .basalt-diagram-words::after { background: Canvas; }
     /* An activation bar's edge carries "working" (CanvasText), its fill Canvas; a frame's edges and its else rule are GrayText, its words CanvasText
        on Canvas plates (DECISIONS 306, 1.10). */
     .basalt-diagram .basalt-diagram-bar { fill: Canvas; stroke: CanvasText; }
@@ -5703,6 +5730,8 @@
     .basalt-diagram-svg, .basalt-diagram-lifes, .basalt-diagram-swatch, .basalt-diagram-arrow, .basalt-diagram-mark, .basalt-diagram-node[data-focal] { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     /* The foot does not print (the foot decision, 3.2): one rule, so no control in it, an app's own actions included, is drawn on paper. */
     .basalt-diagram-hint, .basalt-diagram-tap-hint, .basalt-diagram-foot { display: none !important; }
+    /* A held card prints as any other (DECISIONS 392, 2). */
+    .basalt-diagram .basalt-diagram-node[aria-pressed]::after, .basalt-diagram .basalt-diagram-node[aria-pressed] .basalt-diagram-words::after { display: none; }
     /* A figure prints untraced (DECISIONS 306, 1.7): every line, head and label in its resting ink, over a trace, a touch trace or a quiet run. */
     .basalt-diagram .basalt-diagram-edge :is(.basalt-diagram-line, .basalt-diagram-tip[data-open]) { stroke: var(--basalt-diagram-edge) !important; }
     .basalt-diagram .basalt-diagram-edge .basalt-diagram-line[data-kind="main"] { stroke: var(--basalt-diagram-edge-main) !important; }

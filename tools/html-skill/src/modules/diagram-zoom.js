@@ -24,7 +24,7 @@ import { attachZoom, drawnSize, measureViewerFigure, revealIn, VIEWER_KEYS, view
     var model = kit.buildModel(Object.assign({}, still, { heading: 2 }), { placement: Array.isArray(still.placement) ? still.placement[0] : still.placement });
     var id = 'dgv' + (++serial);
     var key = kit.figureKey('diagram', model);
-    var hint = viewerHint(kit.hintEntries(model, true)).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + esc(e.words) + '</span>'; }).join('');
+    var hint = viewerHint(kit.hintEntries(model, { layout: 'drawn' })).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + esc(e.words) + '</span>'; }).join('');
     var d = document.createElement('dialog');
     d.className = 'panel float modal dialog diagram-viewer';
     d.setAttribute('data-form', '');
