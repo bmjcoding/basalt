@@ -57,6 +57,7 @@ import {
   TabBarMore,
   Tray,
   TrayRow,
+  VersionLink,
 } from "../../packages/react/src/index";
 import type { ConnectionStatus } from "../../packages/react/src/index";
 import type { Round } from "./rounds";
@@ -107,7 +108,7 @@ function Shell({ state, children, header, banner, foot, rail = false, capped = f
       sidebar={<Nav aria-label="Primary"><NavGroup label="Work">{d.nav.slice(0, 4).map((label, i) => <NavItem key={label} href={`#${label.toLowerCase()}`} icon={GLYPHS[i] ?? HomeGlyph} current={i === 0}>{label}</NavItem>)}</NavGroup></Nav>}
       account={<Nav aria-label="Account"><NavItem href="#profile" icon={ProfileGlyph}>Profile</NavItem></Nav>}
       footnote={footnote ? <AppFootnote detail="Since 06:00" action={<Button size="sm" variant="ghost" edge="end">Switch</Button>} railTrigger={<IconButton icon={ProfileGlyph} label="Shift: Night, since 06:00" />}>{bakery(state) ? "Morning shift" : "Night shift"}</AppFootnote> : undefined}
-      version={<a className="basalt-link" href="#v">Version 2.4</a>}
+      version={<VersionLink version="2.4.0" date="2026-11-20" href="#v2.4.0" />}
       header={header ?? <AppHeader title={d.title} facts={d.facts} />}
       banner={banner}
       foot={foot}
