@@ -17,7 +17,7 @@ const label: React.CSSProperties = { margin: "0 0 var(--basalt-space-2)", fontSi
 const stack: React.CSSProperties = { display: "grid", gap: "var(--basalt-space-8)", minWidth: 0 };
 const PAIR = ".r75-pair { display: grid; gap: var(--basalt-space-8); grid-template-columns: minmax(0, 1fr); } @media (min-width: 720px) { .r75-pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }";
 // Today's share bar: a part as wide as its words (min-width: auto) and the name wrapping between words, the inline form pinned.
-const SHARE_TODAY = ".r75-today .basalt-share-part { min-width: auto !important; } .r75-today .basalt-share-name { white-space: normal !important; }";
+const SHARE_TODAY = ".r75-today .basalt-share-part { min-width: auto !important; } .r75-today .basalt-share-item { min-width: auto !important; } .r75-today .basalt-share-name { white-space: normal !important; }";
 // Today's sparkline drew its svg straight under the figure, with a foot row: the rules this build no longer ships, scoped to that side.
 const SPARK_TODAY = ".r75-today .basalt-sparkline > svg { width: 100%; height: var(--basalt-space-16); color: var(--basalt-text-secondary); } .r75-today .basalt-sparkline-axis { display: flex; justify-content: space-between; gap: var(--basalt-space-2); color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); font-variant-numeric: tabular-nums; }";
 
@@ -164,7 +164,7 @@ function Spark() {
         <Side title="With times (x by moment) and two marks: a diamond, then a square, and their key">
           <Sparkline label="Oven 2 temperature" data={[200, 214, 226, 231, 229, 230]} times={TIMES} timeZone="UTC" format={(v) => `${Math.round(v)}°C`} marks={[{ time: TIMES[1]!, label: "Door opened" }, { time: TIMES[3]!, label: "Loaded" }]} />
         </Side>
-        <Side title="Today's look of a whole-number series, for comparison of the scale">
+        <Side title="A whole-number series with times: whole labels from its own peak">
           <Sparkline label="Queue latency" data={LATENCY} times={TIMES} timeZone="UTC" format={(v) => `${Math.round(v)} ms`} />
         </Side>
       </div>

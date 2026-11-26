@@ -253,7 +253,7 @@ export function Heatmap({ title, heading = 3, source, days, summary, format, for
   const months: { col: number; text: string; cols: number }[] = [];
   for (const c of drawn) {
     const date = new Date(stamps[c.index]!);
-    if (date.getUTCDate() === 1 || c.index === drawnFrom) {
+    if (date.getUTCDate() === 1) {
       const text = formats.month.format(stamps[c.index]!);
       if (!months.some((m) => m.col === c.col)) months.push({ col: c.col, text, cols: 0 });
     }
