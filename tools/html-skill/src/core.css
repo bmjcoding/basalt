@@ -119,7 +119,7 @@
   /* The top of anything that sticks under the bar (React's --basalt-sticky-top): the bar's own height, and a banner's while one is drawn and sticky. Zero in a
      window under size-breakpoint-short tall, where nothing is pinned. */
   :root { --basalt-sticky-top: calc(var(--basalt-sticky-offset, var(--basalt-space-0)) + var(--basalt-banner-height, var(--basalt-space-0))); }
-  @media (height < %bp-short%) { :root:root:root { --basalt-sticky-top: var(--basalt-space-0); --basalt-bottom-offset: var(--basalt-space-0); } }
+  @media (height < %bp-short%) { :root:root:root { --basalt-sticky-top: var(--basalt-space-0); } }
 
   .page { width: 100%; max-width: var(--basalt-size-page-width); margin-inline: auto; padding: var(--basalt-space-8) var(--basalt-gutter) var(--basalt-space-16); }
   /* A raw length on purpose: 46rem is a narrower data page, and no layout token names it (size-prose-width is a text measure). A token would be a design decision, so it stays a length of its own. */
@@ -143,15 +143,6 @@
   @media (width >= %bp-md%) { .tabpanel .section { margin-top: var(--basalt-space-10); } }
   .section .section { margin-top: var(--basalt-space-8); }
   .section-description { max-width: var(--basalt-size-prose-width); margin: var(--basalt-space-1) 0 0; color: var(--basalt-text-secondary); font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); text-wrap: pretty; }
-  /* A page before the app (React's MessagePage): the page's one main, at least the window's height, and a block of the prose width centred both ways by auto
-     margins, which fall to 0 when it is taller than the window. Its lines start on its start edge: an h1 at 18/26, a description, a .cluster of buttons. */
-  /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit, svh: it does not move as a phone's bars collapse); a fixed-length token cannot say it */
-  .message-page { box-sizing: border-box; display: flex; flex-direction: column; min-height: 100svh; padding: max(var(--basalt-space-8), env(safe-area-inset-top)) var(--basalt-gutter) max(var(--basalt-space-8), env(safe-area-inset-bottom)); }
-  .message-page-body { box-sizing: border-box; width: 100%; max-width: var(--basalt-size-prose-width); margin: auto; }
-  .message-page-body > h1 { margin: 0; font-size: var(--basalt-text-lg-size); line-height: var(--basalt-text-lg-line-height); font-weight: var(--basalt-font-weight-semibold); text-wrap: balance; }
-  .message-page-body > h1 + p { margin: var(--basalt-space-2) 0 0; color: var(--basalt-text-secondary); text-wrap: pretty; }
-  .message-page-body > .cluster { margin-top: var(--basalt-space-6); }
-  @media (height < %bp-short%) { .message-page { padding-block: var(--basalt-space-4); } }
   /* A head's last ghost .btn is hung at its end by itself (DECISIONS 336, Q10): a .panel-head into its own space-4, a page's own section head into the
      gutter. A section head in a column, a grid or a card declares no room, and its button stays on the line with its edge. */
   .page > .section > .section-head { --basalt-edge-room: var(--basalt-gutter); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; }

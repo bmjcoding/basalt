@@ -24,3 +24,9 @@ An app's frame (React's `AppShell` and `AppHeader`): a sidebar at 1024 and up, t
 - Don't use `.page` inside `.app-main`; it is already the page's width with the gutter. The shell needs `viewport-fit=cover` for the phone's safe areas: compose adds it.
 - `data-capped` on the shell holds it to the sidebar plus 72rem, centred; the page then fills its column. A page with a pane beside it: `--usage pane`.
 - The version this session runs: a `.version-link` in `div.app-version`, last in `.app-account`; the rail shows the number alone and the script gives it the whole line as a tooltip. No "What's new" item.
+- An app page's rhythm: `.section`s (`.section-head` with an `h2` and a `p.section-description`) straight in `.app-main`, 48 apart from 720 and 32 under it.
+- `data-phone-title="page"` on `.app-header` moves a long title into the page under 720: the script builds `div.app-page-head` (the `h1` and the facts) first in `.app-main` and an echo of the title in the bar. Write neither by hand. The bar keeps 56px.
+- `data-rail` on the shell keeps the 72px rail at every width from 720; with `data-capped` the cap is the rail plus 72rem.
+- A lockup with a second line: `<span class="app-lockup"><span class="app-lockup-mark" aria-hidden="true">…svg…</span><span class="app-lockup-lines"><span>Name</span><span>Team</span></span></span>` in `.brand-full`; the rail shows the mark alone.
+- A shared note under the account items: `div.app-footnote` > a `div` of lines (`p`, then `p.faint`) and a ghost sm `.btn` with `data-edge="end"`. Not drawn in the rail.
+- In a window under 480 tall nothing is pinned: the header, the tab bar and the bars of your own scroll with the page.
