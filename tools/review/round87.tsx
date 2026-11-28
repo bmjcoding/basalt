@@ -84,10 +84,12 @@ function Pair({ before, after, names = ["Before (main: no press of its own)", "A
 }
 
 /** Marks what `target` matches inside it `data-wt-force="active"`, so the review build holds a real press on it. */
-function Press({ target, children }: { target: string; children: React.ReactNode }) {
+function Press({ target, hovered, children }: { target: string; hovered?: string; children: React.ReactNode }) {
   const box = React.useRef<HTMLDivElement>(null);
   React.useLayoutEffect(() => {
     for (const el of box.current?.querySelectorAll(target) ?? []) el.setAttribute("data-wt-force", "active");
+    // A mouse press is hovered too: `hovered` holds both, so the shot shows which paint wins.
+    if (hovered) for (const el of box.current?.querySelectorAll(hovered) ?? []) el.setAttribute("data-wt-force", "hover active");
   });
   return <div ref={box} style={{ display: "contents" }}>{children}</div>;
 }
@@ -147,7 +149,7 @@ function ControlSet({ pressed }: { pressed: boolean }) {
   );
   if (!pressed) return set;
   return (
-    <Press target=".basalt-tab:not([data-active]), .basalt-link-tab:not([aria-current]), .basalt-segment:not([data-pressed]), .basalt-text-button, .basalt-link:not(.basalt-page-link), .basalt-page-link:not([aria-current]), .basalt-select-trigger, .basalt-file-input-native, .basalt-search-trigger, .basalt-accordion-trigger, .basalt-disclosure-row, .basalt-listbox-option:not([aria-selected='true'])">
+    <Press target=".basalt-tab:not([data-active]), .basalt-link-tab:not([aria-current]), .basalt-segment:not([data-pressed]), .basalt-text-button, .basalt-link:not(.basalt-page-link), .basalt-page-link:not([aria-current]), .basalt-select-trigger, .basalt-file-input-native, .basalt-search-trigger, .basalt-accordion-trigger, .basalt-disclosure-row" hovered=".basalt-listbox-option:not([aria-selected='true'])">
       {set}
     </Press>
   );
@@ -309,7 +311,7 @@ export const ROUND_87: Round = {
     {
       id: "press-controls",
       name: "Before and after: a pressed tab, segment, link, page link, field trigger and disclosure",
-      intro: "A control with no wash rung presses to its hover step, so a finger sees what a pointer sees: a tab, a link tab and a segment lift to primary ink with no wash; TextButton's quiet words and a link's underline go to the ink; a page link takes primary on the selected wash. The select trigger and the file input press to the selected wash over their raised fill as one colour, with the placeholder and empty line at secondary; the search trigger to the selected wash under 720 and primary ink from 720; the accordion's caret lifts; a disclosure row lifts its ink; a listbox option steps its band.",
+      intro: "A control with no wash rung presses to its hover step, so a finger sees what a pointer sees: a tab, a link tab and a segment lift to primary ink with no wash; TextButton's quiet words and a link's underline go to the ink; a page link takes primary on the selected wash. The select trigger and the file input press to the selected wash over their raised fill as one colour, with the placeholder and empty line at secondary; the search trigger to the selected wash under 720 and primary ink from 720; the accordion's caret lifts; a disclosure row lifts its ink; a listbox option steps its band. The listbox option is held hovered and pressed at once, as a mouse press is: the press wins.",
       decisions: [
         "No wash on a tab or segment: a filled tab is a look tabs don't have, and a wash in the track reads as a second pill.",
         "No step down on a link or TextButton: stepping down an ink is the busy sign.",

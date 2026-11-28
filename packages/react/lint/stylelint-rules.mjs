@@ -82,8 +82,26 @@ export function basaltRules(stylelint, context = {}) {
     rejected: (selector) => `"${selector}" paints on :hover outside @media (hover: hover) (gate it, split it from its focus or press half, or disable this line with a reason)`,
   });
   const HOVERS = /\(\s*hover\s*:\s*hover\s*\)/i;
+  /** A query's top-level alternatives: split on commas and on `or` outside parentheses. */
+  const alternatives = (params) => {
+    const out = [];
+    let depth = 0;
+    let start = 0;
+    for (let i = 0; i < params.length; i += 1) {
+      const c = params[i];
+      if (c === "(") depth += 1;
+      else if (c === ")") depth -= 1;
+      else if (depth === 0 && c === ",") { out.push(params.slice(start, i)); start = i + 1; }
+      else if (depth === 0 && /^\sor\s/i.test(params.slice(i, i + 4))) { out.push(params.slice(start, i)); start = i + 3; }
+    }
+    out.push(params.slice(start));
+    return out;
+  };
+  // A query gates hover only when every alternative holds a positive (hover: hover): `not (hover: hover)`, `(hover: hover), (pointer: coarse)` and
+  // `(hover: hover) or (hover: none)` all match a touch screen.
+  const gates = (params) => alternatives(params).every((alt) => HOVERS.test(alt) && !/(^|[\s(])not[\s(]/i.test(alt));
   const gated = (node) => {
-    for (let parent = node.parent; parent; parent = parent.parent) if (parent.type === "atrule" && /^media$/i.test(parent.name) && HOVERS.test(parent.params)) return true;
+    for (let parent = node.parent; parent; parent = parent.parent) if (parent.type === "atrule" && /^media$/i.test(parent.name) && gates(parent.params)) return true;
     return false;
   };
   const gate = (primary) => (root, result) => {

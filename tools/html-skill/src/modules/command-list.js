@@ -257,6 +257,7 @@
     results.addEventListener('pointerleave', function () { hovered = false; syncIdle(); });
     // In a split a pointer passing over a row changes nothing: the plate marks what the pane shows.
     results.addEventListener('pointermove', function (e) {
+      if (e.pointerType === 'touch') return; // a finger scrolls the list and lights nothing (m1, P8: the touch mark is glide.js's)
       var row = e.target.closest('.row');
       if (row && !(detail && mode === 'split') && Number(row.dataset.index) !== active) setActive(Number(row.dataset.index), false);
     });

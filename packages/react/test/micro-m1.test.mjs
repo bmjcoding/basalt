@@ -30,6 +30,10 @@ describe("basalt/hover-gate", () => {
     assert.ok((await lint(".a:hover { color: var(--basalt-text-primary); }")).includes("basalt/hover-gate"));
     assert.ok((await lint(".a:is(:hover, :focus-visible) { color: var(--basalt-text-primary); }")).includes("basalt/hover-gate"), "a joined focus half is no excuse");
     assert.ok((await lint("@media (forced-colors: active) { .a:hover { color: Highlight; } }")).includes("basalt/hover-gate"), "another query is not the gate");
+    // A query that a touch screen also matches is not the gate: every alternative must hold a positive (hover: hover).
+    for (const query of ["not (hover: hover)", "(hover: hover), (pointer: coarse)", "(hover: hover) or (hover: none)"]) {
+      assert.ok((await lint(`@media ${query} { .a:hover { opacity: 1; } }`)).includes("basalt/hover-gate"), query);
+    }
     assert.ok((await lint(".a:hover { color: var(--basalt-text-primary); }", path.join(repo, "tools", "html-skill", "src", "modules", "probe.css"))).includes("basalt/hover-gate"));
   });
   test("a :hover under the gate passes, nested in another query too, and the stricter travel gate counts", async () => {
@@ -286,12 +290,14 @@ for (const theme of ["dark", "light"]) {
       }
     });
 
-    test("an in-flow listbox option steps its band to the selected wash with its slots at secondary; a selected one does not change", async () => {
+    test("an in-flow listbox option steps its band to the selected wash with its slots at secondary, over its hover (a mouse press is hovered too); a selected one does not change", async () => {
       const { page } = await open(render(`<div style={{ width: 320 }}><B.Listbox label="Packets" defaultValue="a"><B.ListboxOption value="a" id="chosen">Runner bean</B.ListboxOption><B.ListboxOption value="b" id="opt" trailing="12 g">Sweet pea</B.ListboxOption></B.Listbox></div>`), FINE, theme);
-      const s = await pressed(page, "#opt", () => style(page, "#opt", ["background-color"], "::before"));
-      assert.equal(await resolve(page, s["background-color"]), await resolve(page, await token(page, "--basalt-state-selected")));
+      // The chosen option first, while it is still the chosen one: a press on #opt chooses #opt on release.
       const chosenRest = await style(page, "#chosen", ["background-color", "color"]);
       assert.deepEqual(await pressed(page, "#chosen", () => style(page, "#chosen", ["background-color", "color"])), chosenRest);
+      // A real mouse press: the pointer is over #opt, so :hover and :active both match, and the press must win (it comes after the hover rule).
+      const s = await pressed(page, "#opt", () => style(page, "#opt", ["background-color"], "::before"));
+      assert.equal(await resolve(page, s["background-color"]), await resolve(page, await token(page, "--basalt-state-selected")));
       await page.close();
     });
 
@@ -379,7 +385,8 @@ describe("a still touch on a row (P8, the touch mark)", () => {
     assert.equal(await page.locator("[data-pressing]").count(), 0, "8px of travel clears it");
     await touch.end();
     await touch.start(first.x, first.y);
-    await page.evaluate(() => document.querySelector(".basalt-menu-scroll, .basalt-menu").dispatchEvent(new Event("scroll")));
+    // The listener is on the glide's host, the nearest port or popup round the plate: the scroll is dispatched there, where a real one fires.
+    await page.evaluate(() => document.querySelector(".basalt-plate").closest(".basalt-menu-scroll, .basalt-menu, .basalt-command-list").dispatchEvent(new Event("scroll")));
     assert.equal(await page.locator("[data-pressing]").count(), 0, "a scroll clears it");
     await touch.end();
     const off = await rows.nth(2).evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
@@ -399,7 +406,25 @@ describe("a still touch on a row (P8, the touch mark)", () => {
     const touch = await cdpTouch(page);
     const at = await centre(page, ".basalt-menu-item");
     await touch.start(at.x, at.y); await touch.cancel();
-    assert.equal(await page.locator(".basalt-menu-item").first().getAttribute("aria-checked"), "false");
+    assert.equal(await page.locator(".basalt-menu-item").first().getAttribute("aria-checked"), "false", "a cancel chooses nothing");
+    await touch.start(at.x, at.y); await touch.end();
+    await page.waitForTimeout(50);
+    assert.equal(await page.locator(".basalt-menu-item").first().getAttribute("aria-checked"), "true", "the release toggles it, once");
+    assert.equal(await page.locator("[data-pressing]").count(), 0);
+    await page.close();
+  });
+  test("a still finger on the lit row of an unfocused in-page command list shows its plate (the idle reset never hides a held row)", async () => {
+    const { page } = await open(render(`<div style={{ width: 420 }}><B.CommandList label="Timetable" groups={[{ label: "Sailings", commands: [{ id: "a", label: "Book the 07:40" }, { id: "b", label: "Book the 09:15" }] }]} /></div>`), COARSE);
+    assert.ok(await page.locator(".basalt-command-list[data-idle]").count(), "the list is idle before any use");
+    const row = '.basalt-menu-item[data-selected="true"]';
+    const touch = await cdpTouch(page);
+    const at = await centre(page, row);
+    await touch.start(at.x, at.y);
+    await page.waitForTimeout(180);
+    const plate = await style(page, row, ["background-color"], "::before");
+    assert.notEqual(await resolve(page, plate["background-color"]), await resolve(page, "transparent"), "the held row's plate shows on the first press");
+    assert.equal(await resolve(page, (await style(page, row, ["color"])).color), await resolve(page, await token(page, "--basalt-text-primary")));
+    await touch.end();
     await page.close();
   });
 });

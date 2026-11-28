@@ -350,6 +350,7 @@
     }
 
     list.addEventListener('pointermove', function (e) {
+      if (e.pointerType === 'touch') return; // a finger scrolls the list and lights nothing (m1, P8: the touch mark is glide.js's)
       var row = e.target.closest('[role="option"]');
       if (row && Number(row.dataset.index) !== index) setActive(Number(row.dataset.index), false);
     });

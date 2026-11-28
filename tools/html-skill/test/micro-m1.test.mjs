@@ -36,6 +36,7 @@ const BODY = `<main class="page"><div class="stack" style="width: 520px">
   <label class="choice" id="wrap" style="width: 300px"><input type="checkbox" id="cb-wrap"> ${LONG}</label>
   <label class="choice" style="width: 300px"><input type="checkbox" role="switch" id="sw-wrap"> ${LONG}</label>
   <div class="radio-group" role="radiogroup" aria-label="Sailing"><label class="choice"><input type="radio" name="s" id="ra" checked> 07:40</label></div>
+  <div class="radio-group" role="radiogroup" aria-label="Return"><label class="choice"><input type="radio" name="r" id="rb"> 17:10</label><label class="choice"><input type="radio" name="r"> 18:40</label></div>
   <label id="bare"><input type="checkbox"> A bare label</label>
   <div class="field"><label for="pier">Pier</label><div class="select"><select class="input" id="pier"><option value="">Choose a pier</option><option value="n">North pier</option></select></div></div>
   <span class="file-field"><input type="file" id="file" aria-label="Photo"></span>
@@ -95,6 +96,9 @@ for (const scheme of ["dark", "light"]) {
       const primary = await resolve(p, await token(p, "--basalt-text-primary"));
       assert.equal(await resolve(p, (await pressed(p, "#cb-label", () => style(p, "#cb", ["background-color"])))["background-color"]), selected);
       assert.equal(await resolve(p, (await pressed(p, "#cb-on", () => style(p, "#cb-on", ["background-color"])))["background-color"]), press);
+      // A group with no radio checked: every radio in it matches :indeterminate, and still presses as unchecked.
+      assert.equal(await p.evaluate(() => document.getElementById("rb").matches(":indeterminate")), true);
+      assert.equal(await resolve(p, (await pressed(p, "#rb", () => style(p, "#rb", ["background-color"])))["background-color"]), selected);
       const radioRest = await style(p, "#ra", ["background-color", "box-shadow"]);
       assert.deepEqual(await pressed(p, "#ra", () => style(p, "#ra", ["background-color", "box-shadow"])), radioRest);
       for (const sel of ["#tab-b", "#seg-pm"]) {
@@ -172,6 +176,21 @@ describe("a still touch on a skill menu row", () => {
     await touch("touchStart", off.x, off.y);
     assert.equal(await p.locator("[data-pressing]").count(), 0, "a disabled row never takes the mark");
     await touch("touchEnd");
+    await context.close();
+  });
+  test("a finger moving over the menu lights and focuses no row (the menu's and the filter's pointermove ignore touch)", async () => {
+    const { page: p, context } = await openHtml(browser, html(MENU), { touch: true, width: 390 });
+    await p.locator("#open").tap();
+    await p.waitForSelector("#m:popover-open");
+    const cdp = await context.newCDPSession(p);
+    const a = await centre(p, ".menu-item");
+    const b = await p.locator(".menu-item").nth(1).evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+    const focused = await p.evaluate(() => document.activeElement?.textContent ?? "");
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: a.x, y: a.y }] });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: b.x, y: b.y }] });
+    assert.equal(await p.locator(".menu-item").nth(1).getAttribute("data-highlighted"), null, "the row under the moving finger is not lit");
+    assert.equal(await p.evaluate(() => document.activeElement?.textContent ?? ""), focused, "focus does not follow the finger");
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
     await context.close();
   });
   test("the core adds one passive touchstart listener on the document", async () => {

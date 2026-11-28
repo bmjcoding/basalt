@@ -93,9 +93,10 @@
   .choice > input[type="checkbox"][role="switch"] { margin-block: calc((1lh - var(--basalt-size-switch-height)) / 2); }
 
   /* A press (m1, P8): an unchecked box (the switch's track too) steps as a secondary button does, to the selected wash with its edge at secondary
-     ink; a checked or mixed checkbox, and a checked switch, steps as a primary button does. A checked radio changes nothing. In at once, out over
+     ink; a checked or mixed checkbox, and a checked switch, steps as a primary button does. A checked radio changes nothing. Only a checkbox is
+     mixed by :indeterminate: every radio of a group with none checked matches it too, and still presses as unchecked. In at once, out over
      the transition, kept under reduced motion. Choosing still happens on release, natively. */
-  input:is([type="checkbox"], [type="radio"]):not(:disabled):not(:checked, :indeterminate):is(:active, .choice:active > *) {
+  input:is([type="checkbox"], [type="radio"]):not(:disabled):not(:checked, [type="checkbox"]:indeterminate):is(:active, .choice:active > *) {
     background: var(--basalt-state-selected);
     box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-text-secondary);
     transition-duration: var(--basalt-duration-instant);
@@ -123,7 +124,7 @@
     input[type="checkbox"], input[type="radio"] { border: var(--basalt-size-hairline) solid ButtonText; box-shadow: none; background: Canvas; color: ButtonText; }
     input[type="checkbox"]:not([role="switch"]):is(:checked, :indeterminate), input[type="checkbox"][role="switch"]:checked, input[type="radio"]:checked { background: Highlight; color: HighlightText; }
     /* A pressed choice keeps its state's colours through the press (m1, P8). */
-    input:is([type="checkbox"], [type="radio"]):not(:disabled):not(:checked, :indeterminate):is(:active, .choice:active > *) { background: Canvas; box-shadow: none; }
+    input:is([type="checkbox"], [type="radio"]):not(:disabled):not(:checked, [type="checkbox"]:indeterminate):is(:active, .choice:active > *) { background: Canvas; box-shadow: none; }
     input[type="checkbox"]:not(:disabled):is(:checked, :indeterminate):is(:active, .choice:active > *) { background: Highlight; }
     input[type="checkbox"]:disabled, input[type="radio"]:disabled { border-color: GrayText; }
     input[type="checkbox"]::before, input[type="radio"]::before { forced-color-adjust: none; }

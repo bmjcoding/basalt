@@ -410,11 +410,14 @@ for (const id of rounds) {
             const walk = (node) => {
               const attrs = node.attributes ?? [];
               const at = attrs.indexOf("data-wt-force");
-              if (at >= 0 && marked[attrs[at + 1]]) marked[attrs[at + 1]].push(node.nodeId);
+              if (at >= 0) for (const kind of attrs[at + 1].split(/\s+/)) if (marked[kind]) marked[kind].push(node.nodeId);
               for (const child of [...(node.children ?? []), ...(node.shadowRoots ?? []), ...(node.contentDocument ? [node.contentDocument] : [])]) walk(child);
             };
             walk(root);
-            for (const kind of ["hover", "focus", "active"]) for (const nodeId of marked[kind]) await client.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: kind === "hover" ? ["hover"] : kind === "active" ? ["active"] : ["focus", "focus-visible"] });
+            // A node may hold more than one ("hover active", a mouse press: the pointer is over what it presses), so its classes are gathered and forced at once.
+            const held = new Map();
+            for (const kind of ["hover", "focus", "active"]) for (const nodeId of marked[kind]) held.set(nodeId, [...(held.get(nodeId) ?? []), ...(kind === "focus" ? ["focus", "focus-visible"] : [kind])]);
+            for (const [nodeId, forcedPseudoClasses] of held) await client.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses });
             await page.waitForTimeout(300);
           }
           // Round 87 (micro-details m1), "finger": a still finger on the row that marks itself `data-wt-finger`, a real touch through the protocol, held 250ms and

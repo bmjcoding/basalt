@@ -78,7 +78,9 @@
       e.preventDefault();
       if (next) light(menu, next);
     });
+    // A finger moving over the list scrolls it: it lights and focuses nothing (the touch mark is glide.js's), as the combobox's rows do.
     menu.addEventListener('pointermove', function (e) {
+      if (e.pointerType === 'touch') return;
       var it = e.target.closest(ITEM);
       if (it && it !== current(menu)) light(menu, it, true);
     });

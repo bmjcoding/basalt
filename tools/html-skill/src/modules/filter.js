@@ -164,7 +164,8 @@
         lit = row;
         if (row) row.setAttribute('data-highlighted', '');
       };
-      group.addEventListener('pointermove', function (e) { var r = e.target.closest('.filter-row'); if (r) light(r); });
+      // A finger moving over the rows scrolls them and lights nothing, as the combobox's rows do (the touch mark is glide.js's).
+      group.addEventListener('pointermove', function (e) { if (e.pointerType === 'touch') return; var r = e.target.closest('.filter-row'); if (r) light(r); });
       group.addEventListener('pointerout', function (e) { var r = e.target.closest('.filter-row'); if (r && r === lit && !r.contains(e.relatedTarget)) light(null); });
       group.addEventListener('focusin', function (e) { var r = e.target.closest('.filter-row'); if (r) light(r); });
       group.addEventListener('focusout', function (e) { var r = e.target.closest('.filter-row'); if (r && r === lit) light(null); });

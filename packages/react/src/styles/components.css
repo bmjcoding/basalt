@@ -214,7 +214,7 @@
     .basalt-select-trigger, .basalt-menu-trigger, .basalt-search-trigger, .basalt-file-input, .basalt-sort, .basalt-accordion-trigger,
     .basalt-disclosure-row, .basalt-prose-disclosure-trigger,
     .basalt-nav-item, .basalt-site-link, .basalt-tabbar-item, .basalt-notification,
-    .basalt-stat-hint, .basalt-stream-more, .basalt-tray-band, .basalt-run-stage-line, .basalt-run-stage-node, .basalt-open-button,
+    .basalt-stat-hint, .basalt-stream-more, .basalt-tray-band, button.basalt-run-stage-line, .basalt-run-stage-node, .basalt-open-button,
     .basalt-share-item[data-acts], .basalt-site-footer-toggle) {
     -webkit-user-select: none;
     user-select: none;
@@ -4259,8 +4259,9 @@
 
   /* Not in use, the list shows no plate and no lit row: a page at rest with one row lit reads as a selection that isn't there,
      and ↵ would do nothing. The shared plate fades; each row's own plate (touch, reduced motion, forced colours) is cleared here. */
-  .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-fast); }
-  .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]::before { background-color: transparent; transition-duration: var(--basalt-duration-fast); }
+  /* A row held by a press or a still finger is not reset (m1, P8): the press paints it, as on any row. */
+  .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]:not(:active, [data-pressing]) { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-fast); }
+  .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]:not(:active, [data-pressing])::before { background-color: transparent; transition-duration: var(--basalt-duration-fast); }
   .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-danger][data-selected="true"] { color: var(--basalt-status-danger); }
 
   /* List plus preview: two level-1 panels space-4 apart, the list a fixed size-list-width and the pane the rest, equal in height,
@@ -8412,15 +8413,16 @@
   .basalt-listbox-option[aria-selected="true"] { background: var(--basalt-state-selected); color: var(--basalt-text-primary); }
   .basalt-listbox-option[aria-selected="true"] :is(.basalt-listbox-trailing, .basalt-listbox-detail, .basalt-listbox-leading .basalt-event-time) { color: var(--basalt-text-secondary); }
   .basalt-listbox-option[aria-disabled="true"] { color: var(--basalt-text-disabled); }
-  /* A press (m1, P8): the hover band steps to the selected wash, the name to primary, and the slots to secondary, so hover and press are one
-     shape. A selected or disabled option takes none. */
-  .basalt-listbox-option:active:not([aria-selected="true"], [aria-disabled="true"]) { color: var(--basalt-text-primary); }
-  .basalt-listbox-option:active:not([aria-selected="true"], [aria-disabled="true"])::before { background: var(--basalt-state-selected); }
-  .basalt-listbox-option:active:not([aria-selected="true"], [aria-disabled="true"]) :is(.basalt-listbox-trailing, .basalt-listbox-detail, .basalt-listbox-leading .basalt-event-time) { color: var(--basalt-text-secondary); }
   @media (hover: hover) {
     .basalt-listbox-option:not([aria-selected="true"], [aria-disabled="true"]):hover::before { background: var(--basalt-state-hover); }
     .basalt-listbox-option:not([aria-selected="true"], [aria-disabled="true"]):hover :is(.basalt-listbox-trailing, .basalt-listbox-detail, .basalt-listbox-leading .basalt-event-time) { color: var(--basalt-text-secondary); }
   }
+  /* A press (m1, P8): the hover band steps to the selected wash, the name to primary, and the slots to secondary, so hover and press are one
+     shape. A selected or disabled option takes none. After the hover rule,
+     which it ties: a mouse press is hovered too, and the press must win. */
+  .basalt-listbox-option:active:not([aria-selected="true"], [aria-disabled="true"]) { color: var(--basalt-text-primary); }
+  .basalt-listbox-option:active:not([aria-selected="true"], [aria-disabled="true"])::before { background: var(--basalt-state-selected); }
+  .basalt-listbox-option:active:not([aria-selected="true"], [aria-disabled="true"]) :is(.basalt-listbox-trailing, .basalt-listbox-detail, .basalt-listbox-leading .basalt-event-time) { color: var(--basalt-text-secondary); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) { .basalt-listbox-option { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
   /* The listbox on touch has no hover to open a plate, so its options show whole at rest: the name and the detail wrap, and the gutter's mark and the trailing
@@ -9353,11 +9355,11 @@
        every part of a lit row is HighlightText in forced colours. */
     .basalt-command .basalt-command-list:not([data-idle]) .basalt-menu-item[data-selected="true"] .basalt-menu-item-description { color: HighlightText; }
     /* The command list in the page, not in use, has no lit row: it is rest ink on Canvas, as every other row. */
-    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] { forced-color-adjust: auto; color: CanvasText; }
-    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]::before { background-color: transparent; }
-    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] :is(.basalt-menu-item-label, .basalt-menu-item-description, .basalt-menu-item-chevron, .basalt-menu-check, .basalt-icon, .basalt-text) { color: CanvasText; }
-    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] .basalt-kbd-key { background: Canvas; border-color: GrayText; color: CanvasText; }
-    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] .basalt-kbd { color: CanvasText; }
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]:not(:active, [data-pressing]) { forced-color-adjust: auto; color: CanvasText; }
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]:not(:active, [data-pressing])::before { background-color: transparent; }
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]:not(:active, [data-pressing]) :is(.basalt-menu-item-label, .basalt-menu-item-description, .basalt-menu-item-chevron, .basalt-menu-check, .basalt-icon, .basalt-text) { color: CanvasText; }
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]:not(:active, [data-pressing]) .basalt-kbd-key { background: Canvas; border-color: GrayText; color: CanvasText; }
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]:not(:active, [data-pressing]) .basalt-kbd { color: CanvasText; }
     .basalt-menu-item[data-highlighted] .basalt-kbd-key,
     .basalt-command .basalt-menu-item[data-selected="true"] .basalt-kbd-key { background: Highlight; border-color: HighlightText; color: HighlightText; }
     .basalt-menu-item[data-highlighted] .basalt-kbd,
