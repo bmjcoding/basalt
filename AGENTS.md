@@ -70,7 +70,8 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   theme control is in the site footer, never in the bar. Use the class once per viewport;
   translucent layers never stack. Only primary and secondary text sits on it, and it falls
   back to opaque `surface-page` without `backdrop-filter`, under reduced transparency, under more contrast, in
-  print, and in forced colours (`Canvas`).
+  print, and in forced colours (`Canvas`). Nothing is pinned to the top or bottom of a window under 480 tall
+  (`size-breakpoint-short`): the bar, a banner, a foot, the tab bar and the status bar scroll with the page.
 - **Level is position, not importance.** An in-flow surface is its parent plus one, whatever
   its role (a hero or console on the page is level 1, its input band and inner panels level
   2); only a surface that leaves the flow (menu, popover, dialog, sheet, toast, tooltip) is
@@ -201,7 +202,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   and holds no version. The entry or release a link opens is the stream's arrival (the plate and "Linked"). Build details is on
   the running release alone, from the running build. No area filter.
 - **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
-  targets stay at least 44px whatever the density, on touch and in any window under 720 whatever the pointer (16px text entry stays touch-only), except a chart's day, reached by drag and by the keys (the phase lane's marks keep 44px); a diagram's card that answers a tap is 44px tall. A toast's Dismiss and action keep their pointer size and take
+  targets stay at least 44px whatever the density, on touch and in any window under 720 whatever the pointer (16px text entry stays touch-only), except a chart's day, reached by drag and by the keys (the phase lane's marks keep 44px), and a stream message's More control and time link, which are 44 wide and keep their line: 32 tall in a head, 24 in a joined entry (the second named exception, DECISIONS 393; never under WCAG 2.5.8's 24 by 24); a diagram's card that answers a tap is 44px tall. A toast's Dismiss and action keep their pointer size and take
   the 44px as hit area inside the toast's padding. A still table's selection column is 44 wide. Text entry is 16px on touch. A one-line notification entry is at least 44 tall on
   touch, and a `Link` on a line of its own has a 44px hit box with no change to layout, its words raised over a stacked neighbour's box; a link in a sentence keeps its line.
 - **The phone and what is pinned:** while an on-screen keyboard is up (`data-screen-keyboard`) the tab bar and the phone's status bar are covered, and the

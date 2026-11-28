@@ -16,7 +16,7 @@
   /* A page with a bar keeps its scrollbar's room (a filter that shortens the page must not widen it) and scrolls anchors and focus clear of the sticky bar. */
   :root:has(.topbar, .app-header) {
     scrollbar-gutter: stable;
-    scroll-padding-top: calc(var(--basalt-sticky-offset) + var(--basalt-space-4));
+    scroll-padding-top: calc(var(--basalt-sticky-top, var(--basalt-sticky-offset)) + var(--basalt-space-4));
   }
   /* What sits in the bar sits inside that scroll padding, so focusing it (a Tab into the bar from a scrolled page) would scroll the page until it cleared
      the padding. A scroll margin as negative as the padding is deep keeps what is in the bar where it is; an anchor still lands at the padding, because only
@@ -44,7 +44,7 @@
   /* The skip link (core) with a bar: it hangs under the bar, space-2 below the bar's line, on the brand's start edge at every width (the bar's own inline padding, and
      the page's centred column for a .topbar), fixed to the viewport so it covers nothing in the bar and moves nothing. Unseen until focus: clipped, not moved, so it never
      shows over the bar on its way out. React's SkipLink does the same under a SiteHeader, AppHeader or .basalt-sticky-bar. */
-  .skip-link { position: fixed; top: calc(var(--basalt-sticky-offset) + var(--basalt-space-2)); inset-inline-start: var(--bh-pad-start); transform: none; }
+  .skip-link { position: fixed; top: calc(var(--basalt-sticky-top, var(--basalt-sticky-offset)) + var(--basalt-space-2)); inset-inline-start: var(--bh-pad-start); transform: none; }
   :root:has(.topbar) .skip-link { inset-inline-start: max(var(--bh-pad-start), calc((100% - var(--basalt-size-page-width)) / 2 + var(--bh-pad-start))); }
   .skip-link:not(:focus) { clip-path: inset(50%); }
   /* Only primary and secondary ink may sit on it: tertiary is promoted to secondary. A pressed ghost button takes primary ink (on its wash). */
@@ -309,4 +309,16 @@
   }
   .site-footer-legal-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--basalt-space-1) var(--basalt-space-4); min-width: 0; }
   .site-footer-legal-row .version-link { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); letter-spacing: var(--basalt-text-sm-tracking); }
+
+  /* The account (React's SiteHeader account): one ghost control, last in the bar from 720; under 720 the topbar-nav script moves it into the menu's row when
+     the bar has a menu, and with none it stays in the bar, in the Menu button's place. */
+  .topbar-account { display: inline-flex; }
+
+  /* A short window (React's AppShell, cimip-gaps-3 T5): under size-breakpoint-short of height nothing is pinned to the window's top or bottom. The bar keeps
+     its fill and its height; a bar that arrives stays in its slot. These come after the pinning rules and win by specificity. */
+  @media (height < %bp-short%) {
+    :root .topbar, :root .app-header { position: static; }
+    :root .site-slot > .topbar[data-form] { position: absolute; top: 0; }
+    :root .site-slot > .topbar[data-form][data-motion] { transform: none; opacity: 1; transition: none; }
+  }
 }

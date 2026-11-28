@@ -126,4 +126,62 @@
     /* stylelint-disable-next-line unit-disallowed-list -- the 1px clip box of the visually-hidden pattern; it must be exactly 1px */
     .app-version :is(.version-link-words > :first-child, .version-link-date) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
   }
+
+  /* The rail at every width (data-rail, React's AppShell rail): from 1024 too, the rail's rules; capped, the default cap is the rail plus size-page-width. */
+  :root:has(.app-shell[data-rail]) { --basalt-shell-width: calc(var(--basalt-size-rail-width) + var(--basalt-size-page-width)); }
+  @media (width >= %bp-lg%) {
+    .app-shell[data-rail] { grid-template-columns: var(--basalt-size-rail-width) minmax(0, 1fr); }
+    .app-shell[data-rail] .app-sidebar { padding-inline: 0; }
+    .app-shell[data-rail] .app-brand { justify-content: center; padding-inline: 0; }
+    .app-shell[data-rail] .app-brand .brand { justify-content: center; }
+    .app-shell[data-rail] .app-brand .brand > .brand-full { display: none; }
+    .app-shell[data-rail] .app-brand .brand > .brand-rail { display: inline-flex; }
+    .app-shell[data-rail] .app-version { margin-inline: var(--basalt-space-1-5); }
+    :root:has(.app-shell[data-rail]) .skip-link { inset-inline-start: calc((var(--basalt-size-rail-width) - var(--basalt-size-tap-min)) / 2); }
+    :root:has(.app-shell[data-rail][data-capped]) .skip-link { inset-inline-start: calc(max(var(--basalt-space-0), (100% - var(--basalt-shell-width)) / 2) + (var(--basalt-size-rail-width) - var(--basalt-size-tap-min)) / 2); }
+  }
+
+  /* An app's lockup (React's AppBrand): .app-lockup-mark, a square seat (36 with a second line, 32 without), then .app-lockup-lines, the name at 14/20 and
+     600 over a second line at 12/16 in secondary, each one line, cut. In the rail only the mark, at 32. */
+  .app-lockup { display: inline-flex; align-items: center; gap: var(--basalt-space-2-5); min-width: 0; }
+  .app-lockup-mark { display: inline-flex; flex: none; align-items: center; justify-content: center; width: var(--basalt-size-control-md); height: var(--basalt-size-control-md); }
+  .app-lockup:has(.app-lockup-lines > :nth-child(2)) .app-lockup-mark { width: var(--basalt-size-control-lg); height: var(--basalt-size-control-lg); }
+  .app-lockup-lines { display: flex; flex-direction: column; min-width: 0; }
+  .app-lockup-lines > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .app-lockup-lines > :first-child { font: var(--basalt-font-weight-semibold) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); }
+  .app-lockup-lines > :nth-child(2) { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
+  .app-brand .brand > span:has(> .app-lockup) { height: auto; min-height: var(--basalt-size-control-md); min-width: 0; }
+  .brand-rail .app-lockup-lines { display: none; }
+  .brand-rail .app-lockup-mark { width: var(--basalt-size-control-md); height: var(--basalt-size-control-md); }
+
+  /* A shared note at the sidebar's foot (React's AppFootnote): under the account items and above the version, a divider on top, space-3 above and below it;
+     its lines at 12/16 (the first secondary, a second .faint), a ghost sm .btn at the end. In the rail, nothing. */
+  .app-footnote { display: flex; align-items: center; gap: var(--basalt-space-2); margin: var(--basalt-space-3) var(--basalt-space-1-5) 0; padding-top: var(--basalt-space-3); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); color: var(--basalt-text-secondary); }
+  .app-footnote > :first-child { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+  .app-footnote p { margin: 0; }
+  @media (width >= %bp-md%) and (width < %bp-lg%) { .app-footnote { display: none; } }
+  @media (width >= %bp-lg%) { .app-shell[data-rail] .app-footnote { display: none; } }
+
+  /* A page's own head (React's AppPageHead): the h1 at 18/26 and 600, balanced, wrapped, never cut; facts under it at 13/18; space-8 below it from 720 and
+     space-6 under it. With data-phone-title="page" on .app-header the script builds one as the first child of .app-main, drawn under 720 only, and the bar's
+     own h1 and facts are not drawn there; the bar echoes the title once the page's has scrolled under it. Never written by hand for that. */
+  .app-page-head { margin-bottom: var(--basalt-space-6); }
+  .app-page-title { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-lg-tracking); text-wrap: balance; overflow-wrap: break-word; }
+  .app-page-title:focus { outline: none; }
+  .app-page-head > .app-facts { margin-top: var(--basalt-space-1); white-space: normal; overflow: visible; }
+  .app-echo { display: none; }
+  @media (width >= %bp-md%) {
+    .app-page-head { margin-bottom: var(--basalt-space-8); }
+    .app-page-head[data-phone-only] { display: none; }
+  }
+  @media (width < %bp-md%) {
+    .app-page-head[data-phone-only]:first-child { margin-top: calc(var(--basalt-space-4) - var(--basalt-space-6)); }
+    /* Only once the script has put the page's head in main (data-phone-title-ready): with no script the bar keeps its title. */
+    .app-header[data-phone-title="page"][data-phone-title-ready] .app-bar > :is(.app-heading, .app-title) { display: none; }
+    .app-header[data-phone-title="page"] .app-echo { display: block; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--basalt-font-weight-semibold) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-lg-tracking); opacity: 0; transition: opacity calc(var(--basalt-duration-fast) * 0.75) var(--basalt-ease-in); }
+    .app-header[data-phone-title="page"] .app-echo[data-shown] { opacity: 1; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  }
+
+  /* A short window (React's AppShell): under size-breakpoint-short of height the header is in the flow. */
+  @media (height < %bp-short%) { :root .app-shell .app-header { position: static; } }
 }
