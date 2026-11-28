@@ -24,8 +24,11 @@ const FORMS = [["1440", DESKTOP], ["390 with touch", PHONE]];
 const render = (jsx) => `createRoot(document.getElementById("root")).render(${jsx});`;
 const open = async (body, options = DESKTOP, theme = "dark") => {
   const { page, errors } = await fixturePage(browser, body, { theme, ...options });
+  // A phone's layout viewport is its device width only with a viewport meta (as lists-modals.test.mjs writes it): without one Chromium lays a mobile page out wider.
+  if (options.isMobile) await page.evaluate(() => { const meta = document.createElement("meta"); meta.name = "viewport"; meta.content = "width=device-width, initial-scale=1"; document.head.append(meta); });
   await page.addStyleTag({ content: "body { background: var(--basalt-surface-page); color: var(--basalt-text-primary); margin: 0; padding: 24px; } .fixed { width: 240px; }" });
   await settle(page);
+  assert.equal(await page.evaluate(() => window.innerWidth), options.viewport.width, "the layout viewport is the width the test measures at");
   return { page, errors };
 };
 const frame = (page) => page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
@@ -511,6 +514,8 @@ document.addEventListener("mousedown", (e) => { (window.downs ??= []).push([e.bu
     test("more contrast: the host's boundary and the glyph step to secondary ink", async () => {
       const { page } = await open(FIELD({ value: "Basil" }), DESKTOP, theme);
       await page.emulateMedia({ contrast: "more" });
+      // The host's box-shadow transitions (duration-fast): sample it once it has landed.
+      await settle(page);
       const secondary = await resolve(page, "text-secondary");
       const read = await page.evaluate(() => ({ shadow: getComputedStyle(document.querySelector("form.basalt-search-box")).boxShadow, glyph: getComputedStyle(document.querySelector(".basalt-search-box-glyph")).color }));
       assert.ok(read.shadow.includes(secondary), read.shadow);
