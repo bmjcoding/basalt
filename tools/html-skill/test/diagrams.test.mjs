@@ -207,6 +207,13 @@ describe("compose.mjs and the diagram's markup", () => {
     assert.equal(one("a&lt"), "bd-a_3c__dg-title", "a legacy form, with nothing after it");
     assert.equal(one("&#x80;"), "bd-_20ac__dg-title", "0x80 is windows-1252's euro, as the browser reads it");
     assert.equal(one("&#0;"), "bd-_fffd__dg-title");
+    // HTML's input stream first: a literal CR, or CR and LF, is an LF and a literal NUL is U+FFFD; a CR written as a reference stays a CR.
+    assert.equal(one("a\rb"), "bd-a_a_b_dg-title", "a lone CR");
+    assert.equal(one("a\r\nb"), "bd-a_a_b_dg-title", "CR and LF");
+    assert.equal(one("a\nb"), "bd-a_a_b_dg-title");
+    assert.equal(one("a\0b"), "bd-a_fffd_b_dg-title", "a NUL");
+    assert.equal(one("a&#13;b"), "bd-a_d_b_dg-title", "&#13; is still a CR");
+    assert.equal(one("a&#13;&#10;b"), "bd-a_d__a_b_dg-title", "and references are never joined");
     // A name it does not decode: the figure keeps its number, the composer says so, and the page's script settles the base from the DOM id.
     for (const attr of ["&copy;", "&check;", "&nosuch;", "&copy"]) {
       const result = compose(`<h1>x</h1>${figure(`class="diagram" id="${attr}"`)}`);

@@ -109,6 +109,19 @@ describe("idBase", () => {
     }
   });
 
+  test("anonymousBase writes the whole useId one to one after bd-u, ends -u, and holds no underscore", () => {
+    assert.equal(core.anonymousBase("«r0»"), "bd-u-ab-r0-bb--u");
+    assert.equal(core.anonymousBase("_r_1_"), "bd-u-5f-r-5f-1-5f--u");
+    const values = ["«app-aR0»", "«appaR0»", "«app_aR0»", "«app-aR0", "app-aR0»", "_r_1_", "_r_1", "r_1_", "-", "--", "u", "-u", "«dg»", "«x_dg»", ""];
+    const made = values.map((v) => core.anonymousBase(v));
+    assert.equal(new Set(made).size, values.length, made.join(" "));
+    assert.ok(made.every((b) => SAFE.test(b) && b.startsWith("bd-u") && !b.includes("_")), "no underscore, so never a base an id gives");
+    // A base and a suffix of one value is never another's.
+    const suffixes = ["-title", "-cut-0", "-export-note", "-v-title", "-viewer-title", "-clear-words", "-expand-words"];
+    const seen = new Map();
+    for (const v of values) for (const s of suffixes) { const id = core.anonymousBase(v) + s; assert.ok(!seen.has(id) || seen.get(id) === v, id); seen.set(id, v); }
+  });
+
   test(`an id of ${core.ID_BASE_WHOLE} characters is written whole, at most 518; one longer is its first 32 and a hash, at most 280 whatever its length`, () => {
     assert.equal(core.ID_BASE_WHOLE, 64);
     const whole = "a".repeat(64), emoji = "😀".repeat(64);
@@ -211,15 +224,39 @@ window.__set([]);`, VIEWPORT);
     await drawn(page, 2);
     await frames(page);
     const labels = await page.evaluate((P) => [...document.querySelectorAll(`figure.${P}`)].map((f) => f.getAttribute("aria-labelledby")), P);
-    assert.match(labels[0], /^bd-u[A-Za-z0-9]+-title$/, "useId's letters and digits, after bd-u");
+    assert.match(labels[0], /^bd-u([A-Za-z0-9]|-[0-9a-f]+-)+-u-title$/, "useId written whole after bd-u, ended by -u");
     assert.equal(labels[1], "bd-fig-x_dg-title");
-    const old = `dg${labels[0].slice("bd-u".length)}`;
-    await page.evaluate((extra) => window.__set(extra), [old, labels[0].slice("bd-".length), "dg2-title"]);
+    // The useId the base was written from, read back (the writing is one to one), and the old form's heading id from it.
+    const value = labels[0].slice("bd-u".length, -"-u-title".length).replace(/-([0-9a-f]+)-/g, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)));
+    assert.equal(core.anonymousBase(value), labels[0].slice(0, -"-title".length));
+    const old = `dg${value.replace(/[^a-zA-Z0-9_-]/g, "")}-title`;
+    await page.evaluate((extra) => window.__set(extra), [old, `${value.replace(/[^a-zA-Z0-9]/g, "")}-title`, "dg2-title"]);
     await frames(page);
     assert.equal(await page.evaluate((P) => document.querySelector(`figure.${P}`).getAttribute("aria-labelledby"), P), labels[0], "the figure kept its useId");
     const r = await audit(page);
     assert.deepEqual(r.dupes, [], `no id twice (the old form was ${old})`);
     assert.deepEqual(r.faults, []);
+    assert.deepEqual(errors, []);
+    await page.close();
+  });
+
+  test("two roots whose identifierPrefix differ only in punctuation (app-a, appa): their figures with no id share no id", async () => {
+    const { page, errors } = await fixturePage(browser, `
+import a from "./test/fixtures/cimip-diagrams-b.json";
+const host = document.getElementById("root");
+for (const prefix of ["app-a", "appa"]) {
+  const el = document.createElement("div");
+  host.append(el);
+  createRoot(el, { identifierPrefix: prefix }).render(<main style={{ width: 1104 }}><B.ArchitectureDiagram {...a.architecture} /></main>);
+}`, VIEWPORT);
+    await drawn(page, 2);
+    await frames(page);
+    const labels = await page.evaluate((P) => [...document.querySelectorAll(`figure.${P}`)].map((f) => f.getAttribute("aria-labelledby")), P);
+    assert.notEqual(labels[0], labels[1], labels.join(" "));
+    assert.ok(labels.every((l) => l.startsWith("bd-u") && !l.includes("_")), labels.join(" "));
+    const r = await audit(page);
+    assert.deepEqual(r.dupes, [], "no id twice in the document");
+    assert.deepEqual(r.faults, [], "each figure's names are its own");
     assert.deepEqual(errors, []);
     await page.close();
   });

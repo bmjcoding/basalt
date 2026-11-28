@@ -672,8 +672,10 @@ const LEGACY_REFERENCES = ["amp", "AMP", "lt", "LT", "gt", "GT", "quot", "QUOT",
  * and past U+10FFFF are U+FFFD, and 0x80 to 0x9F are windows-1252's. A name in NAMED_REFERENCES with its `;`, or in LEGACY_REFERENCES without it, is its
  * character. Without its `;`, a browser reads a name only where the whole run of letters and digits is one of HTML's legacy names (2 to 6 long) and no
  * `=` follows, so a run of 1, or of more than 6, or one `=` follows, is text; any other run of 2 to 6, and any other name with its `;`, may be a reference.
+ * First, as HTML's input stream does before any reference is read: a CR, or a CR and LF, is an LF, and a NUL is U+FFFD (so `&#13;` is still a CR).
  */
-function attributeText(value) {
+function attributeText(text) {
+  const value = text.replace(/\r\n?/g, "\n").replace(/\0/g, "\ufffd");
   if (!value.includes("&")) return value;
   let out = "";
   let i = 0;

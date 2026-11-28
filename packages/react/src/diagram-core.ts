@@ -1093,7 +1093,7 @@ export const ID_BASE_WHOLE = 64;
  * `ID_BASE_WHOLE` characters is written whole, at most 518 characters (64 escapes of 8, as U+10FFFF takes, between `bd-` and `_dg`); a longer one is its
  * first 32, then `_h` and 16 hex digits of a hash of the whole id, at most 280 characters whatever the id's length (two long ids that share their first 32
  * characters part on the hash). A figure with no id is numbered in the same namespace, in a form with no underscore, which no id gives: `bd-u` and React's
- * `useId`, or `bd-n` and its place in the skill.
+ * `useId` (`anonymousBase`), or `bd-n` and its place in the skill.
  */
 export function idBase(id: string): string {
   const chars = Array.from(id);
@@ -1109,6 +1109,18 @@ export function idBase(id: string): string {
   }
   const hex = (n: number) => (n >>> 0).toString(16).padStart(8, "0");
   return `bd-${write(chars.slice(0, 32))}_h${hex(a)}${hex(b)}_dg`;
+}
+
+/**
+ * The base of a figure with no id: `bd-u`, React's whole `useId` value written one to one, then `-u` (G146). Letters and digits are kept; any other
+ * character, the hyphen included, is written `-<code point in hex>-`, and `-u` can only be its end (`u` is no hex digit), so two values never give one
+ * base, and two roots whose `identifierPrefix` differ only in punctuation (`app-a`, `appa`) stay apart. It holds no underscore, so it is never a base an
+ * id gives (`idBase`'s always holds `_dg`). React's values are short; nothing here bounds them.
+ */
+export function anonymousBase(value: string): string {
+  let out = "";
+  for (const ch of value) out += /[A-Za-z0-9]/.test(ch) ? ch : `-${ch.codePointAt(0)!.toString(16)}-`;
+  return `bd-u${out}-u`;
 }
 const idsOf = (base: string) => ({ title: `${base}-title`, summary: `${base}-summary`, keys: `${base}-keys`, list: `${base}-list`, toggle: `${base}-toggle` });
 

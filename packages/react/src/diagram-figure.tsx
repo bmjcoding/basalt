@@ -4,7 +4,7 @@ import { Kbd } from "./kbd";
 import { useShortcutsVisible } from "./keyboard";
 import { inLevel, ModalHost, usePanelLevel } from "./layers";
 import {
-  applyTrace, autoType, buildModel, idBase, placeLabels, tapTrace, transcript, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml,
+  applyTrace, autoType, buildModel, idBase, anonymousBase, placeLabels, tapTrace, transcript, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml,
 } from "./diagram-core";
 import type { DiagramLegend, DiagramMotion, DiagramPlacement, DiagramSpec, Dyn, Geo, Measured, Model, VNode } from "./diagram-core";
 import type { MotionController } from "./diagram-motion-core";
@@ -206,10 +206,10 @@ let figureIds: WeakMap<Node, Map<string, number>> | undefined;
 
 export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, onLayout, actions, entrance: _entrance, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, id, ...props }: DiagramFigureInternalProps) {
   // Every id inside is built on the base (G146), in Basalt's namespace: the viewer's, the figure's own id's where it has one (bd-…_dg), else React's useId,
-  // which follows the render order, as bd-u and its letters and digits (no underscore, so never a form an id gives).
+  // which follows the render order, written whole and one to one after bd-u (anonymousBase: no underscore, so never a form an id gives).
   const reactId = React.useId();
   const ownId = !viewer && typeof id === "string" && id !== "" ? id : undefined;
-  const base = baseId ?? (ownId !== undefined ? idBase(ownId) : `bd-u${reactId.replace(/[^a-zA-Z0-9]/g, "")}`);
+  const base = baseId ?? (ownId !== undefined ? idBase(ownId) : anonymousBase(reactId));
   const level = usePanelLevel();
   // The key hint is a data-kbd-hint legend, hidden on touch until a hardware key is pressed: this installs the listener that reveals it.
   useShortcutsVisible();
