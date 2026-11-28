@@ -31,7 +31,9 @@
 
   button, input, select, textarea { font: inherit; letter-spacing: inherit; color: inherit; margin: 0; }
   a { color: inherit; text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-underline-offset: var(--basalt-size-underline-offset); }
-  a:hover { text-decoration-color: currentColor; }
+  @media (hover: hover) { a:hover { text-decoration-color: currentColor; } }
+  /* A press is the hover step (m1, P8): the underline to the ink. */
+  a:active { text-decoration-color: currentColor; }
 
   h1, h2, h3, h4, p, ul, ol, dl, dd, figure, blockquote { margin: 0; }
   h1, h2, h3, h4 { font-weight: var(--basalt-font-weight-semibold); color: var(--basalt-text-primary); text-wrap: balance; }
@@ -80,7 +82,11 @@
   :root { --bh-inset-left: env(safe-area-inset-left, var(--basalt-space-0)); --bh-inset-right: env(safe-area-inset-right, var(--basalt-space-0)); --bh-inset-start: var(--bh-inset-left); --bh-inset-end: var(--bh-inset-right); }
   :root:dir(rtl) { --bh-inset-start: var(--bh-inset-right); --bh-inset-end: var(--bh-inset-left); }
   @media (width < %bp-md%) { :root { --basalt-gutter: var(--basalt-size-gutter-narrow); } }
-  a, button, summary, [role="tab"], .row, .disclosure, .segment button { -webkit-tap-highlight-color: transparent; }
+  a, button, summary, [role="tab"], [role="option"], [role="switch"], .row, .disclosure, .segment button { -webkit-tap-highlight-color: transparent; }
+  /* Pointer and touch (m1, P7 and P1): a second tap presses again instead of zooming, on what presses and never on a field, a scrollport or the
+     page. A label that is the control takes it in its own module. A link inside a sentence is inline, which touch-action does not apply to. */
+  a[href], button, summary, select, input:is([type="checkbox"], [type="radio"], [type="button"], [type="submit"], [type="reset"]), [role="button"], [role="tab"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="switch"] { touch-action: manipulation; }
+  summary { -webkit-user-select: none; user-select: none; }
   [hidden] { display: none !important; }
   :focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   ::selection { background: var(--basalt-state-selected); }
@@ -252,6 +258,7 @@
     white-space: nowrap;
     text-decoration: none;
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
     background: var(--basalt-surface-1);
     color: var(--basalt-text-primary);

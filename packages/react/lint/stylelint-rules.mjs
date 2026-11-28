@@ -6,6 +6,10 @@
 //   basalt/no-restyle        an app's stylesheet setting appearance on Basalt's classes (`.basalt-*` as the subject of a selector), or setting a
 //                            `--basalt-*` token. Layout (margin, placement, width, `display: none`) is allowed; so are the documented hooks. Only in an
 //                            app's stylesheet: Basalt's own CSS draws these classes and does not use it.
+//   basalt/hover-gate        a selector with `:hover` outside an `@media` whose query includes `(hover: hover)`. Hover paint is for a pointer that
+//                            hovers (foundations, "Pointer and touch"): on a touch screen an ungated `:hover` stays painted after the finger lifts.
+//                            Only in Basalt's own CSS (stylelint.config.mjs), not an app's. A rule that only removes or pins paint carries the exception:
+//                            /* stylelint-disable-next-line basalt/hover-gate -- removes the hover wash while the keys are in use */
 import { classify, effectiveSelectors, HOOKS, subjectClasses } from "./appearance.mjs";
 import { restyleHint, sizeProp } from "./hints.mjs";
 import { componentOfClass } from "./vocabulary.mjs";
@@ -73,5 +77,31 @@ export function basaltRules(stylelint, context = {}) {
   restyle.messages = restyleMessages;
   restyle.meta = { url: "https://github.com/bmjcoding/basalt/blob/main/docs/consumer-lint.md" };
 
-  return { containerLength: stylelint.createPlugin(containerName, container), noRestyle: stylelint.createPlugin(restyleName, restyle) };
+  const gateName = "basalt/hover-gate";
+  const gateMessages = utils.ruleMessages(gateName, {
+    rejected: (selector) => `"${selector}" paints on :hover outside @media (hover: hover) (gate it, split it from its focus or press half, or disable this line with a reason)`,
+  });
+  const HOVERS = /\(\s*hover\s*:\s*hover\s*\)/i;
+  const gated = (node) => {
+    for (let parent = node.parent; parent; parent = parent.parent) if (parent.type === "atrule" && /^media$/i.test(parent.name) && HOVERS.test(parent.params)) return true;
+    return false;
+  };
+  const gate = (primary) => (root, result) => {
+    if (!utils.validateOptions(result, gateName, { actual: primary })) return;
+    root.walkRules((rule) => {
+      // A keyframe's step is not a selector.
+      if (rule.parent?.type === "atrule" && /keyframes$/i.test(rule.parent.name)) return;
+      if (!/:hover\b/i.test(rule.selector) || gated(rule)) return;
+      utils.report({ ruleName: gateName, result, message: gateMessages.rejected(rule.selector.replace(/\s+/g, " ").slice(0, 120)), node: rule });
+    });
+  };
+  gate.ruleName = gateName;
+  gate.messages = gateMessages;
+  gate.meta = { url: "https://github.com/bmjcoding/basalt/blob/main/docs/foundations.md" };
+
+  return {
+    containerLength: stylelint.createPlugin(containerName, container),
+    noRestyle: stylelint.createPlugin(restyleName, restyle),
+    hoverGate: stylelint.createPlugin(gateName, gate),
+  };
 }

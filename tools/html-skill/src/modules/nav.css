@@ -109,6 +109,7 @@
   .nav-item:active .nav-pill { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
   .nav-item:focus-visible .nav-pill { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* The first key hides the hover, shared pill and fallback alike: focus is the cue, until the pointer moves again. */
+  /* stylelint-disable-next-line basalt/hover-gate -- removes the hover pill while the keys are in use; it leaves no paint a finger could keep */
   .nav[data-keys] .nav-item:hover .nav-pill,
   .nav[data-keys] .nav-item:active .nav-pill { background-color: transparent; }
 
@@ -127,10 +128,13 @@
   /* Forced colours: the hovered item is Highlight on HighlightText, with no backplate behind the text; the current page keeps its selected glyph and its 600
      label. The shared pill is not drawn. */
   @media (forced-colors: active) {
-    .nav-item:hover .nav-pill,
+    @media (hover: hover) {
+      .nav-item:hover .nav-pill { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
+      .nav-item:hover .nav-count { color: HighlightText; }
+    }
     .nav-item:active .nav-pill { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
-    .nav-item:hover .nav-count,
     .nav-item:active .nav-count { color: HighlightText; }
+    /* stylelint-disable-next-line basalt/hover-gate -- removes the Highlight while the keys are in use; it leaves no paint a finger could keep */
     .nav[data-keys] .nav-item:hover .nav-pill,
     .nav[data-keys] .nav-item:active .nav-pill { forced-color-adjust: auto; background-color: transparent; color: inherit; }
   }

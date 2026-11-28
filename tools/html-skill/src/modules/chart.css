@@ -126,6 +126,7 @@
     .chart-name, .chart-value, .chart-date, .chart-title { color: CanvasText; }
     .chart-source, .chart-hint, .chart-value [data-missing], .chart-not-observed { color: GrayText; }
     .chart-table tbody th { background-color: Canvas; }
+    /* stylelint-disable-next-line basalt/hover-gate -- removes the row wash under forced colours; it adds no paint (and the chart table's row is left for its own round, m1 P4) */
     .chart-table tbody tr:hover > th::before { background: none; }
     .chart-table tr > :nth-child(1)::after { forced-color-adjust: none; background: CanvasText; }
   }

@@ -18,13 +18,21 @@
   .stat-link:focus-visible::after { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .stat-cue { display: inline-grid; place-items: center; margin-inline-start: var(--basalt-space-2); color: var(--basalt-text-secondary); vertical-align: middle; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
   .stat-link .ext { color: var(--basalt-text-secondary); }
-  .stat:has(> .stat-value > .stat-link):hover :is(.stat-label, .stat-cue) { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .stat:has(> .stat-value > .stat-link):hover :is(.stat-label, .stat-cue) { color: var(--basalt-text-primary); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .stat:has(> .stat-value > .stat-link):active :is(.stat-label, .stat-cue) { color: var(--basalt-text-primary); }
   /* A value not observed: the words at text-base, 400, tertiary, on the figure's baseline. */
   .stat-value[data-missing] { color: var(--basalt-text-tertiary); font-weight: var(--basalt-font-weight-regular); font-size: var(--basalt-text-base-size); letter-spacing: normal; }
   /* The hint: Phosphor Info at 16 in a 20px seat after the label, secondary at rest and primary on hover, the control ring at +2, above the stretched link;
      44 by 44 on touch with no change to layout. It opens the popover module's panel. */
   .stat-hint { position: relative; z-index: 1; display: inline-grid; place-items: center; inline-size: var(--basalt-size-icon-md); block-size: var(--basalt-size-icon-md); margin-block: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-icon-md)) / 2); margin-inline-start: var(--basalt-space-1); padding: 0; border: 0; border-radius: var(--basalt-radius-xs); background: none; color: var(--basalt-text-secondary); vertical-align: top; cursor: pointer; }
-  .stat-hint:hover { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .stat-hint:hover { color: var(--basalt-text-primary); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .stat-hint:active { color: var(--basalt-text-primary); }
   .stat-hint:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   @media (pointer: coarse), (width < %bp-md%) {
     .stat-hint::before { content: ""; position: absolute; top: 50%; left: 50%; width: var(--basalt-size-tap-min); height: var(--basalt-size-tap-min); transform: translate(-50%, -50%); }

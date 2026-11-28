@@ -52,7 +52,11 @@
   .release-meta { margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-sm-tracking); font-variant-numeric: tabular-nums; }
   .release-badges { display: inline-flex; gap: var(--basalt-space-2); margin-inline-start: var(--basalt-space-2); vertical-align: middle; }
   .release-action-link { position: relative; z-index: 1; color: inherit; text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); border-radius: var(--basalt-radius-xs); }
-  .release-action-link:hover { color: var(--basalt-text-primary); text-decoration-color: currentColor; }
+  @media (hover: hover) {
+    .release-action-link:hover { color: var(--basalt-text-primary); text-decoration-color: currentColor; }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .release-action-link:active { color: var(--basalt-text-primary); text-decoration-color: currentColor; }
   .release-action-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .release-copy { flex: none; }
   .release-summary, .release-paragraph { margin: 0; max-width: var(--basalt-size-prose-width); font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); text-wrap: pretty; }
@@ -129,7 +133,11 @@
   /* The source line: a quiet TextButton in Geist Mono at 13 on the entry's 20px line, its hit 24 tall on a fine pointer. Ids never break inside
      (an id longer than the line breaks anywhere); beside the words the line does not wrap. */
   .release-source { position: relative; margin: 0; padding-inline: 0; border: 0; border-radius: var(--basalt-radius-xs); background: none; color: var(--basalt-text-secondary); text-align: start; cursor: pointer; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
-  .release-source:hover { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .release-source:hover { color: var(--basalt-text-primary); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .release-source:active { color: var(--basalt-text-primary); }
   .release-source:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .release-source { display: inline; baseline-source: first; padding-block: var(--basalt-space-0-5); margin-block: calc(-1 * var(--basalt-space-0-5)); font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-base-line-height); letter-spacing: 0; }
   /* Each id carries the underline (an id never breaks inside, so it is a box of its own, which a label's underline would not reach). It stands at
@@ -137,7 +145,11 @@
      drawn where it was. A button laid out inline is an inline block, whose baseline would be its last line: the source line takes its first
      (baseline-source), so a source line of two lines stands beside the words' first line (recheck-pixels 2). */
   .release-id { display: inline-block; max-width: 100%; overflow-wrap: anywhere; vertical-align: top; text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out); }
-  .release-source:hover .release-id { text-decoration-color: currentColor; }
+  @media (hover: hover) {
+    .release-source:hover .release-id { text-decoration-color: currentColor; }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .release-source:active .release-id { text-decoration-color: currentColor; }
   .release-action-link { white-space: nowrap; }
   .release-sources { width: var(--basalt-size-popover-max); }
   .release-sources-list { margin-block: var(--basalt-space-2) var(--basalt-space-4); }
@@ -217,7 +229,11 @@
   .release-index-number { color: var(--basalt-text-primary); font-family: var(--basalt-font-family-mono); letter-spacing: 0; overflow-wrap: anywhere; }
   .release-index-number[data-words] { font-family: var(--basalt-font-family-sans); }
   .release-index-link time { flex: none; color: var(--basalt-text-tertiary); }
-  .release-index-link:hover .release-index-number { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  @media (hover: hover) {
+    .release-index-link:hover .release-index-number { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .release-index-link:active .release-index-number { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
   .release-index-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .release-index[data-release-form="fold"] { margin-bottom: var(--basalt-space-8); }
   .release-index[data-release-form="fold"] .release-fold { font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }

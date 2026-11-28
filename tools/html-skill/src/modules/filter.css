@@ -155,6 +155,7 @@
     /* The chip: the line is a real border, so off keeps it in ButtonText. On is Highlight with every part (label, seat, both glyphs) named HighlightText,
        and it stays Highlight on hover and while pressed; the check is a shape, so it shows. */
     .chip { color: ButtonText; }
+    /* stylelint-disable-next-line basalt/hover-gate -- pins a checked chip's Highlight through hover and press; it adds no hover paint */
     .chip:has(> .chip-input:checked), .chip:has(> .chip-input:checked):hover, .chip:has(> .chip-input:checked):active { forced-color-adjust: none; background: Highlight; border-color: Highlight; color: HighlightText; }
     .chip:has(> .chip-input:checked) :is(.chip-label, .chip-seat, svg) { color: HighlightText; }
     .chip:has(> .chip-input:disabled), .chip:has(> .chip-input:disabled) .chip-seat { color: GrayText; border-color: GrayText; }

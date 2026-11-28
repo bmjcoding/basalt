@@ -120,6 +120,7 @@
   .tab-bar-item:active .tab-bar-glyph { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
   /* The first key hides the circle: the ring is the cue. The ring is the control ring inset by its own width on the full cell (the flush-field rule),
      because the cell meets the screen's edge. */
+  /* stylelint-disable-next-line basalt/hover-gate -- removes the hover paint while the keys are in use; it leaves no paint a finger could keep */
   .tab-bar[data-keys] .tab-bar-item:is(:hover, :active) .tab-bar-glyph { background-color: transparent; }
   .tab-bar-item:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
   /* More's bottom sheet: a title and Close, then Nav rows. */
@@ -130,7 +131,9 @@
   @media (forced-colors: active) {
     .tab-bar { background: Canvas; border-top-color: CanvasText; }
     .tab-bar-item { color: LinkText; }
-    .tab-bar-item:is(:hover, :active) .tab-bar-glyph { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
+    @media (hover: hover) { .tab-bar-item:hover .tab-bar-glyph { forced-color-adjust: none; background-color: Highlight; color: HighlightText; } }
+    .tab-bar-item:active .tab-bar-glyph { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
+    /* stylelint-disable-next-line basalt/hover-gate -- removes the hover paint while the keys are in use; it leaves no paint a finger could keep */
     .tab-bar[data-keys] .tab-bar-item:is(:hover, :active) .tab-bar-glyph { forced-color-adjust: auto; background-color: transparent; color: inherit; }
     .tab-bar-dot { forced-color-adjust: none; background-color: CanvasText; }
     .tab-bar-item[data-dot-kind="direct"] .tab-bar-dot { color: CanvasText; border-color: CanvasText; }

@@ -27,7 +27,11 @@
     box-decoration-break: clone;
   }
   .rich-text a[href] { color: var(--basalt-text-primary); text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-underline-offset: var(--basalt-size-underline-offset); text-decoration-thickness: var(--basalt-size-hairline); transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out); }
-  .rich-text a[href]:hover { text-decoration-color: currentColor; }
+  @media (hover: hover) {
+    .rich-text a[href]:hover { text-decoration-color: currentColor; }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .rich-text a[href]:active { text-decoration-color: currentColor; }
   .rich-text a[href]:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); border-radius: var(--basalt-radius-xs); }
   .rich-text :where(h1, h2, h3, h4, h5, h6) { font: var(--basalt-font-weight-semibold) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); letter-spacing: normal; text-wrap: wrap; }
   .rich-text :where(p, ul, ol, blockquote, pre, figure, hr, h1, h2, h3, h4, h5, h6, table, dl, div, details) + :where(h1, h2, h3, h4, h5, h6) { margin-block-start: var(--basalt-space-4); }

@@ -44,12 +44,16 @@
     text-align: start;
     text-decoration: none;
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
   }
   /* On touch a one-line entry is at least 44 tall with its line centred (its plate stays 40); a two-line entry is 58 already. */
   @media (pointer: coarse), (width < %bp-md%) { .notification { min-height: var(--basalt-size-tap-min); align-content: center; } }
   .notification::before { content: ""; position: absolute; inset: var(--_inset) 0; z-index: -1; border-radius: var(--basalt-radius-md); background-color: transparent; transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out); }
-  .notification:hover::before { background-color: var(--panel-plate); transition-duration: var(--basalt-duration-instant); }
+  @media (hover: hover) { .notification:hover::before { background-color: var(--panel-plate); transition-duration: var(--basalt-duration-instant); } }
+  /* A press is the hovered entry (m1, P8), on :active and on data-pressing, which _.glide writes under a still finger (glide.js). */
+  .notification:is(:active, [data-pressing])::before { background-color: var(--panel-plate); transition-duration: var(--basalt-duration-instant); }
+  /* stylelint-disable-next-line basalt/hover-gate -- removes the hover plate while the keys are in use; it leaves no paint a finger could keep */
   .notifications-scroll[data-keys] .notification:hover::before { background-color: transparent; }
   /* A focusable row takes the control ring at +2, measured from the plate: the row's own box already holds the plate's 2px inset. */
   .notification:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(var(--basalt-size-focus-offset) - var(--_inset)); }
@@ -61,11 +65,13 @@
   .notification[data-status="danger"] .notification-mark { color: var(--basalt-status-danger); }
   .notification-text { display: flex; flex-direction: column; min-width: 0; }
   .notification-title, .notification-line { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .notification[data-unread] .notification-title, .notification:hover .notification-title { color: var(--basalt-text-primary); }
+  .notification[data-unread] .notification-title, .notification:is(:active, [data-pressing]) .notification-title { color: var(--basalt-text-primary); }
+  @media (hover: hover) { .notification:hover .notification-title { color: var(--basalt-text-primary); } }
   /* A hint (the line and the time) is tertiary at rest and lifts to secondary on the plate, which tertiary would fail. */
   .notification-line { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); }
   .notification-time { margin-top: calc(var(--basalt-space-0-5) / 2); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--basalt-text-tertiary); }
-  .notification:hover .notification-line, .notification:hover .notification-time { color: var(--basalt-text-secondary); }
+  @media (hover: hover) { .notification:hover .notification-line, .notification:hover .notification-time { color: var(--basalt-text-secondary); } }
+  .notification:is(:active, [data-pressing]) :is(.notification-line, .notification-time) { color: var(--basalt-text-secondary); }
   /* Pending is the empty ring of the same marks, in secondary ink: waiting is not a warning. The current entry is its title at 600. */
   .notification[data-status="pending"] .notification-mark { color: var(--basalt-text-secondary); }
   .notification[data-current] .notification-title { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
@@ -102,12 +108,20 @@
        where it sits. A hovered entry is Highlight with HighlightText, as a lit row is, and its marks and dot follow. */
     .notifications-dot, .notification[data-unread]:not([data-direct]) .notification-dot { box-sizing: border-box; border: calc(var(--basalt-size-dot) / 2) solid; background: none; }
     .notification[data-status] .notification-mark { color: CanvasText; }
-    .notification:hover { forced-color-adjust: none; background: Highlight; color: HighlightText; }
-    .notification:hover::before { background-color: transparent; }
+    @media (hover: hover) {
+      .notification:hover { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+      .notification:hover::before { background-color: transparent; }
+    }
+    .notification:is(:active, [data-pressing]) { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+    .notification:is(:active, [data-pressing])::before { background-color: transparent; }
     .notification-count, .notification-caret { color: CanvasText; }
     button[data-direct] > .notifications-dot, .notification[data-direct] .notification-dot::before { forced-color-adjust: none; color: CanvasText; border: var(--basalt-size-hairline) solid CanvasText; background-color: CanvasText; }
     .notification[data-direct] .notification-dot { border: 0; }
-    .notification[data-direct]:hover .notification-dot::before { color: HighlightText; border-color: HighlightText; background-color: HighlightText; }
-    .notification:hover :is(.notification-title, .notification-line, .notification-time, .notification-mark, .notification-count, .notification-caret) { color: HighlightText; }
+    @media (hover: hover) {
+      .notification[data-direct]:hover .notification-dot::before { color: HighlightText; border-color: HighlightText; background-color: HighlightText; }
+      .notification:hover :is(.notification-title, .notification-line, .notification-time, .notification-mark, .notification-count, .notification-caret) { color: HighlightText; }
+    }
+    .notification[data-direct]:is(:active, [data-pressing]) .notification-dot::before { color: HighlightText; border-color: HighlightText; background-color: HighlightText; }
+    .notification:is(:active, [data-pressing]) :is(.notification-title, .notification-line, .notification-time, .notification-mark, .notification-count, .notification-caret) { color: HighlightText; }
   }
 }

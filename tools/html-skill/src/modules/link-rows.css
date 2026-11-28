@@ -13,7 +13,12 @@
   .dir-name { font-weight: var(--basalt-font-weight-semibold); text-wrap: balance; }
   .dir-what { color: var(--basalt-text-secondary); text-wrap: pretty; transition: color var(--basalt-duration-base) var(--basalt-ease-out); }
   .dir-state { color: var(--basalt-text-secondary); text-align: end; font-variant-numeric: tabular-nums; }
-  .dir-row:is(:hover, :focus-visible) .dir-what { color: var(--basalt-text-primary); }
+  .dir-row:focus-visible .dir-what { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .dir-row:hover .dir-what { color: var(--basalt-text-primary); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .dir-row:active .dir-what { color: var(--basalt-text-primary); }
   .dir-row:focus-visible, .big-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); border-radius: var(--basalt-radius-sm); }
   .dir-name > .ext { margin-inline-start: var(--basalt-space-1-5); }
 
@@ -22,10 +27,20 @@
   .dir-row:not([data-new-tab]) .dir-name::after { vertical-align: middle; margin-inline-start: var(--basalt-space-1-5); }
   /* The big rows are Castle's: the arrow's colour steps over duration-fast, its travel stays duration-base (DECISIONS 152, consent row 7). The directory is SRA's and keeps duration-base for both. */
   .big-link:not([data-new-tab])::after { --_colour-ms: var(--basalt-duration-fast); }
-  .dir-row:not([data-new-tab]):is(:hover, :focus-visible) .dir-name::after, .big-link:not([data-new-tab]):is(:hover, :focus-visible)::after { background: var(--basalt-text-primary); transform: translateX(var(--basalt-space-0-5)); }
-  :is(.dir-row, .big-link):is(:hover, :focus-visible) .ext { color: var(--basalt-text-primary); }
+  .dir-row:not([data-new-tab]):focus-visible .dir-name::after, .big-link:not([data-new-tab]):focus-visible::after { background: var(--basalt-text-primary); transform: translateX(var(--basalt-space-0-5)); }
+  :is(.dir-row, .big-link):focus-visible .ext { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .dir-row:not([data-new-tab]):hover .dir-name::after, .big-link:not([data-new-tab]):hover::after { background: var(--basalt-text-primary); transform: translateX(var(--basalt-space-0-5)); }
+    :is(.dir-row, .big-link):hover .ext { color: var(--basalt-text-primary); }
+  }
+  /* A press is the hover ink (m1, P8); the arrow's 2px travel stays hover's and focus's. */
+  .dir-row:not([data-new-tab]):active .dir-name::after, .big-link:not([data-new-tab]):active::after { background: var(--basalt-text-primary); }
+  :is(.dir-row, .big-link):active .ext { color: var(--basalt-text-primary); }
   .dir-row:dir(rtl) .dir-name::after, .big-link:dir(rtl)::after { transform: scaleX(-1); }
-  .dir-row:dir(rtl):is(:hover, :focus-visible) .dir-name::after, .big-link:dir(rtl):is(:hover, :focus-visible)::after { transform: scaleX(-1) translateX(var(--basalt-space-0-5)); }
+  .dir-row:dir(rtl):focus-visible .dir-name::after, .big-link:dir(rtl):focus-visible::after { transform: scaleX(-1) translateX(var(--basalt-space-0-5)); }
+  @media (hover: hover) {
+    .dir-row:dir(rtl):hover .dir-name::after, .big-link:dir(rtl):hover::after { transform: scaleX(-1) translateX(var(--basalt-space-0-5)); }
+  }
 
   /* A row after the cut (class reveal, see disclosure) draws its rule inside its clip, so a closed row is no height at all. */
   .dir-list > li.reveal > .reveal-clip::before { content: ""; display: block; border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
@@ -52,9 +67,13 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .dir-row:is(:hover, :focus-visible) .dir-name::after, .big-link:is(:hover, :focus-visible)::after { transform: none; }
+    .dir-row:focus-visible .dir-name::after, .big-link:focus-visible::after { transform: none; }
+    @media (hover: hover) {
+      .dir-row:hover .dir-name::after, .big-link:hover::after { transform: none; }
+    }
   }
   @media (forced-colors: active) {
+    /* stylelint-disable-next-line basalt/hover-gate -- pins the arrow to LinkText at rest, on hover and on focus; it adds no hover paint */
     .dir-row:not([data-new-tab]) .dir-name::after, .big-link:not([data-new-tab])::after, .dir-row:not([data-new-tab]):is(:hover, :focus-visible) .dir-name::after, .big-link:not([data-new-tab]):is(:hover, :focus-visible)::after { forced-color-adjust: none; background: LinkText; }
     .ext { color: inherit; }
   }

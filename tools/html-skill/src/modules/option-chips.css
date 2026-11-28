@@ -81,6 +81,7 @@
   @media (forced-colors: active) {
     .option-chip { border-color: ButtonText; color: ButtonText; }
     .option-chip-seat { box-shadow: none; border: var(--basalt-size-hairline) solid ButtonText; color: ButtonText; }
+    /* stylelint-disable-next-line basalt/hover-gate -- pins a checked option chip's Highlight through hover and press; it adds no hover paint */
     .option-chip:is([data-checked], :has(> .option-chip-input:checked)), .option-chip:is([data-checked], :has(> .option-chip-input:checked)):hover, .option-chip:is([data-checked], :has(> .option-chip-input:checked)):active { forced-color-adjust: none; background: Highlight; border-color: Highlight; color: HighlightText; }
     .option-chip:is([data-checked], :has(> .option-chip-input:checked)) .option-chip-seat { background: HighlightText; border-color: HighlightText; color: Highlight; }
     .option-chip:is([data-checked], :has(> .option-chip-input:checked)) .option-chip-seat > svg { color: Highlight; }
