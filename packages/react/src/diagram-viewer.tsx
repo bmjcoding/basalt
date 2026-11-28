@@ -46,6 +46,8 @@ export interface DiagramViewerProps {
   Actions?: typeof DiagramActions;
   spec: DiagramSpec;
   component: string;
+  /** The page's figure's id base (G146): the dialog's ids and its figure's are built on it, so they are as stable as the figure's own. */
+  base: string;
   source?: React.ReactNode;
   summary: React.ReactNode;
   /** "Expand": focus returns to it when the viewer closes. */
@@ -63,7 +65,7 @@ const EMPTY: ZoomState = { zoom: 1, level: 100, fit: 1, min: 1, max: 4, atMin: f
 /** A length token's value in CSS pixels, read from a probe the stage holds. */
 const probeWidth = (stage: HTMLElement | null, which: string) => stage?.querySelector<HTMLElement>(`.${P}-probe[data-probe="${which}"]`)?.offsetWidth ?? 0;
 
-export function DiagramViewer({ kit, actions, Actions, spec, component, source, summary, opener, host, onClose }: DiagramViewerProps) {
+export function DiagramViewer({ kit, actions, Actions, spec, component, base, source, summary, opener, host, onClose }: DiagramViewerProps) {
   const { Figure: DiagramFigure, Kbd, buildModel, figureKey, figureList, hintEntries, toHtml, inLevel, measureFigure } = kit;
   // The viewer's figure is still (9.7): no entrance, flow, mover or run, so no motion code is loaded for it.
   // Its "Draw again" too (DECISIONS 405, G149): `replay` is left off, so the still figure is not warned about it.
@@ -83,7 +85,8 @@ export function DiagramViewer({ kit, actions, Actions, spec, component, source, 
   const [dims, setDims] = React.useState({ row: 1104, contain: 480 });
   const [layout, setLayout] = React.useState<{ layout?: string; bare?: boolean; open?: boolean }>({});
   const [listOpen, setListOpen] = React.useState(false);
-  const descId = React.useId();
+  // The dialog's ids are the page figure's base and a suffix no figure id writes (G146); its drawing's base is `-v`, so none of the three meet.
+  const descId = `${base}-viewer-summary`;
 
   // The stage's inner width (its width less the padding of 9.4) is the width the figure may be laid out at; it is read again when the stage resizes.
   const readStage = React.useCallback(() => {
@@ -161,7 +164,7 @@ export function DiagramViewer({ kit, actions, Actions, spec, component, source, 
   // The dialog: shown as a modal when it mounts; Esc (the browser's cancel), Close and a press on the scrim close it, after its own exit motion; focus
   // returns to "Expand". While it is open the page behind does not scroll (the stylesheet), and Tab wraps inside it.
   const dialogRef = React.useRef<HTMLDialogElement>(null);
-  const titleId = React.useId();
+  const titleId = `${base}-viewer-title`;
   const closing = React.useRef(false);
   const onCloseRef = React.useRef(onClose);
   onCloseRef.current = onClose;
@@ -235,7 +238,7 @@ export function DiagramViewer({ kit, actions, Actions, spec, component, source, 
           <span className={`${P}-probe`} data-probe="contain" aria-hidden="true" />
           <div ref={sizerRef} className={`${P}-sizer`} hidden={showList}>
             <div ref={layerRef} className={`${P}-layer`}>
-              {viewer ? <DiagramFigure spec={still} component={component} title={model.title} source={source} summary={summary} viewer={viewer} /> : null}
+              {viewer ? <DiagramFigure spec={still} component={component} title={model.title} source={source} summary={summary} viewer={viewer} baseId={`${base}-v`} /> : null}
             </div>
           </div>
           {showList ? (

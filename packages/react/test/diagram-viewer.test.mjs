@@ -374,7 +374,8 @@ describe("the ink", () => {
     const pageInk = await page.locator(`#fig-schema .${P}-ink`).innerHTML();
     await open(page, "schema");
     const ink = () => page.locator(`dialog.${P}-viewer .${P}-ink`).innerHTML();
-    const normalise = (s) => s.replace(/dg[\w-]+?-/g, "ID-");
+    // The page figure's base and the viewer drawing's (`-v` on it), both built on the figure's id (G146).
+    const normalise = (s) => s.replace(/bd-[\w-]*?_dg(?:-v)?-/g, "ID-");
     const first = await ink();
     // The page's drawing snaps from its own origin: where that origin is on whole pixels the strings are equal; otherwise every number is within the
     // half pixel of a snap.

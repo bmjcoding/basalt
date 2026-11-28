@@ -1,0 +1,11 @@
+/* The classes class-fail.tsx and class-pass.tsx put on Basalt components. */
+.save-action {
+  margin-inline-start: auto;
+}
+.loud-action {
+  background: var(--basalt-surface-sunken);
+  font-weight: 600;
+}
+.toolbar .tight-action {
+  padding: var(--basalt-space-1);
+}

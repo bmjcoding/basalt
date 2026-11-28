@@ -1,0 +1,24 @@
+/* Stylesheet rules: appearance on Basalt's classes, a token set by the app, and raw design values (Basalt's Stylelint policy). */
+.jump .basalt-button {
+  background: var(--basalt-surface-chrome);
+  margin-inline-start: auto;
+}
+.basalt-card:hover {
+  box-shadow: var(--basalt-shadow-overlay);
+}
+:root {
+  --basalt-space-4: 18px;
+}
+.app-panel {
+  padding: 16px;
+  color: #a1a1a1;
+  border-radius: 7px;
+  transition: opacity 150ms;
+}
+@media (min-width: 720px) {
+  .app-panel { gap: var(--basalt-space-4); }
+}
+/* basalt-lint-disable-next-line color-no-hex */
+.app-mark { color: #000; }
+/* basalt-lint-disable-next-line basalt/no-restyle -- nothing below restyles */
+.app-quiet { margin: 0; }

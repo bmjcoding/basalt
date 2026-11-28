@@ -1,0 +1,10 @@
+/* Point 1: the documented hooks pass in a stylesheet too. */
+.app-head {
+  --basalt-edge-room: var(--basalt-space-6);
+  --basalt-edge-room-start: var(--basalt-space-6);
+  --basalt-edge-room-end: var(--basalt-space-6);
+}
+:root {
+  --basalt-sticky-offset: var(--basalt-space-16);
+  --basalt-shell-width: calc(var(--basalt-size-sidebar-width) + var(--basalt-size-page-width));
+}

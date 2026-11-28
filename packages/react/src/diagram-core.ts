@@ -1096,6 +1096,46 @@ export interface Dyn {
 }
 
 export interface TreeIds { base: string }
+/** The longest figure id, in characters, written whole into the ids inside its figure (G146); a longer one is bounded (`idBase`). */
+export const ID_BASE_WHOLE = 64;
+/**
+ * The base of every id inside a figure that has an `id` of its own (console gap G146), so its accessibility attributes are the same on every render, in
+ * any order. Every base is in Basalt's namespace: it begins `bd-`, which a page keeps for Basalt (development warns on a figure whose own id begins so),
+ * so it starts with a letter and no author id is one of them. Then the id: letters, digits and hyphens kept, any other character, the underscore
+ * included, written `_<code point in hex>_`; then `_dg`. That writing is one to one and `_dg` can only be its end, so two different ids never give the
+ * same id inside, and what it gives holds only `[A-Za-z0-9_-]`: safe in an attribute, in `querySelector` and in `url(#…)`. An id of up to
+ * `ID_BASE_WHOLE` characters is written whole, at most 518 characters (64 escapes of 8, as U+10FFFF takes, between `bd-` and `_dg`); a longer one is its
+ * first 32, then `_h` and 16 hex digits of a hash of the whole id, at most 280 characters whatever the id's length (two long ids that share their first 32
+ * characters part on the hash). A figure with no id is numbered in the same namespace, in a form with no underscore, which no id gives: `bd-u` and React's
+ * `useId` (`anonymousBase`), or `bd-n` and its place in the skill.
+ */
+export function idBase(id: string): string {
+  const chars = Array.from(id);
+  const write = (list: string[]) => { let out = ""; for (const ch of list) out += /[A-Za-z0-9-]/.test(ch) ? ch : `_${ch.codePointAt(0)!.toString(16)}_`; return out; };
+  if (chars.length <= ID_BASE_WHOLE) return `bd-${write(chars)}_dg`;
+  // Two 32-bit hashes over the id's UTF-16 units (FNV-1a, and a multiply and shift on another constant): 64 bits, as 16 hex digits.
+  let a = 0x811c9dc5, b = 0x9e3779b9;
+  for (let i = 0; i < id.length; i++) {
+    const c = id.charCodeAt(i);
+    a = Math.imul(a ^ c, 0x01000193);
+    b = Math.imul(b ^ c, 0x5bd1e995);
+    b ^= b >>> 15;
+  }
+  const hex = (n: number) => (n >>> 0).toString(16).padStart(8, "0");
+  return `bd-${write(chars.slice(0, 32))}_h${hex(a)}${hex(b)}_dg`;
+}
+
+/**
+ * The base of a figure with no id: `bd-u`, React's whole `useId` value written one to one, then `-u` (G146). Letters and digits are kept; any other
+ * character, the hyphen included, is written `-<code point in hex>-`, and `-u` can only be its end (`u` is no hex digit), so two values never give one
+ * base, and two roots whose `identifierPrefix` differ only in punctuation (`app-a`, `appa`) stay apart. It holds no underscore, so it is never a base an
+ * id gives (`idBase`'s always holds `_dg`). React's values are short; nothing here bounds them.
+ */
+export function anonymousBase(value: string): string {
+  let out = "";
+  for (const ch of value) out += /[A-Za-z0-9]/.test(ch) ? ch : `-${ch.codePointAt(0)!.toString(16)}-`;
+  return `bd-u${out}-u`;
+}
 const idsOf = (base: string) => ({ title: `${base}-title`, summary: `${base}-summary`, keys: `${base}-keys`, list: `${base}-list`, toggle: `${base}-toggle` });
 
 /** Whether the figure's nodes are stops (a roving tab index) in this state. */
