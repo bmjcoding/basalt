@@ -887,6 +887,26 @@
   :is(.basalt-menu, .basalt-menu-scroll) > :is(.basalt-plate:first-child + .basalt-menu-text, .basalt-menu-text:first-child) { padding-top: var(--basalt-space-2); }
 
   .basalt-menu-trigger { cursor: pointer; }
+  /* The default trigger (no render) is a bare button drawn at its text's height (21px), under the shared floor. It meets the floor as hit area
+     alone: a box with no content, centred and at least 24 by 24 (44 by 44 on touch and under 720), as TextButton's and Link's are; the
+     button, its words and any glyph inside keep their size and place. A render element (Button, IconButton) keeps its own sizes. */
+  .basalt-menu-trigger[data-bare] { position: relative; }
+  .basalt-menu-trigger[data-bare]::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%; /* physical: it is centred, in either direction */
+    width: max(100%, var(--basalt-size-control-xs));
+    height: max(100%, var(--basalt-size-control-xs));
+    transform: translate(-50%, -50%);
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
+    .basalt-menu-trigger[data-bare]::before {
+      width: max(100%, var(--basalt-size-tap-min));
+      height: max(100%, var(--basalt-size-tap-min));
+    }
+  }
 
   /* ---- Dialog ---- */
 
