@@ -205,9 +205,9 @@ describe("A1-20: formatters are made once for a locale and its options", () => {
     const first = await counting(() => { html = column(); });
     assert.ok(first <= 6, `formatters made for 200 DateAge: ${first}`);
     assert.equal(await counting(column), 0, "formatters made for the same column again");
-    assert.match(html, /60 minutes ago/);
-    assert.match(html, /dateTime="2026-11-16" class="basalt-time">Nov 16</);
-    assert.match(html, /3 days ago/);
+    assert.match(html, /60\u00a0minutes ago/);
+    assert.match(html, /dateTime="2026-11-16" class="basalt-time">Nov\u00a016</);
+    assert.match(html, /3\u00a0days ago/);
   });
 
   test("each zone and locale has a formatter of its own, and writes what a new one would", async () => {
@@ -219,9 +219,9 @@ describe("A1-20: formatters are made once for a locale and its options", () => {
     assert.equal(time.formatClock(AT, { timeZone: "Asia/Tokyo", locale: "en-GB" }).text, new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Tokyo", hourCycle: "h23", hour: "2-digit", minute: "2-digit" }).format(AT));
     assert.equal(tokyo.dateTime, "2026-11-17T23:49");
     assert.equal(newYork.dateTime, "2026-11-17T09:49");
-    assert.equal(time.formatDay(AT, { timeZone: "UTC", now: AT, locale: "en-GB" }).text, "17 Nov");
-    assert.equal(time.formatDay(AT, { timeZone: "UTC", now: AT, locale: "en-US" }).text, "Nov 17");
-    assert.equal(time.formatDay(AT, { timeZone: "UTC", now: AT, locale: "en-GB" }).text, "17 Nov", "and en-GB again after en-US");
+    assert.equal(time.formatDay(AT, { timeZone: "UTC", now: AT, locale: "en-GB" }).text, "17\u00a0Nov");
+    assert.equal(time.formatDay(AT, { timeZone: "UTC", now: AT, locale: "en-US" }).text, "Nov\u00a017");
+    assert.equal(time.formatDay(AT, { timeZone: "UTC", now: AT, locale: "en-GB" }).text, "17\u00a0Nov", "and en-GB again after en-US");
   });
 });
 

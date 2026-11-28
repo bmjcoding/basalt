@@ -197,7 +197,9 @@ export type { ClockProps, CountdownProps, DateAgeProps } from "./time";
 export { formatAge, formatClock, formatCountdown, formatDay, formatElapsed, formatStamp, formatStatTime, formatUntil } from "./time-format";
 export { StaleNote } from "./stale-note";
 export type { StaleNoteProps } from "./stale-note";
-export type { TimeOptions, TimeZoneNameStyle } from "./time-format";
+export type { AgeOptions, TimeOptions, TimeZoneNameStyle } from "./time-format";
+export { formatNumber } from "./number-format";
+export type { FormatNumberOptions } from "./number-format";
 // Stages and runs (DECISIONS 316): the seven states' mark, a run's time, a status that changes in place, a run's one voice.
 export { formatRunTime, STAGE_WORDS } from "./run-format";
 export type { Moment, RunTimeGrain, RunTimeScale, StageState } from "./run-format";

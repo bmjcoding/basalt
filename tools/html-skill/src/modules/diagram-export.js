@@ -10,7 +10,7 @@ import { diagramToPng, diagramToSvg, exportName } from "../../../../packages/rea
   'use strict';
   var _ = B._;
   // The words of the note (diagrams-cimip ruling 2), fixed strings set as text.
-  var REFUSED = "This page's security policy blocks the PNG. Download SVG still works.";
+  var REFUSED = "This page’s security policy blocks the PNG. Download SVG still works.";
   var FAILED = { svg: 'The SVG could not be made.', png: 'The PNG could not be made.' };
   // The page's policy refused a PNG: no figure tries again while the page is open. Each "Download PNG" still answers its own first press, at once.
   var refused = false;

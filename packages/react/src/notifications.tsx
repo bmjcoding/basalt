@@ -37,7 +37,11 @@ export interface NotificationEntry {
   title: React.ReactNode;
   /** A secondary line: what it was about ("api, production"). Words, or phrasing markup, as `title`. */
   description?: React.ReactNode;
-  /** The time, as the app writes it ("2m ago", "Yesterday"). Basalt does not format dates. A group's time is its newest entry's. */
+  /**
+   * The time, as the app writes it, and absolute, as a stat's source line is: the clock for today, the date for another day ("4:41 AM", "Nov 7", as
+   * `formatStatTime` and `formatDay` write them). Basalt does not format dates here. A relative age is written only beside its date (DECISIONS 162 V13): write one
+   * here only when the entry's own action opens a view that shows the absolute time. It stays in the row's one name; never a `title`. A group's time is its newest entry's.
+   */
   time: string;
   /** The same moment for machines, as `<time datetime>`. */
   dateTime?: string;

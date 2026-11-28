@@ -23,6 +23,7 @@
     box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline);
     /* stylelint-disable-next-line unit-disallowed-list -- inline code is React's InlineCode, 0.9 of the text around it; the type scale has no relative step */
     font: var(--basalt-font-weight-regular) 0.9em / inherit var(--basalt-font-family-mono);
+    font-variant-ligatures: none;
     -webkit-box-decoration-break: clone;
     box-decoration-break: clone;
   }
@@ -32,10 +33,10 @@
   .rich-text :where(h1, h2, h3, h4, h5, h6) { font: var(--basalt-font-weight-semibold) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); letter-spacing: normal; text-wrap: wrap; }
   .rich-text :where(p, ul, ol, blockquote, pre, figure, hr, h1, h2, h3, h4, h5, h6, table, dl, div, details) + :where(h1, h2, h3, h4, h5, h6) { margin-block-start: var(--basalt-space-4); }
   .rich-text :where(h1, h2, h3, h4, h5, h6) + :where(p, ul, ol, blockquote, pre, figure, hr, h1, h2, h3, h4, h5, h6, table, dl, div, details) { margin-block-start: var(--basalt-space-2); }
-  .rich-text :where(blockquote) { padding-inline-start: var(--basalt-space-4); color: var(--basalt-text-secondary); }
+  .rich-text :where(blockquote) { padding-inline-start: var(--basalt-space-4); color: var(--basalt-text-secondary); hanging-punctuation: first; }
   .rich-text :where(hr) { height: 0; border: 0; border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
   .rich-text :where(p, ul, ol, blockquote, pre, figure, hr, h1, h2, h3, h4, h5, h6, table, dl, div, details) + :where(hr), .rich-text :where(hr) + :where(p, ul, ol, blockquote, pre, figure, hr, h1, h2, h3, h4, h5, h6, table, dl, div, details) { margin-block-start: var(--basalt-space-4); }
-  .rich-text :where(pre) { contain: inline-size; overflow-x: auto; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-size-code-line-height) var(--basalt-font-family-mono); white-space: pre; overflow-wrap: normal; }
+  .rich-text :where(pre) { contain: inline-size; overflow-x: auto; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-size-code-line-height) var(--basalt-font-family-mono); font-variant-ligatures: none; white-space: pre; overflow-wrap: normal; }
   .rich-text :where(pre code) { font: inherit; }
   .rich-text :where(img) { max-inline-size: 100%; height: auto; }
 

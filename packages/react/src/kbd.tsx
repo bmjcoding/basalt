@@ -36,11 +36,12 @@ function ShortcutChip(props: React.ComponentProps<"kbd">) {
   return <Chip {...props} data-shortcut="" />;
 }
 
+// Each key chip is left as written by a page translator (m2 I3), never the outer kbd, so the hidden spoken words still translate. A caller's `translate` wins.
 function Chip({ className, children, ...props }: React.ComponentProps<"kbd">) {
   if (typeof children !== "string") {
     return (
       <kbd {...props} className={join("basalt-kbd", className)}>
-        <kbd className="basalt-kbd-key">{children}</kbd>
+        <kbd className="basalt-kbd-key" translate={props.translate ?? "no"}>{children}</kbd>
       </kbd>
     );
   }
@@ -57,7 +58,7 @@ function KeysChip({ shortcut, className, ...props }: Omit<React.ComponentProps<"
       {keys.map((key, index) => {
         const Glyph = MODIFIERS[key as keyof typeof MODIFIERS];
         return (
-          <kbd key={index} className="basalt-kbd-key" aria-hidden="true">
+          <kbd key={index} className="basalt-kbd-key" translate={props.translate ?? "no"} aria-hidden="true">
             {Glyph ? <Glyph size={12} weight="bold" className="basalt-icon" aria-hidden="true" focusable="false" /> : key}
           </kbd>
         );

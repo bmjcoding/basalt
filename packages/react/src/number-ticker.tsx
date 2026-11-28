@@ -1,12 +1,18 @@
 import * as React from "react";
 
 import { useGlide } from "./motion";
+import { formatNumber } from "./number-format";
 import { join } from "./utils";
 
 export interface NumberTickerProps {
   value: number;
   /** Shown to everyone, including screen readers. Defaults to a grouped number. */
   format?: (value: number) => string;
+  /**
+   * The locale the default format writes in (micro-details m2 I3). Default `"en-US"`, never the runtime's. Only the ASCII digits 0 to 9 roll; any other
+   * digit, separator or sign is drawn still. A `format` given wins.
+   */
+  locale?: string | string[];
   /** Ease the visible digits toward `value` (over `slow`, on `ease-out`). The readable text is still the target, once. */
   glide?: boolean;
   className?: string;
@@ -14,29 +20,29 @@ export interface NumberTickerProps {
 
 const TICKER_DIGITS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
-// Grouped, with as many decimals as the target has. A glide in flight shows the same number
-// of decimals, so the width does not jump while it eases.
-function defaultFormat(value: number) {
-  const decimals = new Intl.NumberFormat("en-US", { maximumFractionDigits: 20, useGrouping: false }).format(value).split(".")[1]?.length ?? 0;
-  return (shown: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(shown);
+// Grouped, in the locale, with as many decimals as the target has: the count is worked out locale-free, so a glide in flight shows the same number
+// of decimals in any locale, and the width does not jump while it eases.
+function defaultFormat(value: number, locale: string | string[]) {
+  const decimals = formatNumber(value, { maximumFractionDigits: 20, useGrouping: false }).split(".")[1]?.length ?? 0;
+  return (shown: number) => formatNumber(shown, { locale, minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
 /** Rolls each digit into place. Under reduced motion it is plain tabular text. The readable value is always in the text. */
-export function NumberTicker({ value, format, glide = false, className }: NumberTickerProps) {
-  if (glide) return <GlidingTicker value={value} format={format} className={className} />;
-  return <TickerBody value={value} shown={value} format={format} className={className} />;
+export function NumberTicker({ value, format, locale = "en-US", glide = false, className }: NumberTickerProps) {
+  if (glide) return <GlidingTicker value={value} format={format} locale={locale} className={className} />;
+  return <TickerBody value={value} shown={value} format={format} locale={locale} className={className} />;
 }
 
-function GlidingTicker({ value, format, className }: Omit<NumberTickerProps, "glide">) {
+function GlidingTicker({ value, format, locale, className }: Omit<NumberTickerProps, "glide">) {
   // The eased value goes to the formatter as it is: a custom format decides its own rounding.
   const eased = useGlide(value);
-  return <TickerBody value={value} shown={eased} format={format} className={className} glide />;
+  return <TickerBody value={value} shown={eased} format={format} locale={locale} className={className} glide />;
 }
 
 // `glide`: the digits follow a value that is already easing, one frame at a time. The strip must not ease them again,
 // or every frame restarts a second transition and the headline outlasts the axis it moves with.
-function TickerBody({ value, shown, format, className, glide }: NumberTickerProps & { shown: number }) {
-  const show = format ?? defaultFormat(value);
+function TickerBody({ value, shown, format, locale = "en-US", className, glide }: NumberTickerProps & { shown: number }) {
+  const show = format ?? defaultFormat(value, locale);
   const text = show(shown);
   const spoken = show(value);
   return (

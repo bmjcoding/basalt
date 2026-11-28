@@ -55,6 +55,22 @@ of Basalt's accent classes, in its named roles, and nowhere else.
 - **Default words follow the owner's rules for words.** A string a component ships (a label, a status, an empty state, an announcement, a key hint) is written in US English, in
   sentence case, as a plain fact with no slogan, and a status names the step it is in. `.agent/skills/site-words/SKILL.md` has the rules and how a rewrite is approved. A word that
   belongs to one product's rhythm or subject (such as a week, a check-in or a run) is not a default: the product sets it.
+  (Micro-details m2, DECISIONS 419.) **Characters:** words Basalt ships and pages write use “ ” and ‘ ’, and an apostrophe is `’`;
+  never converted inside a reader's input, code, identifiers or URLs. An ellipsis is the one character `…`, never three periods. A menu
+  item or button that asks for more input before it acts ends in `…` ("Rename…", "Move to…"); one that acts or opens a view at once does
+  not ("Open", "Copy code"). Status words, busy buttons (they keep their resting label under the ring) and announcements get no `…`;
+  the prompts "Select…", "Search…" and "Search commands" are unchanged. Developer-facing text (console warnings, thrown errors,
+  comments) stays ASCII. **Glue:** a no-break space (U+00A0) joins a value and its unit ("10&nbsp;MB", "12.3&nbsp;s"), a clock and its
+  period or zone ("6:42&nbsp;PM", "18:52:07&nbsp;CST"), a short month and day ("Nov&nbsp;4"), a quarter and year ("Q1&nbsp;2027"),
+  shortcut text outside `Kbd` ("⌘&nbsp;K") and a two-word product name. Never a phrase or a sentence, and the space is always written,
+  never dropped. Basalt's formatters glue only where they write a breakable space between the two; a separator `Intl` writes (U+202F,
+  a direction mark, a comma, its own U+00A0) is kept, and the space between two pairs ("1&nbsp;hr 5&nbsp;min") and before a year stays
+  breakable. **Locale:** the default is `en-US` everywhere (DECISIONS 207), so a server render and the browser agree. An app that
+  localizes resolves the reader's language from `Accept-Language` or `navigator.languages`, never from where they are, and passes
+  `locale`. **Left as written:** code, a key chip, an identifier and a product's name carry `translate="no"`, so a page translator leaves
+  them; React sets it on `CodeBlock`'s and `Terminal`'s code, `InlineCode`, `CommandBlock`'s command, each `Kbd` key chip (never the
+  spoken words), `AppBrand`'s name and a `mono` `TableCell` or `DescriptionItem` value (never its missing words), before the caller's
+  props, so a caller can change it.
 - **One smoked surface.** The only translucent, blurred surface is an app's sticky header
   bar ([Chrome](#chrome-the-smoked-header)). Every dialog, sheet, menu, popover, toast and the
   command menu is solid. Use the class once per viewport; translucent layers never stack. Over art
@@ -598,7 +614,11 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   anything is unread, and the count in its accessible name and never drawn, so the button never changes width) that opens
   a popover at its opener's level plus one, below the bell with its end edge on the bell's, with a header band (title, count, "Mark all as read") and a footer ("View
   all" at its end and, when the app offers it, "Clear all" at its start, disabled in place once nothing is left; DECISIONS 269). An entry is a link or a button with four seats: a 6px dot, the status mark (a 16px seat, always there so titles
-  line up), the words and the time. Unread is the dot and primary ink, with no weight change; read is the same row with
+  line up), the words and the time. The time is absolute, as a stat's source line is: the clock for today, the date for another day
+  ("4:41&nbsp;AM", "Nov&nbsp;7", as `formatStatTime` and `formatDay` write them); the app writes it, and Basalt formats no date there. A
+  relative age is written only beside its date (DECISIONS 162 V13), so an app writes one in the row only when the entry's own action opens a
+  view that shows the absolute time. Never a `title`: it shows for neither touch nor keyboard, and the time stays in the row's one name
+  (micro-details m2). Unread is the dot and primary ink, with no weight change; read is the same row with
   the dot's seat empty and the title in secondary ink, so "Mark all as read" moves nothing. The mark's seat stays even when no
   entry has a mark: it is a column, so marks line up to be scanned, and a status entry arriving while the centre is open has
   somewhere to go without moving every title. The app owns the entries,
@@ -1005,7 +1025,31 @@ steps, so they'd render differently on native.
 | `text-sm` | 13 / 18 | 0 | Tables, sidebars, and popup rows in compact density |
 | `text-xs` | 12 / 16 | 0.01em | Labels, captions, a field's helper text |
 
-Tabular numerals for tables, metrics and timestamps; Mono for identifiers, code and keys.
+Tabular figures for tables, stats, description values, badges and counts, timers, timestamps (`time`), meters and charts, and opt-in
+`Text tabular` (`.num` in the HTML skill) for amounts; proportional figures in running sentences (micro-details m2, DECISIONS 419). Tabular
+figures stop equal-length numbers from jittering ("11" to "88"); a change in digit count ("9" to "10") still widens the box unless its
+seat holds the widest form (`Reserve`'s `widest`, a `Table` column's width). Set with `font-variant-numeric`, never
+`font-feature-settings`, which replaces an element's whole feature list. Mono for identifiers, code and keys, and **every rule that sets
+the mono family also sets `font-variant-ligatures: none`**: code reads character by character, in a fallback mono or an app's own font
+too (Geist Mono ships no ligatures today).
+
+**How words wrap** (m2). A heading is balanced (`text-wrap: balance`: a `Heading`, an app section's, a card's, a dialog's and an empty
+state's title, a prose page's `h1` to `h4`, and in the skill a dialog's, a popover's and a callout's title); a paragraph is pretty
+(`text-wrap: pretty`: a `p` `Text` that is not cut, mono or display, a prose page's and `RichText`'s paragraphs and items, and the
+descriptions of a card, a dialog, an empty state, a callout and a popover). Unchanged: `RichText`'s headings (an app's own markdown, 14/20),
+`h5` and `h6`, mono text, table cells, spans and divs. The shorthand `text-wrap`, never the `text-wrap-style` longhand (above the
+browser floor). **The clamp guard:** `text-wrap` inherits, and on the floor's Chrome `white-space` is a shorthand that sets the same
+wrap mode, so a cut text's base rule sets `text-wrap: wrap` and the one-line rule's `white-space: nowrap` comes after it at the same
+specificity: no clamp takes a balance or a pretty from its parent, and a one-line cut stays one line. **Quotes hang:** a block quote's
+opening mark hangs into the quote's own start padding (`hanging-punctuation: first` on `RichText`'s and the skill's `blockquote` and on
+`StreamQuote`'s words; Safari, and flush elsewhere, as before). Never on a paragraph, which has no padding to hang into, and never
+`last` (Basalt never justifies).
+
+**Smoothing** is grayscale (`antialiased`) in dark and the system's own (`auto`) in light, on macOS only: in dark the system's makes 400
+read close to 500 and runs 500 into 600, and in light grayscale thins 12 and 13px secondary ink. It is set by the opt-in page base
+(`base.css`, three rules by theme, a nested theme following its own) and the HTML skill's core, never by a component, so a component
+import never repaints a page Basalt does not own and a control matches the text beside it. No colour or contrast value changes, and
+there is no print rule.
 
 **Cut text** (`Text lines`, cimip-gaps-3 T3). `lines={1}` is one line with an ellipsis; `lines={n}` a clamp of n lines whose height is
 capped at n of the reader's own lines (`1lh`, in the clamp's own rule), so a user's line height (WCAG 1.4.12) shows whole lines and

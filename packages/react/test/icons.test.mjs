@@ -265,8 +265,9 @@ describe("the bytes, with the plugin and without it", () => {
   // cimip-gaps-3 E2 (DECISIONS 246, measured with the plugin on origin/main 9f17176f and the E2 head; each limit the head's measure rounded up to the next 50):
   // ToastProvider 90,269 on main, 90,672 with E2 (+403), so 89,700 to 90,700; NotificationCentre 148,712 on main, 148,737 with E2 (+25), so 148,050 to 148,750.
   // Micro-details m5 (DECISIONS 405, 409, L4; measured with the plugin on origin/main 79453efb and the m5 head): the toast's action is a Basalt Button, so it
-  // waits on a promise as every Button does: ToastProvider 90,684 on main, 97,858 with m5 (+7,174, Button's own graph), so 90,700 to 97,900.
-  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 36_650, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 97_900, 3_000], ["NotificationCentre", 148_750, 3_500]]) {
+  // waits on a promise as every Button does: ToastProvider 90,684 on main, 97,858 with m5 (+7,174, Button's own graph), so 90,700 to 97,900. Fix 1, on the
+  // merged tree (origin/main d67696d1, 90,684 as before): 97,956 (+98), so 97,900 to 98,000.
+  for (const [name, limit, saving] of [["Kbd", 7_300, 2_000], ["Terminal", 36_650, 3_000], ["Callout", 6_950, 4_500], ["ToastProvider", 98_000, 3_000], ["NotificationCentre", 148_750, 3_500]]) {
     test(`${name} with the plugin is under ${limit} bytes and at least ${saving} smaller than without, alone and beside the app's own icons`, async () => {
       const icons = CASES.find(([n]) => n === name)[1];
       // the static graph under splitting: a control's glyph engine loads on demand, so it is not part of what an app loads first

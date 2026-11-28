@@ -121,7 +121,8 @@ async function lazyGraph(names, extra = "") {
 // cimip-gaps-3 E6 (G161, IconButton's `icon` as an element, told apart by React.isValidElement (a runtime React import in button.js, +25 in every graph that holds a
 // Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
 // Button 18,672 on main, 18,697 with E6 (+25), so 18,678 to 18,703; Drawer 19,234 to 19,259 (+25), so 19,250 to 19,275.
-for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_100], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_703], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 10_215], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_275]]) {
+// micro-details m2 (DECISIONS 419), measured with this file's own graph() and bundle() on origin/main 79453efb and on the m2 head; each limit rises by the increase alone: NumberTicker's default format goes through formatNumber (number-format.ts). Sparkline's graph 9,060 to 9,696 (+636; 9,100 to 9,736).
+for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_736], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_703], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 10_215], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_275]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -260,7 +261,9 @@ test("Text loads the cut-text plate only on demand: none in its static graph, on
 // on main) and a Text without `lines` runs no hook and loads nothing. The limit rises by the increase, 4,000 to 17,400. T3 fix 1 (item 4: the cut text's ref
 // keeps a callback ref's cleanup, through useMergedRef): 17,568 measured, the limit 17,400 to 17,600. Re-measured at the merge with origin/main c67926bf: main 922,
 // the head 17,568.
-for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 23_724], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 8_950]]) {
+// micro-details m2 (DECISIONS 419), measured with this file's own graph() and bundle() on origin/main 79453efb and on the m2 head; each limit rises by the increase alone: NumberTicker's default format goes through formatNumber (number-format.ts: the locale, the kept formatters and the unit glue). Sparkline's bundle
+// 8,926 to 9,562 (+636; 8,950 to 9,586).
+for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 23_724], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 9_586]]) {
   test(`${name} alone is small and loads no Base UI`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -456,7 +459,9 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // it waits on a promise as every Button does (the decision's own choice, over a second copy of the wait's markup), and toast.promise keeps the wait's two
 // timings: ToastProvider 94,466 on main, 101,643 with m5 (+7,177, nearly all of it Button's own graph, which an app with any Button already loads), so
 // 94,500 to 101,650; useToast 3,436 on main, 4,152 with m5 (+716: promise's timers, the shared result builder, the queued seat), so 4,000 to 4,200.
-for (const [name, limit] of [["ToastProvider", 101_650], ["useToast", 4_200], ["NotificationCentre", 165_126]]) {
+// m5 fix 1, measured again on the merged tree (origin/main d67696d1, which measures as 79453efb did): ToastProvider 101,741 (the press's eviction guard,
+// the disposed flag, the shared focus handoff; +98), so 101,650 to 101,750; useToast 4,220 (+68), so 4,200 to 4,250.
+for (const [name, limit] of [["ToastProvider", 101_750], ["useToast", 4_250], ["NotificationCentre", 165_126]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);
@@ -847,7 +852,9 @@ test("the imports plugin never rewrites a file that resolves another copy of Bas
 // The stream's merge: ReleaseNotes 68,405 on origin/main 6a78d57c, 68,533 on the combined head (+128), so main's 68,450 to 68,578.
 // cimip-gaps-3 T5 (this file's graph() on origin/main 4e438ecb and on the T5 head): ReleaseNotes 68,533 on main, 68,708 with T5 (+175: Callout's `meta`,
 // the head row a callout draws only when it is given one), so the limit goes up by that increase, 68,578 to 68,753.
-for (const [name, limit] of [["VersionLink", 2_150], ["ReleaseIndex", 31_050], ["ReleaseNotes", 68_753]]) {
+// micro-details m2 (DECISIONS 419), measured with this file's own graph() and bundle() on origin/main 79453efb and on the m2 head; each limit rises by the increase alone: the release date's month and day glued through formatToParts (release-date.ts). VersionLink 2,111 to 2,300 (+189; 2,150 to 2,339), ReleaseIndex 31,035 to
+// 31,224 (+189; 31,050 to 31,239), ReleaseNotes 68,629 to 68,875 (+246; 68,753 to 68,999).
+for (const [name, limit] of [["VersionLink", 2_339], ["ReleaseIndex", 31_239], ["ReleaseNotes", 68_999]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -902,7 +909,9 @@ test("StreamMessage loads no popup up front: no popover, no positioning, no Floa
 // StageBadge 5,414 to 5,841 (+427; 5,450 to 5,877), RunTimer 6,091 to 7,016 (+925; 6,100 to 7,025), RunStage 22,181 to 39,851 (+17,670; 22,200 to 39,870),
 // StageList, RunStage 22,948 to 41,103 (+18,155; 22,950 to 41,105), StageRail, RunStage 22,900 to 41,448 (+18,548; 22,950 to 41,498). StageMark (22,797) and
 // formatRunTime (818) stay under 22,846 and 919.
-for (const [name, limit, phosphor] of [["StageMark", 22_846, true], ["StageBadge", 5_877, false], ["RunTimer", 7_025, false], ["RunAnnouncer", 600, false], ["formatRunTime", 919, false], ["RunStage", 39_870, true], ["StageList, RunStage", 41_105, true], ["StageRail, RunStage", 41_498, true]]) {
+// micro-details m2 (DECISIONS 419), measured with this file's own graph() and bundle() on origin/main 79453efb and on the m2 head; each limit rises by the increase alone: the glued value and unit (run-format.ts, the month and day in time-format.ts). RunTimer 7,016 to 7,286 (+270; 7,025 to 7,295), RunStage 39,851 to 40,130 (+279; 39,870 to 40,149),
+// StageList, RunStage 41,103 to 41,385 (+282; 41,105 to 41,387), StageRail, RunStage 41,448 to 41,730 (+282; 41,498 to 41,780).
+for (const [name, limit, phosphor] of [["StageMark", 22_846, true], ["StageBadge", 5_877, false], ["RunTimer", 7_295, false], ["RunAnnouncer", 600, false], ["formatRunTime", 919, false], ["RunStage", 40_149, true], ["StageList, RunStage", 41_387, true], ["StageRail, RunStage", 41_780, true]]) {
   test(`${name} alone loads no Base UI${phosphor ? "" : " and no Phosphor"} (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);

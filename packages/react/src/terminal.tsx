@@ -84,6 +84,8 @@ export interface TerminalProps {
   keep?: number;
   /** In a stage transcript, the run's time in the head, after the state word: `start`, `end`, `carried` across a retry and `since` (see `RunTimer`). */
   time?: { start?: Moment; end?: Moment; carried?: number; since?: Moment };
+  /** Whether a page translator may translate the transcript: `"no"` by default (code is left as written, m2 I3); `"yes"` to let it. */
+  translate?: "yes" | "no";
   className?: string;
 }
 
@@ -118,7 +120,7 @@ const swap = (show: string, alternatives: Record<string, React.ReactNode>) => <R
  * region. A transcript whose lines arrive is a fixed-height `role="log"` that follows the end only while the reader is there, and
  * is a log only while lines arrive.
  */
-export function Terminal({ title, lines, prompt = "$", copyable = true, status, onPause, onResume, replay = false, interval = 600, exitCode, stages: stagesProp, keep, time, className }: TerminalProps) {
+export function Terminal({ title, lines, prompt = "$", copyable = true, status, onPause, onResume, replay = false, interval = 600, exitCode, stages: stagesProp, keep, time, translate = "no", className }: TerminalProps) {
   const level = usePanelLevel();
   // A stage transcript is declared when it mounts and stays one: the mode is never read from the lines. A stage line in a transcript that did not
   // declare it is still drawn, and makes the window silent from then on (the net, never the plan).
@@ -248,9 +250,10 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
       </figcaption>
       {/* A scrollable region is reachable by keyboard. It is a log only while lines arrive: never idle, paused or finished. Before the
           first line it is a named group, because a named element with no role and no text is not valid ARIA. */}
-      <pre ref={pre} onScroll={onScroll} className="basalt-code-pre" tabIndex={0} role={state === "running" && !silent ? "log" : visible.length === 0 ? "group" : "region"} aria-label={`${title}, transcript`} data-stages={stages ? "" : undefined}>
+      {/* The transcript is left as written by a page translator (m2 I3); the caption, the buttons, the hint and the stage words still translate. */}
+      <pre ref={pre} onScroll={onScroll} className="basalt-code-pre" translate={translate} tabIndex={0} role={state === "running" && !silent ? "log" : visible.length === 0 ? "group" : "region"} aria-label={`${title}, transcript`} data-stages={stages ? "" : undefined}>
         <code className="basalt-code-lines">
-          {replay && mode === "idle" && visible.length === 0 ? <span className="basalt-terminal-hint">Press Play to start</span> : null}
+          {replay && mode === "idle" && visible.length === 0 ? <span className="basalt-terminal-hint" translate="yes">Press Play to start</span> : null}
           {visible.map((line, i) => {
             if (line.kind === "stage") return <StageLine key={i} line={line} receded={recedes(i)} />;
             const mark = line.kind === "done" || line.kind === "warning" || line.kind === "error" ? MARKS[line.kind] : null;
@@ -285,7 +288,7 @@ function StageLine({ line, receded }: { line: TerminalLine; receded: boolean }) 
     <span className="basalt-code-line" data-kind="stage" data-state={state} data-receded={receded ? "" : undefined}>
       <span className="basalt-code-gutter">{mark}</span>
       <span className="basalt-code-text basalt-terminal-stage">
-        <span>{word ? <span className="basalt-terminal-word">{word} </span> : null}{line.node ?? (line.fields ? <LogFields fields={line.fields} /> : line.text)}</span>
+        <span>{word ? <span className="basalt-terminal-word" translate="yes">{word} </span> : null}{line.node ?? (line.fields ? <LogFields fields={line.fields} /> : line.text)}</span>
         {/* A running time is a streaming count, so it is not read: the line's text changes once a stage, when its time is final. */}
         {line.start !== undefined ? <span className="basalt-terminal-duration" aria-hidden={running || undefined}><RunTimer start={line.start} end={line.end} whenHeld="hidden" /></span> : null}
       </span>

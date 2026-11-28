@@ -5,10 +5,10 @@
      wins: the word is secondary ink in every status (danger included), a status with no data-status is the word alone, and neutral is asked
      for by name. A running status is the braille cell in the dot's seat, so it draws no dot. */
 
-  .status { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); border-radius: var(--basalt-radius-xs); color: var(--basalt-text-secondary); white-space: nowrap; vertical-align: middle; }
+  .status { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); border-radius: var(--basalt-radius-xs); color: var(--basalt-text-secondary); white-space: nowrap; vertical-align: middle; font-variant-numeric: tabular-nums; }
   /* A badge labels one object's status or count, always with a word; never decoration. Its edge is a real 1px border, so forced colours keep it; it sits where an inset shadow
      would, and the padding is reduced by the hairline, so the box is the size it was. */
-  .badge { box-sizing: border-box; display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); height: var(--basalt-size-badge); padding: 0 calc(var(--basalt-space-2) - var(--basalt-size-hairline)); border: var(--basalt-size-hairline) solid var(--basalt-border-hairline); border-radius: var(--basalt-radius-xs); font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / 1 var(--basalt-font-family-sans); color: var(--basalt-text-secondary); white-space: nowrap; vertical-align: middle; }
+  .badge { box-sizing: border-box; display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); height: var(--basalt-size-badge); padding: 0 calc(var(--basalt-space-2) - var(--basalt-size-hairline)); border: var(--basalt-size-hairline) solid var(--basalt-border-hairline); border-radius: var(--basalt-radius-xs); font: var(--basalt-font-weight-medium) var(--basalt-text-xs-size) / 1 var(--basalt-font-family-sans); color: var(--basalt-text-secondary); white-space: nowrap; vertical-align: middle; font-variant-numeric: tabular-nums; }
   :is(.status, .badge)[data-status]::before { content: ""; width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: currentColor; flex: none; }
   :is(.status, .badge)[data-status="neutral"]::before { background: var(--basalt-text-tertiary); }
   :is(.status, .badge)[data-status="success"]::before { background: var(--basalt-status-success); }

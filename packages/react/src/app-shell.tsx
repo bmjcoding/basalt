@@ -163,12 +163,13 @@ export interface AppBrandProps extends React.ComponentProps<"span"> {
  * and 32 without, hidden from assistive technology. In the rail only the mark is drawn, at 32, so `brand={<AppBrand … />}` alone serves the sidebar,
  * the rail and a `SiteHeader`. The subtitle is secondary, never tertiary: the lockup also sits on the smoked site bar.
  */
-export function AppBrand({ mark, title, subtitle, className, ...props }: AppBrandProps) {
+export function AppBrand({ mark, title, subtitle, className, translate, ...props }: AppBrandProps) {
   return (
-    <span {...props} data-subtitle={subtitle ? "" : undefined} className={join("basalt-app-lockup", className)}>
+    <span {...props} translate={translate} data-subtitle={subtitle ? "" : undefined} className={join("basalt-app-lockup", className)}>
       <span className="basalt-app-lockup-mark" aria-hidden="true">{mark}</span>
       <span className="basalt-app-lockup-lines">
-        <span className="basalt-app-lockup-title">{title}</span>
+        {/* The product's name is left as written by a page translator (m2 I3); the subtitle still translates. */}
+        <span className="basalt-app-lockup-title" translate={translate ?? "no"}>{title}</span>
         {subtitle ? <span className="basalt-app-lockup-subtitle">{subtitle}</span> : null}
       </span>
     </span>
