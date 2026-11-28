@@ -25,14 +25,14 @@ function asMain(html) {
   return out;
 }
 
-// What Basalt.wait writes at each step of a wait, as static markup so a still shot shows it: from the press (busy, no ring), from 300ms (the ring over the
+// What Basalt.wait writes at each step of a wait, as static markup ("After the answer" is the ring's last 400ms) so a still shot shows it: from the press (busy, no ring), from 300ms (the ring over the
 // kept label, still busy), and after the answer (free; the ring keeps its 400ms). Main had no Basalt.wait: a wait marked as foundations asks (aria-busy and
 // aria-disabled) is what main drew for the first two, and a free button for the last.
 const COLUMNS = [
   ["At rest", ""],
   ["Waiting, before 300ms", ' aria-busy="true" aria-disabled="true" data-busy'],
   ["The ring, from 300ms", ' aria-busy="true" aria-disabled="true" data-busy data-loading'],
-  ["Answered, the ring's last 400ms", " data-loading"],
+  ["After the answer", " data-loading"],
 ];
 const BUTTONS = `<main style="padding: 16px; display: grid; gap: 16px">
 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px">

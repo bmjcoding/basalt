@@ -42,7 +42,8 @@ function SkillButtons({ state }: { state: string }) {
           ? "Before (main's parts): a wait marked as foundations asks (aria-busy with aria-disabled) is drawn as disabled, with the ring at once; in forced colours the ring is a full circle"
           : "This build: busy keeps its ink and edge, the label stays until 300ms, the ring then sits over the kept label, and it holds 400ms after the answer; in forced colours the ring is an arc"}
       </p>
-      <SkillFrame page={before ? "88-buttons-before" : "88-buttons"} title="The HTML skill's busy buttons" height={300} />
+      {/* Under 720 the four columns stack, so the frame is as tall as all of them. */}
+      <SkillFrame page={before ? "88-buttons-before" : "88-buttons"} title="The HTML skill's busy buttons" height={typeof window !== "undefined" && window.innerWidth < 720 ? 720 : 300} />
     </div>
   );
 }
@@ -118,7 +119,7 @@ export const ROUND_88: Round = {
       states: ["before", "before-forced-colours", "after-forced-colours"],
       widths: [1440, 390],
       height: 360,
-      heights: { "default@390": 560, "before@390": 560, "before-forced-colours@390": 560, "after-forced-colours@390": 560 },
+      heights: { "default@390": 900, "before@390": 900, "before-forced-colours@390": 900, "after-forced-colours@390": 900 },
       demo: ({ state }) => <SkillButtons state={state} />,
     },
     {
