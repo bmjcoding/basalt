@@ -157,7 +157,9 @@ for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 99_467]])
 // OptionChips 37,699 (Base UI's radio group), LinkTabs 140,720 (it carries the Select under 720, DECISIONS 154 A15: Base UI's select and its popup), LinkTab 649 (3,898 once its label takes ChosenLabel, the selected state a Tab's children take: join 2 in integration-nov15b, DECISIONS 138 A, 145, 149; the limit is the measured bytes rounded up to the next 50), TabsPanels 519, useConfirm 399, CONFIRM_MS 185; the limits sit just above.
 // cimip-gaps-2 B6 (DECISIONS 246: trim first, then a raise the feature needs): LinkTabs carries the Select, and `Select toolbar` (the unseen labels that hold its width) adds 212 bytes
 // after a 67-byte trim (no attribute, no class on the labels): measured 141,669, from main's 141,457, so the limit goes from 141,500 to 141,700.
-for (const [name, limit, baseUi] of [["TextButton", 11_550, true], ["SwitchRow", 25_500, true], ["SwitchRowGroup", 11_600, true], ["OptionChips", 38_945, true], ["LinkTabs", 142_150, true], ["LinkTab", 3_900, false], ["TabsPanels", 900, false], ["useConfirm", 800, false], ["CONFIRM_MS", 400, false]]) {
+// micro-details m1 (DECISIONS 405, 409), measured with this file's own graph() on origin/main d67696d1 and on the m1 head: LinkTabs' Select carries the glide's
+// touch mark (plate.tsx). LinkTabs 149,315 to 150,397 (+1,082; 142,150 to 143,232, by the increase alone: main was already over its limit, by 7,165).
+for (const [name, limit, baseUi] of [["TextButton", 11_550, true], ["SwitchRow", 25_500, true], ["SwitchRowGroup", 11_600, true], ["OptionChips", 38_945, true], ["LinkTabs", 143_232, true], ["LinkTab", 3_900, false], ["TabsPanels", 900, false], ["useConfirm", 800, false], ["CONFIRM_MS", 400, false]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -217,7 +219,9 @@ test("Button alone stays small and pulls in neither Shiki nor other Base UI part
 test("Nav, NavGroup and NavItem carry the shared pill and the rail's tooltip, and no popup they do not draw", async () => {
   const { bytes, inputs } = await bundle("Nav, NavGroup, NavItem");
   assert.ok(inputs.some((f) => /@base-ui\/react\/tooltip\//.test(f)), "the rail's tooltip is in");
-  assert.ok(bytes < 125_000, `Nav bundle is ${bytes} bytes`);
+  // micro-details m1 (DECISIONS 405, 409), measured with this file's own bundle() on origin/main d67696d1 and on the m1 head: the glide's touch mark (plate.tsx) is
+  // in the shared module Nav uses, though Nav's kind marks nothing. 125,241 to 126,323 (+1,082; 125,000 to 126,082, by the increase alone: main was already 241 over).
+  assert.ok(bytes < 126_082, `Nav bundle is ${bytes} bytes`);
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(menu|dialog|select|popover|combobox)\//.test(f)), "an unrelated Base UI part is in a Nav-only bundle");
 });
@@ -263,7 +267,9 @@ test("Text loads the cut-text plate only on demand: none in its static graph, on
 // the head 17,568.
 // micro-details m2 (DECISIONS 419), measured with this file's own graph() and bundle() on origin/main 79453efb and on the m2 head; each limit rises by the increase alone: NumberTicker's default format goes through formatNumber (number-format.ts: the locale, the kept formatters and the unit glue). Sparkline's bundle
 // 8,926 to 9,562 (+636; 8,950 to 9,586).
-for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 23_724], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 9_586]]) {
+// micro-details m1 (DECISIONS 405, 409), measured with this file's own bundle() on origin/main d67696d1 and on the m1 head: the peek plate's option cursor
+// (peek-plate.ts), which Text's lines carry. Text 23,692 to 23,761 (+69; 23,724 to 23,793).
+for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 23_793], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 9_586]]) {
   test(`${name} alone is small and loads no Base UI`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -455,7 +461,10 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // cimip-gaps-3 E6 (G161, IconButton's `icon` as an element, told apart by React.isValidElement (a runtime React import in button.js, +25 in every graph that holds a
 // Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
 // NotificationCentre 164,955 on main, 165,086 with E6 (+131), so 164,995 to 165,126.
-for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 165_126]]) {
+// micro-details m1 (DECISIONS 405, 409), measured with this file's own graph() and bundle() on origin/main d67696d1 and on the m1 head; each limit rises by the
+// increase alone: the touch mark (attachPress in plate.tsx, data-pressing on a popup's row and a notification entry under a still finger) rides wherever the
+// glide does, and the peek plate's option cursor (peek-plate.ts) wherever a row peeks. NotificationCentre's graph 165,086 to 166,168 (+1,082; 165,126 to 166,208).
+for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 166_208]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);
