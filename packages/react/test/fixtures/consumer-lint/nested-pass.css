@@ -1,0 +1,14 @@
+/* Point 3: nested layout on Basalt's parts, and nested appearance on the app's own element inside one, pass. */
+.toolbar {
+  .basalt-button {
+    margin-inline-start: auto;
+  }
+}
+.basalt-card {
+  .app-title {
+    color: var(--basalt-text-secondary);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    margin-block: var(--basalt-space-4);
+  }
+}

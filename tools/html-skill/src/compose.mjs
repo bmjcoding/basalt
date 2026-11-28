@@ -660,6 +660,54 @@ function zoomWanted(held, code) {
   return specs.some((item) => { try { return JSON.parse(item.inner).zoom !== false; } catch { return true; } });
 }
 
+// The numbers a browser reads as another character (HTML's numeric character reference end state): 0x80 to 0x9F as windows-1252 has them.
+const C1 = { 0x80: 0x20ac, 0x82: 0x201a, 0x83: 0x192, 0x84: 0x201e, 0x85: 0x2026, 0x86: 0x2020, 0x87: 0x2021, 0x88: 0x2c6, 0x89: 0x2030, 0x8a: 0x160, 0x8b: 0x2039, 0x8c: 0x152, 0x8e: 0x17d, 0x91: 0x2018, 0x92: 0x2019, 0x93: 0x201c, 0x94: 0x201d, 0x95: 0x2022, 0x96: 0x2013, 0x97: 0x2014, 0x98: 0x2dc, 0x99: 0x2122, 0x9a: 0x161, 0x9b: 0x203a, 0x9c: 0x153, 0x9e: 0x17e, 0x9f: 0x178 };
+// The named references compose.mjs decodes (G146), each with its `;`, and those of them a browser also reads without it. Any other name is not decoded
+// here: the figure keeps its number, and the page's script settles its base from the id the browser read.
+const NAMED_REFERENCES = { amp: "&", AMP: "&", lt: "<", LT: "<", gt: ">", GT: ">", quot: '"', QUOT: '"', apos: "'", nbsp: "\u00a0" };
+const LEGACY_REFERENCES = ["amp", "AMP", "lt", "LT", "gt", "GT", "quot", "QUOT", "nbsp"];
+/**
+ * An attribute's text as the browser reads it (G146), by HTML's character reference rules for an attribute value, or null where it may hold a named
+ * reference this does not decode. An `&` that starts no reference is text. A number (decimal or hex, its `;` optional) is its character: 0, a surrogate
+ * and past U+10FFFF are U+FFFD, and 0x80 to 0x9F are windows-1252's. A name in NAMED_REFERENCES with its `;`, or in LEGACY_REFERENCES without it, is its
+ * character. Without its `;`, a browser reads a name only where the whole run of letters and digits is one of HTML's legacy names (2 to 6 long) and no
+ * `=` follows, so a run of 1, or of more than 6, or one `=` follows, is text; any other run of 2 to 6, and any other name with its `;`, may be a reference.
+ * First, as HTML's input stream does before any reference is read: a CR, or a CR and LF, is an LF, and a NUL is U+FFFD (so `&#13;` is still a CR).
+ */
+function attributeText(text) {
+  const value = text.replace(/\r\n?/g, "\n").replace(/\0/g, "\ufffd");
+  if (!value.includes("&")) return value;
+  let out = "";
+  let i = 0;
+  while (i < value.length) {
+    const at = value.indexOf("&", i);
+    if (at === -1) { out += value.slice(i); break; }
+    out += value.slice(i, at);
+    i = at + 1;
+    const number = /^#(?:[xX]([0-9a-fA-F]+)|([0-9]+));?/.exec(value.slice(i));
+    if (number) {
+      // Every digit belongs to the reference; leading zeros count for nothing, and more than eight others are past U+10FFFF.
+      const digits = (number[1] ?? number[2]).replace(/^0+/, "") || "0";
+      const cp = digits.length > 8 ? Infinity : Number.parseInt(digits, number[1] !== undefined ? 16 : 10);
+      out += String.fromCodePoint(cp === 0 || cp > 0x10ffff || (cp >= 0xd800 && cp <= 0xdfff) ? 0xfffd : C1[cp] ?? cp);
+      i += number[0].length;
+      continue;
+    }
+    const run = /^[A-Za-z0-9]+/.exec(value.slice(i))?.[0] ?? "";
+    const next = value[i + run.length] ?? "";
+    if (run && next === ";") {
+      if (!Object.hasOwn(NAMED_REFERENCES, run)) return null;
+      out += NAMED_REFERENCES[run];
+      i += run.length + 1;
+      continue;
+    }
+    if (run && next !== "=" && LEGACY_REFERENCES.includes(run)) { out += NAMED_REFERENCES[run]; i += run.length; continue; }
+    if (run.length >= 2 && run.length <= 6 && next !== "=") return null;
+    out += "&";
+  }
+  return out;
+}
+
 /**
  * A diagram's words, written into the page (DECISIONS 281, 1.19): each `<figure class="diagram">` that holds only its JSON gets the markup the diagram module's
  * script would write for it, from that same script (parts/diagram.js, run here without a page), so the page reads before any script runs. The figure's own
@@ -674,7 +722,10 @@ function writeDiagrams(markup, held, parts, notes, marks) {
   const mark = held.mark;
   const json = new RegExp(`^(\\s*)${mark}(\\d+)${mark}(\\s*)</figure(?=[\\t\\n\\f\\r />])[^>]*>`, "i");
   let engine = null;
+  let idBase = null;
   let serial = 0;
+  // The ids figures have on this page (G146): a figure's own id is the base of the ids inside it, the same on every build wherever it is on the page.
+  const named = new Set();
   let out = "";
   let at = 0;
   for (let i = markup.indexOf("<"); i !== -1; i = markup.indexOf("<", i + 1)) {
@@ -725,9 +776,27 @@ function writeDiagrams(markup, held, parts, notes, marks) {
       for (const name of ["diagram-scale", "diagram-gantt", "diagram-matrix", "diagram-timeline", "diagram-schedule", "diagram-state", "diagram-deployment"]) if (exists(parts, `${name}.js`)) vm.runInContext(read(parts, `${name}.js`), ctx);
       vm.runInContext(read(parts, "diagram.js"), ctx);
       engine = context.window.Basalt._.diagramMarkup;
+      idBase = context.window.Basalt._.diagramIdBase;
+    }
+    // Numbered by its place among the figures (bd-n and the number, in Basalt's namespace and in a form no id gives), whether or not it takes the number,
+    // so a figure given an id moves no other figure's ids. The id is read as the browser reads it (its character references decoded), so the base is the
+    // one the page's script builds for that figure, and two spellings of one id are one id; the second figure with one id keeps its number, and is said,
+    // as is an id with a named reference this does not decode (its base is the script's to settle, from the id the browser read).
+    const number = `bd-n${++serial}`;
+    const raw = attrs.get("id");
+    const id = raw ? attributeText(raw) : "";
+    let base = number;
+    if (id === null) notes.push(`the id "${raw}" has a character reference compose doesn't decode; the figure is numbered`);
+    else if (id && typeof idBase === "function") {
+      if (named.has(id)) notes.push(`two figures on this page have the id "${id}", so the second's ids inside are numbered: give each figure its own id`);
+      else {
+        if (id.startsWith("bd-")) notes.push(`the id "${id}" begins "bd-", which is kept for the ids Basalt writes inside a figure: give the figure an id that does not`);
+        named.add(id);
+        base = idBase(id);
+      }
     }
     let made;
-    try { made = engine(spec, `dg${++serial}`); } catch (e) { notes.push(`${spec?.title ?? "a diagram"} could not be written (${e.message}); the page's script will say so`); continue; }
+    try { made = engine(spec, base); } catch (e) { notes.push(`${spec?.title ?? "a diagram"} could not be written (${e.message}); the page's script will say so`); continue; }
     for (const w of made.warnings) notes.push(`${spec.title ?? "a diagram"}: ${w}`);
     const merged = new Map(attrs);
     for (const [, k, v] of made.open.matchAll(/\s([\w:-]+)="([^"]*)"/g)) {

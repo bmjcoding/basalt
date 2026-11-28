@@ -890,6 +890,31 @@
   :is(.basalt-menu, .basalt-menu-scroll) > :is(.basalt-plate:first-child + .basalt-menu-text, .basalt-menu-text:first-child) { padding-top: var(--basalt-space-2); }
 
   .basalt-menu-trigger { cursor: pointer; }
+  /* The default trigger (no render) is a bare button drawn at its text's height (21px), under the shared floor. It meets the floor as hit area
+     alone: a box with no content, centred and at least 24 by 24 (44 by 44 on touch and under 720), as TextButton's and Link's are; the
+     button, its words and any glyph inside keep their size and place. A render element (Button, IconButton) keeps its own sizes.
+     Triggers stacked with no room between: each box reaches into the next trigger's line, and the later box is painted over the earlier
+     trigger's words. The words are a label raised over every box (z-index 1, within the page's own stacking context; a box is never raised),
+     so a press on a trigger's own words is always that trigger's and a box only takes the room no words are in, as stacked links do. Nothing
+     moves and nothing is drawn. */
+  .basalt-menu-trigger[data-bare] { position: relative; }
+  .basalt-menu-trigger[data-bare] > .basalt-menu-trigger-label { position: relative; z-index: 1; }
+  .basalt-menu-trigger[data-bare]::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%; /* physical: it is centred, in either direction */
+    width: max(100%, var(--basalt-size-control-xs));
+    height: max(100%, var(--basalt-size-control-xs));
+    transform: translate(-50%, -50%);
+  }
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
+    .basalt-menu-trigger[data-bare]::before {
+      width: max(100%, var(--basalt-size-tap-min));
+      height: max(100%, var(--basalt-size-tap-min));
+    }
+  }
 
   /* ---- Dialog ---- */
 
@@ -3666,7 +3691,10 @@
     transition-timing-function: var(--basalt-ease-in);
   }
   .basalt-toast[data-limited] { opacity: 0; }
-  .basalt-toast[data-ending-style][data-swipe-direction="right"] { transform: translateX(calc(var(--toast-swipe-movement-x) + 120%)) translateY(var(--_offset-y)); }
+  /* A swipe leaves in its direction from where it was let go; under reduced motion it stays there and only fades (the reduced-motion rule below). */
+  @media (prefers-reduced-motion: no-preference) {
+    .basalt-toast[data-ending-style][data-swipe-direction="right"] { transform: translateX(calc(var(--toast-swipe-movement-x) + 120%)) translateY(var(--_offset-y)); }
+  }
   .basalt-toast::after { content: ""; position: absolute; top: 100%; left: 0; width: 100%; height: calc(var(--_gap) + var(--basalt-size-hairline)); }
   .basalt-toast:focus-visible,
   .basalt-toast-viewport:focus > .basalt-toast[data-front] { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
@@ -10608,6 +10636,10 @@
     .basalt-toast[data-expanded] { --_rest: translateX(var(--toast-swipe-movement-x)) translateY(var(--_offset-y)); }
     .basalt-toast[data-starting-style],
     .basalt-toast[data-ending-style] { transform: translateY(calc(-100% - var(--basalt-space-4))); }
+  }
+  /* A swipe up leaves upward from where it was let go; under reduced motion it stays there and only fades. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the stack hangs from the bar */
+  @media (width < 720px) and (prefers-reduced-motion: no-preference) {
     .basalt-toast[data-ending-style][data-swipe-direction="up"] { transform: translateX(var(--toast-swipe-movement-x)) translateY(calc(var(--toast-swipe-movement-y) - 120%)); }
   }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the stack hangs from the bar */

@@ -916,13 +916,13 @@
         "art",
         "kbd"
       ],
-      "budget": 160600,
+      "budget": 161600,
       "usage": 5900,
       "builds": [
         "kbd"
       ],
       "usageReason": "DECISIONS 359: 5100 to 5900 for one line naming the new shapes of data (state, deployment, schedule, a dependency figure, a data flow's decision) and the type modules that draw the rest.",
-      "budgetReason": " DECISIONS 359 (diagram batch D, wave 1): 148204 to 155366 bytes (+7162, +4.8%): the type-module seam, the isolates on every author string, the dependency and swimlane folds and their CSS. The schedule, the state and the deployment are modules of their own (diagram-schedule, diagram-state, diagram-deployment), so a page pays for the types it draws. Cap 148700 to 155500. The run-edge ruling (run-edge/ruling.md): 155394 to 156279 bytes (+885) for the clear band beside a box's edge, the refusal under space-2 a lane and the row a box starts on standing space-4 lower; cap 155500 to 156400 (the owner approved the raise, DECISIONS 378). Merged with #146 (Esc on a trace stops at the figure; a drawn sequence speaks its routes): 156495 bytes, cap 156400 to 156600. DECISIONS 383, item 3 (#148: a turn-back clear of a box edge, its label in a gap row): 157384 to 159366 bytes (+1982); cap 157500 to 159400. cimip-gaps-3 (the console log G17 and G18, DECISIONS 385): View as list and Expand named for their figure, the viewer list under its h2: 159366 to 159575 bytes, cap 159400 to 159800. Then (after Astra, G18 reverted): the keys sentence on the tab stop (describeStop, moveStop) and written from the measured layout, the list heads inherit tracking and wrap; with main merged: 160298 bytes, cap 159800 to 160600."
+      "budgetReason": " DECISIONS 359 (diagram batch D, wave 1): 148204 to 155366 bytes (+7162, +4.8%): the type-module seam, the isolates on every author string, the dependency and swimlane folds and their CSS. The schedule, the state and the deployment are modules of their own (diagram-schedule, diagram-state, diagram-deployment), so a page pays for the types it draws. Cap 148700 to 155500. The run-edge ruling (run-edge/ruling.md): 155394 to 156279 bytes (+885) for the clear band beside a box's edge, the refusal under space-2 a lane and the row a box starts on standing space-4 lower; cap 155500 to 156400 (the owner approved the raise, DECISIONS 378). Merged with #146 (Esc on a trace stops at the figure; a drawn sequence speaks its routes): 156495 bytes, cap 156400 to 156600. DECISIONS 383, item 3 (#148: a turn-back clear of a box edge, its label in a gap row): 157384 to 159366 bytes (+1982); cap 157500 to 159400. cimip-gaps-3 (the console log G17 and G18, DECISIONS 385): View as list and Expand named for their figure, the viewer list under its h2: 159366 to 159575 bytes, cap 159400 to 159800. Then (after Astra, G18 reverted): the keys sentence on the tab stop (describeStop, moveStop) and written from the measured layout, the list heads inherit tracking and wrap; with main merged: 160298 bytes, cap 159800 to 160600. G146 (stable ids, engineering): a figure with an id builds the ids inside it on that id (idBase, written for compose.mjs too), the viewer's on its page figure's, and a second figure with the same id is said and numbered: 160298 to 160774 bytes (+476); cap 160600 to 161000. With Astra's review of it (request changes, nine findings): the ids in Basalt's namespace (bd-), a long id bounded by a hash, a base kept only while it is the one its figure would take (a figure given a new id, or none, written again, the send shortcut included), the lookups in the figure's own document or shadow root, and an id beginning bd- said: 160774 to 161438 bytes (+664); cap 161000 to 161600."
     },
     "diagram-motion": {
       "classes": [
@@ -981,14 +981,14 @@
         "dialog-form",
         "sheet"
       ],
-      "budget": 18200,
+      "budget": 18400,
       "usage": 900,
       "builds": [
         "dialog",
         "dialog-form",
         "sheet"
       ],
-      "budgetReason": " cimip-gaps-3 (the console log G17, DECISIONS 385): View as list and Expand named for their figure, the viewer list under its h2: 17951 to 18138 bytes, cap 18000 to 18200."
+      "budgetReason": " cimip-gaps-3 (the console log G17, DECISIONS 385): View as list and Expand named for their figure, the viewer list under its h2: 17951 to 18138 bytes, cap 18000 to 18200. G146 (stable ids, with Astra's review): the dialog, its heading and its drawing named on the page figure's base, and a viewer opened again during its exit retiring the one still leaving: 18138 to 18349 bytes; cap 18200 to 18400."
     },
     "diagram-export": {
       "text": [
@@ -1622,8 +1622,8 @@
         "Warning",
         "XCircle"
       ],
-      "budget": 16750,
-      "budgetReason": "audit-fix-c2 Sol build: 14288 to 14780 bytes (+492); observe focus before the first toast, retain the last live modal on blur, release the viewport before modal closure, preserve real keyboard composition state and keep a toast action's Escape from cancelling its native host. Cap 14350 to 14780. Return 1: 14780 to 14866 bytes (+86) for ordinary reverse Tab, clearing stale F6 returns and observing mutations only while hosted; cap 14780 to 15100, leaving 234 bytes. Return 3 and DECISIONS 156: 15031 to 15367 bytes (+336) for distinct pointer/keyboard focus restoration and the front-toast control ring while the region holds focus. Cap 15100 to 15400 (+300), leaving 33 bytes.",
+      "budget": 17843,
+      "budgetReason": "audit-fix-c2 Sol build: 14288 to 14780 bytes (+492); observe focus before the first toast, retain the last live modal on blur, release the viewport before modal closure, preserve real keyboard composition state and keep a toast action's Escape from cancelling its native host. Cap 14350 to 14780. Return 1: 14780 to 14866 bytes (+86) for ordinary reverse Tab, clearing stale F6 returns and observing mutations only while hosted; cap 14780 to 15100, leaving 234 bytes. Return 3 and DECISIONS 156: 15031 to 15367 bytes (+336) for distinct pointer/keyboard focus restoration and the front-toast control ring while the region holds focus. Cap 15100 to 15400 (+300), leaving 33 bytes. Micro-details E7 (DECISIONS 405, C2): 16742 to 17843 bytes (+1101), measured after trimming, for React's swipe (40px by distance, up or right under 720 and down or right from 720, the axis lock, the damped pull, the change of mind, pointer capture and cancel) and its exits held to no-preference, so under reduced motion a swiped toast only fades (fix pass 1). Cap 16750 to 17843.",
       "usage": 1100,
       "builds": [
         "braille"
