@@ -1082,6 +1082,17 @@ export interface Dyn {
 }
 
 export interface TreeIds { base: string }
+/**
+ * The base of every id inside a figure that has an `id` of its own (console gap G146), so its accessibility attributes are the same on every render, in
+ * any order. Letters, digits and hyphens are kept; any other character, the underscore included, is written `_<code point in hex>_`; `_dg` ends it.
+ * The writing is one to one and `_dg` can only be its end, so two different ids never give the same id inside, and what it gives holds only
+ * `[A-Za-z0-9_-]`: safe in an attribute, an id selector and `url(#…)`. A figure with no id takes React's `useId` (the skill, its place on the page).
+ */
+export function idBase(id: string): string {
+  let out = "";
+  for (const ch of id) out += /[A-Za-z0-9-]/.test(ch) ? ch : `_${ch.codePointAt(0)!.toString(16)}_`;
+  return `${out}_dg`;
+}
 const idsOf = (base: string) => ({ title: `${base}-title`, summary: `${base}-summary`, keys: `${base}-keys`, list: `${base}-list`, toggle: `${base}-toggle` });
 
 /** Whether the figure's nodes are stops (a roving tab index) in this state. */

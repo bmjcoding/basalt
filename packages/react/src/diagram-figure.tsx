@@ -4,7 +4,7 @@ import { Kbd } from "./kbd";
 import { useShortcutsVisible } from "./keyboard";
 import { inLevel, ModalHost, usePanelLevel } from "./layers";
 import {
-  applyTrace, autoType, buildModel, placeLabels, tapTrace, transcript, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml,
+  applyTrace, autoType, buildModel, idBase, placeLabels, tapTrace, transcript, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml,
 } from "./diagram-core";
 import type { DiagramLegend, DiagramMotion, DiagramPlacement, DiagramSpec, Dyn, Geo, Measured, Model, VNode } from "./diagram-core";
 import type { MotionController } from "./diagram-motion-core";
@@ -39,6 +39,14 @@ const loadActions = () => (actionsLoading ??= import("./diagram-actions").catch(
 // HTML skill's markup too; the drawing is measured before the first paint and again when the figure's width changes or its fonts arrive.
 
 export interface DiagramFigureProps extends Omit<React.ComponentProps<"figure">, "children" | "title"> {
+  /**
+   * The figure element's id, and the base of every id inside it: the title, the summary, the keys sentence, the list, the foot's buttons and the viewer's
+   * dialog and drawing (console gap G146). With one, `aria-labelledby`, `aria-describedby` and `aria-controls` read the same on every render, in any order,
+   * so a route snapshot or an axe target can name them; two figures with different ids never share an id inside. Give each figure on a page its own: in
+   * development a second figure with the same id is a warning. Without one, the ids come from React's `useId` and follow the render order.
+   * `entrance="first-visit"` needs it too.
+   */
+  id?: string;
   /** What the diagram shows. Required: it names the figure and its drawing. */
   title: string;
   /** The title's heading level in the page outline, 3 by default; its size stays the same at every level. The list's sub-headings are one level under it. Size a page's own headings by class or with `Heading`: an unlayered element rule (`h2 { font-size }`) resizes this title too. */
@@ -184,10 +192,18 @@ export interface DiagramFigureInternalProps extends DiagramFigureProps {
   component: string;
   /** Internal: the figure is the viewer's (diagram-viewer.tsx). */
   viewer?: DiagramViewerMode;
+  /** Internal: the viewer's figure's id base, built on the page figure's (G146). */
+  baseId?: string;
 }
 
-export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, actions, entrance: _entrance, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, ...props }: DiagramFigureInternalProps) {
-  const base = `dg${React.useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+/** Development only: how many figures on the page have each id, so one id given to two figures is said (G146). Made by the first figure with an id. */
+let figureIds: Map<string, number> | undefined;
+
+export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, onLayout, actions, entrance: _entrance, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, id, ...props }: DiagramFigureInternalProps) {
+  // Every id inside is built on the base (G146): the viewer's, the figure's own id where it has one, else React's useId, which follows the render order.
+  const reactId = React.useId();
+  const ownId = !viewer && typeof id === "string" && id !== "" ? id : undefined;
+  const base = baseId ?? (ownId !== undefined ? idBase(ownId) : `dg${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}`);
   const level = usePanelLevel();
   // The key hint is a data-kbd-hint legend, hidden on touch until a hardware key is pressed: this installs the listener that reveals it.
   useShortcutsVisible();
@@ -270,8 +286,22 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
     if (process.env.NODE_ENV !== "production") for (const w of model.warnings) warnOnce(component, w);
     // 5.1's first list is an error (the decider's ruling 1): console.error, once for this figure and the message; the figure is drawn as production draws it.
     if (process.env.NODE_ENV !== "production") for (const e of model.errors) errorOnce(e);
-    if (process.env.NODE_ENV !== "production" && model.motion.firstVisit && !props.id) errorOnce('entrance="first-visit" needs an id: without one the entrance plays on every visit');
-  }, [model, component, props.id]);
+    if (process.env.NODE_ENV !== "production" && model.motion.firstVisit && !id) errorOnce('entrance="first-visit" needs an id: without one the entrance plays on every visit');
+  }, [model, component, id]);
+
+  // One id, two figures (G146): their ids inside are the same, so a label or a list may name the other figure's. Counted while mounted, so a
+  // figure that leaves and comes back (Strict Mode's second effect included) is not a second figure.
+  // Development only: a bundler that sets NODE_ENV to production drops the block.
+  React.useEffect(() => {
+    if (process.env.NODE_ENV !== "production" && ownId !== undefined) {
+      const ids = (figureIds ??= new Map());
+      const count = (ids.get(ownId) ?? 0) + 1;
+      ids.set(ownId, count);
+      if (count > 1) warnOnce(component, `two figures on this page have the id "${ownId}", so the ids inside them are the same: give each figure its own id`);
+      return () => { const left = (ids.get(ownId) ?? 1) - 1; if (left > 0) ids.set(ownId, left); else ids.delete(ownId); };
+    }
+    return undefined;
+  }, [ownId, component]);
 
   // The figure's layout as onLayout reports it, from the last measure; null before one, or with no geometry. Everything it reads is in measure's deps.
   const layoutInfo = (): DiagramLayoutInfo | null => {
@@ -536,6 +566,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
 
   const root = {
     ...props,
+    id,
     ref: setRef,
     className,
     style,
@@ -653,7 +684,7 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
         {opening ? <span className="basalt-button-spinner" aria-hidden="true"><span className="basalt-spinner" data-variant="ring" style={{ width: 16, height: 16 }}><svg viewBox="0 0 16 16" width={16} height={16} fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeOpacity="0.25" strokeWidth="1.5" /><path d="M8 1.75A6.25 6.25 0 0 1 14.25 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></span></span> : null}
       </button>
       {viewerOpen && viewerModule ? (
-        <viewerModule.DiagramViewer kit={kitOf()} actions={actions} Actions={Actions} spec={viewerSpec} component={component} source={source} summary={summary} opener={expandRef} host={modalHost} onClose={closeViewer} />
+        <viewerModule.DiagramViewer kit={kitOf()} actions={actions} Actions={Actions} spec={viewerSpec} component={component} base={base} source={source} summary={summary} opener={expandRef} host={modalHost} onClose={closeViewer} />
       ) : null}
     </>
   ) : null;
