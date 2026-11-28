@@ -111,6 +111,19 @@ fs.copyFileSync(require.resolve("@srasyndicate/basalt/head/theme.js"), "public/b
 fs.copyFileSync(require.resolve("@srasyndicate/basalt/head/loops.js"), "public/basalt-loops.js");
 ```
 
+**Preloading the font.** The font files are exports too: `@srasyndicate/basalt/fonts/Geist-Variable.woff2`,
+`@srasyndicate/basalt/fonts/GeistMono-Variable.woff2` and their licence, `@srasyndicate/basalt/fonts/OFL.txt`. Preload the one Geist file; it
+covers all three weights. The preload's `href` is the URL the stylesheet asks for: the same file through the same bundler, so a hashed name
+matches. Geist Mono is not preloaded; it loads when mono text first draws. Serve the files `immutable` with a year's `max-age` only from a
+versioned or hashed URL.
+
+```tsx
+// Vite, for one: the same import fonts.css makes, so the preload and the stylesheet ask for one hashed URL.
+import geist from "@srasyndicate/basalt/fonts/Geist-Variable.woff2?url";
+
+<link rel="preload" href={geist} as="font" type="font/woff2" crossOrigin="" />
+```
+
 **Browsers.** The floor is Chrome 123, Safari 17.5 and Firefox 121 (the owner's decision, DECISIONS 140). `light-dark()` sets Chrome's and
 Safari's number and `:has()` sets Firefox's; `docs/foundations.md` (Browser support) has the full list and the three known uses above it, and
 `test/browser-floor.test.mjs` fails when the built CSS uses a feature past the floor. The opaque header under reduced transparency is drawn

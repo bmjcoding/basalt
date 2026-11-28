@@ -21,3 +21,4 @@ Items are the palette's (`label`, `icon`, `keys`, `keywords`, `danger`, `href`, 
 - A search ranks title matches above description and keyword matches, each in the order given.
 - The panel is as tall as its matches, up to 360px, then scrolls; on the open page its unfiltered height stays as page under it. In a panel, dialog or popover (or with `data-reserve="off"`) it holds no room. No match is one sentence and a Clear button.
 - ⌘K focuses the field on a page with no palette; with a palette on the page, ⌘K is the palette's. One owner.
+- A page renders every row, so find and print see them all; keep a table or command list to a few hundred rows, or fold older sections as `release` does.

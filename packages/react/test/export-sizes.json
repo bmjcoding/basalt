@@ -124,7 +124,7 @@
   "FormGrid": 558,
   "FormGridItem": 628,
   "FormPreview": 801,
-  "FramedArt": 2067,
+  "FramedArt": 2099,
   "GanttDiagram": 130545,
   "GlidePlate": 4230,
   "Heading": 799,
@@ -210,7 +210,7 @@
   "PageSections": 246,
   "PageWait": 2453,
   "Pagination": 22725,
-  "PairedArt": 462,
+  "PairedArt": 510,
   "PaneLayout": 7599,
   "PanelList": 773,
   "PanelRow": 5566,
@@ -477,8 +477,8 @@
   }
  },
  "package": {
-  "bytes": 1152440,
-  "gzip": 382741
+  "bytes": 1152520,
+  "gzip": 382768
  },
  "styles": {
   "bytes": 624895,

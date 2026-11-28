@@ -996,9 +996,11 @@ new display value). Under the type the sans family is `Geist, "Geist Fallback", 
   a baseline sits where Geist's will. Line heights are explicit in every step, so the swap never changes a line box's height.
 - **It reduces the shift and does not promise the same wrap at every width.** A line within a percent of Geist's width can still break
   elsewhere: at 376 and 380 wide the sample hero is two lines in Geist and three in the fallback. Where Arial is not installed
-  (a `local()` face matches a font's own name, not a system's alias for it) the next family answers. Apps preload the one Geist file
-  (`<link rel="preload" as="font" type="font/woff2" crossorigin>`); it covers all three weights. The HTML skill inlines Geist, so its pages
-  show the fallback only if the font fails.
+  (a `local()` face matches a font's own name, not a system's alias for it) the next family answers. Apps preload the one Geist file,
+  `@srasyndicate/basalt/fonts/Geist-Variable.woff2` (`<link rel="preload" as="font" type="font/woff2" crossorigin>`); it covers all three
+  weights. The preload's `href` is the URL the stylesheet asks for: the same file through the same bundler, so a hashed name matches. Geist
+  Mono is not preloaded; it loads when mono text first draws. Serve the files `immutable` with a year's `max-age` only from a versioned or
+  hashed URL. The HTML skill inlines Geist, so its pages show the fallback only if the font fails.
 
 ### Display type
 
@@ -3066,6 +3068,16 @@ under the bar and the first row under it), moves focus to the band's own Previou
 
 **The ring fix.** The band's narrow form and the foot set an arrow, the count and the next arrow `space-1` apart, so an arrow's +2 focus ring (2px wide, ending 4px out) touched the count's text. The
 count keeps `space-1` more on each side: 8px between an arrow and the count, the ring clearing it by 4px.
+
+### Long lists
+
+**A list renders a bounded set, and every row it renders is real.** Find in page, selection, screen readers, the keys and print see every
+rendered row. A long table or document list pages with `ListBand` and `Pagination`; a feed loads earlier entries on request (`Stream`, the
+event log); a popup (`Select`, `Combobox`, `CommandMenu`, a `MultiSelect` checklist) that would hold hundreds of items searches on the server
+instead and says how many matches it left out. Basalt has no virtualizer and no component uses `content-visibility: auto`. The measured
+costs in the package README ("Long lists") are evidence for the workloads they measured, not limits; a product screen whose interaction
+misses the 200 ms budget is what opens the question of a virtualizer, and that component would keep row and set positions announced, focus
+across what it unmounts, variable row heights at 390 and under text spacing, and a route to print.
 
 ### Pagination: seven fixed slots
 

@@ -48,6 +48,9 @@ const FEATURES = [
   ["text-box-trim", /text-box(?:-trim|-edge)?\s*:/, 133, 18.2, Infinity],
   ["the popover pseudo-class", /:popover-open|\[popover\]/, 114, 17, 125],
   ["backdrop-filter", /backdrop-filter/, 76, 9, 103], // Safari 9 to 17 take the -webkit- form, which the sheet writes beside it
+  // The value `auto` only (micro-details m8, X9): no component uses it, and it has no ALLOWED or SKILL_ALLOWED row, so a future use fails. `hidden` and
+  // `visible` are not matched.
+  ["content-visibility: auto", /content-visibility\s*:\s*auto\b/, 85, 18, 125],
 ];
 
 /** A use above the floor that is known and harmless, with why. A row the CSS no longer needs fails (remove it). */
@@ -80,7 +83,7 @@ const sheets = () => {
 /** The skill's stylesheet parts, as the built skill ships them (the fonts are data, not styles). */
 const skillSheets = () => {
   const parts = path.join(pkg, "..", "..", ".agent", "skills", "basalt-html", "parts");
-  return fs.readdirSync(parts).filter((file) => file.endsWith(".css") && file !== "geist.css").sort()
+  return fs.readdirSync(parts).filter((file) => file.endsWith(".css") && file !== "geist-sans.css" && file !== "geist-mono.css").sort()
     .map((file) => ({ file: `parts/${file}`, css: fs.readFileSync(path.join(parts, file), "utf8").replace(/\/\*[\s\S]*?\*\//g, "") }));
 };
 
@@ -130,6 +133,16 @@ test("the check itself catches a feature above the floor and passes one at it", 
   // The skill's floor is the stricter in Firefox: a feature Firefox 125 has passes it and fails the package's 121.
   assert.deepEqual([...aboveTheFloor(sheet("@starting-style { .a { opacity: 0 } }"), FEATURES, SKILL_FLOOR).keys()], ["@starting-style"], "Firefox 129 is above the skill's 125");
   assert.deepEqual([...aboveTheFloor(sheet(".a { color: light-dark(white, black); }"), FEATURES, SKILL_FLOOR).keys()], []);
+});
+
+test("content-visibility: auto is caught, with or without a space, and hidden and visible are not (micro-details m8, X9)", () => {
+  const sheet = (css) => [{ file: "probe.css", css }];
+  for (const css of [".a{content-visibility:auto}", ".a { content-visibility: auto; }"]) {
+    assert.deepEqual([...aboveTheFloor(sheet(css)).keys()], ["content-visibility: auto"], css);
+    assert.deepEqual([...aboveTheFloor(sheet(css), FEATURES, SKILL_FLOOR).keys()], ["content-visibility: auto"], `${css} (the skill's floor)`);
+  }
+  for (const css of [".a { content-visibility: hidden; }", ".a{content-visibility:visible}"]) assert.deepEqual([...aboveTheFloor(sheet(css)).keys()], [], css);
+  assert.ok(!("content-visibility: auto" in ALLOWED) && !("content-visibility: auto" in SKILL_ALLOWED), "no use of content-visibility: auto is allowed");
 });
 
 test("the floor is written in foundations and in the README as the check holds it", () => {
