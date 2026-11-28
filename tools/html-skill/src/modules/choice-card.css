@@ -14,6 +14,9 @@
     display: block;
     padding-bottom: var(--basalt-space-4);
     cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
@@ -35,12 +38,17 @@
   .choice-card:has(> .choice-card-input:checked) .choice-card-description { color: var(--basalt-text-secondary); }
   .choice-card:has(> .choice-card-input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .choice-card:has(> .choice-card-input:disabled) { color: var(--basalt-text-disabled); cursor: not-allowed; }
+  /* A press (m1, P8). Not selected: the wash steps to the selected one and the box does not. Selected, as a checkbox: the box steps as a primary
+     button does and the plate stays. Selected, as a radio: nothing. */
+  .choice-card:active:not(:has(> .choice-card-input:checked, > .choice-card-input:disabled))::before { background: var(--basalt-state-selected); opacity: 1; transition-duration: var(--basalt-duration-instant); }
+  .choice-card:active:has(> input[type="checkbox"].choice-card-input:checked:not(:disabled)) .choice-card-box { background: var(--basalt-action-primary-press); transition-duration: var(--basalt-duration-instant); }
   /* Two classes of weight, so the bare input rules (checked, disabled) never draw the hidden input. */
   .choice-card > input.choice-card-input { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0; pointer-events: none; }
   .choice-card-head { display: flex; align-items: flex-start; gap: var(--basalt-space-3); padding: var(--basalt-space-4) var(--basalt-space-4) 0; }
   .choice-card-title { flex: 1 1 auto; min-width: 0; margin: 0; font: var(--basalt-font-weight-semibold) var(--bh-base); }
-  .choice-card-description { display: block; margin: var(--basalt-space-0-5) 0 0; padding-inline: var(--basalt-space-4); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); }
-  .choice-card-body { display: block; padding: var(--basalt-space-4) var(--basalt-space-4) 0; }
+  /* The title is the control; the description and body are words a reader may copy (a time, a price), so they stay selectable (m1, P1). */
+  .choice-card-description { display: block; margin: var(--basalt-space-0-5) 0 0; padding-inline: var(--basalt-space-4); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-secondary); -webkit-user-select: text; user-select: text; }
+  .choice-card-body { display: block; padding: var(--basalt-space-4) var(--basalt-space-4) 0; -webkit-user-select: text; user-select: text; }
   .choice-card-box {
     box-sizing: border-box;
     display: inline-flex;
@@ -74,7 +82,8 @@
   @media (forced-colors: active) {
     .choice-card::before { display: none; }
     .choice-card-box { background: Canvas; border: var(--basalt-size-hairline) solid ButtonText; box-shadow: none; color: ButtonText; }
-    .choice-card:has(> .choice-card-input:checked) .choice-card-box { forced-color-adjust: none; background: Highlight; border-color: Highlight; color: HighlightText; }
+    .choice-card:has(> .choice-card-input:checked) .choice-card-box,
+    .choice-card:active:has(> input[type="checkbox"].choice-card-input:checked:not(:disabled)) .choice-card-box { forced-color-adjust: none; background: Highlight; border-color: Highlight; color: HighlightText; }
     .choice-card-box::before { forced-color-adjust: none; }
     .choice-card:has(> input[type="checkbox"]) .choice-card-box::before { background: HighlightText; }
     .choice-card:has(> input[type="radio"]) .choice-card-box::before { box-sizing: border-box; border: calc(var(--basalt-size-dot) / 2) solid HighlightText; background: none; }

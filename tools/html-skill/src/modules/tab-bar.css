@@ -70,6 +70,7 @@
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
+  .tab-bar-item { -webkit-user-select: none; user-select: none; }
   /* The glyph at 24 in a 32px circle: the circle is the press and hover, so nothing resizes. */
   .tab-bar-glyph {
     position: relative;

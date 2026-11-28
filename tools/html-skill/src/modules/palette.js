@@ -385,7 +385,7 @@
       document.documentElement.style.overflow = 'hidden';
       // The glide listens before the palette's own key handler does, so a key has set its modality before the highlight moves (and moves the plate at once).
       if (!list.__bhFade) list.__bhFade = _.scrollFade(list, { axis: 'block' });
-      unglide = _.glide(list, plate, { active: '.row[data-active]', attr: 'data-active' });
+      unglide = _.glide(list, plate, { active: '.row[data-active]', attr: 'data-active', press: '.row[role="option"]' });
       document.addEventListener('keydown', onKey, true);
       activePalette = api;
       input.focus();

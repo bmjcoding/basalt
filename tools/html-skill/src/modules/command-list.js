@@ -284,7 +284,7 @@
     new ResizeObserver(hold).observe(sizer);
     hold();
     if (!total) { none.hidden = false; fillNone(''); }
-    _.glide(results, plate, { active: '.row[data-active]', attr: 'data-active' });
+    _.glide(results, plate, { active: '.row[data-active]', attr: 'data-active', press: '.row[role="option"]' });
     if (vis.length) setActive(0, false);
     if (detail) renderPane();
 

@@ -39,8 +39,10 @@
     font: var(--basalt-font-weight-medium) var(--bh-sm);
     white-space: nowrap;
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
     transition-property: background-color, color, border-color;
     transition-duration: var(--basalt-duration-fast);
     transition-timing-function: var(--basalt-ease-out);
@@ -100,6 +102,7 @@
     color: var(--basalt-text-secondary);
     font: var(--basalt-font-weight-regular) var(--bh-base);
     cursor: default;
+    -webkit-user-select: none;
     user-select: none;
     transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
@@ -110,6 +113,10 @@
   .filter-row[data-highlighted] { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
   .filter-row[data-highlighted]::before { background-color: var(--panel-plate); transition-duration: var(--basalt-duration-instant); }
   .filter-row:has(> input:disabled) { color: var(--basalt-text-disabled); }
+  /* A press (m1, P8): everything the lit row has. On :active (a mouse, a pen, a browser that sets it under a finger) and on data-pressing, which
+     _.glide writes under a still finger (glide.js). It moves no highlight; where the shared plate is live it covers the same solid colour. */
+  .filter-row:is(:active, [data-pressing]):not(:has(> input:disabled)) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+  .filter-row:is(:active, [data-pressing]):not(:has(> input:disabled))::before { background-color: var(--panel-plate); transition-duration: var(--basalt-duration-instant); }
   @media (pointer: coarse), (width < %bp-md%) { .filter-row { height: max(calc(var(--_h) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); } }
   .filter-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-3); padding-block: var(--basalt-space-1-5); padding-inline: var(--basalt-space-4); --basalt-edge-room: var(--basalt-space-4); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); margin: var(--basalt-space-0-5) calc(-1 * var(--basalt-space-1)) 0; }
   /* The rows scroll inside the popup cap (nine 40px rows show whole), with the search band and the foot outside them. */
@@ -164,5 +171,8 @@
     .filter-row[data-highlighted] { forced-color-adjust: none; color: HighlightText; }
     .filter-row[data-highlighted]::before { background-color: Highlight; }
     .filter-row[data-highlighted] .filter-row-label { color: HighlightText; }
+    .filter-row:is(:active, [data-pressing]):not(:has(> input:disabled)) { forced-color-adjust: none; color: HighlightText; }
+    .filter-row:is(:active, [data-pressing]):not(:has(> input:disabled))::before { background-color: Highlight; }
+    .filter-row:is(:active, [data-pressing]):not(:has(> input:disabled)) .filter-row-label { color: HighlightText; }
   }
 }

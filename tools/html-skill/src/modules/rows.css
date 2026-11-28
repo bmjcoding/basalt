@@ -41,9 +41,12 @@
     text-align: start;
     text-decoration: none;
     cursor: pointer;
+    -webkit-user-select: none;
     user-select: none;
     transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
+  /* An option row keeps the arrow (m1, P6): it is pointed at, and its lit plate is the pointer's answer. A row that is a link keeps the hand. */
+  .row[role="option"] { cursor: default; }
   .row::before { content: ""; position: absolute; inset: var(--basalt-space-0-5) 0; z-index: -1; border-radius: var(--basalt-radius-md); background-color: transparent; transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out); }
   .row svg { flex: none; }
   .row-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -53,6 +56,11 @@
   .row:is([data-active], [aria-selected="true"])::before { background-color: var(--panel-plate); transition-duration: var(--basalt-duration-instant); }
   .row:is([data-active], [aria-selected="true"]) .row-hint { color: var(--basalt-text-secondary); }
   .row[data-danger] { color: var(--basalt-status-danger); }
+  /* A press (m1, P8): everything the lit row has. On :active (a mouse, a pen, a browser that sets it under a finger) and on data-pressing, which
+     _.glide writes under a still finger (glide.js). It moves no highlight; where the shared plate is live it covers the same solid colour. */
+  .row[role="option"]:is(:active, [data-pressing]):not([data-unavailable], [aria-disabled="true"]):not([data-danger]) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+  .row[role="option"]:is(:active, [data-pressing]):not([data-unavailable], [aria-disabled="true"])::before { background-color: var(--panel-plate); transition-duration: var(--basalt-duration-instant); }
+  .row[role="option"]:is(:active, [data-pressing]):not([data-unavailable], [aria-disabled="true"]) :is(.row-hint, .row-description) { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
   /* ---- Two-line rows (DECISIONS 103) ----
      A described row is padding, a 20px title line, an 18px description line, then padding: the one-line row's 40px plate plus the description's
      line (58 in a 62 row). The glyph, the label and the key chip sit on the title line and the description runs from the label's edge to the row's
@@ -104,6 +112,10 @@
     .row:is([data-active], [aria-selected="true"])::before { background-color: Highlight; }
     .row:is([data-active], [aria-selected="true"]) :is(svg, .row-label, .row-hint, .row-description, .status, .badge) { color: HighlightText; }
     .row:is([data-active], [aria-selected="true"]) .kbd { background: Highlight; border-color: HighlightText; color: HighlightText; }
+    .row[role="option"]:is(:active, [data-pressing]):not([data-unavailable], [aria-disabled="true"]) { forced-color-adjust: none; color: HighlightText; }
+    .row[role="option"]:is(:active, [data-pressing]):not([data-unavailable], [aria-disabled="true"])::before { background-color: Highlight; }
+    .row[role="option"]:is(:active, [data-pressing]):not([data-unavailable], [aria-disabled="true"]) :is(svg, .row-label, .row-hint, .row-description, .status, .badge) { color: HighlightText; }
+    .row[role="option"]:is(:active, [data-pressing]):not([data-unavailable], [aria-disabled="true"]) .kbd { background: Highlight; border-color: HighlightText; color: HighlightText; }
     /* A row that cannot run, at rest: its title and glyph GrayText, its reason CanvasText. Lit, every part is HighlightText (above). */
     .row[data-unavailable]:not([data-active], [aria-selected="true"]), .row[data-unavailable]:not([data-active], [aria-selected="true"]) > :is(svg, .row-label) { color: GrayText; }
     .row[data-unavailable]:not([data-active], [aria-selected="true"]) > .row-description { color: CanvasText; }

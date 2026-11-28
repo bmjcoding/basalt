@@ -8,14 +8,26 @@
      the box unchanged. The native input keeps its own keyboard (Space, and arrows in a radio group), its name and its form value.
      The marks are the inputs' ::before, so the input stays one element. */
 
+  /* The mark sits on the label's first line (m1, T4): one grid row of mark and words, centred in any spare height (28, 44 on touch), the mark at
+     the row's top with a margin that makes its box one line tall (1lh is the label's line: the inputs inherit its font). A one-line choice is
+     where the flex row drew it. A label is the control (m1, P1, P7, P8): it never paints a selection, a second tap presses again, and its tap
+     highlight is transparent. A bare label gets none of this; it needs the class. */
   .choice {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--basalt-space-2);
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: auto;
+    justify-content: start;
+    align-content: center;
+    align-items: start;
+    column-gap: var(--basalt-space-2);
     min-height: var(--basalt-size-control-sm);
     font: var(--basalt-font-weight-regular) var(--bh-base);
     color: var(--basalt-text-primary);
     cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
   .choice:has(:disabled) { color: var(--basalt-text-disabled); cursor: not-allowed; }
   .radio-group { display: flex; flex-direction: column; gap: var(--basalt-space-1); }
@@ -77,6 +89,21 @@
   input[type="checkbox"][role="switch"]:checked:dir(rtl)::before { transform: translateX(calc(-1 * (var(--basalt-size-switch-width) - var(--basalt-size-switch-thumb) - 2 * var(--basalt-space-0-5)))); }
 
   input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: 0.5; }
+  .choice > input:is([type="checkbox"], [type="radio"]) { margin-block: calc((1lh - var(--basalt-size-choice)) / 2); }
+  .choice > input[type="checkbox"][role="switch"] { margin-block: calc((1lh - var(--basalt-size-switch-height)) / 2); }
+
+  /* A press (m1, P8): an unchecked box (the switch's track too) steps as a secondary button does, to the selected wash with its edge at secondary
+     ink; a checked or mixed checkbox, and a checked switch, steps as a primary button does. A checked radio changes nothing. In at once, out over
+     the transition, kept under reduced motion. Choosing still happens on release, natively. */
+  input:is([type="checkbox"], [type="radio"]):not(:disabled):not(:checked, :indeterminate):is(:active, .choice:active > *) {
+    background: var(--basalt-state-selected);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-text-secondary);
+    transition-duration: var(--basalt-duration-instant);
+  }
+  input[type="checkbox"]:not(:disabled):is(:checked, :indeterminate):is(:active, .choice:active > *) {
+    background: var(--basalt-action-primary-press);
+    transition-duration: var(--basalt-duration-instant);
+  }
   input[type="checkbox"]:focus-visible, input[type="radio"]:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
 
   /* The first frame: a state a script sets on load (a mixed header box, the hold's stored switch) paints at once, as React's does on mount. The
@@ -95,6 +122,9 @@
   @media (forced-colors: active) {
     input[type="checkbox"], input[type="radio"] { border: var(--basalt-size-hairline) solid ButtonText; box-shadow: none; background: Canvas; color: ButtonText; }
     input[type="checkbox"]:not([role="switch"]):is(:checked, :indeterminate), input[type="checkbox"][role="switch"]:checked, input[type="radio"]:checked { background: Highlight; color: HighlightText; }
+    /* A pressed choice keeps its state's colours through the press (m1, P8). */
+    input:is([type="checkbox"], [type="radio"]):not(:disabled):not(:checked, :indeterminate):is(:active, .choice:active > *) { background: Canvas; box-shadow: none; }
+    input[type="checkbox"]:not(:disabled):is(:checked, :indeterminate):is(:active, .choice:active > *) { background: Highlight; }
     input[type="checkbox"]:disabled, input[type="radio"]:disabled { border-color: GrayText; }
     input[type="checkbox"]::before, input[type="radio"]::before { forced-color-adjust: none; }
     input[type="checkbox"]:not([role="switch"])::before { background: HighlightText; }

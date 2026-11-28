@@ -61,6 +61,8 @@
     font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / normal var(--basalt-font-family-sans);
     cursor: pointer;
   }
+  /* The box is the control (m1, P1, P7, P8): no selection, a second tap presses again, a transparent tap highlight. */
+  .file-field[data-ready] { -webkit-user-select: none; user-select: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   .file-field[data-ready] > input[type="file"] { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0; cursor: inherit; }
   .file-field-face { display: contents; }
   .file-field-face > svg { flex: none; color: var(--basalt-text-secondary); }
@@ -76,6 +78,11 @@
   .file-field[data-ready]:has(> input:disabled) :is(.file-field-line, .file-field-size, svg) { color: var(--basalt-text-disabled); }
   .file-field[data-drag] { background: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 4%, var(--basalt-surface-1)), color-mix(in srgb, var(--basalt-neutral-100) 6%, var(--basalt-surface-1))); box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hover); }
   .file-field[data-drag] :is(.file-field-line[data-empty], .file-field-size) { color: var(--basalt-text-secondary); }
+  /* A press (m1, P8), from the native input only (never from Clear): the selected wash over the fill as one colour, the edge at secondary ink (an
+     invalid box keeps its danger edge), and the empty line and the size at secondary on it. */
+  .file-field[data-ready]:has(> input[type="file"]:active:not(:disabled)) { background: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-1)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1))); }
+  .file-field[data-ready]:has(> input[type="file"]:active:not(:disabled, [aria-invalid="true"])) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-text-secondary); }
+  .file-field[data-ready]:has(> input[type="file"]:active:not(:disabled)) :is(.file-field-line[data-empty], .file-field-size) { color: var(--basalt-text-secondary); }
   @media (pointer: coarse), (width < %bp-md%) {
     .file-field[data-ready] { height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); }
     .file-field-clear::before { content: ""; position: absolute; inset: calc((var(--basalt-size-control-xs) - var(--basalt-size-tap-min)) / 2 - var(--basalt-size-hairline)); }

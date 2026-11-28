@@ -22,6 +22,10 @@
   /* A tab brought into view (the script's focusin reveal) keeps the fade and the ring's room clear of the column's edge (20 and 4, as React's; cimip-gaps-3 t4, t7): the tab after it always shows its
      start, so a pointer reaches every tab by pressing the last one in view. The content starts at the tab's start. */
   .tab { position: relative; display: inline-flex; align-items: center; justify-content: flex-start; gap: var(--basalt-space-1-5); flex: none; height: var(--basalt-size-control-lg); padding: 0 var(--basalt-space-2); margin: 0; scroll-margin-inline: calc(var(--basalt-size-scroll-fade) + var(--basalt-space-1)); border: 0; border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0; background: transparent; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / normal var(--basalt-font-family-sans); cursor: pointer; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  /* A tab never paints a selection (m1, P1). A press is the hover step (P8): primary ink, no wash, never on the chosen tab. Disabled shows not-allowed (P6). */
+  .tab { -webkit-user-select: none; user-select: none; }
+  .tab:active:not([aria-selected="true"], :disabled) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+  .tab:disabled { cursor: not-allowed; }
   /* The selected tab is its label at 600 in primary ink (400 in secondary at rest), each reserving the 600's width (see segment), with the underline. */
   .tab[aria-selected="true"] { color: var(--basalt-text-primary); }
   /* The 600 is on the label, not on the tab (decision 149): words the script did not reserve keep their weight and move nothing. */

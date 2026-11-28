@@ -3,7 +3,8 @@
   /* ---- Callout: a neutral panel; status is the icon and the words ---- */
 
   .callout { --_s: var(--basalt-text-secondary); display: flex; gap: var(--basalt-space-3); padding: var(--basalt-space-3) var(--basalt-space-4); border-radius: var(--basalt-radius-md); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
-  .callout > svg { flex: none; margin-top: var(--basalt-size-hairline); color: var(--_s); }
+  /* The 16px glyph centred on the title's 18px line (m1, T4): half the line less half the glyph, the lockup's own sizes. */
+  .callout > svg { flex: none; margin-top: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-icon-sm)) / 2); color: var(--_s); }
   .callout[data-status="danger"] .callout-title { color: var(--basalt-status-danger); }
   /* A status callout draws its rim in the status colour: 45% of it mixed in sRGB over the callout's own level (--panel-bg), one solid colour on every side, in both
      themes (DECISIONS 82). Info and a plain note keep the neutral rim. The rim is decoration (about 1.7 to 2.8:1): the icon and the words carry the status. */

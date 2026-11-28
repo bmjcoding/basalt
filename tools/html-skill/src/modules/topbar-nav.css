@@ -36,6 +36,7 @@
     -webkit-tap-highlight-color: transparent;
     transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
+  .topbar .topbar-links a { -webkit-user-select: none; user-select: none; }
   .topbar-links a::before {
     content: "";
     position: absolute;

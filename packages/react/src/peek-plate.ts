@@ -142,6 +142,8 @@ function placeRow(row: HTMLElement, parts: RowParts, plate: HTMLDivElement) {
   plate.replaceChildren();
   plate.dataset.kind = "row";
   plate.toggleAttribute("data-chosen", parts.chosen);
+  // The plate takes its row's cursor (m1, P6): an option row keeps the arrow, an open row shows the hand. CSS cannot tell the two plates apart.
+  plate.toggleAttribute("data-option", row.matches(".basalt-listbox-option"));
   const rowStyle = getComputedStyle(row);
   const rtl = rowStyle.direction === "rtl";
   plate.style.direction = rowStyle.direction;

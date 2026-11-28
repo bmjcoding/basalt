@@ -136,7 +136,7 @@
       trigger.setAttribute('aria-expanded', 'true');
       nameList();
       place();
-      unglide = _.glide(portOf(), plate, { active: '[data-highlighted]', attr: 'data-highlighted' });
+      unglide = _.glide(portOf(), plate, { active: '[data-highlighted]', attr: 'data-highlighted', press: '.combobox-option' });
       window.addEventListener('resize', place);
       document.addEventListener('scroll', scrolled, true);
       var rows = visible();

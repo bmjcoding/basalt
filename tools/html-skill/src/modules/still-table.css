@@ -61,6 +61,7 @@
     -webkit-tap-highlight-color: transparent;
     transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
+  .sort { -webkit-user-select: none; user-select: none; }
   /* A numeric (end-aligned) column: the label rests over the empty seat, on the numbers' edge, and moves aside by a transform while the indicator shows (over
      duration-base on ease-out, back at 0.75x on ease-in); on a fine pointer the indicator waits for it and fades in. Only the label moves. On touch, and under
      reduced motion, it stays aside and the indicator swaps at once. */

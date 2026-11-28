@@ -184,6 +184,7 @@
     -webkit-tap-highlight-color: transparent;
     transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
+  .site-footer-links-host a { -webkit-user-select: none; user-select: none; }
   .site-footer-links-host a::before {
     content: "";
     position: absolute;
@@ -220,13 +221,17 @@
   .site-footer[data-form="line"] .site-footer-base { margin-top: var(--basalt-space-4); }
   .site-footer-legal { margin: 0; max-width: var(--basalt-size-prose-width); color: var(--basalt-text-tertiary); }
   .site-footer-toggle { display: none; align-items: center; justify-content: space-between; box-sizing: border-box; width: 100%; height: var(--basalt-size-tap-min); margin: 0; padding: 0; border: 0; background: transparent; color: var(--basalt-text-primary); font: inherit; letter-spacing: inherit; text-align: start; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .site-footer-toggle { -webkit-user-select: none; user-select: none; }
   .site-footer-toggle:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .site-footer-toggle > svg { color: var(--basalt-text-secondary); transition: transform var(--basalt-duration-slow) var(--basalt-ease-out), color var(--basalt-duration-fast) var(--basalt-ease-out); }
   @media (hover: hover) { .site-footer-toggle:hover > svg { color: var(--basalt-text-primary); } }
   /* A press is the hover step (m1, P8): the chevron lifts. */
   .site-footer-toggle:active > svg { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-slow), var(--basalt-duration-instant); }
   .site-footer-group[data-open] .site-footer-toggle > svg { transform: rotate(180deg); }
-  @media (prefers-reduced-motion: reduce) { .site-footer-toggle > svg { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); } }
+  @media (prefers-reduced-motion: reduce) {
+    .site-footer-toggle > svg { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+    .site-footer-toggle:active > svg { transition-duration: var(--basalt-duration-instant); }
+  }
   @media (width < %bp-lg%) {
     .site-footer { --_above: var(--basalt-space-12); }
     .site-footer-id, .site-footer-links { grid-column: 1 / -1; }
