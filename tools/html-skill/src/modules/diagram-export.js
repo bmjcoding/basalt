@@ -14,7 +14,6 @@ import { diagramToPng, diagramToSvg, exportName } from "../../../../packages/rea
   var FAILED = { svg: 'The SVG could not be made.', png: 'The PNG could not be made.' };
   // The page's policy refused a PNG: no figure tries again while the page is open. Each "Download PNG" still answers its own first press, at once.
   var refused = false;
-  var notes = 0;
 
   function save(blob, name) {
     var a = document.createElement('a');
@@ -55,7 +54,8 @@ import { diagramToPng, diagramToSvg, exportName } from "../../../../packages/rea
       if (!note) {
         note = document.createElement('p');
         note.className = 'diagram-export-note';
-        note.id = 'diagram-export-note-' + (++notes);
+        // Built on its figure's base (G146), read as the note is made: the viewer's drawing has its base only once it is drawn.
+        note.id = (fig.getAttribute('aria-labelledby') || 'diagram-title').replace(/-title$/, '') + '-export-note';
         host.appendChild(note);
         made.push(note);
       }

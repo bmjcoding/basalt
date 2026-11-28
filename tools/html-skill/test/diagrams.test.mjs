@@ -179,24 +179,110 @@ describe("compose.mjs and the diagram's markup", () => {
     assert.ok(result.diagrams.some((n) => /not a level from 2 to 6/.test(n)) && result.diagrams.some((n) => /not a kind of line/.test(n)) && result.diagrams.some((n) => /not a whole number/.test(n)));
   });
 
-  // G146: a figure's own id is the base of the ids inside it, the same on every build wherever the figure is; the others are numbered by their place
-  // among the figures, so an id given to one moves no other's; a second figure with one id keeps its number, and the composer says so.
+  // G146: a figure's own id, read as the browser reads it, is the base of the ids inside it (in Basalt's namespace, bd-), the same on every build wherever
+  // the figure is; the others are numbered by their place among the figures, so an id given to one moves no other's; a second figure with one id, however
+  // it is spelled, and an id this cannot read exactly keep their numbers, and the composer says so.
+  const labelled = (html) => [...bodyOf(html).matchAll(/<figure[^>]*\saria-labelledby="([^"]+)"/g)].map((m) => m[1]);
   test("a figure with an id is written on that id; one without is numbered by its place; a second figure with one id is numbered and said (G146)", () => {
-    const labelled = (html) => [...bodyOf(html).matchAll(/<figure[^>]*\saria-labelledby="([^"]+)"/g)].map((m) => m[1]);
-    assert.deepEqual(labelled(compose(`<h1>x</h1>${figure('class="diagram" id="fig-a"')}${figure('class="diagram"')}${figure('class="diagram" id="a b"')}`).html), ["fig-a_dg-title", "dg2-title", "a_20_b_dg-title"]);
+    assert.deepEqual(labelled(compose(`<h1>x</h1>${figure('class="diagram" id="fig-a"')}${figure('class="diagram"')}${figure('class="diagram" id="a b"')}${figure('class="diagram" id="1"')}`).html), ["bd-fig-a_dg-title", "dg2-title", "bd-a_20_b_dg-title", "bd-1_dg-title"]);
     const moved = compose(`<h1>x</h1>${figure('class="diagram"')}${figure('class="diagram" id="fig-a"')}`).html;
-    assert.deepEqual(labelled(moved), ["dg1-title", "fig-a_dg-title"], "the same figure's ids, wherever it is");
-    assert.ok(bodyOf(moved).includes('<h3 id="fig-a_dg-title"'));
+    assert.deepEqual(labelled(moved), ["dg1-title", "bd-fig-a_dg-title"], "the same figure's ids, wherever it is");
+    assert.ok(bodyOf(moved).includes('<h3 id="bd-fig-a_dg-title"'));
     const twice = compose(`<h1>x</h1>${figure('class="diagram" id="same"')}${figure('class="diagram" id="same"')}`);
-    assert.deepEqual(labelled(twice.html), ["same_dg-title", "dg2-title"]);
+    assert.deepEqual(labelled(twice.html), ["bd-same_dg-title", "dg2-title"]);
     assert.ok(twice.diagrams.some((n) => n.includes('two figures on this page have the id "same"')), "the composer says so");
-    const all = [...bodyOf(compose(`<h1>x</h1>${figure('class="diagram" id="x"')}${figure('class="diagram" id="x-title"')}${figure('class="diagram" id="x_dg"')}`).html).replace(/<figure[^>]*>/g, "").matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
-    assert.equal(new Set(all).size, all.length, "no id inside one figure is another's");
+    const kept = compose(`<h1>x</h1>${figure('class="diagram" id="bd-x"')}`).diagrams;
+    assert.ok(kept.some((n) => n.includes('the id "bd-x" begins "bd-"')), "an id in Basalt's namespace is said");
+    const ids = ["x", "x-title", "x_dg-title", "bd", "1", "1_dg-title", "build-reveal-plan"];
+    const written = bodyOf(compose(`<h1>x</h1>${ids.map((id) => figure(`class="diagram" id="${id}"`)).join("")}`).html).replace(/<script type="application\/json" data-diagram>[\s\S]*?<\/script>/g, "");
+    const all = [...written.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+    assert.ok(all.length > ids.length * 4);
+    assert.equal(new Set(all).size, all.length, "no id twice in the page, the figures' own ids included");
+  });
+
+  test("an id is read with its character references, as the browser reads it; a second spelling of one id is the same id; one it cannot read is numbered (G146)", () => {
+    const one = (attr) => labelled(compose(`<h1>x</h1>${figure(`class="diagram" id="${attr}"`)}`).html)[0];
+    for (const attr of ["a&amp;b", "a&#38;b", "a&#x26;b", "a&#X26;b"]) assert.equal(one(attr), "bd-a_26_b_dg-title", attr);
+    assert.equal(one("a&b"), "bd-a_26_b_dg-title", "an & that starts no reference is text");
+    assert.equal(one("&lt;x&gt;&quot;&apos;&nbsp;"), "bd-_3c_x_3e__22__27__a0__dg-title");
+    const spelled = compose(`<h1>x</h1>${figure('class="diagram" id="a&amp;b"')}${figure('class="diagram" id="a&#38;b"')}`);
+    assert.deepEqual(labelled(spelled.html), ["bd-a_26_b_dg-title", "dg2-title"]);
+    assert.ok(spelled.diagrams.some((n) => n.includes('two figures on this page have the id "a&b"')));
+    for (const attr of ["&copy;", "a&amp", "&#0;", "&#x80;", "&#xD800;", "&#x110000;"]) {
+      const result = compose(`<h1>x</h1>${figure(`class="diagram" id="${attr}"`)}`);
+      assert.equal(labelled(result.html)[0], "dg1-title", attr);
+      assert.ok(result.diagrams.some((n) => n.includes("character reference")), `${attr} is said`);
+    }
   });
 
   test("the usage example composes with no warning", () => {
     const usage = fs.readFileSync(path.join(path.dirname(require.resolve("../../../.agent/skills/basalt-html/compose.mjs")), "parts", "usage", "diagram.md"), "utf8").match(/```\n([\s\S]*?)```/)[1];
     assert.deepEqual(compose(`<h1>x</h1>${usage}`).diagrams, []);
+  });
+});
+
+describe("the skill's ids (G146)", () => {
+  const frames2 = (p) => p.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const one = (id) => compose(`<title>D</title><main style="max-width:1104px;margin:0 auto;padding:16px"><figure class="diagram" id="${id}"><script type="application/json" data-diagram>${JSON.stringify(DATA.architecture)}</script></figure></main>`).html;
+  /** No id twice in the document, and every name in `scope` found inside it by a real querySelector. */
+  const audit = (p, scope) => p.evaluate((scope) => {
+    const ids = [...document.querySelectorAll("[id]")].map((el) => el.id);
+    const box = document.querySelector(scope);
+    const faults = [];
+    for (const el of [box, ...box.querySelectorAll("[aria-labelledby],[aria-describedby],[aria-controls]")]) {
+      for (const a of ["aria-labelledby", "aria-describedby", "aria-controls"]) {
+        for (const id of (el.getAttribute(a) ?? "").split(" ").filter(Boolean)) {
+          let found = null;
+          try { found = document.querySelector(`#${id}`); } catch { faults.push(`#${id} is not a selector`); continue; }
+          if (!found || !box.contains(found)) faults.push(`${a} ${id} is not inside`);
+        }
+      }
+    }
+    return { dupes: ids.filter((id, i) => ids.indexOf(id) !== i), faults };
+  }, scope);
+
+  test("a figure drawn from script takes the base compose.mjs writes for the same id; a figure redrawn with a new id, or none, takes its new base", async () => {
+    const written = await openHtml(browser, one("a&amp;b"), { scheme: "dark" });
+    const composed = await written.page.evaluate(() => document.querySelector("figure.diagram").getAttribute("aria-labelledby"));
+    assert.equal(composed, "bd-a_26_b_dg-title");
+    const skill = await openHtml(browser, compose(`<title>D</title><main style="max-width:1104px;margin:0 auto;padding:16px"><figure class="diagram"></figure></main><!-- basalt:use diagram -->`).html, { scheme: "dark" });
+    const label = () => skill.page.evaluate(() => document.querySelector("figure.diagram").getAttribute("aria-labelledby"));
+    await skill.page.evaluate((spec) => { const f = document.querySelector("figure.diagram"); f.id = "a&b"; window.Basalt.diagram(f, spec); }, DATA.architecture);
+    await frames2(skill.page);
+    assert.equal(await label(), composed, "the same base as compose.mjs wrote for the same DOM id");
+    await skill.page.evaluate((spec) => { const f = document.querySelector("figure.diagram"); f.id = "fig-z"; window.Basalt.diagram(f, spec); }, DATA.architecture);
+    await frames2(skill.page);
+    assert.equal(await label(), "bd-fig-z_dg-title", "a new id, a new base");
+    assert.deepEqual(await audit(skill.page, "figure.diagram"), { dupes: [], faults: [] });
+    await skill.page.evaluate((spec) => { const f = document.querySelector("figure.diagram"); f.removeAttribute("id"); window.Basalt.diagram(f, spec); }, DATA.architecture);
+    await frames2(skill.page);
+    assert.match(await label(), /^dg\d+-title$/, "no id, a number");
+    assert.deepEqual(await audit(skill.page, "figure.diagram"), { dupes: [], faults: [] });
+    assert.deepEqual([...written.errors, ...skill.errors], []);
+    await written.context.close();
+    await skill.context.close();
+  });
+
+  test("the viewer's ids are built on its figure's base; opened again during its exit, the old one goes first and every name resolves inside the open one", async () => {
+    const skill = await openHtml(browser, one("fig-a"), { scheme: "dark" });
+    const p = skill.page;
+    await p.locator("#fig-a .diagram-expand").click();
+    await p.waitForSelector("dialog.diagram-viewer[open] .diagram[data-layout]");
+    const ids = await p.evaluate(() => { const d = document.querySelector("dialog.diagram-viewer"); return [d.getAttribute("aria-labelledby"), d.getAttribute("aria-describedby"), d.querySelector(".dialog-title").id, d.querySelector(".diagram-layer > .diagram").getAttribute("aria-labelledby")]; });
+    assert.deepEqual(ids, ["bd-fig-a_dg-viewer-title", "bd-fig-a_dg-viewer-summary", "bd-fig-a_dg-viewer-title", "bd-fig-a_dg-v-title"]);
+    await p.keyboard.press("Escape");
+    // At once, while the closed dialog is still leaving.
+    await p.locator("#fig-a .diagram-expand").click();
+    await p.waitForSelector("dialog.diagram-viewer[open] .diagram[data-layout]");
+    assert.equal(await p.locator("dialog.diagram-viewer").count(), 1, "the leaving viewer is gone");
+    assert.deepEqual(await audit(p, "dialog.diagram-viewer[open]"), { dupes: [], faults: [] });
+    assert.equal(await p.evaluate(() => document.querySelector("dialog.diagram-viewer .diagram-layer > .diagram").getAttribute("aria-labelledby")), "bd-fig-a_dg-v-title", "the drawing keeps its base, not a number");
+    // The old viewer's timer was cleared: the open one stays.
+    await p.waitForTimeout(600);
+    assert.equal(await p.locator("dialog.diagram-viewer[open]").count(), 1);
+    assert.equal(await p.locator("#fig-a[data-viewing]").count(), 1, "the page figure still knows it is being viewed");
+    assert.deepEqual(skill.errors, []);
+    await skill.context.close();
   });
 });
 

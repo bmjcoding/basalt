@@ -660,6 +660,29 @@ function zoomWanted(held, code) {
   return specs.some((item) => { try { return JSON.parse(item.inner).zoom !== false; } catch { return true; } });
 }
 
+/** The character references an attribute's text is read with here: these five and nbsp by name, and any by number, each with its semicolon. */
+const NAMED_REFERENCES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: "\u00a0" };
+/**
+ * An attribute's text as the browser reads it (G146), or null where a reference is one this does not read exactly: a name not in the list, a reference
+ * with no semicolon (HTML's legacy forms), or a number the browser replaces (0, a surrogate, past U+10FFFF, or 0x80 to 0x9F, which it maps). An `&`
+ * that starts no reference is text.
+ */
+function attributeText(value) {
+  let exact = true;
+  const text = value.replace(/&(#[xX][0-9a-fA-F]+|#[0-9]+|[A-Za-z][A-Za-z0-9]*)(;?)/g, (all, ref, semi) => {
+    if (!semi) { exact = false; return all; }
+    if (ref[0] === "#") {
+      const cp = ref[1] === "x" || ref[1] === "X" ? Number.parseInt(ref.slice(2), 16) : Number.parseInt(ref.slice(1), 10);
+      if (!(cp > 0 && cp <= 0x10ffff) || (cp >= 0xd800 && cp <= 0xdfff) || (cp >= 0x80 && cp <= 0x9f)) { exact = false; return all; }
+      return String.fromCodePoint(cp);
+    }
+    if (Object.hasOwn(NAMED_REFERENCES, ref)) return NAMED_REFERENCES[ref];
+    exact = false;
+    return all;
+  });
+  return exact ? text : null;
+}
+
 /**
  * A diagram's words, written into the page (DECISIONS 281, 1.19): each `<figure class="diagram">` that holds only its JSON gets the markup the diagram module's
  * script would write for it, from that same script (parts/diagram.js, run here without a page), so the page reads before any script runs. The figure's own
@@ -730,14 +753,21 @@ function writeDiagrams(markup, held, parts, notes, marks) {
       engine = context.window.Basalt._.diagramMarkup;
       idBase = context.window.Basalt._.diagramIdBase;
     }
-    // Numbered by its place among the figures, whether or not it takes the number, so a figure given an id moves no other figure's ids. An id written
-    // with a character reference is the browser's to read, so that figure keeps its number, as does the second figure with one id, which is said.
+    // Numbered by its place among the figures, whether or not it takes the number, so a figure given an id moves no other figure's ids. The id is read
+    // as the browser reads it (its character references decoded), so the base is the one the page's script would build for that figure; a reference
+    // this cannot read exactly keeps the number, as does the second figure with one id, and each is said.
     const number = `dg${++serial}`;
-    const id = attrs.get("id");
+    const raw = attrs.get("id");
+    const id = raw ? attributeText(raw) : "";
     let base = number;
-    if (id && !id.includes("&") && typeof idBase === "function") {
+    if (id === null) notes.push(`the id "${raw}" holds a character reference compose.mjs does not read, so its figure's ids inside are numbered: write it as plain text`);
+    else if (id && typeof idBase === "function") {
       if (named.has(id)) notes.push(`two figures on this page have the id "${id}", so the second's ids inside are numbered: give each figure its own id`);
-      else { named.add(id); base = idBase(id); }
+      else {
+        if (id.startsWith("bd-")) notes.push(`the id "${id}" begins "bd-", which is kept for the ids Basalt writes inside a figure: give the figure an id that does not`);
+        named.add(id);
+        base = idBase(id);
+      }
     }
     let made;
     try { made = engine(spec, base); } catch (e) { notes.push(`${spec?.title ?? "a diagram"} could not be written (${e.message}); the page's script will say so`); continue; }

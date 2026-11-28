@@ -73,19 +73,24 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
     var order = spec.direction ? [spec.direction] : spec.type === 'flowchart' ? ['down', 'right'] : ['right', 'down'];
     var placeOf = function (d) { for (var i = 0; i < placements.length; i++) if (placements[i].direction === d) return placements[i]; return undefined; };
     var model = buildModel(spec, { rtl: rtl, placement: auto ? placeOf(order[0]) : undefined });
-    if (!attach || !base || !figure.querySelector(':scope > .diagram-drawing')) {
-      // Keep the figure's base when it has ours, so its ids stay. Otherwise the viewer's (built on its page figure's), the figure's own id's (G146: the
-      // same on every load, wherever the figure is on the page, as compose.mjs writes it), or the next free number. An id another figure has is said.
-      if (!base || !figure.querySelector('#' + CSS.escape(base + '-title'))) {
-        var own = viewer ? viewer.base || '' : figure.id ? idBase(figure.id) : '';
-        var taken = own ? document.getElementById(own + '-title') : null;
-        if (taken && !figure.contains(taken)) {
+    // The ids inside are built on a base (G146): the viewer's (built on its page figure's), the figure's own id's (the same on every load wherever the
+    // figure is, as compose.mjs writes it), or the next free number. A base is kept while it is the one the figure would take now, so a figure given a
+    // new id, or none, is written again on its new base. An id another figure in the figure's document or shadow root has is numbered, and said.
+    var root = figure.getRootNode();
+    if (!root.getElementById) root = document;
+    var want = viewer ? viewer.base || '' : figure.id ? idBase(figure.id) : '';
+    var other = function (b) { var el = b && root.getElementById(b + '-title'); return Boolean(el) && !figure.contains(el); };
+    var keep = Boolean(base && figure.querySelector('#' + CSS.escape(base + '-title'))) && (want ? base === want || (/^dg\d+$/.test(base) && other(want)) : !/^bd-/.test(base));
+    if (!attach || !keep || !figure.querySelector(':scope > .diagram-drawing')) {
+      if (!keep) {
+        if (!viewer && /^bd-/.test(figure.id)) console.warn('Basalt diagram: the id "' + figure.id + '" begins "bd-", which is kept for the ids Basalt writes inside a figure: give the figure an id that does not');
+        if (want && other(want)) {
           if (!viewer) console.warn('Basalt diagram: two figures on this page have the id "' + figure.id + '", so this one\'s ids inside are numbered: give each figure its own id');
-          own = '';
+          want = '';
         }
-        if (own) base = own;
+        if (want) base = want;
         else {
-          while (document.getElementById('dg' + (++serial) + '-title')) { /* the next free base */ }
+          while (root.getElementById('dg' + (++serial) + '-title')) { /* the next free base */ }
           base = 'dg' + serial;
         }
       }
@@ -328,6 +333,8 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
       },
       layout: layout,
       key: sendless(spec),
+      // The id its base was built from: a figure given another id since is drawn again, never sent to as it is (G146).
+      id: figure.id,
       // The same figure with only a new packet.send: the message goes on the figure as it is, so a dot in flight is not cut short (1.8, 1.9).
       send: motion && motion.sendValue ? motion.sendValue : null,
     };
@@ -357,7 +364,7 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
   B.diagram = function (figure, spec) {
     var d = figure.__diagram;
     var key = d && d.send ? sendless(spec) : null;
-    if (key !== null && key === d.key) { d.send(spec.packet ? spec.packet.send : undefined); return; }
+    if (key !== null && key === d.key && figure.id === d.id) { d.send(spec.packet ? spec.packet.send : undefined); return; }
     draw(figure, spec);
   };
   _.step(62, 'wireDiagrams', wireDiagrams);
