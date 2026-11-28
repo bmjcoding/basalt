@@ -146,7 +146,8 @@ export function Heading({ level = 2, size = "2xl", className, style, ...props }:
 }
 
 export function InlineCode({ className, ...props }: React.ComponentProps<"code">) {
-  return <code {...props} className={join("basalt-inline-code", className)} />;
+  // Code is left as written by a page translator (m2 I3); a caller's `translate` wins.
+  return <code translate="no" {...props} className={join("basalt-inline-code", className)} />;
 }
 
 export interface VisuallyHiddenProps extends React.ComponentProps<"span"> {

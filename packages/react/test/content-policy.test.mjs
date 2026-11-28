@@ -326,7 +326,7 @@ describe("a diagram's PNG under img-src", () => {
 // The skill's "Download PNG" refused (diagrams-cimip ruling 2), on a composed page served under `img-src 'self'`: the note under the foot's buttons, the
 // button switched off in place, no second try on the page, spoken once; "Download SVG" still saves; the viewer's foot does the same; the note neither
 // prints nor is in a file. Written while tests are paused (DECISIONS 359): not yet run. The ruling is the decider's alone (no draft, no check).
-const REFUSED_WORDS = "This page's security policy blocks the PNG. Download SVG still works.";
+const REFUSED_WORDS = "This page’s security policy blocks the PNG. Download SVG still works.";
 async function skillPolicyPage() {
   const { compose } = await import(pathToFileURL(path.join(pkg, "..", "..", ".agent", "skills", "basalt-html", "compose.mjs")).href);
   const data = JSON.parse(fs.readFileSync(path.join(pkg, "test", "fixtures", "cimip-diagrams.json"), "utf8"));

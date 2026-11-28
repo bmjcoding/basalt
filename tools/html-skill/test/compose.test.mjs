@@ -587,6 +587,8 @@ describe("budgets", () => {
     // primary button's inverse pair, and the one theme write with its live theme-color sync and the root's observer, all of which every page needs (the core
     // writes the theme on every page, and a page with no theme module must still follow an author's data-theme write). The owner's rule: a skill budget is
     // soft, raised with a recorded reason, never a fix dropped to fit. The cap and the same reason are in modules.json (budgets.coreReason).
+    // micro-details m2 (DECISIONS 419) adds tabular `time`, the ligature setting, the clamp's wrap, hanging quotes, theme smoothing and `.date-age-age`, which the
+    // decision puts in core; the combined figure, measured on the merged tree, is in modules.json (budgets.coreReason), under the same soft-budget rule.
     assert.ok(bytes < 43 * 1024, "well under 80 KiB");
   });
 

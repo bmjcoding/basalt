@@ -1791,7 +1791,7 @@ function buildList(P: string, m: Model): VNode[] {
  */
 export function keysSentence(m: Model, drawn = false, viewer = false): string {
   const [one, noun] = stopNoun(m);
-  const arrows = drawn && spatialTable(m) ? `Arrow keys move to the nearest ${noun} in that direction` : `Arrow keys move to the next or the previous ${noun}, in the author's order`;
+  const arrows = drawn && spatialTable(m) ? `Arrow keys move to the nearest ${noun} in that direction` : `Arrow keys move to the next or the previous ${noun}, in the author’s order`;
   // Where a card is a link (1.4), Enter follows it: "a part" for the engine's types and those read as an architecture, a type's own noun for the rest.
   const link = m.nodes.some((n) => n.href) ? ` Enter opens ${m.ext && !m.ext.as ? one : "a part"} that is a link.` : "";
   return `${arrows}; Home and End go to the ends; Enter or Space keeps the highlight on ${one}, and again releases it${viewer ? "" : "; Escape clears the highlight"}.${link}`;

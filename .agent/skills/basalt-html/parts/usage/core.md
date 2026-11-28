@@ -14,5 +14,8 @@
 - **A dot between words:** `In design<span class="dot-sep" data-spaced><span class="visually-hidden">, </span></span>Pilot planned` reads "In design, Pilot planned" and draws the dot; `data-spaced` draws a space each side. Never an `aria-hidden` dot beside a hidden comma.
 - **A brand SVG file** (from `brand/`): `data-brand` on its `<svg>`; compose hides it, drops its `<title>` and the CSS gives it no pointer. The link round it has `aria-label`.
 - **A value and its unit** in separate elements: a space between them in the markup, or `<span class="visually-hidden"> </span>`.
+- **Words:** “ ” `’`, not in code or URLs; one `…`, only on an item that asks for more ("Rename…"). `&nbsp;` joins value and unit, clock and period or zone, month and day, quarter and year, `⌘&nbsp;K`, a two-word name. `translate="no"` on inline `code`, names, identifiers. Locale `en-US` unless the reader's language says otherwise.
+- **Figures:** `time`, `.badge`, `.status` are tabular; `.num` for amounts.
+- **Date and age:** `<time datetime="2026-11-01">Nov&nbsp;1</time><span class="dot-sep" data-spaced><span class="visually-hidden">, </span></span><span class="date-age-age">11&nbsp;days ago</span>`, never the age alone.
 - **Script:** `Basalt.announce(text)` speaks to screen readers. `Basalt.safeHref(h)` returns `h` when it is relative, http, https, mailto or tel, else `null`: leave a refused link out. The modules escape the words a page passes them (entries, groups, items, chart JSON) and draw a refused `href` as a button.
 - **Icons:** `svg.icon` is what the script makes of an `<i data-icon>`; never write it yourself.

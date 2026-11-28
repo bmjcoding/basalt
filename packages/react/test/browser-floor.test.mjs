@@ -51,6 +51,8 @@ const FEATURES = [
   // The value `auto` only (micro-details m8, X9): no component uses it, and it has no ALLOWED or SKILL_ALLOWED row, so a future use fails. `hidden` and
   // `visible` are not matched.
   ["content-visibility: auto", /content-visibility\s*:\s*auto\b/, 85, 18, 125],
+  // Safari alone (micro-details m2 T5): the opening quote of a block quote.
+  ["hanging-punctuation", /hanging-punctuation\s*:/, Infinity, 10, Infinity],
 ];
 
 /** A use above the floor that is known and harmless, with why. A row the CSS no longer needs fails (remove it). */
@@ -58,6 +60,7 @@ const ALLOWED = {
   "scrollbar-gutter": "A browser without it (Safari before 18.2) has overlay scrollbars, which take no room, so there is nothing to reserve.",
   "prefers-reduced-transparency": "The query is the opaque fallback for the sticky header; a browser that does not evaluate it (Safari, Firefox) keeps the smoked header. Text on the bar holds 4.5:1 over any backdrop, so this is comfort and not legibility (foundations, Browser support).",
   "text-wrap: pretty": "A hint for the last line of a paragraph; a browser without it wraps as it always did.",
+  "hanging-punctuation": "Safari hangs an opening quote into the quote's own padding; other browsers set it flush, as before.",
   "field-sizing": "The Composer's field grows with its text (cimip-gaps-2, B3). Where CSS.supports(\"field-sizing\", \"content\") is false (Safari before 26.2, Firefox), composer.tsx measures the field's scrollHeight and sets its height within the same rows, so it grows there too (foundations, Writing to someone).",
   "the round(), mod() and rem() functions": "The plain badge's dot margin (components.css, .basalt-badge[data-variant=\"plain\"] > .basalt-badge-dot). Chrome 123 and 124 drop the declaration, so the dot sits in its seat to the half pixel and not on whole pixels. A fix changes a pixel, so it is the council's: found by this check, reported on the pull request that added it.",
   "@starting-style": "The diagram viewer's opening motion (components.css, dialog.basalt-dialog.basalt-diagram-viewer, a native modal dialog: DECISIONS 310). Firefox before 129 opens it with no animation, and it still opens.",
@@ -69,6 +72,7 @@ const SKILL_ALLOWED = {
   "scrollbar-gutter": ALLOWED["scrollbar-gutter"],
   "prefers-reduced-transparency": ALLOWED["prefers-reduced-transparency"],
   "text-wrap: pretty": ALLOWED["text-wrap: pretty"],
+  "hanging-punctuation": ALLOWED["hanging-punctuation"],
   "@starting-style": "The opening motion of the dialog, the sheet, the popover and the select's list (Firefox before 129). Without it they appear with no animation, and they still open.",
   "transition-behavior (allow-discrete)": "The closing motion of the dialog, the popover and the select's list, which transitions `display` and `overlay` (Firefox before 129). Without it they close at once, with no animation, and they still close.",
 };
@@ -133,6 +137,16 @@ test("the check itself catches a feature above the floor and passes one at it", 
   // The skill's floor is the stricter in Firefox: a feature Firefox 125 has passes it and fails the package's 121.
   assert.deepEqual([...aboveTheFloor(sheet("@starting-style { .a { opacity: 0 } }"), FEATURES, SKILL_FLOOR).keys()], ["@starting-style"], "Firefox 129 is above the skill's 125");
   assert.deepEqual([...aboveTheFloor(sheet(".a { color: light-dark(white, black); }"), FEATURES, SKILL_FLOOR).keys()], []);
+});
+
+test("hanging-punctuation is caught in both floors and allowed in both, with the same reason (micro-details m2 T5)", () => {
+  const sheet = (css) => [{ file: "probe.css", css }];
+  for (const css of [".a{hanging-punctuation:first}", "blockquote { hanging-punctuation: first; }"]) {
+    assert.deepEqual([...aboveTheFloor(sheet(css)).keys()], ["hanging-punctuation"], css);
+    assert.deepEqual([...aboveTheFloor(sheet(css), FEATURES, SKILL_FLOOR).keys()], ["hanging-punctuation"], `${css} (the skill's floor)`);
+  }
+  assert.equal(ALLOWED["hanging-punctuation"], "Safari hangs an opening quote into the quote's own padding; other browsers set it flush, as before.");
+  assert.equal(SKILL_ALLOWED["hanging-punctuation"], ALLOWED["hanging-punctuation"]);
 });
 
 test("content-visibility: auto is caught, with or without a space, and hidden and visible are not (micro-details m8, X9)", () => {

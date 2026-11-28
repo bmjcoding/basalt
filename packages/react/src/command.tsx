@@ -270,7 +270,7 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
                 // file for the life of the page, so after a second failure Reload page comes first and has focus.
                 <div className="basalt-command-error">
                   <p className="basalt-command-empty" role="alert">
-                    {state.failures > 1 ? "Still couldn't load commands. Reloading the page usually fixes this." : "Couldn't load commands."}
+                    {state.failures > 1 ? "Still couldn’t load commands. Reloading the page usually fixes this." : "Couldn’t load commands."}
                   </p>
                   <div className="basalt-command-error-actions">
                     {state.failures > 1 ? <Button size="sm" autoFocus onClick={() => window.location.reload()}>Reload page</Button> : null}
@@ -418,7 +418,7 @@ export function CommandList({ groups, label, placeholder = "Search commands", no
           <div className="basalt-command-body">
             {state.status === "error" ? (
               <div className="basalt-command-error">
-                <p className="basalt-command-empty" role="alert">{state.failures > 1 ? "Still couldn't load commands. Reloading the page usually fixes this." : "Couldn't load commands."}</p>
+                <p className="basalt-command-empty" role="alert">{state.failures > 1 ? "Still couldn’t load commands. Reloading the page usually fixes this." : "Couldn’t load commands."}</p>
                 <div className="basalt-command-error-actions">
                   {state.failures > 1 ? <Button size="sm" onClick={() => window.location.reload()}>Reload page</Button> : null}
                   <Button size="sm" onClick={retry}>Retry</Button>

@@ -175,7 +175,7 @@ describe("A2-21: a running part hydrates when time passed between the server's r
       for (const short of [false, true]) {
         const out = await hydrate("DateAge", { time: 0, timeZone: "UTC", short }, { server: 60000, client: 3 * day, theme });
         assert.deepEqual(out.recovered, [], `short: ${short}`);
-        assert.match(out.text, short ? /3d/ : /3 days ago/);
+        assert.match(out.text, short ? /3d/ : /3\u00a0days ago/);
       }
     });
   }

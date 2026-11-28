@@ -527,7 +527,8 @@ export interface TableCellProps extends React.ComponentProps<"td"> {
 export const TableCell: React.NamedExoticComponent<TableCellProps> = /* @__PURE__ */ React.memo(function TableCell({ numeric, mono, wrap, notObserved, className, children, ...props }: TableCellProps) {
   if (process.env.NODE_ENV !== "production" && numeric && wrap) warnRun("TableCell", "`numeric` and `wrap` were both given: a number is one line, so the cell does not wrap.");
   return (
-    <td {...props} data-numeric={numeric ? "" : undefined} data-mono={mono ? "" : undefined} data-wrap={wrap && !numeric ? "" : undefined} data-not-observed={notObserved ? "" : undefined} className={className}>
+    // A mono value is an identifier, a path or code: a page translator leaves it as written (m2 I3); the not-observed words still translate. A caller's `translate` wins.
+    <td translate={mono && !notObserved ? "no" : undefined} {...props} data-numeric={numeric ? "" : undefined} data-mono={mono ? "" : undefined} data-wrap={wrap && !numeric ? "" : undefined} data-not-observed={notObserved ? "" : undefined} className={className}>
       {notObserved && children === undefined ? "Not observed" : children}
     </td>
   );

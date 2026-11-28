@@ -19,7 +19,7 @@ declare const process: { env: { NODE_ENV?: string } };
 
 const ORDER: Record<RunTimeScale, number> = { seconds: 0, minutes: 1, hours: 2 };
 /** The widest form each scale can show, in tabular figures. */
-const WIDEST: Record<RunTimeScale, string> = { seconds: "00.0 s", minutes: "00 min 00 s", hours: "00 hr 00 min" };
+const WIDEST: Record<RunTimeScale, string> = { seconds: "00.0\u00a0s", minutes: "00\u00a0min 00\u00a0s", hours: "00\u00a0hr 00\u00a0min" };
 
 /** The scale a length needs: seconds under a minute, minutes under an hour, hours after. */
 const scaleFor = (ms: number): RunTimeScale => (ms < 60_000 ? "seconds" : ms < 3_600_000 ? "minutes" : "hours");
@@ -180,7 +180,7 @@ export function RunTimer({ start, end, carried = 0, since, scale: own = "seconds
   const draw = (at: number) => {
     const g = atGrain(at);
     if (format) return format(g, grain);
-    if (grain === "exact" && whole && g < 60_000) return `${Math.floor(g / 1000)} s`;
+    if (grain === "exact" && whole && g < 60_000) return `${Math.floor(g / 1000)}\u00a0s`;
     return formatRunTime(g, grain).text;
   };
   const text = from === undefined ? "\u00a0" : draw(ms);

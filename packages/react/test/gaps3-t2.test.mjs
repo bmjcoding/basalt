@@ -293,11 +293,11 @@ describe("Time words", () => {
   test("formatUntil at 12:41, 0:59, 0:00, 2:15:00 and 3 days, with an exact dateTime", () => {
     const got = [761, 59, 0, 8100, 259200].map((s) => formatUntil(s * 1000, 0));
     assert.deepEqual(got, [
-      { text: "in 12 min", dateTime: "PT12M41S" },
-      { text: "in under 1 min", dateTime: "PT59S" },
+      { text: "in 12\u00a0min", dateTime: "PT12M41S" },
+      { text: "in under 1\u00a0min", dateTime: "PT59S" },
       null,
-      { text: "in 2 hr 15 min", dateTime: "PT2H15M0S" },
-      { text: "in 3 days", dateTime: "P3DT0H0M0S" },
+      { text: "in 2\u00a0hr 15\u00a0min", dateTime: "PT2H15M0S" },
+      { text: "in 3\u00a0days", dateTime: "P3DT0H0M0S" },
     ]);
   });
 
