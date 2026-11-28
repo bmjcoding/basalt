@@ -1615,6 +1615,15 @@
     scrollbar-gutter: stable;
     scroll-padding-top: calc(var(--_cover-top) + var(--basalt-space-4));
   }
+  /* An app shell's document does not bounce past its ends under a mouse or trackpad (m7, S3). The block axis only: the inline axis is the
+     browser's swipe between pages. Any touch screen keeps the browser's own boundary gestures (pull to refresh). Two rules, the second
+     winning where both match, rather than one negated query. An app's own unlayered `overscroll-behavior-y` on its root wins. */
+  @media (pointer: fine) {
+    :root:has(.basalt-app-shell) { overscroll-behavior-y: none; }
+  }
+  @media (any-pointer: coarse) {
+    :root:has(.basalt-app-shell) { overscroll-behavior-y: auto; }
+  }
   /* What sits in the bar sits inside that scroll padding, so focusing it (a Tab into the bar from a scrolled page) would scroll the page
      until it cleared the padding. A scroll margin as negative as the padding is deep keeps what is in the bar where it is; an anchor
      still lands at the padding, because only the things in the bar take the margin. The app sidebar is not in this rule: it scrolls
@@ -8736,6 +8745,10 @@
   .basalt-list-band-range-seat { display: inline-grid; }
   /* The band is the container (the pager sits in an auto column, which a container of its own would collapse). */
   .basalt-list-band-row > .basalt-pagination { grid-column: 2; justify-self: center; container-type: normal; }
+  /* A followed link from the list's foot names one of the band's own arrows as its fragment (m7, U1): the browser scrolls it clear of the bar (the root's scroll padding,
+     space-4 under it) and focuses it. The arrow sits the row's space-2 under the band's top, so a margin of the difference puts the band's top on the bar's lower edge,
+     where the band rests. It paints nothing. */
+  .basalt-list-band-row > .basalt-pagination > :is(.basalt-button, .basalt-page-link) { scroll-margin-top: calc(-1 * var(--basalt-space-2)); }
   .basalt-list-band-size { grid-column: 3; justify-self: end; display: inline-flex; align-items: center; gap: var(--basalt-space-2); }
   .basalt-list-band-size-label { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); white-space: nowrap; }
   /* The narrow form: the count goes into the pager (Previous, the count and Next) and the page size follows it, on one row of the band's own width. It is a flex row that wraps by what it measures: the

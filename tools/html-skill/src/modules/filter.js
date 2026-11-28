@@ -12,7 +12,8 @@
    chosen every row shows. Rows get `hidden`, a `tr[data-empty]` shows when none is left, and each `.filter-result[data-for="id"]` says "Showing 3 of 24
    {data-noun}": shown at once, spoken once (a polite, atomic live region) after the text has held still for 400ms (`data-delay`). A `filterchange` event
    ({ detail: { values } }) bubbles from the filter on every change. Basalt.refreshFilter(id) applies the filters again after the page replaced the rows;
-   Basalt.filterResult(el, text, delay) sets a result line by hand.
+   Basalt.filterResult(el, text, delay) sets a result line by hand. Basalt.setFilter(filter, values) puts a set of values back (a page that keeps its
+   filters in the address, on popstate): it checks exactly the enabled inputs listed, narrows the table and speaks the result line, with no `filterchange`.
    Source: tools/html-skill/src/modules/filter.js (do not edit the copy in the skill folder). */
 (function (B) {
   'use strict';
@@ -217,7 +218,7 @@
         return on.some(function (o) { return o.input.value.toLowerCase() === v; });
       }
     };
-    var update = function (user) {
+    var update = function (user, spoken) {
       var on = chosen();
       var text = on.length === 0 ? 'Any' : on.length + ' of ' + opts.length;
       if (!popup) shell.value.textContent = text;
@@ -228,7 +229,7 @@
       }
       // Not `disabled`: a disabled button drops keyboard focus. At zero it is aria-disabled, activation is suppressed, and focus stays.
       if (on.length === 0) clear.setAttribute('aria-disabled', 'true'); else clear.removeAttribute('aria-disabled');
-      if (target) refresh(target, !user);
+      if (target) refresh(target, !user && !spoken);
       if (user) root.dispatchEvent(new CustomEvent('filterchange', { bubbles: true, detail: { values: on.map(function (o) { return o.input.value; }) } }));
     };
     root.addEventListener('change', function (e) { if (e.target.matches && e.target.matches('input[type="checkbox"]')) update(true); });
@@ -237,8 +238,22 @@
       opts.forEach(function (o) { o.input.checked = false; });
       update(true);
     });
+    root.__bhFilter.set = function (values) {
+      opts.forEach(function (o) { if (!o.input.disabled) o.input.checked = values.indexOf(o.input.value) >= 0; });
+      update(false, true);
+      return chosen().filter(function (o) { return !o.input.disabled; }).map(function (o) { return o.input.value; });
+    };
     update(false);
   }
+
+  /** Basalt.setFilter(filter, values): `filter` is the .filter or its id, `values` an array. Checks exactly the enabled inputs whose value is listed (an
+      unknown or disabled value is ignored), redraws the control, narrows its table and says the result line (shown at once, spoken once after its delay).
+      No `filterchange`: a page putting its own state back hears no echo. Returns the values it set, in the options' order; [] for no wired filter. */
+  B.setFilter = function (filter, values) {
+    var root = typeof filter === 'string' ? document.getElementById(filter) : filter;
+    if (!root || !root.__bhFilter || !root.__bhFilter.set) return [];
+    return root.__bhFilter.set(Array.prototype.map.call(values || [], String));
+  };
 
   _.step(75, 'filter', function () {
     document.querySelectorAll('.filter-result').forEach(function (p) { if (!p.__bhResult) say(p, p.textContent, null, false, p.getAttribute('data-spoken')); });

@@ -1416,7 +1416,9 @@ implementation hasn't been reviewed.
   page. Status: decided by the council decider under DECISIONS 385 (a handoff; cimip-gaps-3 T5); the implementation not yet reviewed.
 - **The drawer** is a region in the flow with two titled halves: no portal, scrim, level reset, sheet motion, shadow, fill, rim or corner radius. Its top is a
   `border-divider` and nothing else (4 to 0; the prototype's brighter line broke the divider rule). Its height is the app's, in 24px rows. Under 720 it is a page that
-  replaces the record, with a Back button, its halves stacked on a divider.
+  replaces the record, with a Back button, its halves stacked on a divider. When it closes with focus inside (its own Back, the browser's Back), focus goes to `finalFocus`,
+  else to the element it came from when it entered, if that is still there; a focus that came from no element (a script's move from no focus, Safari's press on a button)
+  leaves nothing to return to, and `finalFocus` is the app's answer (m7). With focus outside it nothing moves.
 - **Search.** The trigger is a button shaped like a field from 720 (`size-search-trigger` 200 by 44, a 1px `border-field` edge, radius 8, the word `aria-hidden`) and a
   44px icon button under it. The dialog is `size-command-width` (560) wide. Its top is held where it opens (the top it has at a full result's height) and its
   results area is as tall as its rows, up to a full result's height, scrolling inside past it: the field and the count never move, and
@@ -1545,6 +1547,71 @@ voted, four members, 3 of 4 deciding, on the owner's handoff, from his approved 
   before the foot) and heading size (the `display` role), the directory's column gap (`space-6`) and head spacing (`space-3`), the show-all rule's padding (`space-4`),
   the tile's foot gap (`space-1-5`); the prototypes set these on the site's own unit grid, which is not ported.
 
+### The address and history
+
+Basalt adds no router, no query library and no hook that writes the address (m7, DECISIONS 405 and 409). Its seam is controlled values and
+real links. **No Basalt component calls `history.back()`, pushes, replaces or listens for `popstate`**: `Dialog`, `Sheet`, `Drawer` and
+`Stepper` stay controlled, and an app makes one routed by deriving its `open` or `value` from the address.
+
+| What changes | In the address | Written by |
+|---|---|---|
+| A destination: a page, a linked view (`Nav`, `LinkTabs`, a link) | path or query | push, by a real link |
+| A record opened over a list | path or query | push, by a real link |
+| The page of a list (`Pagination`, `ListBand`) | yes; page 1 writes nothing | push, by a real link (`hrefForPage`) |
+| Filters, committed search text, sort, page size | yes; a default writes nothing | **replace**, and the page returns to 1 in the same write (page size: the page holding the first row, in the same write) |
+| A panel of one view (`Tabs`), a step of one task (`Stepper`) | only as a mirror, so a reload keeps it | replace; never push |
+| Menus, popovers, tooltips, the command menu, alert dialogs, task and form dialogs, toasts, expanded rows, hover, focus, half-typed text, a pane's scroll, a table's selected rows | never | |
+| Secrets, tokens, a form's answers, anything personal | never | |
+
+- **A linked view is `LinkTabs`; a panel is `Tabs`.** If each choice must be copied, opened in a new tab and stepped by Back, it is a link.
+  `Tabs` keeps its tablist for panels of one view, and gets no `hrefForTab` (in development it warns on a `value` that matches no tab).
+- **Filters replace.** A reader refining a list is not travelling; five chips must not be five presses of Back.
+- **Page numbers push.** Paging is the one list act a reader treats as going somewhere.
+
+**Who answers Back.**
+
+| Surface | Browser Back |
+|---|---|
+| A routed record: a detail in a `Sheet` or `Dialog`, or the page a `Drawer` becomes under 720 | closes it; Forward opens it again |
+| A routed flow, each step its own address | the step before |
+| Task and form dialogs, `AlertDialog`, the command menu, the search dialog | leaves the page, and the dialog with it |
+| An in-flow `Drawer`, a `Tabs` panel, a step of one task, a pushed detail in the command menu | leaves the page; their own Back controls go back inside it |
+| Menu, popover, combobox list, tooltip, toast | never theirs. A toast is never closed by trapping Back; one whose home is the page goes when the page does |
+
+1. **Open from a real link** to the record's address. Opening pushes exactly one entry.
+2. **The entry says where it came from.** The app marks the pushed entry in its own history state (`history.state`, or its router's
+   location state): that it was opened from the page beneath, and which record it is. Every later replace on that entry carries the mark
+   forward. Nothing about this lives in a variable: a flag set at open is wrong after Forward and after a reload.
+3. **Open is derived from the address**, in render, and a traversal is rendered once. A close control changes only the address.
+4. **Close, Esc and the scrim** read the current entry's mark. Marked: go back one entry (the sheet closes when the address changes).
+   Not marked (a pasted link, a new tab): replace the entry with the parent's address. Never `history.back()` on an unmarked entry: that
+   leaves the site.
+5. **Back from a pasted link is the reader's real history.** The app does not invent a parent entry.
+6. **Focus after closing** goes to the link that opened the record if it is still there, else to that record's row in the list, else to the
+   list's heading; never to nothing. `Dialog` and `Sheet` take it as `finalFocus`, and so does `Drawer`.
+7. **Only the outermost routed surface has an entry.** A task dialog inside a routed sheet adds none: Esc closes the inner one, Back closes both.
+8. **Text entered in a routed surface does not hold Back.** No "discard changes?" step and no traversal guard. An app that must not lose it
+   saves a draft.
+9. **A routed flow:** Next pushes; the flow's own Back goes back one entry when the step's entry is marked, else replaces with the step
+   before; an address for a step whose earlier answers are missing replaces to the first unfinished step; Done replaces the last step with
+   the result. After Done, every step of that flow replaces to the result, so Back cannot reach a live Done again. The app owns completion
+   and drafts; a replace alone does not stop a second send.
+10. **A step of one task** (`Stepper` inside a page or dialog) writes no entry. It may be mirrored by replace.
+
+**Deep links.** Not everything held in state belongs in the address: working state in a shared link turns Back into a tour of it. The test
+is this: **paste the address into a new window, with nothing in memory or storage, and the same view renders**: the same page, filters, sort,
+list page and open record. A reload is the same test. Reading an address:
+
+- Read the real path and query; never assume the page the app last showed.
+- A value the app owns is checked against what exists: an unknown filter value is dropped; a page that is not a whole number from 1 up
+  (`2x`, `-4`, `abc`) is 1, and one past the end is the last; an unknown panel or step is the first. A broken value never blanks a page.
+- Each correction is written back by **replace**, so the address never keeps a value the view does not show and Back cannot loop through it.
+- A write keeps what it does not own: other query keys, the fragment, and the entry's history state.
+- Defaults write nothing. A set repeats its name (`?status=a&status=b`) in the options' order; never a comma list.
+- Anchors are deep links: a shipped `id` on a section or heading stays.
+
+React `Tabs` listens for no fragment (generated panel ids, several groups on a page). Copying a link is the app's `CopyButton`.
+
 ## Site structure
 
 The site header, its narrow menu, the app shell and the phone tab bar (decision 96; the council voted 8.5, 8.5 and 8, a three-member
@@ -1648,6 +1715,10 @@ Three states, System, Light and Dark, where System is nothing stored (DECISIONS 
 One grid, and the document scrolls: the page is never moved into an inner pane of its own. Pages set `scrollbar-gutter: stable` (the
 shell sets it on the document it is in). A page's own pane beside it (`PaneLayout`, below) is the sidebar's pattern, sticky and scrolling
 only what overflows it, and the document still scrolls the page.
+
+Under a mouse or trackpad the shell's document does not bounce past its ends on the block axis (`overscroll-behavior-y: none` on the root, for
+a fine primary pointer and no touch screen; m7, S3). The inline axis is never touched: it is the browser's swipe between pages. A site page and
+a report keep the platform's bounce. An app that wants it back sets `overscroll-behavior-y` on its own root.
 
 - **1024 and up:** a 256px sidebar on `surface-page`, edged by a 1px `border-divider`, sticky at `100dvh`, its list scrolling inside
   only when `Nav` overflows. Its brand band is the header's 56px, level with the header, and draws no line of its own. `Nav` with its
@@ -3125,6 +3196,9 @@ under the list moves whenever the list's height does, drops rows away from the p
   where the band rests after a page change, and its Back to top watches and moves that pane. In a pane the band rests at the pane's top edge (`--basalt-sticky-offset` is 0 there;
   an app with a sticky header of its own inside the pane sets the property in its own CSS). The return waits for the page or size the press asked for, however long the app takes to
   load it, and forgets the press when a filter changes or the app moves somewhere else.
+- **Pages as links** (m7): `hrefForPage` makes the band's and the foot's pages real links (`Pagination`'s), followed by the browser; `onNavigate` sends a plain press to the app's
+  router, and the band then returns to rest and moves focus as it does for a press in the button form. `onPageSizeChange` is also given the page that holds the reader's first
+  row at the new size, so an app that writes the address does both in one replace. The band's geometry is the same in both forms.
 - **The count** is "1–25 of 214", `text-sm`, secondary, tabular, in a seat as wide as its widest form for the unfiltered total ("888–888 of 888"), so a shorter count moves nothing.
   A list read from a server gives the widest count it will show (`seatTotal`) so the seat is drawn before the first answer. A list whose `FilterResult` already says the total
   drops it from the count (`rangeTotal={false}`: "1–25", in the band and the foot). It is blank for no matches. The band keeps its rows then: it is the list's fixed head, and nothing above the rows moves.
@@ -3167,6 +3241,9 @@ short list, and kept once drawn it would make the same results a different heigh
 and its count are hidden (`visibility: hidden`, no landmark, no name), since the band above already says the range. Use it for a list whose rows arrive after the
 first frame and that expects more than one page, so those rows move nothing under the list. It holds the band's pager seat too (the held seat, above), so they move nothing over the list either. A press changes the page, returns the window at once to where the band rests (the band
 under the bar and the first row under it), moves focus to the band's own Previous or Next, and the band's status line says the page once; Back to top goes, since the window moved up.
+As followed links (`hrefForPage` with no `onNavigate`, and the band's `id`), the foot's links carry the band arrow's id as their fragment (`id-pager-previous`, `id-pager-next`;
+an href with a fragment of its own keeps it), so the next document opens at the band with that arrow focused, by the browser alone: the arrow's `scroll-margin-top` puts the
+band's top on the bar's lower edge. Without an `id` development warns.
 
 **The ring fix.** The band's narrow form and the foot set an arrow, the count and the next arrow `space-1` apart, so an arrow's +2 focus ring (2px wide, ending 4px out) touched the count's text. The
 count keeps `space-1` more on each side: 8px between an arrow and the count, the ring clearing it by 4px.
@@ -3188,7 +3265,9 @@ number the list can reach (its unfiltered count at the smallest size; `maxPages`
 box reserves `min(7, maxPages)` slots in one cell, so with fewer pages the numbers sit centered between the arrows and nothing moves. Previous and Next are always there and stop at
 an end without leaving focus (`aria-disabled`, as the period stepper's arrows do). At one page or none a bare pager renders nothing, as before; in the band (`keepRoom`) it is `visibility: hidden` and keeps its room with `role="none"`, never an empty `nav` landmark (the stepper's `whole`);
 the count stays. It never wraps. The gap glyph is the core `more` (a component never draws Phosphor's version of a core glyph; engineering). A press on a number moves focus to the
-button that holds the current page; Previous and Next keep focus. A bare `Pagination` is its own container and goes to Previous, "Page 3 of 22" and Next under 640 of its width. It
+button that holds the current page; Previous and Next keep focus. A bare `Pagination` is its own container and goes to Previous, "Page 3 of 22" and Next under 640 of its width. With `hrefForPage` the pages are
+links, followed by the browser; `onNavigate` takes a plain press of one (the primary button, no modifier key) for an app's router, with an href that passed `safeHref`, while a
+modified press, a middle click and the link's own menu stay the browser's (m7). A pager with an `id` names its arrows `id-previous` and `id-next`, in both forms, at an end or not. It
 keeps the shipped look: ghost `sm` buttons, the numeral at 600 against 400 on the raised plate with its hairline, the hover wash of DECISIONS 145 item 3; the figures are tabular, and
 a link-mode page takes the same 10px of inline padding as a button's. The shipped pager moved Next by 51.5px across 22 pages and 57.3px across 49 at 1440, and wrapped in a 292px card at 390.
 
@@ -3864,6 +3943,12 @@ The skill draws the rest of T3: `data-wrap` cells and the call's air (`still-tab
 read whole: `data-lines` in core (the clamp, and its lift inside a control without hover) and the new `peek` module in the skill's index (the still table's plate moved
 into it; `still-table` needs it; `data-peek="off"` cuts and opens nothing).
 
+m7 (the address and history): the skill's tabs follow a fragment that names a panel or something inside one (on load, scrolled to at once only on a new navigation; at a
+same-page link's click, before the browser goes to the target, which it then reaches by its own means; and on Back and Forward, without scrolling), and mirror the chosen
+panel into the fragment by replace with `data-tabs-hash`. A reader's change of tab dispatches `tabchange` (`detail: { value, tab, panel }`); `Basalt.selectTab` selects with
+no event, focus move, scroll or write; `Basalt.setFilter` puts a filter's values back with no `filterchange`. The skill draws no router, and no module writes a query: a page
+that keeps its filters or panels in the address has one writer, its own script, by replace.
+
 ## Logs, status and forms
 
 Scrollback blocks, an event log, a log in fixed slots, the status bar, the source stamp, description-list forms, inline-label rows, route focus, single-key
@@ -3929,11 +4014,23 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
 - **The Send hint** (`ActionShortcut`; V11): Send stays primary with `aria-keyshortcuts="Meta+Enter"`; the two chips stand beside it as a hint, hidden on touch until a hardware key.
 - **Single-key shortcuts** (`useShortcuts`, `useSingleKeys`, `SingleKeysSwitch`, `ShortcutList`; V12): an app-level hook that ignores keys with a modifier, keys typed in a field, anything inside
   `[data-own-keys]` and a key pressed inside a dialog, sheet, popover, the command menu, a menu or a listbox (an app's own `role="dialog"` too; a toast is not one; back on the page the keys run), plus a "Single-key shortcuts" Switch in the help dialog (default on, stored lazily as `basalt-keys`; off takes every key, `?` included), or in a menu its row, `SingleKeysMenuItem` (a `MenuCheckboxItem`, "Single-key shortcuts", checked while on, one line, on the same store; never a `Switch` in a menu; cimip-gaps-3 t6). The help dialog also has a visible opener that is not a single key.
-- **Route focus** (`useRouteFocus`; X10): after a client-side page change, scroll to the top (unless `scroll={false}`: a stream that opens at its end, a page reached by Back), set
-  `document.title` and focus the page's title with no ring (`AppHeader`'s `h1` takes `tabIndex={-1}` and `titleRef`); a change that came from a control's own value leaves focus on the control
+- **Route focus** (`useRouteFocus`; X10, m7): the key is the page, not the address. A change of query on one page (a filter, a page number, a sort, a mirrored tab) and a
+  record opened over the page in a sheet or a dialog keep the key, so nothing moves for them and focus stays on the control the reader used (WCAG 3.2.2). On a change of key
+  the hook calls `pageChanged()` and sets `document.title` however the page was reached (`navigation`: `"push"`, the default, `"replace"` or `"pop"`; a replace with a new key is
+  a new page, as a push is). A push or a replace scrolls to the element the address's fragment names when it is there (a malformed escape names none), else to the top, at once
+  in every mode (never the page's `scroll-behavior: smooth`), unless `scroll={false}` (a stream that opens at its end). **A pop** (Back or Forward) never scrolls, whatever
+  `scroll` says, and takes focus only when nothing has it once any popup has gone: focus the app gave back (the row the reader came from) stays. Basalt never sets
+  `history.scrollRestoration`: the browser restores a document on Back, Forward and reload, and a router that takes that over owns all of it. No scroll after a page change is
+  animated, in any mode. A push or a replace focuses the page's title with no ring (`AppHeader`'s `h1` takes `tabIndex={-1}` and `titleRef`); a change that came from a control's own value leaves focus on the control
   (WCAG 3.2.2). Route focus wins: a popup that is closing (the command menu a page was chosen in) is waited for, and the focus it hands back does not take the reader off the new page
   (held two frames, only when a popup was open as the page changed, so a page's own focus stands). A title that arrives with the page's data is landed on when it arrives, unless the reader
   has pressed a key or the pointer, or the page has changed again (no deadline), and `document.title` follows the title the page gives once it has it.
+  `useScrollRestore` puts back what the browser cannot (a pane the app mounts again on Back, a window whose rows arrive after the browser's own restore): a position belongs to
+  a history entry (the router's own entry key, never the page key or the address) and a scroller (`id`), and lives in memory only, 200 at most. Every entry it has shown has
+  a position, zero included, written once the scroller is there and kept current by the scroller's scroll; a replace carries the position to the new entry. Only a pop
+  restores, at once, on the first commit where `ready` is true and the scroller is there; `null` or an empty ref is a scroller that is not there yet (a `PaneLayout` pane on
+  its first commit, or under 920 where it follows the page), which the hook waits for and never swaps for the window. A restore still waiting ends when the entry changes
+  again, on unmount, when `enabled` turns false, and at the reader's wheel, touch, press or key.
   `useFocusNet` (opt-in, once in the shell) lands focus on the same place when the focused control is removed and focus falls to nothing with no dialog open. The announcement is `StatusLine`.
 - **Time parts** (`formatStamp`, `formatClock`, `formatDay`, `formatCountdown`, `formatAge`, `Clock`, `Countdown`, `DateAge`; V13, V14; DECISIONS 207): a clock a person reads (`Clock`, `formatClock`, a `Stat`'s time, a day and a clock) follows the locale, so
   12-hour in `en-US` ("6:42 PM", "Nov 7, 8:02 AM"), with a numeric hour; a stamp to the second (`formatStamp`, the session log, `SourceStamp`, `CommandBlock`'s time) is a log's and stays 24-hour ("18:42:07"). Every

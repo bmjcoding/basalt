@@ -284,6 +284,11 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   never met by shrinking type, clipping or fixing a height. `Columns` are twelve tracks (`2`, `3`, `4`, `7-5`, `5-7`, `8-4`, `4-8`, or an item's own span):
   from 720 to 1023 `4` is two rows of two and everything else stacks, an item's own span included (it holds from 1024 only); under 720 one column. Layout changes at 720 and 1024 only (a component answers its own container at 340, 480 and 640:
   `size-breakpoint-container-sm`, `size-breakpoint-container` and `size-breakpoint-container-lg`); 900 and 1280 are not adopted.
+- **The address and history:** a destination, a record, a list's page, filters and sort live in
+  the address; panels and steps of one task are mirrored by replace at most; popups, toasts and anything private never. Destinations,
+  records, a list's pages and the next step of a routed flow push; filters, search, sort, page size, mirrors, corrections and a flow's Done
+  replace. No component writes history: Back belongs to the browser and the app's router, closes a routed record, and is never trapped for a
+  toast or a task dialog. Basalt never sets `history.scrollRestoration`.
 
 ## Engineering rules
 

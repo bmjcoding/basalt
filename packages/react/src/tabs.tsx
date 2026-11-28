@@ -36,7 +36,12 @@ export interface TabsProps<Value extends ChoiceValue = any> extends PartProps<"d
   onValueChange?: (value: Value | null, details: ChangeDetails) => void;
 }
 
-/** Tabs switch between panels of one view. The new panel slides in from the direction you moved. */
+let warnedValue = false;
+
+/**
+ * Tabs switch between panels of one view. The new panel slides in from the direction you moved. A panel is not a destination: if each choice must be copied,
+ * opened in a new tab and stepped by Back, use `LinkTabs`. An app may mirror the chosen panel into the address, by replace only.
+ */
 export function Tabs<Value extends ChoiceValue = any>({ className, onValueChange, value, defaultValue, size, ...props }: TabsProps<Value>) {
   const order = React.useRef<string[]>([]);
   // Order and direction are looked up by the value's text, a private key: what the app sees is never changed.
@@ -56,6 +61,14 @@ export function Tabs<Value extends ChoiceValue = any>({ className, onValueChange
     if (from >= 0 && to >= 0 && from !== to) setDirection(to > from ? "forward" : "back");
     previous.current = nextValue;
   }, [current]);
+  // A controlled value that matches no tab (one read from the address and not checked) leaves no tab chosen: development says so, once, after a commit in which
+  // the tabs have registered (theirs run first), never for `null`.
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === "production" || warnedValue || value == null || !order.current.length) return;
+    if (order.current.includes(String(value))) return;
+    warnedValue = true;
+    console.warn("Basalt Tabs: `value` matches no tab; check a value read from the address against the tabs before passing it");
+  });
   return (
     <TabsMotion.Provider value={motion}>
       <TabsChosen.Provider value={current == null ? null : String(current)}>
