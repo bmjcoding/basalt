@@ -49,6 +49,20 @@ const TABS = (attrs = "") => `<main class="page">
   ${filler(40)}
 </main>`;
 
+/**
+ * A cold load: a new context whose first navigation is the fragment's URL itself (never a fragment change after "/"), so the module wires on a document the
+ * browser opened at that fragment. `init` runs before the page's scripts.
+ */
+async function cold(html, at, { init, width = 1440 } = {}) {
+  const context = await browser.newContext({ viewport: { width, height: 900 } });
+  const p = await context.newPage();
+  if (init) await p.addInitScript(init);
+  await context.route("https://basalt.test/**", (route) => route.fulfill({ contentType: "text/html", body: html }));
+  await p.goto(`https://basalt.test${at}`);
+  await p.evaluate(() => document.fonts.ready);
+  return { page: p, context };
+}
+
 const chosen = (p, group) => p.evaluate((g) => document.querySelector(`#${g} [role="tab"][aria-selected="true"]`).id, group);
 const scrollY = (p) => p.evaluate(() => window.scrollY);
 const inView = (p, id) => p.evaluate((i) => { const r = document.getElementById(i).getBoundingClientRect(); return r.top >= 0 && r.bottom <= window.innerHeight; }, id);
@@ -95,19 +109,18 @@ describe("tabs: tabchange and Basalt.selectTab", () => {
 
 describe("tabs: the fragment", () => {
   test("a cold load on #panel-id selects it in its own group only and brings it into view", async () => {
-    const { page: p, context } = await openHtml(browser, page(TABS()));
-    await p.goto("https://basalt.test/#p-week");
+    const { page: p, context } = await cold(page(TABS()), "/#p-week");
     assert.equal(await chosen(p, "gauge"), "t-week");
     assert.equal(await chosen(p, "seeds"), "t-beans", "the other group is as it was");
-    assert.ok(await inView(p, "p-week") || (await p.evaluate(() => document.getElementById("p-week").getBoundingClientRect().top)) < 900);
+    const top = await p.evaluate(() => document.getElementById("p-week").getBoundingClientRect().top);
+    assert.ok(top >= 0 && top < 900, `the panel's top is on screen (${top})`);
     await context.close();
   });
 
   test("a cold load on an id inside a hidden panel selects that panel and the target is in view; under scroll-behavior: smooth it is there in the same frame", async () => {
     for (const smooth of [false, true]) {
       const html = page(TABS(), smooth ? `<style>html { scroll-behavior: smooth; }</style>` : "");
-      const { page: p, context } = await openHtml(browser, html);
-      await p.goto("https://basalt.test/#surge-notes");
+      const { page: p, context } = await cold(html, "/#surge-notes");
       assert.equal(await chosen(p, "gauge"), "t-year");
       // No frame is waited for: the script's scroll is instant.
       assert.ok(await inView(p, "surge-notes"), `the heading is in view${smooth ? " under smooth scrolling" : ""}`);
@@ -116,9 +129,8 @@ describe("tabs: the fragment", () => {
   });
 
   test("a reload does not scroll: the browser's restored place stands", async () => {
-    const { page: p, context } = await openHtml(browser, page(TABS()));
-    await p.addInitScript(COUNT_SCROLLS);
-    await p.goto("https://basalt.test/#surge-notes");
+    const { page: p, context } = await cold(page(TABS()), "/#surge-notes", { init: COUNT_SCROLLS });
+    // The reader's own place before the reload (the init script counts again from zero in the reloaded document).
     await p.evaluate(() => window.scrollTo(0, 300));
     await p.reload();
     assert.equal(await chosen(p, "gauge"), "t-year", "the fragment is still followed");
@@ -131,6 +143,8 @@ describe("tabs: the fragment", () => {
       const { page: p, context } = await openHtml(browser, page(TABS()));
       await p.evaluate(COUNT_SCROLLS);
       await p.evaluate(() => window.scrollTo(0, 120));
+      // The reader's position is set; only what follows is counted.
+      await p.evaluate(() => { window.__scripted = 0; });
       const start = await scrollY(p);
       if (how === "click") await p.click("#to-heading");
       else { await p.focus("#to-heading"); await p.keyboard.press("Enter"); }

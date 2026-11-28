@@ -260,8 +260,11 @@ describe("useScrollRestore", () => {
     const { page, context } = await served(RESTORE({ ready: "!loading" }), { at: "/a" });
     await scrollPane(page, 300);
     await page.evaluate(() => window.push("/b"));
+    // B stands somewhere else, so a restore that ran and one that did not end in different places.
+    await scrollPane(page, 90);
     await page.evaluate(() => window.setLoading(true));
     await back(page);
+    assert.equal(await paneTop(page), 90, "held while loading");
     await page.keyboard.press("Shift");
     await page.evaluate(() => window.setLoading(false));
     await frames(page);
@@ -283,7 +286,48 @@ describe("useScrollRestore", () => {
     await context.close();
   });
 
-  test("unmount ends it; a replace carries the position to the new key", async () => {
+  test("unmount ends a held restore: its listeners go, and the pane is not moved when the content arrives", async () => {
+    const body = `
+let counter = 0;
+const keyOf = () => (history.state && history.state.key) || "boot";
+window.__wheel = 0;
+const add = Document.prototype.addEventListener, remove = Document.prototype.removeEventListener;
+Document.prototype.addEventListener = function (type, ...rest) { if (type === "wheel") window.__wheel += 1; return add.call(this, type, ...rest); };
+Document.prototype.removeEventListener = function (type, ...rest) { if (type === "wheel") window.__wheel -= 1; return remove.call(this, type, ...rest); };
+function Keeper({ at, pane, loading }) {
+  B.useScrollRestore({ entry: at.entry, navigation: at.navigation, scroller: pane, id: "details", ready: !loading });
+  return null;
+}
+function App() {
+  const [at, setAt] = React.useState({ entry: keyOf(), navigation: "push" });
+  const [loading, setLoading] = React.useState(false);
+  const [kept, setKept] = React.useState(true);
+  window.setLoading = (v) => flushSync(() => setLoading(v));
+  window.unmount = () => flushSync(() => setKept(false));
+  window.push = (p) => { const key = "k" + ++counter; history.pushState({ key }, "", p); flushSync(() => setAt({ entry: key, navigation: "push" })); };
+  React.useEffect(() => { const pop = () => flushSync(() => setAt({ entry: keyOf(), navigation: "pop" })); window.addEventListener("popstate", pop); return () => window.removeEventListener("popstate", pop); }, []);
+  const pane = React.useRef(null);
+  return (<div><div id="pane" ref={pane} style={{ height: 200, overflow: "auto" }}><div style={{ height: 5000 }}>Lots</div></div>{kept ? <Keeper at={at} pane={pane} loading={loading} /> : null}</div>);
+}
+history.replaceState({ key: "boot" }, "");
+createRoot(document.getElementById("root")).render(<App />);
+`;
+    const { page, context } = await served(body, { at: "/a" });
+    await scrollPane(page, 300);
+    await page.evaluate(() => window.push("/b"));
+    await scrollPane(page, 90);
+    await page.evaluate(() => window.setLoading(true));
+    await back(page);
+    assert.equal(await page.evaluate(() => window.__wheel), 1, "a held restore listens for the reader");
+    await page.evaluate(() => window.unmount());
+    assert.equal(await page.evaluate(() => window.__wheel), 0, "unmount took its listeners away");
+    await page.evaluate(() => window.setLoading(false));
+    await frames(page);
+    assert.equal(await paneTop(page), 90, "nothing restored after unmount");
+    await context.close();
+  });
+
+  test("a replace carries the position to the new key", async () => {
     const { page, context } = await served(RESTORE(), { at: "/a" });
     await scrollPane(page, 240);
     await page.evaluate(() => window.replace("/a?kind=bean"));
@@ -303,8 +347,18 @@ describe("useScrollRestore", () => {
     await context.close();
     const source = fs.readFileSync(path.join(pkg, "dist", "scroll-restore.js"), "utf8");
     assert.doesNotMatch(source, /sessionStorage|localStorage|scrollRestoration\s*=/);
-    const mod = await import(pathToFileURL(path.join(pkg, "dist", "scroll-restore.js")));
-    assert.equal(typeof mod.useScrollRestore, "function");
+    // A fresh import with the collection constructors counted: loading the module makes no Set, Map or WeakMap and adds no listener.
+    const made = { count: 0 };
+    const originals = { Set: globalThis.Set, Map: globalThis.Map, WeakMap: globalThis.WeakMap };
+    for (const [name, Original] of Object.entries(originals)) globalThis[name] = class extends Original { constructor(...args) { super(...args); made.count += 1; } };
+    try {
+      const mod = await import(`${pathToFileURL(path.join(pkg, "dist", "scroll-restore.js")).href}?fresh=${Date.now()}`);
+      assert.equal(typeof mod.useScrollRestore, "function");
+    } finally {
+      Object.assign(globalThis, originals);
+    }
+    assert.equal(made.count, 0, "importing the module made a collection");
+    assert.doesNotMatch(source.replace(/function[\s\S]*$/, ""), /new (Set|Map|WeakMap)\(|addEventListener/, "nothing is made before the module's first function");
   });
 
   // A PaneLayout's pane: `usePaneScroller()` is null on the first commit of every mount and while the pane follows the page under 920.
@@ -345,9 +399,16 @@ window.__ignore = ${width};
     await page.evaluate(() => window.scrollTo(0, 500));
     await page.evaluate(() => window.push("/b"));
     await page.evaluate(() => window.scrollTo(0, 0));
-    await page.evaluate(() => { window.__ys = []; window.addEventListener("scroll", () => window.__ys.push(window.scrollY)); });
+    // From here, every scroll a script asks of the window is counted: the pane's hook (its scroller null under 920) must ask none.
+    await page.evaluate(() => {
+      window.__scripted = 0;
+      for (const name of ["scrollTo", "scroll", "scrollBy"]) { const original = window[name]; window[name] = function (...args) { window.__scripted += 1; return original.apply(this, args); }; }
+      const into = Element.prototype.scrollIntoView;
+      Element.prototype.scrollIntoView = function (...args) { window.__scripted += 1; return into.apply(this, args); };
+    });
     await back(page);
-    assert.deepEqual(await page.evaluate(() => window.__ys.filter((y) => y === 500)), [], "the pane's id never restored the window");
+    assert.equal(await page.evaluate(() => window.__scripted), 0, "the window was never scrolled by a script");
+    assert.equal(await page.evaluate(() => window.scrollY), 0, "and nothing was recorded under the pane's id for the window");
     await context.close();
     const empty = await served(RESTORE({ scroller: "React.useRef(null)" }), { at: "/a" });
     await empty.page.evaluate(() => window.scrollTo(0, 300));
@@ -656,6 +717,65 @@ describe("Drawer: finalFocus", () => {
     await page.focus("#elsewhere");
     await page.evaluate(() => window.setOpen(false));
     await page.evaluate(() => window.setOpen(true));
+    await page.evaluate(() => { document.activeElement.blur(); document.getElementById("in-drawer").focus(); });
+    await page.evaluate(() => window.setOpen(false));
+    assert.notEqual(await active(page), "trigger-a");
+    await context.close();
+  });
+});
+
+describe("Drawer: focus tracked from the commit", () => {
+  // An open drawer that its parent focuses into from a layout effect, on the very first commit: the drawer must have heard that entry.
+  const FIRST = `
+function App() {
+  const [open, setOpen] = React.useState(true);
+  window.setOpen = (v) => flushSync(() => setOpen(v));
+  const final = React.useRef(null);
+  React.useLayoutEffect(() => { document.getElementById("in-drawer").focus(); }, []);
+  return (
+    <>
+      <button id="final" ref={final}>Readings heading</button>
+      <B.Drawer id="gauge" label="The gauge and its readings" open={open} finalFocus={final}>
+        <B.DrawerSection title="Gauge"><button id="in-drawer">Recalibrate</button></B.DrawerSection>
+      </B.Drawer>
+    </>
+  );
+}
+createRoot(document.getElementById("root")).render(<App />);
+`;
+  test("an initially open drawer focused by its parent's layout effect returns focus to finalFocus on closing", async () => {
+    const { page, context } = await served(FIRST);
+    assert.equal(await active(page), "in-drawer");
+    await page.evaluate(() => window.setOpen(false));
+    assert.equal(await active(page), "final");
+    await context.close();
+  });
+
+  test("the window leaving and coming back keeps the opener; a later entry from no focused element clears it", async () => {
+    const { page, context } = await served(DRAWER());
+    await page.focus("#trigger-a");
+    await page.keyboard.press("Enter");
+    await frames(page);
+    await page.focus("#in-drawer");
+    // Another app takes the window: focusout with no relatedTarget while the document has lost focus and still names the same element; then it comes back.
+    await page.evaluate(() => {
+      const el = document.getElementById("in-drawer");
+      const real = Document.prototype.hasFocus;
+      Document.prototype.hasFocus = () => false;
+      el.dispatchEvent(new FocusEvent("focusout", { bubbles: true, relatedTarget: null }));
+      el.dispatchEvent(new FocusEvent("blur", { relatedTarget: null }));
+      Document.prototype.hasFocus = real;
+      el.dispatchEvent(new FocusEvent("focusin", { bubbles: true, relatedTarget: null }));
+      el.dispatchEvent(new FocusEvent("focus", { relatedTarget: null }));
+    });
+    assert.equal(await active(page), "in-drawer", "the document still names the same element");
+    await page.evaluate(() => window.setOpen(false));
+    assert.equal(await active(page), "trigger-a", "the opener was kept across the window's leave and return");
+    // Open again from A, then focus leaves to nothing and re-enters from no element: that entry clears the record.
+    await page.focus("#trigger-a");
+    await page.keyboard.press("Enter");
+    await frames(page);
+    await page.focus("#in-drawer");
     await page.evaluate(() => { document.activeElement.blur(); document.getElementById("in-drawer").focus(); });
     await page.evaluate(() => window.setOpen(false));
     assert.notEqual(await active(page), "trigger-a");

@@ -7,7 +7,6 @@ import { useScrollFade } from "./fade-port";
 import type { FocusPlace } from "./route-focus";
 import { useScrollStop } from "./scroll-stop";
 import { join } from "./utils";
-import { useJoinedRef } from "./wait";
 
 export interface DrawerProps extends Omit<React.ComponentProps<"section">, "title"> {
   /** Required: names the drawer's region ("The session and the sources"). */
@@ -37,34 +36,29 @@ export interface DrawerProps extends Omit<React.ComponentProps<"section">, "titl
  * inside, focus goes to `finalFocus`, else to where it came from when it entered (m7, U2); a focus that arrived from nowhere (a script's move
  * from no focus, Safari's press on a button) leaves nothing to return to, and `finalFocus` is the app's answer.
  */
-export function Drawer({ label, open = true, rows = 13, columns, onBack, backLabel = "Back", finalFocus, className, style, children, ref, ...props }: DrawerProps) {
-  const section = React.useRef<HTMLElement | null>(null);
-  const joined = useJoinedRef(ref, section);
+export function Drawer({ label, open = true, rows = 13, columns, onBack, backLabel = "Back", finalFocus, className, style, children, onFocus, onBlur, ...props }: DrawerProps) {
   // Where focus came from when it last entered from outside (nothing, when it came from no element), and whether it is inside now: both read from the
-  // focus events, never from `document.activeElement` after `hidden` has been applied.
+  // section's own focus events, which React hears from the commit on (a parent's layout effect that focuses into an open drawer included), never from
+  // `document.activeElement` after `hidden` has been applied.
   const came = React.useRef<HTMLElement | null>(null);
   const inside = React.useRef(false);
-  const aim = React.useRef(finalFocus);
-  aim.current = finalFocus;
-  React.useEffect(() => {
-    const el = section.current;
-    if (!el) return undefined;
-    const enter = (event: FocusEvent) => {
-      const from = event.relatedTarget;
-      const outside = !(from instanceof Node && el.contains(from));
-      // An entry from outside replaces the record; one with no element clears it.
-      if (!inside.current || (from !== null && outside)) came.current = from instanceof HTMLElement && outside ? from : null;
-      inside.current = true;
-    };
-    const leave = (event: FocusEvent) => {
-      const to = event.relatedTarget;
-      // The window losing focus (another app) leaves focus where it is: still inside.
-      inside.current = (to instanceof Node && el.contains(to)) || (to === null && !el.ownerDocument.hasFocus() && el.contains(el.ownerDocument.activeElement));
-    };
-    el.addEventListener("focusin", enter);
-    el.addEventListener("focusout", leave);
-    return () => { el.removeEventListener("focusin", enter); el.removeEventListener("focusout", leave); };
-  }, []);
+  const enter = (event: React.FocusEvent<HTMLElement>) => {
+    const el = event.currentTarget;
+    const from = event.relatedTarget;
+    const outside = !(from instanceof Node && el.contains(from));
+    // An entry from outside replaces the record; one with no element clears it. Focus coming back with the window is not an entry.
+    if (!inside.current || (from !== null && outside)) came.current = from instanceof HTMLElement && outside ? from : null;
+    inside.current = true;
+    onFocus?.(event);
+  };
+  const leave = (event: React.FocusEvent<HTMLElement>) => {
+    const el = event.currentTarget;
+    const to = event.relatedTarget;
+    const doc = el.ownerDocument;
+    // The window losing focus (another app) leaves focus where it is: still inside, but only while the document still names the same element.
+    inside.current = (to instanceof Node && el.contains(to)) || (to === null && !doc.hasFocus() && doc.activeElement === event.target);
+    onBlur?.(event);
+  };
   const was = React.useRef(open);
   React.useLayoutEffect(() => {
     const closed = was.current && !open;
@@ -74,14 +68,15 @@ export function Drawer({ label, open = true, rows = 13, columns, onBack, backLab
     // Every close clears the record, used or not, so an opener from one opening is never focused after a later one.
     came.current = null;
     if (!inside.current) return;
-    const place = aim.current;
-    const target = (place ? (typeof place === "function" ? place() : place.current) : null) ?? (back && back.isConnected ? back : null);
+    // `finalFocus` as this closing render gave it.
+    const target = (finalFocus ? (typeof finalFocus === "function" ? finalFocus() : finalFocus.current) : null) ?? (back && back.isConnected ? back : null);
     target?.focus({ preventScroll: true });
   }, [open]);
   return (
     <section
       {...props}
-      ref={joined}
+      onFocus={enter}
+      onBlur={leave}
       aria-label={label}
       hidden={open ? undefined : true}
       className={join("basalt-drawer", className)}

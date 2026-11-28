@@ -80,7 +80,15 @@ function scrollAt(target: Target, position: Position): void {
   else target.scrollTo(to);
 }
 
-const MODIFIERS = new Set(["Shift", "Control", "Alt", "Meta", "AltGraph", "CapsLock", "Fn", "FnLock", "Hyper", "Super", "OS"]);
+/** A bare modifier key, which does not end a waiting restore (a function, so nothing is made when the module loads). */
+function isModifier(key: string): boolean {
+  switch (key) {
+    case "Shift": case "Control": case "Alt": case "Meta": case "AltGraph": case "CapsLock": case "Fn": case "FnLock": case "Hyper": case "Super": case "OS":
+      return true;
+    default:
+      return false;
+  }
+}
 
 /**
  * Puts a scroller back where the reader left it on Back and Forward, for a pane the app mounts again and a window whose rows arrive after the browser's
@@ -94,12 +102,11 @@ export function useScrollRestore({ entry, navigation, scroller, id, ready = true
     console.warn("Basalt useScrollRestore: give `id` with `scroller`, or two scrollers of one entry share a position");
   }
   const [machine] = React.useState(restorer);
-  const options = machine.options;
-  options.navigation = navigation;
-  options.enabled = enabled;
-  options.ready = ready;
-  options.scroller = scroller;
-  options.id = id ?? "window";
+
+  // What this commit says, published to the machine before it acts on it (never in render, so a render React sets aside changes nothing).
+  React.useLayoutEffect(() => {
+    machine.publish({ navigation, enabled, ready, scroller, id: id ?? "window" });
+  });
 
   // A change of entry: carry a replaced entry's position, end a restore that belonged to the entry that left, and wait to restore this one on a pop.
   React.useLayoutEffect(() => {
@@ -118,8 +125,16 @@ export function useScrollRestore({ entry, navigation, scroller, id, ready = true
   React.useEffect(() => () => machine.listen(null), [machine]);
 }
 
+interface Options {
+  navigation: RouteNavigation;
+  enabled: boolean;
+  ready: boolean;
+  scroller: RestoreScroller | undefined;
+  id: string;
+}
+
 interface Restorer {
-  options: { navigation: RouteNavigation; enabled: boolean; ready: boolean; scroller: RestoreScroller | undefined; id: string };
+  publish(next: Options): void;
   arrive(entry: string): void;
   settle(): void;
   stop(): void;
@@ -129,11 +144,11 @@ interface Restorer {
 
 // One per hook, made in its first render; its handlers are the same functions for the hook's life, so they are added and removed as one.
 function restorer(): Restorer {
-  const options: Restorer["options"] = { navigation: "push", enabled: true, ready: true, scroller: undefined, id: "window" };
+  let options: Options = { navigation: "push", enabled: true, ready: true, scroller: undefined, id: "window" };
   // The entry that is current (the scroll listener files under it) and the entry before it (a replace carries its position).
   let current: string | undefined;
-  // A restore waiting for its scroller and `ready`.
-  let pending: Position | null = null;
+  // A restore waiting for its scroller and `ready`, and whether its first attempt has run (the second is the frame's, and then it is over).
+  let pending: { position: Position; tried: boolean } | null = null;
   let frame = 0;
   let listening: Target | null = null;
   const keyOf = (forEntry: string) => `${forEntry}\n${options.id}`;
@@ -142,7 +157,7 @@ function restorer(): Restorer {
 
   // The reader's own move ends a restore that is still waiting: theirs to keep.
   function reader(event: Event) {
-    if (event instanceof KeyboardEvent && MODIFIERS.has(event.key)) return;
+    if (event instanceof KeyboardEvent && isModifier(event.key)) return;
     stop();
   }
   function stop() {
@@ -153,7 +168,7 @@ function restorer(): Restorer {
   }
   function begin(position: Position) {
     stop();
-    pending = position;
+    pending = { position, tried: false };
     for (const type of kinds) document.addEventListener(type, reader, listenOptions);
   }
   function onScroll() {
@@ -191,15 +206,23 @@ function restorer(): Restorer {
     if (!target || current === undefined) return;
     const waiting = pending;
     if (waiting) {
-      if (!options.ready) return;
-      scrollAt(target, waiting);
+      // The first attempt has run and the frame's is on its way: a commit in between does not try again.
+      if (!options.ready || waiting.tried) return;
+      waiting.tried = true;
+      scrollAt(target, waiting.position);
       // A scroller that cannot reach the recorded top on this commit gets one more try on the next frame, and then it is over, wherever it reached.
-      if (Math.abs(where(target).top - waiting.top) > 1) {
+      if (Math.abs(where(target).top - waiting.position.top) > 1) {
         cancelAnimationFrame(frame);
         frame = requestAnimationFrame(() => {
           frame = 0;
           if (pending !== waiting) return;
-          scrollAt(target, waiting);
+          // Only on the scroller the latest commit names, and only while it is ready: a scroller gone or a `ready` turned false since leaves the restore
+          // waiting, untried, for the commit where both hold again.
+          if (!options.enabled || !options.ready || resolveScroller(options.scroller) !== target) {
+            waiting.tried = false;
+            return;
+          }
+          scrollAt(target, waiting.position);
           stop();
         });
       } else stop();
@@ -213,5 +236,8 @@ function restorer(): Restorer {
     const scroller = options.scroller;
     return options.enabled && !listening && scroller !== null && scroller !== undefined && scroller !== "window";
   }
-  return { options, arrive, settle, stop, listen, needsSecondLook };
+  function publish(next: Options) {
+    options = next;
+  }
+  return { publish, arrive, settle, stop, listen, needsSecondLook };
 }

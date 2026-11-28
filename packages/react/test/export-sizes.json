@@ -101,7 +101,7 @@
   "DotLine": 702,
   "DotSep": 326,
   "DownloadGlyph": 2853,
-  "Drawer": 20035,
+  "Drawer": 19823,
   "DrawerSection": 8395,
   "DrawerTrigger": 18753,
   "ENTRANCE_LATE_MS": 26,
@@ -461,7 +461,7 @@
   "useRouteFocus": 2534,
   "useScreenKeyboard": 2481,
   "useScreenKeyboardLayout": 2383,
-  "useScrollRestore": 2347,
+  "useScrollRestore": 2586,
   "useShapePhase": 1231,
   "useShortcuts": 2471,
   "useShortcutsVisible": 1041,
@@ -480,8 +480,8 @@
   }
  },
  "package": {
-  "bytes": 1162329,
-  "gzip": 386132
+  "bytes": 1162355,
+  "gzip": 386063
  },
  "styles": {
   "bytes": 629241,

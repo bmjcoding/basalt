@@ -7,7 +7,7 @@
 (function (B) {
   'use strict';
   var _ = B._;
-  // Every wired group ({ tabs, panelOf, select }), made the first time a group is wired; the document's and window's listeners are added then too.
+  // Every wired group ({ root, tabs, panelOf, select }), made the first time a group is wired; the document's and window's listeners are added then too.
   var groups = null;
 
   // The element a fragment names, or null; a malformed escape names nothing.
@@ -18,18 +18,24 @@
     return document.getElementById(id);
   }
 
-  // Every group with a panel that is the fragment's target, or holds it, selects that panel: no focus move, no event, no write to the address. A group
-  // whose panels hold nothing it names stays as it is. Returns the target when one of the panels holds it.
+  // The one lookup: each group still in the document (one whose root has left is dropped) selects its first tab for which match(tab, panel) holds, with
+  // no focus move, event or write. `once` stops at the first group that matched. Returns whether any did.
+  function pickTab(match, once) {
+    if (!groups) return false;
+    groups = groups.filter(function (g) { return g.root.isConnected; });
+    var hit = false;
+    for (var n = 0; n < groups.length && !(once && hit); n++) {
+      var g = groups[n];
+      for (var i = 0; i < g.tabs.length; i++) if (match(g.tabs[i], g.panelOf(g.tabs[i]))) { g.select(g.tabs[i], false); hit = true; break; }
+    }
+    return hit;
+  }
+
+  // Every group with a panel that is the fragment's target, or holds it, selects that panel; the others stay as they are. Returns the target when a panel
+  // holds it.
   function follow(hash) {
-    var target = fragmentTarget(hash), shown = null;
-    if (!target || !groups) return null;
-    groups.forEach(function (g) {
-      for (var i = 0; i < g.tabs.length; i++) {
-        var panel = g.panelOf(g.tabs[i]);
-        if (panel && (panel === target || panel.contains(target))) { g.select(g.tabs[i], false); shown = target; return; }
-      }
-    });
-    return shown;
+    var target = fragmentTarget(hash);
+    return target && pickTab(function (tab, panel) { return panel && (panel === target || panel.contains(target)); }) ? target : null;
   }
 
   // A plain primary click, not prevented, on a link to a fragment of this document: show its panel now, before the browser goes to the target. The
@@ -61,16 +67,8 @@
   }
 
   B.selectTab = function (target) {
-    if (!groups) return false;
     var el = typeof target === 'string' ? document.getElementById(target) : target;
-    if (!el) return false;
-    for (var n = 0; n < groups.length; n++) {
-      var g = groups[n];
-      for (var i = 0; i < g.tabs.length; i++) {
-        if (g.tabs[i] === el || g.panelOf(g.tabs[i]) === el) { g.select(g.tabs[i], false); return true; }
-      }
-    }
-    return false;
+    return Boolean(el) && pickTab(function (tab, panel) { return tab === el || panel === el; }, true);
   };
 
   function wireTabs() {
@@ -152,7 +150,7 @@
         });
       });
       select(tabs.filter(function (t) { return t.getAttribute('aria-selected') === 'true'; })[0] || tabs[0], false);
-      groups.push({ tabs: tabs, panelOf: panelOf, select: select });
+      groups.push({ root: root, tabs: tabs, panelOf: panelOf, select: select });
     });
     if (!wired) return;
     // The document's fragment, on wiring. Only a new navigation is scrolled, at once (a load is a page change): on a reload or a traversal the browser's

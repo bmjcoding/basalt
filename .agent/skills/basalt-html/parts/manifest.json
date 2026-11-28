@@ -322,7 +322,7 @@
       "text": [
         "role\\s*=\\s*[\"']?tab(?:list|panel)?\\b"
       ],
-      "budget": 7180,
+      "budget": 7190,
       "usage": 1700,
       "textWords": [
         "role=\"tab\", role=\"tablist\" or role=\"tabpanel\""
@@ -330,7 +330,7 @@
       "requires": [
         "fade"
       ],
-      "budgetReason": "m7 (DECISIONS 405, 409; the skill's budgets are soft): 5400 to 7180 bytes, measured, for the tabchange event, Basalt.selectTab, the fragment followed on load, at a same-page link's click and on Back and Forward, and data-tabs-hash's replace.",
+      "budgetReason": "m7 (DECISIONS 405, 409; the skill's budgets are soft): 5400 to 7180 bytes, measured, for the tabchange event, Basalt.selectTab, the fragment followed on load, at a same-page link's click and on Back and Forward, and data-tabs-hash's replace. m7 fix pass 1 (Astra): one shared group lookup that drops groups no longer in the document, 7180 to 7190 bytes, measured.",
       "usageReason": "m7 (DECISIONS 405, 409; the skill's budgets are soft): 1150 to 1700 for the event, selectTab, the fragment and data-tabs-hash."
     },
     "link-tabs": {
