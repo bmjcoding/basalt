@@ -3688,7 +3688,10 @@
     transition-timing-function: var(--basalt-ease-in);
   }
   .basalt-toast[data-limited] { opacity: 0; }
-  .basalt-toast[data-ending-style][data-swipe-direction="right"] { transform: translateX(calc(var(--toast-swipe-movement-x) + 120%)) translateY(var(--_offset-y)); }
+  /* A swipe leaves in its direction from where it was let go; under reduced motion it stays there and only fades (the reduced-motion rule below). */
+  @media (prefers-reduced-motion: no-preference) {
+    .basalt-toast[data-ending-style][data-swipe-direction="right"] { transform: translateX(calc(var(--toast-swipe-movement-x) + 120%)) translateY(var(--_offset-y)); }
+  }
   .basalt-toast::after { content: ""; position: absolute; top: 100%; left: 0; width: 100%; height: calc(var(--_gap) + var(--basalt-size-hairline)); }
   .basalt-toast:focus-visible,
   .basalt-toast-viewport:focus > .basalt-toast[data-front] { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
@@ -10617,6 +10620,10 @@
     .basalt-toast[data-expanded] { --_rest: translateX(var(--toast-swipe-movement-x)) translateY(var(--_offset-y)); }
     .basalt-toast[data-starting-style],
     .basalt-toast[data-ending-style] { transform: translateY(calc(-100% - var(--basalt-space-4))); }
+  }
+  /* A swipe up leaves upward from where it was let go; under reduced motion it stays there and only fades. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the stack hangs from the bar */
+  @media (width < 720px) and (prefers-reduced-motion: no-preference) {
     .basalt-toast[data-ending-style][data-swipe-direction="up"] { transform: translateX(var(--toast-swipe-movement-x)) translateY(calc(var(--toast-swipe-movement-y) - 120%)); }
   }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the stack hangs from the bar */

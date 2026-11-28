@@ -1,7 +1,9 @@
 // micro-e7 (DECISIONS 405, audit row P2): the default MenuTrigger meets the shared target floor as hit area alone. With no `render` it is a bare
 // button drawn at its text's height; its hit box is at least 24 by 24 at a fine pointer and 44 by 44 on touch and under 720, and the button, its
 // words and a glyph inside it keep their size and place. Stacked with no gap, each trigger's words are a label over every neighbour's box, so a tap
-// on a trigger's own words is its own and no point in either box is dead. A `render` Button keeps its own sizes and gets no extra box. Engineering that restores
+// on a trigger's own words is its own and no point in either box is dead. A `render` Button keeps its own sizes and gets no extra box.
+// C2's React half (fix pass 2): under reduced motion a swiped toast stays where it was let go and only fades; its directional exit (right, and up
+// under 720) runs only with reduced motion off, as the skill's does. Engineering that restores
 // documented behaviour (foundations, Controls); no panel. Driven in Chromium against the built package with the real stylesheet. Synthetic data only.
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -130,6 +132,65 @@ describe("bare triggers stacked with no gap (P2, fix pass 1)", () => {
     const [a, b] = await Promise.all(["upper", "lower"].map((id) => page.getByTestId(id).evaluate((el) => { const r = el.getBoundingClientRect(); return [r.y, r.height]; })));
     assert.ok(a[1] < 24 && b[1] < 24, "each is drawn at its text's height");
     assert.ok(Math.abs(b[0] - (a[0] + a[1])) < 0.5, "and the lower starts where the upper ends (no room reserved)");
+  });
+});
+
+const TOASTS = `function Probe(){const t=B.useToast();React.useEffect(()=>{window.t=t},[t]);return null}
+createRoot(document.getElementById("root")).render(<B.ToastProvider><Probe/></B.ToastProvider>);`;
+
+describe("Toast under reduced motion: a swipe only fades (C2, fix pass 2)", () => {
+  for (const [name, options, delta, direction] of [
+    ["a window at 1440, by mouse", { viewport: { width: 1440, height: 900 } }, [60, 0], "right"],
+    ["a phone at 390, by touch", { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true }, [0, -60], "up"],
+  ]) {
+    test(`${name}: a swipe ${direction} leaves it where it was let go, and only its opacity moves`, async () => {
+      const { page, errors } = await fixturePage(browser, TOASTS, { theme: "dark", reducedMotion: "reduce", ...options });
+      await page.waitForFunction(() => window.t);
+      await page.evaluate(() => window.t.show({ title: "Recipe saved", description: "Lemon tart, in Desserts." }));
+      await page.locator(".basalt-toast").first().waitFor();
+      await settle(page);
+      const text = await page.locator(".basalt-toast-text").first().boundingBox();
+      const x = text.x + text.width / 2, y = text.y + text.height / 2;
+      const box = () => page.locator(".basalt-toast").first().evaluate((el) => { const r = el.getBoundingClientRect(); return [r.left, r.top]; });
+      let cdp;
+      if (options.hasTouch) {
+        cdp = await page.context().newCDPSession(page);
+        const at = (px, py) => [{ x: px, y: py, id: 1 }];
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: at(x, y) });
+        for (let i = 0; i <= 8; i++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: at(x + (delta[0] * i) / 8, y + (delta[1] * i) / 8) });
+      } else {
+        await page.mouse.move(x, y);
+        await page.mouse.down();
+        await page.mouse.move(x + delta[0], y + delta[1], { steps: 8 });
+      }
+      const held = await box();
+      if (cdp) await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      else await page.mouse.up();
+      // Read on the first frame that shows the exit, before the fade is over.
+      const left = await (await page.waitForFunction(() => {
+        const el = document.querySelector(".basalt-toast[data-ending-style]");
+        if (!el) return null;
+        const r = el.getBoundingClientRect(), c = getComputedStyle(el);
+        return { at: [r.left, r.top], direction: el.getAttribute("data-swipe-direction"), property: c.transitionProperty };
+      }, null, { polling: "raf", timeout: 2000 })).jsonValue();
+      assert.equal(left.direction, direction);
+      assert.equal(left.property, "opacity", "only its opacity moves");
+      assert.ok(Math.abs(left.at[0] - held[0]) < 0.5 && Math.abs(left.at[1] - held[1]) < 0.5, `it stays where it was let go (${held} then ${left.at})`);
+      await page.locator(".basalt-toast").first().waitFor({ state: "detached", timeout: 2000 });
+      assert.deepEqual(errors, []);
+    });
+  }
+
+  test("with reduced motion off, the swipe exits keep their direction", async () => {
+    const { page } = await fixturePage(browser, TOASTS, { theme: "dark" });
+    const rules = await page.evaluate(() => {
+      const found = [];
+      const walk = (list, media) => { for (const r of list) { if (r.cssRules && r.media) walk(r.cssRules, r.media.mediaText); else if (r.cssRules) walk(r.cssRules, media); else if (/basalt-toast\[data-ending-style\]\[data-swipe-direction/.test(r.selectorText ?? "")) found.push([r.selectorText, media]); } };
+      for (const sheet of document.styleSheets) walk(sheet.cssRules, "");
+      return found;
+    });
+    assert.equal(rules.length, 2, JSON.stringify(rules));
+    for (const [selector, media] of rules) assert.match(media, /prefers-reduced-motion: no-preference/, `${selector} runs only with reduced motion off`);
   });
 });
 
