@@ -175,7 +175,7 @@ describe("compose.mjs and the diagram's markup", () => {
     const result = compose(`<h1>x</h1><figure class="diagram"><script type="application/json" data-diagram>${JSON.stringify(bad)}</script></figure>`);
     const body = bodyOf(result.html).replace(/<script type="application\/json" data-diagram>[\s\S]*?<\/script>/, "");
     assert.doesNotMatch(body, /<script>alert|onclick|onload/);
-    assert.match(body, /<h3 id="dg1-title"/);
+    assert.match(body, /<h3 id="bd-n1-title"/);
     assert.ok(result.diagrams.some((n) => /not a level from 2 to 6/.test(n)) && result.diagrams.some((n) => /not a kind of line/.test(n)) && result.diagrams.some((n) => /not a whole number/.test(n)));
   });
 
@@ -184,35 +184,43 @@ describe("compose.mjs and the diagram's markup", () => {
   // it is spelled, and an id this cannot read exactly keep their numbers, and the composer says so.
   const labelled = (html) => [...bodyOf(html).matchAll(/<figure[^>]*\saria-labelledby="([^"]+)"/g)].map((m) => m[1]);
   test("a figure with an id is written on that id; one without is numbered by its place; a second figure with one id is numbered and said (G146)", () => {
-    assert.deepEqual(labelled(compose(`<h1>x</h1>${figure('class="diagram" id="fig-a"')}${figure('class="diagram"')}${figure('class="diagram" id="a b"')}${figure('class="diagram" id="1"')}`).html), ["bd-fig-a_dg-title", "dg2-title", "bd-a_20_b_dg-title", "bd-1_dg-title"]);
+    assert.deepEqual(labelled(compose(`<h1>x</h1>${figure('class="diagram" id="fig-a"')}${figure('class="diagram"')}${figure('class="diagram" id="a b"')}${figure('class="diagram" id="1"')}`).html), ["bd-fig-a_dg-title", "bd-n2-title", "bd-a_20_b_dg-title", "bd-1_dg-title"]);
     const moved = compose(`<h1>x</h1>${figure('class="diagram"')}${figure('class="diagram" id="fig-a"')}`).html;
-    assert.deepEqual(labelled(moved), ["dg1-title", "bd-fig-a_dg-title"], "the same figure's ids, wherever it is");
+    assert.deepEqual(labelled(moved), ["bd-n1-title", "bd-fig-a_dg-title"], "the same figure's ids, wherever it is");
     assert.ok(bodyOf(moved).includes('<h3 id="bd-fig-a_dg-title"'));
     const twice = compose(`<h1>x</h1>${figure('class="diagram" id="same"')}${figure('class="diagram" id="same"')}`);
-    assert.deepEqual(labelled(twice.html), ["bd-same_dg-title", "dg2-title"]);
+    assert.deepEqual(labelled(twice.html), ["bd-same_dg-title", "bd-n2-title"]);
     assert.ok(twice.diagrams.some((n) => n.includes('two figures on this page have the id "same"')), "the composer says so");
     const kept = compose(`<h1>x</h1>${figure('class="diagram" id="bd-x"')}`).diagrams;
     assert.ok(kept.some((n) => n.includes('the id "bd-x" begins "bd-"')), "an id in Basalt's namespace is said");
-    const ids = ["x", "x-title", "x_dg-title", "bd", "1", "1_dg-title", "build-reveal-plan"];
+    const ids = ["x", "x-title", "x_dg-title", "bd", "1", "1_dg-title", "build-reveal-plan", "dg2-title", "n2-title"];
     const written = bodyOf(compose(`<h1>x</h1>${ids.map((id) => figure(`class="diagram" id="${id}"`)).join("")}`).html).replace(/<script type="application\/json" data-diagram>[\s\S]*?<\/script>/g, "");
     const all = [...written.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
     assert.ok(all.length > ids.length * 4);
     assert.equal(new Set(all).size, all.length, "no id twice in the page, the figures' own ids included");
   });
 
-  test("an id is read with its character references, as the browser reads it; a second spelling of one id is the same id; one it cannot read is numbered (G146)", () => {
+  test("an id is read as the browser reads an attribute: a literal &, &amp;, &#38; and a named reference; two spellings of one id are one id (G146)", () => {
     const one = (attr) => labelled(compose(`<h1>x</h1>${figure(`class="diagram" id="${attr}"`)}`).html)[0];
-    for (const attr of ["a&amp;b", "a&#38;b", "a&#x26;b", "a&#X26;b"]) assert.equal(one(attr), "bd-a_26_b_dg-title", attr);
-    assert.equal(one("a&b"), "bd-a_26_b_dg-title", "an & that starts no reference is text");
-    assert.equal(one("&lt;x&gt;&quot;&apos;&nbsp;"), "bd-_3c_x_3e__22__27__a0__dg-title");
-    const spelled = compose(`<h1>x</h1>${figure('class="diagram" id="a&amp;b"')}${figure('class="diagram" id="a&#38;b"')}`);
-    assert.deepEqual(labelled(spelled.html), ["bd-a_26_b_dg-title", "dg2-title"]);
-    assert.ok(spelled.diagrams.some((n) => n.includes('two figures on this page have the id "a&b"')));
-    for (const attr of ["&copy;", "a&amp", "&#0;", "&#x80;", "&#xD800;", "&#x110000;"]) {
-      const result = compose(`<h1>x</h1>${figure(`class="diagram" id="${attr}"`)}`);
-      assert.equal(labelled(result.html)[0], "dg1-title", attr);
-      assert.ok(result.diagrams.some((n) => n.includes("character reference")), `${attr} is said`);
-    }
+    for (const attr of ["a&b", "a&amp;b", "a&#38;b", "a&#x26;b", "a&AMP;b"]) assert.equal(one(attr), "bd-a_26_b_dg-title", attr);
+    assert.equal(one("&copy;"), "bd-_a9__dg-title", "a named reference");
+    assert.equal(one("&copy"), "bd-_a9__dg-title", "a legacy name, with nothing after it");
+    assert.equal(one("&copyx"), "bd-_26_copyx_dg-title", "a legacy name a letter follows stays text in an attribute");
+    assert.equal(one("&check;"), "bd-_2713__dg-title", "a name HTML 4 did not have");
+    assert.equal(one("&nosuch;"), "bd-_26_nosuch_3b__dg-title", "a name not in the list is text");
+    assert.equal(one("&#x80;"), "bd-_20ac__dg-title", "0x80 is windows-1252's euro, as the browser reads it");
+    assert.equal(one("&#0;"), "bd-_fffd__dg-title");
+    // Every spelling of a&b is the same id: the second figure is numbered, and said.
+    const spelled = compose(`<h1>x</h1>${["a&b", "a&amp;b", "a&#38;b"].map((attr) => figure(`class="diagram" id="${attr}"`)).join("")}`);
+    assert.deepEqual(labelled(spelled.html), ["bd-a_26_b_dg-title", "bd-n2-title", "bd-n3-title"]);
+    assert.equal(spelled.diagrams.filter((n) => n.includes('two figures on this page have the id "a&b"')).length, 2);
+  });
+
+  test("an author id of the old numbered form, or the new one's words, before a figure with no id meets none of its ids (G146)", () => {
+    const html = bodyOf(compose(`<h1>x</h1><p id="dg2-title">x</p><p id="n2-title">y</p>${figure('class="diagram" id="fig-1"')}${figure('class="diagram"')}`).html).replace(/<script type="application\/json" data-diagram>[\s\S]*?<\/script>/g, "");
+    assert.deepEqual(labelled(html), ["bd-fig-1_dg-title", "bd-n2-title"], "the old form would have been dg2-title, the paragraph's");
+    const all = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+    assert.equal(new Set(all).size, all.length, "no id twice");
   });
 
   test("the usage example composes with no warning", () => {
@@ -256,7 +264,7 @@ describe("the skill's ids (G146)", () => {
     assert.deepEqual(await audit(skill.page, "figure.diagram"), { dupes: [], faults: [] });
     await skill.page.evaluate((spec) => { const f = document.querySelector("figure.diagram"); f.removeAttribute("id"); window.Basalt.diagram(f, spec); }, DATA.architecture);
     await frames2(skill.page);
-    assert.match(await label(), /^dg\d+-title$/, "no id, a number");
+    assert.match(await label(), /^bd-n\d+-title$/, "no id, a number");
     assert.deepEqual(await audit(skill.page, "figure.diagram"), { dupes: [], faults: [] });
     assert.deepEqual([...written.errors, ...skill.errors], []);
     await written.context.close();

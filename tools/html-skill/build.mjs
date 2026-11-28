@@ -9,6 +9,7 @@
 //                             it only when its markup sets data-accent. The one reader of --basalt-accent-ink is status.css.
 //   parts/art.css             the chart, art, aspect and stage-headroom tokens, taken out of core.css; a page gets it only when its body names one of them
 //   parts/type-layout.css     the display type, section gap and display measure tokens (taken out of core.css) and src/modules/type-layout.css
+//   parts/entities.json       src/entities.json, copied: HTML's named character references, which compose.mjs decodes a figure's id with
 //   parts/icons.json          the Phosphor icons in src/icons.json (Bold paths: the skill draws Bold at every size) and Phosphor's MIT notice
 //   parts/usage/<name>.md     src/usage/<name>.md, copied as prose: what `compose.mjs --usage <name>` prints. One for the core and one per
 //                             module; a module without a usage file, or a usage file without a module, fails the build.
@@ -330,6 +331,8 @@ export function build() {
   const manifest = JSON.parse(src("modules.json"));
   const files = {};
   files["compose.mjs"] = src("compose.mjs");
+  // HTML's named character references (entities.mjs, from the WHATWG list): compose.mjs reads a figure's id with them, as a browser does (G146).
+  files["parts/entities.json"] = src("entities.json");
   // The placer compose.mjs runs for an automatic diagram (DECISIONS 306, 1.8): React's placeDiagram, with elkjs left to resolve from the repository.
   files["parts/diagram-place.mjs"] = esbuild.buildSync({ entryPoints: [path.join(srcDir, "diagram-place.mjs")], bundle: true, format: "esm", platform: "node", target: "node20", write: false, logLevel: "silent", external: ["elkjs", "elkjs/*"] }).outputFiles[0].text;
   files["parts/manifest.json"] = `${JSON.stringify(manifest, null, 2)}\n`;

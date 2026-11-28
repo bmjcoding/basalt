@@ -73,14 +73,15 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
     var order = spec.direction ? [spec.direction] : spec.type === 'flowchart' ? ['down', 'right'] : ['right', 'down'];
     var placeOf = function (d) { for (var i = 0; i < placements.length; i++) if (placements[i].direction === d) return placements[i]; return undefined; };
     var model = buildModel(spec, { rtl: rtl, placement: auto ? placeOf(order[0]) : undefined });
-    // The ids inside are built on a base (G146): the viewer's (built on its page figure's), the figure's own id's (the same on every load wherever the
-    // figure is, as compose.mjs writes it), or the next free number. A base is kept while it is the one the figure would take now, so a figure given a
-    // new id, or none, is written again on its new base. An id another figure in the figure's document or shadow root has is numbered, and said.
+    // The ids inside are built on a base (G146), all in Basalt's namespace: the viewer's (built on its page figure's), the figure's own id's (bd-…_dg, the
+    // same on every load wherever the figure is, as compose.mjs writes it), or the next free number (bd-n and the number, a form no id gives). A base is
+    // kept while it is the one the figure would take now, so a figure given a new id, or none, is written again on its new base. An id another figure in
+    // the figure's document or shadow root has is numbered, and said.
     var root = figure.getRootNode();
     if (!root.getElementById) root = document;
     var want = viewer ? viewer.base || '' : figure.id ? idBase(figure.id) : '';
     var other = function (b) { var el = b && root.getElementById(b + '-title'); return Boolean(el) && !figure.contains(el); };
-    var keep = Boolean(base && figure.querySelector('#' + CSS.escape(base + '-title'))) && (want ? base === want || (/^dg\d+$/.test(base) && other(want)) : !/^bd-/.test(base));
+    var keep = Boolean(base && figure.querySelector('#' + CSS.escape(base + '-title'))) && (want ? base === want || (/^bd-n\d+$/.test(base) && other(want)) : /^bd-n\d+$/.test(base));
     if (!attach || !keep || !figure.querySelector(':scope > .diagram-drawing')) {
       if (!keep) {
         if (!viewer && /^bd-/.test(figure.id)) console.warn('Basalt diagram: the id "' + figure.id + '" begins "bd-", which is kept for the ids Basalt writes inside a figure: give the figure an id that does not');
@@ -90,8 +91,8 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
         }
         if (want) base = want;
         else {
-          while (root.getElementById('dg' + (++serial) + '-title')) { /* the next free base */ }
-          base = 'dg' + serial;
+          while (root.getElementById('bd-n' + (++serial) + '-title')) { /* the next free base */ }
+          base = 'bd-n' + serial;
         }
       }
       var made = markup(spec, base, viewer);
