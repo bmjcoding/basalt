@@ -29,7 +29,7 @@ const PLAIN = [
   "AMBIENT_MAX", "CONFIRM_MS", "COPIED_MS", "ENTRANCE_LATE_MS", "LOOPS_TOGGLE_DESCRIPTION", "LOOPS_TOGGLE_NAME", "REFLOW_BOUND", "STATUS_MESSAGE_MS", "TRAVEL_IN_FLIGHT",
   "TRAVEL_LONG_LEG", "TRAVEL_MIN_LEG", "TRAVEL_MS_PER_PX", "TRAVEL_RUN_LIMIT", "TRAVEL_SHORT_LEG", "WAIT_MIN_SHOWN_MS", "WAIT_SHOW_AFTER_MS", "ambient", "ambientTiming", "createTravellers", "entranceKey",
   "entranceSeen", "entranceStep", "entranceVerdict", "forgetEntrance", "formatAge", "formatClock", "formatNumber", "formatCountdown", "formatDay", "formatElapsed", "formatStamp", "formatStatTime", "formatRunTime", "STAGE_WORDS",
-  "holdFirstPaint", "isApplePlatform", "isModKey", "KEEP", "fillIn", "forgetCount", "lockupDrawing", "loopsBootstrap", "markEntranceSeen", "markPageChange", "markPageStart", "preloadCodeLanguages", "rememberCount", "rememberedCount", "safeHref", "shareOf", "sortRows", "standIn", "themeBootstrap", "themeColorMeta", "trailingMean", "travelLeg", "travelRun", "travelTokens", "typingStatus",
+  "holdFirstPaint", "isApplePlatform", "isModKey", "KEEP", "fillIn", "forgetCount", "lockupDrawing", "loopsBootstrap", "markEntranceSeen", "markPageChange", "markPageStart", "paletteBootstrap", "paletteMetas", "definePalettes", "preloadCodeLanguages", "rememberCount", "rememberedCount", "safeHref", "shareOf", "sortRows", "standIn", "themeBootstrap", "themeColorMeta", "trailingMean", "travelLeg", "travelRun", "travelTokens", "typingStatus",
 ];
 const LEFT_IN_A_CLIENT_MODULE = {
   // Base UI's `createHandle`: a handle ties a trigger to a popover, both on the client, and an object made on the server could not be passed to either.
@@ -39,6 +39,8 @@ const LEFT_IN_A_CLIENT_MODULE = {
   // B7's search over a server: it returns React nodes (each match a SearchMatch element), and a module without the directive may import no React, so it stays
   // beside SearchPassage, where the passages render.
   markMatches: "search.js",
+  // cimip-gaps-3 T9: an app's own glyph is a component (it draws), so it is made where the renderer is; a Server Component passes the made glyph down.
+  defineGlyph: "glyph.js",
 };
 
 test("the package entry is a barrel with no directive, and the plain values come from modules with none", async () => {

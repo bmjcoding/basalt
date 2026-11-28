@@ -122,7 +122,10 @@ async function lazyGraph(names, extra = "") {
 // Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
 // Button 18,672 on main, 18,697 with E6 (+25), so 18,678 to 18,703; Drawer 19,234 to 19,259 (+25), so 19,250 to 19,275.
 // micro-details m2 (DECISIONS 419), measured with this file's own graph() and bundle() on origin/main 79453efb and on the m2 head; each limit rises by the increase alone: NumberTicker's default format goes through formatNumber (number-format.ts). Sparkline's graph 9,060 to 9,696 (+636; 9,100 to 9,736).
-for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_736], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_703], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 10_215], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_275]]) {
+// cimip-gaps-3 T9 (palettes, DECISIONS 403), measured with this file's own graph() and bundle() on origin/main d67696d1 and on the T9 head; each limit rises by the
+// increase alone: every Icon now looks its glyph or slot up in the nearest icon set (icon-set.tsx, about 375 bytes with its shared context), and a portalled
+// part reads its palette scope (palette-scope.ts). Button 18,697 to 19,124 (+427; 18,703 to 19,130), Drawer 19,259 to 19,686 (+427; 19,275 to 19,702), SearchDialog 99,444 to 100,132 (+688; 99,467 to 100,155), TextButton 11,516 to 11,869 (+353; 11,550 to 11,903), LinkTabs 149,315 to 149,986 (+671; 142,150 to 142,821, already over on main), Toolbar, ToolbarButton, ToolbarIconButton, ToolbarLink, ToolbarInput, ToolbarGroup, ToolbarSeparator 59,470 to 59,896 (+426; 59,473 to 59,899), PeriodStepper 18,414 to 18,839 (+425; 18,430 to 18,855), ShareBar 8,458 to 8,846 (+388; 8,500 to 8,888), DirectoryList 21,078 to 21,504 (+426; 21,103 to 21,529), Reveal 20,674 to 21,101 (+427; 20,678 to 21,105), CopyButton 19,638 to 20,066 (+428; 19,653 to 20,081), ReleaseIndex 31,224 to 31,613 (+389; 31,239 to 31,628), ReleaseNotes 68,875 to 69,321 (+446; 68,999 to 69,445), StageMark 22,797 to 23,336 (+539; 22,846 to 23,385), RunStage 40,130 to 40,708 (+578; 40,149 to 40,727), StageList, RunStage 41,385 to 41,963 (+578; 41,387 to 41,965), StageRail, RunStage 41,730 to 42,308 (+578; 41,780 to 42,358).
+for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_736], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 19_130], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 10_215], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_702]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -145,7 +148,7 @@ for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_736], ["Skeleto
 // cimip-gaps-3 t8 (DECISIONS 407), measured with this file's graph() on origin/main 1b4749df and again on d8c9ac79 (the same figure), and on the t8 head: SearchDialog 98,748 to 99,313 (+565: the query's
 // fade at rest, the watcher started only while there are words and its refreshes on value, focus, blur and the fonts), so its limit rises by that alone, 98,771 to 99,336.
 // Combined on the merge of main (E6) into t8: 98,902 (E6) + 565 (t8) = 99,467.
-for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 99_467]]) {
+for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 100_155]]) {
   test(`${name} alone, with splitting, loads Base UI's dialog and the close button and no command panel (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes (limit ${limit})`);
@@ -157,7 +160,7 @@ for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 99_467]])
 // OptionChips 37,699 (Base UI's radio group), LinkTabs 140,720 (it carries the Select under 720, DECISIONS 154 A15: Base UI's select and its popup), LinkTab 649 (3,898 once its label takes ChosenLabel, the selected state a Tab's children take: join 2 in integration-nov15b, DECISIONS 138 A, 145, 149; the limit is the measured bytes rounded up to the next 50), TabsPanels 519, useConfirm 399, CONFIRM_MS 185; the limits sit just above.
 // cimip-gaps-2 B6 (DECISIONS 246: trim first, then a raise the feature needs): LinkTabs carries the Select, and `Select toolbar` (the unseen labels that hold its width) adds 212 bytes
 // after a 67-byte trim (no attribute, no class on the labels): measured 141,669, from main's 141,457, so the limit goes from 141,500 to 141,700.
-for (const [name, limit, baseUi] of [["TextButton", 11_550, true], ["SwitchRow", 25_500, true], ["SwitchRowGroup", 11_600, true], ["OptionChips", 38_945, true], ["LinkTabs", 142_150, true], ["LinkTab", 3_900, false], ["TabsPanels", 900, false], ["useConfirm", 800, false], ["CONFIRM_MS", 400, false]]) {
+for (const [name, limit, baseUi] of [["TextButton", 11_903, true], ["SwitchRow", 25_500, true], ["SwitchRowGroup", 11_600, true], ["OptionChips", 38_945, true], ["LinkTabs", 142_821, true], ["LinkTab", 3_900, false], ["TabsPanels", 900, false], ["useConfirm", 800, false], ["CONFIRM_MS", 400, false]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -472,7 +475,7 @@ for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["N
 // cimip-gaps-3 E6 (G161, IconButton's `icon` as an element, told apart by React.isValidElement (a runtime React import in button.js, +25 in every graph that holds a
 // Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
 // the whole toolbar set 59,340 on main, 59,470 with E6 (+130), so 59,343 to 59,473.
-for (const [name, limit] of [["Toolbar", 25_000], ["Toolbar, ToolbarButton, ToolbarIconButton, ToolbarLink, ToolbarInput, ToolbarGroup, ToolbarSeparator", 59_473]]) {
+for (const [name, limit] of [["Toolbar", 25_000], ["Toolbar, ToolbarButton, ToolbarIconButton, ToolbarLink, ToolbarInput, ToolbarGroup, ToolbarSeparator", 59_899]]) {
   test(`${name.length > 10 ? "Every toolbar part" : name} stays small and loads no Shiki, cmdk or grammar (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -510,7 +513,7 @@ test("Stats with Stat loads no Base UI and no Shiki up front, and of Phosphor on
 // cimip-gaps-3 E6 (G161, IconButton's `icon` as an element, told apart by React.isValidElement (a runtime React import in button.js, +25 in every graph that holds a
 // Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
 // PeriodStepper 18,284 on main, 18,414 with E6 (+130), so 18,300 to 18,430.
-for (const [name, limit, plain] of [["AppTile", 1_500, true], ["CaptionedColumns, CaptionedColumn", 1_000, true], ["TableCall", 800, true], ["PeriodStepper", 18_430, false]]) {
+for (const [name, limit, plain] of [["AppTile", 1_500, true], ["CaptionedColumns, CaptionedColumn", 1_000, true], ["TableCall", 800, true], ["PeriodStepper", 18_855, false]]) {
   test(`${name} alone is small and loads no Shiki or cmdk${plain ? ", no Base UI and no Phosphor" : ""} (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -535,7 +538,7 @@ test("Meter carries Base UI's Meter and no other part, no Phosphor and no Shiki"
 // next 50, raised only by the increase): ShareBar 1,411 on main, 8,197 on the head (1,500 to 8,250: tones, the floors and the one-line fit measured before paint, the legend, parts
 // that are links or buttons through safeHref, and the core new-tab arrow); CoverageStrip 1,570, 2,297 (2,000 to 2,300: the events' lane and sentence). Neither loads Base UI or Phosphor.
 // T2 fix pass 1 (Astra): ShareBar keeps the caller's ref (useMergedRef): 8,197 to 8,458 measured, so 8,250 to 8,500.
-for (const [name, limit] of [["trailingMean", 800], ["ShareBar", 8_500], ["CoverageStrip", 2_300], ["MarksRow", 1_200]]) {
+for (const [name, limit] of [["trailingMean", 800], ["ShareBar", 8_888], ["CoverageStrip", 2_300], ["MarksRow", 1_200]]) {
   test(`${name} alone is small and loads no Base UI, no Phosphor and no Shiki (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -637,7 +640,7 @@ test("LoopsToggleIcon alone loads the icon button and the hold, and not Switch",
 // cimip-gaps-3 E6 (G161, IconButton's `icon` as an element, told apart by React.isValidElement (a runtime React import in button.js, +25 in every graph that holds a
 // Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
 // DirectoryList 21,053 on main, 21,078 with E6 (+25), so 21,078 to 21,103; CopyButton 19,613 to 19,638 (+25), so 19,628 to 19,653. Reveal 20,649 to 20,674 stays under 20,678.
-for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_000, false], ["BackLink", 5_500, false], ["BigLinkList", 1_000, false], ["BigLinkRow", 6_000, false], ["DirectoryRow", 6_500, false], ["DirectoryList", 21_103, true], ["Reveal", 20_678, true], ["CopyButton", 19_653, true]]) {
+for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_000, false], ["BackLink", 5_500, false], ["BigLinkList", 1_000, false], ["BigLinkRow", 6_000, false], ["DirectoryRow", 6_500, false], ["DirectoryList", 21_529, true], ["Reveal", 21_105, true], ["CopyButton", 20_081, true]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -848,7 +851,7 @@ test("the imports plugin never rewrites a file that resolves another copy of Bas
 // the head row a callout draws only when it is given one), so the limit goes up by that increase, 68,578 to 68,753.
 // micro-details m2 (DECISIONS 419), measured with this file's own graph() and bundle() on origin/main 79453efb and on the m2 head; each limit rises by the increase alone: the release date's month and day glued through formatToParts (release-date.ts). VersionLink 2,111 to 2,300 (+189; 2,150 to 2,339), ReleaseIndex 31,035 to
 // 31,224 (+189; 31,050 to 31,239), ReleaseNotes 68,629 to 68,875 (+246; 68,753 to 68,999).
-for (const [name, limit] of [["VersionLink", 2_339], ["ReleaseIndex", 31_239], ["ReleaseNotes", 68_999]]) {
+for (const [name, limit] of [["VersionLink", 2_339], ["ReleaseIndex", 31_628], ["ReleaseNotes", 69_445]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -905,7 +908,7 @@ test("StreamMessage loads no popup up front: no popover, no positioning, no Floa
 // formatRunTime (818) stay under 22,846 and 919.
 // micro-details m2 (DECISIONS 419), measured with this file's own graph() and bundle() on origin/main 79453efb and on the m2 head; each limit rises by the increase alone: the glued value and unit (run-format.ts, the month and day in time-format.ts). RunTimer 7,016 to 7,286 (+270; 7,025 to 7,295), RunStage 39,851 to 40,130 (+279; 39,870 to 40,149),
 // StageList, RunStage 41,103 to 41,385 (+282; 41,105 to 41,387), StageRail, RunStage 41,448 to 41,730 (+282; 41,498 to 41,780).
-for (const [name, limit, phosphor] of [["StageMark", 22_846, true], ["StageBadge", 5_877, false], ["RunTimer", 7_295, false], ["RunAnnouncer", 600, false], ["formatRunTime", 919, false], ["RunStage", 40_149, true], ["StageList, RunStage", 41_387, true], ["StageRail, RunStage", 41_780, true]]) {
+for (const [name, limit, phosphor] of [["StageMark", 23_385, true], ["StageBadge", 5_877, false], ["RunTimer", 7_295, false], ["RunAnnouncer", 600, false], ["formatRunTime", 919, false], ["RunStage", 40_727, true], ["StageList, RunStage", 41_965, true], ["StageRail, RunStage", 42_358, true]]) {
   test(`${name} alone loads no Base UI${phosphor ? "" : " and no Phosphor"} (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -955,3 +958,14 @@ test("Stat and StageRail load the anchored popover only on demand", async () => 
     assert.deepEqual(statics.filter((input) => /@base-ui\/react\/(esm\/)?popover/.test(input)), [], `${name} loads Base UI's popover up front`);
   }
 });
+
+// cimip-gaps-3 T9 (DECISIONS 403, test 10): an icon set's cost, measured with bundle() on the T9 head (the default Button is in the Button limit above, with its
+// +427 for the lookup): IconProvider alone 259 bytes, defineGlyph with the renderer 2,794, one glyph (CloseGlyph) 2,836, Icon 758 (384 on main); each limit
+// the measure rounded up to the next 50.
+for (const [name, limit] of [["IconProvider", 300], ["defineGlyph", 2_850], ["Icon", 800]]) {
+  test(`${name} alone, for an icon set, is small and loads no Base UI, Phosphor or engine`, async () => {
+    const { bytes, inputs } = await bundle(name);
+    assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
+    assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|glyph-flight|glyph-motion/.test(f)), []);
+  });
+}

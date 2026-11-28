@@ -14,13 +14,13 @@ export const pkg = path.join(path.dirname(fileURLToPath(import.meta.url)), "..")
 const css = () => fs.readFileSync(path.join(pkg, "dist", "styles.css"), "utf8");
 
 /**
- * The style sheet as it is written: the tokens, the components and the accent classes, with their comments and whitespace, as `dist/styles.css` was before the
+ * The style sheet as it is written: the tokens, the components, the accent classes and the palette base (cimip-gaps-3 T9), with their comments and whitespace, as `dist/styles.css` was before the
  * build took those out of it (build.mjs; test/audit-fix-c3.test.mjs proves the shipped sheet is exactly this one without them). For a test that reads the
  * sheet's text by its layout (a selector with its quotes, a rule on one line); a test that draws the sheet reads `dist/styles.css`, as an app does.
  */
 export const sourceStyles = () => {
   const tokens = path.join(pkg, "..", "tokens", "dist", "css");
-  return `${fs.readFileSync(path.join(tokens, "tokens.css"), "utf8")}\n${fs.readFileSync(path.join(pkg, "src", "styles", "components.css"), "utf8")}\n${fs.readFileSync(path.join(tokens, "accents.css"), "utf8")}`;
+  return `${fs.readFileSync(path.join(tokens, "tokens.css"), "utf8")}\n${fs.readFileSync(path.join(pkg, "src", "styles", "components.css"), "utf8")}\n${fs.readFileSync(path.join(tokens, "accents.css"), "utf8")}\n${fs.readFileSync(path.join(tokens, "palette-base.css"), "utf8")}`;
 };
 
 // A fixture is bundled against the built package (dist) with React, as before, but through one esbuild context for the whole test process: a rebuild

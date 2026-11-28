@@ -47,10 +47,15 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 
 `docs/foundations.md` wins if this file and it disagree; fix this file.
 
-- **Monochrome.** Colour appears only in named roles: a product's accent, status, syntax inside code, and a service's own mark on a
-  diagram's card. Never decorative. Colour never carries meaning alone: pair it with
+- **Monochrome.** Colour appears only in named roles: a product's accent, status, syntax inside code, a service's own mark on a
+  diagram's card, and under a palette the palette's roles (a link, the chosen mark, a checked control, the Button variants, a field's edge, an
+  opted-in brand mark); Basalt's default stays monochrome. Never decorative. Colour never carries meaning alone: pair it with
   a word, icon or shape. Syntax colours never carry status (diff colours are a deferred
   exception).
+- **Palettes** (`data-palette`, DECISIONS 403): a closed list of hooks, each read with today's declaration as its fallback, so no palette moves no
+  pixel. Paints Basalt does not draw today exist only under a palette and never in forced colours. A scope is whole; a popup keeps its scope. Corners are
+  two steps (0 to 12; a Button may be `full`), the press .98 or off. Never: status, danger, the focus ring, the 600 and the chosen shape, type, spacing,
+  density, heights, motion beyond the press. `paletteCss` is the only emitter and verifies every pair. No neutral hooks until T10 (DECISIONS 422).
 - **WCAG 2.2 AA everywhere:** 4.5:1 for text, 3:1 for boundaries, focus and icons, on every surface the pair can appear on, in both
   themes. One exception, by name: a `RunTimeline`'s tail recedes below 4.5:1 from its second row (`opacity-recede-2` to `-5`), because
   the control above it opens the whole record at full contrast (WCAG G174); its window's top edge fades only the tail row it cuts, from the second step; it never recedes under more contrast or in forced colours. Contrast tests prove it; add a

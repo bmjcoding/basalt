@@ -321,8 +321,10 @@ export { definePalettes, paletteBootstrap, paletteMetas } from "./palette-bootst
 export type { PaletteConfig, PaletteConfigInput, PaletteOption } from "./palette-bootstrap";
 export { PaletteProvider, PaletteScope, usePalette } from "./palette";
 export type { PaletteProviderProps, PaletteScopeProps, PaletteSource, PaletteState } from "./palette";
-export { PaletteChoiceControl, PaletteMenuGroup } from "./palette-choice";
-export type { PaletteChoiceControlProps, PaletteMenuGroupProps, PaletteWords } from "./palette-choice";
+export { PaletteChoiceControl } from "./palette-choice";
+export type { PaletteChoiceControlProps, PaletteWords } from "./palette-choice";
+export { PaletteMenuGroup } from "./palette-menu-group";
+export type { PaletteMenuGroupProps } from "./palette-menu-group";
 export { useSitePhase } from "./use-site-phase";
 export type { SiteForm, SitePhase, SitePhaseOptions, SitePhaseState } from "./use-site-phase";
 export { AppBrand, AppFootnote, AppHeader, AppShell } from "./app-shell";

@@ -6,7 +6,8 @@ and change the reason here.
 
 Basalt is one system for every SRA Syndicate product: Blacksand, srasyndicate.io,
 baileymjones.com, N1 and what comes after. It's monochrome. A product adds colour through one
-of Basalt's accent classes, in its named roles, and nowhere else.
+of Basalt's accent classes, in its named roles, and nowhere else; under a palette (below), a product's own colours take the palette's
+named roles too.
 
 ## Principles
 
@@ -287,7 +288,7 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   action colour 85% toward the page: about `#bfbfbf` in dark, `#333333` in light) while pressed.
   Its text is 11.4:1 or better on the pressed fill. Secondary, ghost and danger buttons press to
   the selected wash. A press is a colour step, and Button and IconButton also scale to .98 (see
-  [Motion](#motion)).
+  [Motion](#motion)); a palette may turn the scale off, never below .98.
 - **Status:** danger, success and warning, each a dot beside a text label, never a coloured
   badge fill. Danger is also a text colour (4.77:1 or better, including on the hover and selected washes; light `#ba1d27`). There is no filled red button:
   a destructive action is red text on a red hairline, quieter than the primary action, with
@@ -903,6 +904,50 @@ Basalt ships one class today, **cobalt**: `accent.cobalt` is `oklch(0.72 0.14 26
   nine degrees from cobalt, so the confinement test is what keeps the two apart. A class is added as one token entry
   plus its tests, after the council approves it and a product's role for it.
 - The council converged on the mechanism (8 Nov 2026) and the owner approved cobalt only for now.
+- A palette, not an accent, is what colours a link, a chosen mark, a checked control and the primary Button ([Palettes](#palettes)).
+
+### Palettes
+
+A palette is a named set of values for a **closed list of hooks**, chosen beside the theme with `data-palette="<id>"` on the root (or on a
+subtree with `PaletteScope`). Every hook is a custom property Basalt never sets; each reader keeps today's declaration as its fallback, so with
+no palette (or `data-palette="basalt"`) every pixel is Basalt's. A palette's colours are opaque `light-dark()` pairs in `@layer basalt`, behind
+`@supports (color: light-dark(white, black))`, so a theme nested inside a palette root, system dark, print (the light value) and more contrast all
+resolve as they do for the theme. (cimip-gaps-3 T9, DECISIONS 403; decided by the council's heavy round under the owner's handoff.)
+
+| Role | Hooks (`--basalt-…`) | Reads | Falls back to |
+|---|---|---|---|
+| Link | `link-ink`, `link-underline` | `Link`, a rich-text link, a `TextButton` that is not quiet | `text-primary`, `border-input` |
+| Chosen | `chosen-line`, `-fill`, `-ink`, `-edge` | the horizontal tab's line, the pill, a chosen segment, vertical tab and current page | `text-primary`, the pill (`surface-raised` for the page), `text-primary`, the hairline |
+| Checked | `checked-fill`, `-ink`, `-edge` | Checkbox, Radio, Switch on, an option chip's seat, a choice card's box | `action-primary`, `action-primary-text`, none |
+| Mark | `brand-mark` | `BrandSvg tone="brand"`, `.basalt-brand-mark` (opt-in only) | the text colour |
+| Buttons | `button-primary-…` (fill and its hover and press, ink, edge, the disabled pair), `button-secondary-…` (fill, press, ink, edge, hover edge), `button-outline-…` (ink, edge, hover edge), `button-ghost-…` (ink, hover ink) | each variant's own paints | today's tokens; danger has no hook |
+| Fields | `field-edge`, `-edge-hover`, `-edge-active` | Input, Textarea, Select, Combobox, NumberField, FileInput, SearchTrigger, SearchField's host | `border-field`, then the resting edge |
+| Shape | `button-radius`, `-radius-lg`, `field-radius`, `-radius-lg`, `button-press-scale` | where Basalt draws `radius-sm` (the first step) and `radius-md` (the second); the press | Basalt's |
+
+- **Paints Basalt does not draw today** (a primary's edge, a checked edge, a field's hover and active edge, the current page's own hover and
+  press, a primary Button's note and count in its ink) exist only under a palette and never in forced colours, and an edge from them is never
+  drawn on a disabled control. Every value they read falls back to today's paint, so an explicit `basalt` scope inside a palette is Basalt.
+- **A scope is whole:** every palette block declares every hook (`initial` for those it leaves), so nothing leaks in from the palette outside
+  it, and a popup opened from inside a scope keeps its palette and its theme.
+- **Corners:** a palette sets both steps or neither, each one of 0, 2, 4, 6, 8 or 12, the first not above the second; Buttons may be `full` (a
+  capsule), fields never. A two-line Button caps at `radius-lg`. A large Button or field takes the first step under compact density. A Button that
+  is part of a field follows its field. **Press:** .98 or off, never below .98.
+- **Under a palette a primary Button's note and count are its ink**: a positive count's number and pill edge in the ink, the note and a zero count
+  at `opacity-amount`.
+- **What a palette may never change:** status colours and danger's form, the focus ring (style and colour), the 600 and the shape of every chosen
+  item, no outline as a state, no vertical bar, the rim, the levels, the one smoked surface, type, spacing, density, control heights, the 44px
+  targets, motion beyond the press on or off. More contrast and forced colours outrank it: under more contrast the chosen edge, the secondary
+  Button's edges and the field edges are Basalt's.
+- **Proof:** `paletteCss` (`@srasyndicate/basalt-tokens/palettes`) is the only emitter and it verifies first: every pair of the decision's matrix,
+  raw ratios, on every level and well, each under the hover and selected washes, and the plates (4.5:1 for an ink, 3:1 for a line, an edge or a
+  fill that is the boundary), in both themes; the status distance (ΔEok from danger, warning and success against danger-to-warning) is a failure
+  for Basalt's own palettes and an advisory for an app's. `basalt-palette <file.mjs>` and `compose.mjs --palettes` run the same proof.
+- **Neutrals:** this release ships no neutral hooks; tinted surfaces, text and lines come in the next round (T10, DECISIONS 422, the owner: "Tint
+  everything").
+- Basalt ships **beryl** (corners 4 and 6, the .98 press, no icon set). React: `definePalettes`, `paletteBootstrap` (or the file
+  `head/palette.js` with `paletteMetas`), `PaletteProvider`, `usePalette`, `PaletteScope`, `PaletteChoiceControl` (the theme choice's contract,
+  a `Select` from five palettes) and `PaletteMenuGroup`. A saved palette is `localStorage["basalt-palette"]`; a link's `?palette=` lasts the tab
+  and is saved only by a choice. SwiftUI: `Basalt.Palette` and `.basaltPalette(.beryl)`.
 
 ### Keyboard keys
 
@@ -1131,7 +1176,8 @@ type. `Heading size` takes `"6xl"`, `"7xl"`, `"hero"` and `"display"`; the roles
   blocks and callouts), 12 (cards, menus, dialogs), 16 (bottom sheets, and the narrow menu's bottom corners; full-height
   side sheets are square), full (whatever is a circle or a capsule by meaning: avatars, dots, the navigation hover pill, the
   switch, the radio, the slider's track and thumb, progress, meter, and the tab bar's circle). A nested radius is the outer
-  radius minus the padding: a segmented control on touch is a track of 8 holding 44px segments of 6. 8 also takes a diagram's node and
+  radius minus the padding: a segmented control on touch is a track of 8 holding 44px segments of 6. Under a palette a Button's and a field's
+  two steps are the palette's (and a Button may be `full`); see [Palettes](#palettes). 8 also takes a diagram's node and
   table card; 12 a diagram's group; full a flowchart's start or end (DECISIONS 281). **An app tile is a superellipse of exponent 5 at every size and takes no radius** (DECISIONS 162, vote 6; the shape is drawn by the tile's clip, and its hairline follows it). Status: decided by the council and approved by the owner (DECISIONS 138 and 139; the tile, DECISIONS 162); the implementation hasn't been reviewed.
 
 ## Elevation
@@ -2910,7 +2956,11 @@ The components and what each does are in [Motion and primitives](motion.md).
 Basalt has a core set of its own, drawn by the design council (decisions 38 to 40, 54 and 55): the
 core actions, navigation and Blacksand's product nouns. Each glyph is a module of
 `@srasyndicate/basalt` (`HomeGlyph`), and the long tail is Phosphor (MIT), Bold at 16, 20 and 24.
-A product's own logo is its own; the social marks are Phosphor's (below). A diagram's service marks are not icons: they are their owners' files, in their owners' colours, with rules of their own
+A product's own logo is its own; the social marks are Phosphor's (below). **Icon sets** (`IconProvider`, a palette's `icons`): core glyphs are
+replaced by name and system marks by slot (the select and sort carets, the eight status marks, the attachment, the two theme marks, email); the
+nearest provider is the whole set, `{}` is Basalt's own, and a part with no entry draws its own glyph. A `defineGlyph` drawing morphs only
+between its own rest and selected and turns only in its own group; a change in one of the core set's drawn pairs swaps. Seats, sizes and ink
+never change; the key glyphs and service marks are never replaced. A diagram's service marks are not icons: they are their owners' files, in their owners' colours, with rules of their own
 ([Service marks](#service-marks)).
 
 - **Which set draws a glyph.** Wherever a component draws check, close, the chevrons, copy, plus, minus or search, it draws the core
@@ -2994,7 +3044,8 @@ broke a rule, and each change is named.
   by the AA rule and not by vote; in dark the lifted secondary would hold, and the rule is kept, DECISIONS 166). Full ink in forced colours.
 - **The count pill (D11d, A11, A12).** `count` on a `Button`: an outlined pill 24 tall in `border-input`, the number 600, secondary at zero and
   primary above, never a fill and never a colour. The pill hugs its figures, 24 at least. The button holds a seat for two tabular digits round it and the pill ends that seat (0 to 99
-  never moves the button; a third digit widens it). It is `aria-hidden`; the button's name carries the count.
+  never moves the button; a third digit widens it). It is `aria-hidden`; the button's name carries the count. Under a palette a primary Button's
+  count and note are its ink (the zero count and the note at `opacity-amount`); see [Palettes](#palettes).
 - **Two lines (D11b).** `note` on a `Button`: the label (14/20, a `<code>` in it is mono) over a note (13/18, secondary), start-aligned, at least 64
   (`size-control-6xl`); in a container 340 to 480 wide they share one line at 48, 12px apart. A disabled one keeps the label's ink on the note.
 - **Done (D11c, A9, A10).** `IconButton` `done`: the plus becomes the core check in the button's own ink, in one shared seat, with a 100ms crossfade
