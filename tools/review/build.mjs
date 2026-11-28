@@ -104,6 +104,7 @@ const skillPages = {
   ...(!wanted.length || wanted.includes("83") ? (await import("./round83-skill.mjs")).skillPages83() : {}),
   ...(!wanted.length || wanted.includes("84") ? (await import("./round84-skill.mjs")).skillPages84() : {}),
   ...(!wanted.length || wanted.includes("85") ? (await import("./round85-skill.mjs")).skillPages85() : {}),
+  ...(!wanted.length || wanted.includes("90") ? await (await import("./round90-pages.mjs")).skillPages90() : {}),
 };
 
 const bundle = await esbuild.build({
