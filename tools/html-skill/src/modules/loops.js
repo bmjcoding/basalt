@@ -1,8 +1,8 @@
 /* Basalt HTML script, loops module: the page-level hold on every loop (React's useLoops). `<html data-loops="held">` stops the ring, a busy button's
    ring and braille, and the page's one ambient loop (loops.css and ambient.css do the holding). This keeps the state: stored for this page's origin in this browser (`basalt-loops`,
    localStorage is per origin), carried across its tabs by the storage event, applied before first paint by a line in the head that compose.mjs
-   writes (and here, once, if the page has none). Any [data-loops-toggle] is the control: a button syncs aria-pressed and a checkbox with
-   role="switch" syncs checked; a press flips the hold. Releasing jumps to now: every loop rejoins the shared clock and nothing resumes from where
+   writes (and here, once, if the page has none). Any [data-loops-toggle] is the control: a button syncs aria-pressed, a checkbox with
+   role="switch" syncs checked, and a menu's [role="menuitemcheckbox"] row syncs aria-checked and commits on menuchange; a press flips the hold. Releasing jumps to now: every loop rejoins the shared clock and nothing resumes from where
    it stopped. Nothing is announced when it changes (the control speaks its own state). The page reads Basalt.loops.held() for text that rewrites
    itself and listens for the "basalt:loops" event on document (detail.held).
    Source: tools/html-skill/src/modules/loops.js (do not edit the copy in the skill folder). */
@@ -19,6 +19,8 @@
     requestAnimationFrame(function () { requestAnimationFrame(function () { root.removeAttribute('data-still'); }); });
   });
 
+  function isMenuRow(el) { return el.getAttribute('role') === 'menuitemcheckbox'; }
+
   function isHeld() { return document.documentElement.getAttribute('data-loops') === HELD; }
 
   function rejoinClock() {
@@ -33,6 +35,8 @@
     var held = isHeld();
     document.querySelectorAll('[data-loops-toggle]').forEach(function (el) {
       if (el.type === 'checkbox') { el.checked = held; return; }
+      // A menu's checkbox row shows the hold as its check (aria-checked), never aria-pressed.
+      if (isMenuRow(el)) { el.setAttribute('aria-checked', String(held)); return; }
       el.setAttribute('aria-pressed', String(held));
       // The icon form (data-icon-only) draws the core pause glyph's two forms in one box (toggle.css): aria-pressed shows the held one (the bars
       // filled), and the two crossfade over duration-fast. Drawn once; a state set on load paints at once (data-still).
@@ -66,7 +70,12 @@
     sync();
     document.addEventListener('click', function (event) {
       var el = event.target.closest && event.target.closest('[data-loops-toggle]');
-      if (el && el.type !== 'checkbox' && !el.disabled) set(!isHeld());
+      if (el && el.type !== 'checkbox' && !isMenuRow(el) && !el.disabled) set(!isHeld());
+    });
+    // A menu's checkbox row: the menu module flips its aria-checked on a press and says so with menuchange; the hold follows it (one write).
+    document.addEventListener('menuchange', function (event) {
+      var el = event.target;
+      if (el && el.matches && el.matches('[role="menuitemcheckbox"][data-loops-toggle]')) set(el.getAttribute('aria-checked') === 'true');
     });
     document.addEventListener('change', function (event) {
       var el = event.target;

@@ -68,6 +68,15 @@
   .option-chip:is([data-unavailable], :has(> .option-chip-input:is(:disabled, [aria-disabled="true"]))) .option-chip-seat { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-divider); }
   .option-chip:is([data-checked][data-unavailable], :has(> .option-chip-input:disabled:checked)) { background: transparent; }
   @media (pointer: coarse), (width < %bp-md%) { .option-chip { min-height: var(--basalt-size-tap-min); } }
+  /* A chip's count (as React's OptionChip count): after the label, 13/18 at 400 in tabular figures, tertiary at rest, secondary on hover, a press and when
+     chosen, the disabled ink when unavailable. Its seat (data-seat, the group's widest figure, drawn unseen in the same cell) holds the room, the figure at
+     its end, so a count that changes moves no chip. */
+  .option-chip-figure { display: inline-grid; justify-items: end; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--bh-sm); font-variant-numeric: tabular-nums; }
+  .option-chip-figure > *, .option-chip-figure::after { grid-area: 1 / 1; }
+  .option-chip-figure::after { content: attr(data-seat); visibility: hidden; user-select: none; }
+  .option-chip:is([data-checked], :has(> .option-chip-input:checked)) .option-chip-figure, .option-chip:active .option-chip-figure { color: var(--basalt-text-secondary); }
+  @media (hover: hover) { .option-chip:hover .option-chip-figure { color: var(--basalt-text-secondary); } }
+  .option-chip:is([data-unavailable], :has(> .option-chip-input:is(:disabled, [aria-disabled="true"]))) .option-chip-figure { color: var(--basalt-text-disabled); }
 
   @media (forced-colors: active) {
     .option-chip { border-color: ButtonText; color: ButtonText; }
@@ -76,5 +85,8 @@
     .option-chip:is([data-checked], :has(> .option-chip-input:checked)) .option-chip-seat { background: HighlightText; border-color: HighlightText; color: Highlight; }
     .option-chip:is([data-checked], :has(> .option-chip-input:checked)) .option-chip-seat > svg { color: Highlight; }
     .option-chip:is([data-unavailable], :has(> .option-chip-input:is(:disabled, [aria-disabled="true"]))), .option-chip:is([data-unavailable], :has(> .option-chip-input:is(:disabled, [aria-disabled="true"]))) .option-chip-seat { border-color: GrayText; color: GrayText; }
+    .option-chip .option-chip-figure { color: ButtonText; }
+    .option-chip:is([data-checked], :has(> .option-chip-input:checked)) .option-chip-figure { color: HighlightText; }
+    .option-chip:is([data-unavailable], :has(> .option-chip-input:is(:disabled, [aria-disabled="true"]))) .option-chip-figure { color: GrayText; }
   }
 }

@@ -16,7 +16,8 @@
   .notifications-clear { margin-inline-end: auto; }
   .notifications-empty { margin: 0; padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; color: var(--basalt-text-secondary); }
   /* The list keeps space-1-5 (6px) from its clipping edges, so a focusable row's ring (2px offset, 2px wide) is never cut. */
-  .notifications-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; }
+  /* It fades at each edge that hides entries (cimip-gaps-3 t7); an entry brought into view keeps the fade and its ring's room clear. */
+  .notifications-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5)); }
   .notifications-list { margin: 0; padding: var(--basalt-space-1-5); list-style: none; }
 
   /* An entry is a link or a button, not an option. It has popup-row geometry: a plate inset 2px above and below, radius 8, 12px from the rim to the
@@ -77,6 +78,20 @@
   .notification[aria-expanded="false"] .notification-caret:dir(rtl) { transform: scaleX(-1); }
   .notification-entries { margin: 0; padding: 0; padding-inline-start: calc(var(--basalt-size-dot) + var(--basalt-size-icon-sm) + 2 * var(--basalt-space-2-5)); list-style: none; }
 
+  /* The ringed dot (React's, cimip-gaps-3 T3, 8c): unread and for the reader. The 6px dot in a 1px ring, 1px apart, 10px across on the plain dot's centre, in primary ink:
+     the ring a border, the disc a fill in the padding. In an entry it reaches 2px into the gaps and the seat keeps its 6px. */
+  button[data-direct] > .notifications-dot { box-sizing: border-box; width: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); height: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); padding: var(--basalt-size-hairline); border: var(--basalt-size-hairline) solid currentColor; border-radius: var(--basalt-radius-full); background: currentColor; background-clip: content-box; top: calc(var(--basalt-space-1-5) - 2 * var(--basalt-size-hairline)); right: calc(var(--basalt-space-1-5) - 2 * var(--basalt-size-hairline)); color: var(--basalt-text-primary); }
+  .notification[data-direct] .notification-dot { position: relative; background: none; }
+  .notification[data-direct] .notification-dot::before { content: ""; position: absolute; inset: calc(-2 * var(--basalt-size-hairline)); box-sizing: border-box; width: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); height: calc(var(--basalt-size-dot) + 4 * var(--basalt-size-hairline)); padding: var(--basalt-size-hairline); border: var(--basalt-size-hairline) solid currentColor; border-radius: var(--basalt-radius-full); background: currentColor; background-clip: content-box; color: var(--basalt-text-primary); }
+  /* `wrap`: titles and lines wrap whole; the dot, the mark, the time and a count stay on the first line. */
+  .notifications-list[data-wrap] :is(.notification-title, .notification-line) { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; }
+  .notifications-list[data-wrap] .notification-head { align-items: flex-start; }
+  .notifications-list[data-wrap] .notification-caret { margin-block-start: calc((var(--basalt-text-base-line-height) - var(--basalt-size-icon-sm)) / 2); }
+  /* An action off with its reason: one line under the band's row, from its start edge across its width. */
+  :is(.notifications-head, .notifications-foot):has(> .notifications-reason) { flex-wrap: wrap; row-gap: 0; }
+  .notifications-head:has(> .notifications-reason) > .notifications-count { flex-basis: 0; }
+  .notifications-reason { flex: 0 0 100%; margin: var(--basalt-space-1) 0 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--bh-sm); }
+
   /* The hover glide: one shared plate follows the pointer between entries (40 or 58 tall); the first key hides it and the resting hover, so only the
      ring shows, until the pointer moves again. Off on touch, under reduced motion and in forced colours, where each entry paints its own. */
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
@@ -85,11 +100,14 @@
   @media (forced-colors: active) {
     /* The unread dots are fills, which forced colours drop: each is drawn as its own border, as a status dot is, so it takes the system colour of
        where it sits. A hovered entry is Highlight with HighlightText, as a lit row is, and its marks and dot follow. */
-    .notifications-dot, .notification[data-unread] .notification-dot { box-sizing: border-box; border: calc(var(--basalt-size-dot) / 2) solid; background: none; }
+    .notifications-dot, .notification[data-unread]:not([data-direct]) .notification-dot { box-sizing: border-box; border: calc(var(--basalt-size-dot) / 2) solid; background: none; }
     .notification[data-status] .notification-mark { color: CanvasText; }
     .notification:hover { forced-color-adjust: none; background: Highlight; color: HighlightText; }
     .notification:hover::before { background-color: transparent; }
     .notification-count, .notification-caret { color: CanvasText; }
+    button[data-direct] > .notifications-dot, .notification[data-direct] .notification-dot::before { forced-color-adjust: none; color: CanvasText; border: var(--basalt-size-hairline) solid CanvasText; background-color: CanvasText; }
+    .notification[data-direct] .notification-dot { border: 0; }
+    .notification[data-direct]:hover .notification-dot::before { color: HighlightText; border-color: HighlightText; background-color: HighlightText; }
     .notification:hover :is(.notification-title, .notification-line, .notification-time, .notification-mark, .notification-count, .notification-caret) { color: HighlightText; }
   }
 }

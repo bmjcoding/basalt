@@ -355,7 +355,7 @@ describe("no field a module writes into markup can run script (A5-10)", () => {
       await p.keyboard.press("Backspace");
       await p.keyboard.type("zzzz");
       await p.waitForFunction(() => document.querySelectorAll(".palette .row").length === 0, null, { timeout: 3000 });
-      assert.equal((await p.locator(".palette-empty").textContent()).trim(), "No commands match.", "and nothing matching shows the empty line");
+      assert.equal((await p.locator(".palette .command-none p").textContent()).trim(), "Nothing matches “zzzz”.", "and nothing matching shows the empty block (cimip-gaps-3 t6)");
       await p.keyboard.press("Escape");
     });
     await step("the command list", async () => {
@@ -624,7 +624,7 @@ describe("F6 reaches the notifications region (A3-09)", () => {
         await p.waitForFunction((sel) => document.querySelector(sel)?.hasAttribute("aria-activedescendant"), react ? ".basalt-command-input" : ".palette input");
         await settle(p);
       };
-      const click = () => p.locator(react ? part === "footer" ? ".basalt-command-footer" : "[cmdk-group-heading]" : part === "footer" ? ".palette-footer" : ".row-group").click();
+      const click = () => p.locator(react ? part === "footer" ? ".basalt-dialog .basalt-command-foot" : "[cmdk-group-heading]" : part === "footer" ? ".palette .command-foot" : ".row-group").click();
       const selected = () => p.locator(react ? '[cmdk-item][aria-selected="true"]' : '.palette [role="option"][aria-selected="true"]').innerText();
       await openMenu();
       await click();

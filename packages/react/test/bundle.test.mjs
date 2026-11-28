@@ -99,7 +99,26 @@ async function lazyGraph(names, extra = "") {
 // cimip-gaps-3 E5: E1 had raised this limit to main's measure, because PR #143 built the lazy diagram-actions.js in the main build, so it imported
 // Button's dist chunk and an app's bundler put Button and Base UI's button in a chunk every root import loaded. diagram-actions is built on its own now
 // (build.mjs), and the limit is the measure on the E5 branch, rounded up to the next 50: Sparkline 23,197 on main, 4,765 (23,200 to 4,800).
-for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 4_800], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_550], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 3_400], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_100]]) {
+// cimip-gaps-3 T2 (measured with this file's own graph() and bundle() on origin/main (ac962cec, and the same on c67926bf) and on the T2 head; each limit the head's measure rounded up to the
+// next 50, raised only by the increase): Sparkline 4,765 on main, 9,060 on the head (4,800 to 9,100: the side scale from the data's own range, the real-pixel plot and its
+// ResizeObserver, times and their lane by formatClock and formatDay, two marks and their key, and the image's name from the data).
+// cimip-gaps-3 t4 (forms and controls), measured with this file's own graph() on origin/main ac962cec and again on c67926bf (the same figures), and on the t4 head; each limit raised by the increase alone.
+// Reserve's `block` and its development check (Reserve is in Button, so in everything that draws one) add 117 to 120 bytes: Button 18,544 to 18,662 (18,550 to 18,668),
+// Drawer 19,106 to 19,224 (19,100 to 19,218; main was already 6 over its limit), NotificationCentre 153,260 to 153,378 (153,300 to 153,418), DirectoryList 20,925 to 21,043
+// (20,950 to 21,068), Reveal 20,521 to 20,639 (20,550 to 20,668), CopyButton 19,485 to 19,603 (19,500 to 19,618), ReleaseNotes 68,405 to 68,523 (68,450 to 68,568), StageBadge
+// 5,414 to 5,531 (5,450 to 5,567), RunTimer 6,091 to 6,209 (6,100 to 6,218), RunStage 22,181 to 22,301 (22,200 to 22,320), StageList with RunStage 22,948 to 23,066 and StageRail
+// with RunStage 22,900 to 23,018 (22,950 to 23,068 each), the toolbar set 59,197 to 59,330 (59,200 to 59,333). FilterResult's `spoken` and `reserve` and Reserve: SearchDialog
+// 89,981 to 90,327 (89,950 to 90,296; main was already 31 over). OptionChip's count and its seat: OptionChips 37,972 to 38,517 (38,400 to 38,945).
+// The stream's merge (cimip-gaps-3 T1, T2, T3, T4 and T6 in one tree, DECISIONS 394), measured with this file's graph() on origin/main 6a78d57c and on the combined head:
+// Button 18,544 to 18,672 (+128: T4's Reserve block and the stream's other shared bytes; main's 18,550 to 18,678). Drawer was over its limit on main before
+// this stream (19,106 against 19,100); it measures 19,234 on the combined head, so its limit is that figure and a small margin, 19,250.
+// cimip-gaps-3 t7 (cut content fades, DECISIONS 399), measured with this file's graph() and bundle() on origin/main 4e438ecb and on the t7 head; each limit rises by
+// the increase alone: scroll-fade.ts (the band, the strips, the protected item, the two-axis reveal, about 5.8 KB) and the ports' helpers (fade-port.tsx, the
+// keyboard stop). Re-measured after Astra's fix pass 1 (the Listbox's kept option, the popover port's name, the status peek's kept port), and again on the
+// merge with origin/main 8b090549 (T5, which moved none of these five: the same main figures): Listbox 3,358 to 10,173 (+6,815: 3,400 to 10,215); SearchDialog 90,327 to 98,748 (+8,421: 90,350 to 98,771, its dialog's and results' fade);
+// NotificationCentre 156,110 to 164,955 (+8,845: 156,150 to 164,995); Text 17,568 to 23,692 (+6,124: 17,600 to 23,724, the lazy peek plate's status port
+// inlined by bundle(); built on its own so no root import's graph carries the fade); Terminal 43,980 to 50,042 (+6,062: 43,991 to 50,053).
+for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_100], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_678], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 10_215], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_250]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -114,7 +133,9 @@ for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 4_800], ["Skeleto
 // watcher, screen-keyboard.ts, trimmed to about 2.4 KB), so SearchDialog rose from about 87,300 to 88,162; merged with main (5ad5345a), whose own
 // changes added about 490 bytes, it measures 88,683, so its limit is 88,700.
 // SearchDialog 89,550 (main's) to 89,950 in DECISIONS 336: its top is held where a full result has it (DialogContent's held top for a dialog that is not a form), and Close is hung.
-for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 89_950]]) {
+// The stream's merge: SearchDialog was over its limit on main before this stream (89,981 against 89,950); with T4's FilterResult and Reserve it measures
+// 90,327 on the combined head (origin/main 6a78d57c: 89,981), so its limit is that figure and a small margin, 90,350.
+for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 98_771]]) {
   test(`${name} alone, with splitting, loads Base UI's dialog and the close button and no command panel (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes (limit ${limit})`);
@@ -126,7 +147,7 @@ for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 89_950]])
 // OptionChips 37,699 (Base UI's radio group), LinkTabs 140,720 (it carries the Select under 720, DECISIONS 154 A15: Base UI's select and its popup), LinkTab 649 (3,898 once its label takes ChosenLabel, the selected state a Tab's children take: join 2 in integration-nov15b, DECISIONS 138 A, 145, 149; the limit is the measured bytes rounded up to the next 50), TabsPanels 519, useConfirm 399, CONFIRM_MS 185; the limits sit just above.
 // cimip-gaps-2 B6 (DECISIONS 246: trim first, then a raise the feature needs): LinkTabs carries the Select, and `Select toolbar` (the unseen labels that hold its width) adds 212 bytes
 // after a 67-byte trim (no attribute, no class on the labels): measured 141,669, from main's 141,457, so the limit goes from 141,500 to 141,700.
-for (const [name, limit, baseUi] of [["TextButton", 11_550, true], ["SwitchRow", 25_500, true], ["SwitchRowGroup", 11_600, true], ["OptionChips", 38_400, true], ["LinkTabs", 142_150, true], ["LinkTab", 3_900, false], ["TabsPanels", 900, false], ["useConfirm", 800, false], ["CONFIRM_MS", 400, false]]) {
+for (const [name, limit, baseUi] of [["TextButton", 11_550, true], ["SwitchRow", 25_500, true], ["SwitchRowGroup", 11_600, true], ["OptionChips", 38_945, true], ["LinkTabs", 142_150, true], ["LinkTab", 3_900, false], ["TabsPanels", 900, false], ["useConfirm", 800, false], ["CONFIRM_MS", 400, false]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -199,12 +220,34 @@ test("Menu does not pull in Shiki", async () => {
   assert.ok(!inputs.some((f) => f.includes("shiki")));
 });
 
+// cimip-gaps-3 T3 fix 1 (item 9): a Text without `lines` loads no plate. Its static graph under splitting, which is what an app loads up front, holds no
+// peek-plate code, and the plate is still reachable as a lazy file (the positive control: a cut Text can still fetch it).
+test("Text loads the cut-text plate only on demand: none in its static graph, one lazy file reachable", async () => {
+  const { inputs } = await graph("Text");
+  assert.deepEqual(inputs.filter((f) => /peek-plate|cell-peek/.test(f)), [], "no plate in what loads up front");
+  const result = await esbuild.build({
+    stdin: { contents: `import { Text } from "./dist/index.js"; console.log(Text);`, resolveDir: pkg, loader: "js" },
+    bundle: true, minify: true, format: "esm", splitting: true, outdir: path.join(pkg, ".bundle-check"), write: false, metafile: true,
+    external: ["react", "react-dom", "react/jsx-runtime"], logLevel: "silent",
+  });
+  const lazy = Object.values(result.metafile.outputs).filter((output) => Object.keys(output.inputs).some((input) => /dist\/peek-plate\.js$/.test(input)));
+  assert.equal(lazy.length, 1, "the plate is one lazy file");
+  assert.notEqual(lazy[0].entryPoint, "<stdin>");
+});
+
 // MorphIcon is 6,713 bytes: the morph engine (the allow-list and flight identity) and the drawing, and no glyph. It takes every glyph
 // by reference (`glyph={CloseGlyph}`), so an app pays only for the glyphs it imports. When it took the 21 actions by name it carried
 // all of them (9,706 bytes, limit 10,500); the limit is back at 8,000.
 // Representative single imports. Each of these once dragged in a neighbouring component's
 // primitives (a Popover or Tooltip from a module-scope alias, Base UI from NumberTicker's module).
-for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 4_000], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 8_000]]) {
+// cimip-gaps-3 T2 (measured with this file's own graph() and bundle() on origin/main (ac962cec, and the same on c67926bf) and on the T2 head; each limit the head's measure rounded up to the
+// next 50, raised only by the increase): Sparkline alone 4,631 on main, 8,926 on the head (8,000 to 8,950), for the same parts as above.
+// cimip-gaps-3 T3 (item 3, Text lines): measured with this file's own bundle() on origin/main ac962cec and on the T3 head: Text 922 on main, 17,398 with T3. The
+// growth is the text plate (peek-plate.js, 14,851 bytes), a dynamic import that this unsplit bundle inlines; under splitting Text's static graph is 2,390 (1,056
+// on main) and a Text without `lines` runs no hook and loads nothing. The limit rises by the increase, 4,000 to 17,400. T3 fix 1 (item 4: the cut text's ref
+// keeps a callback ref's cleanup, through useMergedRef): 17,568 measured, the limit 17,400 to 17,600. Re-measured at the merge with origin/main c67926bf: main 922,
+// the head 17,568.
+for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 23_724], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 8_950]]) {
   test(`${name} alone is small and loads no Base UI`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -310,7 +353,10 @@ test("no module in dist builds a registry or reads a primitive's part when it lo
     if (path.basename(file) === "command-panel.js") continue;
     // The release notes' Sources popup and the rail's tooltip are lazy too, with Base UI inlined so they share no chunk (build.mjs): its module-level
     // tables are Base UI's own, and load only when a reader first reaches for a source line, or a rail shows a version.
-    if (["release-sources.js", "rail-tooltip.js"].includes(path.basename(file))) continue;
+    // The anchored popover (cimip-gaps-3 T2: Stat's hint and a rail stage's detail) is the third, the same way: Base UI's popover inlined, its tables
+    // (ariaHiddenCounterMap, uncontrolledElementsSet) allocated only when a hint or a rail's node first opens one.
+    // A stream message's More popover (cimip-gaps-3 T5) is the fourth, the same way: its tables load only when a reader on touch first presses More.
+    if (["release-sources.js", "rail-tooltip.js", "anchored-popover.js", "stream-more.js"].includes(path.basename(file))) continue;
     const source = fs.readFileSync(file, "utf8");
     // `var x = /* @__PURE__ */ new Set()` is still an allocation at load
     for (const match of source.matchAll(/^(?:var|let|const) \w+ = (?:\/\*.*?\*\/ )?(?:new (?:Map|Set|WeakMap|WeakSet|Intl\.\w+|RegExp)\(|Base\w+\.\w+;)/gm)) offenders.push(`${path.relative(dist, file)}: ${match[0]}`);
@@ -383,7 +429,14 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // cimip-gaps-3 E2 (DECISIONS 246, measured with this file's own graph() on origin/main 9f17176f, after #152, and on the E2 head; each limit the head's
 // measure rounded up to the next 50): ToastProvider 94,053 on main, 94,456 with E2 (+403: the toast's group role, F6 to the promised action), 93,500 to
 // 94,500; NotificationCentre 153,235 on main, 153,260 with E2 (+25: initialFocus), 153,250 to 153,300.
-for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 153_300]]) {
+// cimip-gaps-3 T3 (item 8, measured with graph() on origin/main ac962cec and on the T3 head): NotificationCentre 153,260 on main, 167,117 with T3's first
+// build (+13,857, nearly all of it LoadingShape for the first load). T3 fix 1 (Astra's item 8) moves the first load into a lazy module built on its own
+// (notification-shape.js, build.mjs), so a bell that never waits carries none of it: 155,936 measured (+2,676 on main: wrap, counts, the direct mark, the
+// reasons, the stand-ins and the loader). The limit is that measure rounded up to the next 50: 153,300 to 155,950. Re-measured at the merge with origin/main
+// c67926bf: main 153,260, the head 155,936; then 155,982 once the first load's fallback is busy (a held first paint waits for the shape's code), the limit
+// 155,950 to 156,000.
+// The stream's merge (T3 and T4 both raised it): NotificationCentre 153,260 on origin/main 6a78d57c, 156,110 on the combined head (+2,850), so main's 153,300 to 156,150.
+for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 164_995]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);
@@ -396,7 +449,8 @@ for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["N
 // the whole set weighs what its Button, Input and Link do plus the toolbar. The root alone is 23,575 bytes; every part, 53,764. Combined in integration-nov15b: the controls batch's Button (DECISIONS 154) and the links batch's Link arrow (DECISIONS 152) both ride in the set, which measures 56,008, over the 56,000 each side kept, so the limit was 56,050 (the measured bytes rounded up to the next 50); DECISIONS 221 raised it to 56,350 for the glyph morphs' shell in Button and IconButton.
 // DECISIONS 326: a text toggle's seat holds its glyph and hands over to the check (button.tsx), about 185 bytes on every Button: the toolbar parts 58,803 (58,650 to 58,850).
 // The toolbar's parts 58,950 (main's) to 59,200 in DECISIONS 336: Button's edge and done seat.
-for (const [name, limit] of [["Toolbar", 25_000], ["Toolbar, ToolbarButton, ToolbarIconButton, ToolbarLink, ToolbarInput, ToolbarGroup, ToolbarSeparator", 59_200]]) {
+// The stream's merge: the toolbar set 59,197 on origin/main 6a78d57c, 59,340 on the combined head (+143), so main's 59,200 to 59,343.
+for (const [name, limit] of [["Toolbar", 25_000], ["Toolbar, ToolbarButton, ToolbarIconButton, ToolbarLink, ToolbarInput, ToolbarGroup, ToolbarSeparator", 59_343]]) {
   test(`${name.length > 10 ? "Every toolbar part" : name} stays small and loads no Shiki, cmdk or grammar (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -406,13 +460,24 @@ for (const [name, limit] of [["Toolbar", 25_000], ["Toolbar, ToolbarButton, Tool
 
 // The figures (decision 94): the description list and the stat are plain markup; the meter carries Base UI's Meter and nothing
 // else of it; the terminal carries a Button, an Icon and the braille spinner, and never Shiki or cmdk.
-for (const [name, limit] of [["DescriptionList, DescriptionItem", 1_500], ["Stats, Stat", 3_500]]) {
+for (const [name, limit] of [["DescriptionList, DescriptionItem", 1_500]]) {
   test(`${name} alone is small and loads no Base UI, no Phosphor and no Shiki`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
     assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|@radix-ui|shiki/.test(f)), []);
   });
 }
+// cimip-gaps-3 T2 (item 2, decided): a Stat that links draws the core arrow, and its label's hint is Phosphor's Info opening a popover that loads on demand
+// (anchored-popover.js). The unsplit bundle() inlines that dynamic import, so the stat is measured as an app that splits loads it, with graph(): its static
+// graph loads no Base UI and no Shiki, and of Phosphor only Info. 2,533 on origin/main 6a78d57c, 10,999 on the combined head (+8,466), so 3,500 to 11,966
+// (the stat measured with bundle() before, at 2,399 against 3,500; the lazy popover is checked on its own, at the end of this file).
+test("Stats with Stat loads no Base UI and no Shiki up front, and of Phosphor only the hint's Info (11,966 bytes at most)", async () => {
+  const { bytes, inputs } = await graph("Stats, Stat");
+  assert.ok(bytes < 11_966, `Stats, Stat is ${bytes} bytes (limit 11,966)`);
+  assert.deepEqual(inputs.filter((f) => /@base-ui|cmdk|@radix-ui|shiki/.test(f)), []);
+  const marks = inputs.filter((f) => /@phosphor-icons/.test(f)).map((f) => path.basename(f).replace(/\.es\.js$|\.mjs$|\.js$/, ""));
+  assert.deepEqual([...new Set(marks)].filter((m) => !/^(IconBase|context|SSRBase)$/.test(m)), ["Info"]);
+});
 
 // The panels, art and parts (DECISIONS 162): the app tile, the captioned columns and the table call are plain markup, so they load no Base UI, no Phosphor and no Shiki;
 // the period stepper is two IconButtons, a status line and the core chevrons, so it carries a Button and nothing else of Base UI.
@@ -441,7 +506,11 @@ test("Meter carries Base UI's Meter and no other part, no Phosphor and no Shiki"
 // The charts port (DECISIONS 153): the trend helper is a few hundred bytes and does not pull the chart in; the share bar, coverage strip and marks row are plain elements and load no
 // Base UI and no icon; the range meter carries Base UI's Meter and nothing else of it; the phase chart is the chart plus its lane. Measured (bytes): trailingMean 435, ShareBar 1,022,
 // CoverageStrip 1,379, MarksRow 683, RangeMeter 9,454, TimeChart 46,915, PhaseChart 49,465. The short bar plot (`compact`, DECISIONS 160) added 120 bytes to TimeChart (46,973 to 47,093); PhaseChart is 49,643.
-for (const [name, limit] of [["trailingMean", 800], ["ShareBar", 1_500], ["CoverageStrip", 2_000], ["MarksRow", 1_200]]) {
+// cimip-gaps-3 T2 (measured with this file's own graph() and bundle() on origin/main (ac962cec, and the same on c67926bf) and on the T2 head; each limit the head's measure rounded up to the
+// next 50, raised only by the increase): ShareBar 1,411 on main, 8,197 on the head (1,500 to 8,250: tones, the floors and the one-line fit measured before paint, the legend, parts
+// that are links or buttons through safeHref, and the core new-tab arrow); CoverageStrip 1,570, 2,297 (2,000 to 2,300: the events' lane and sentence). Neither loads Base UI or Phosphor.
+// T2 fix pass 1 (Astra): ShareBar keeps the caller's ref (useMergedRef): 8,197 to 8,458 measured, so 8,250 to 8,500.
+for (const [name, limit] of [["trailingMean", 800], ["ShareBar", 8_500], ["CoverageStrip", 2_300], ["MarksRow", 1_200]]) {
   test(`${name} alone is small and loads no Base UI, no Phosphor and no Shiki (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -478,7 +547,14 @@ test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async
   // 41,750 (main's) to 42,200 in DECISIONS 336, then 42,550 with the open items' ruling (the shared copy state, copy-result.ts, and the close on a refused icon-only copy): its copies are hung, its words form keeps its words with the done seat, and a refused copy shows the close.
   // cimip-gaps-3 E1 (DECISIONS 246): RunTimer's `spoken` and its fresh-words tick add 313. E5: with the shared chunk gone (diagram-actions built on its own, build.mjs)
   // Terminal measures 42,889 (43,011 on main), so the limit is 43,050 to 42,900. It was 42,570 before PR #143, already 20 over the old 42,550.
-  assert.ok(bytes < 42_900, `Terminal bundle is ${bytes} bytes`);
+  // cimip-gaps-3 T1 and T2 in one PR (measured with this file's graph() on origin/main c67926bf and on the combined head; the limit is main's 42,900 plus the
+  // combined increase): T1's minute grain for RunTimer (read before paint, its tick on the minute's machine value and scale) and T2's warning stage line (its
+  // mark and word): 42,889 on main, 43,744 on the head (+855), so 42,900 to 43,755.
+  // cimip-gaps-3 t6: CodeLine draws a line number's column (CodeBlock lineNumbers), which Terminal shares: measured with this file's graph() at 42,889 on
+  // origin/main ac962cec, again at 42,889 on origin/main c67926bf (merge prep), and 43,007 on the t6 head (+118), so the limit rises by the increase, 42,900 to 43,018.
+  // The stream's merge (T1, T2 and T6 each raised it): 43,007 on origin/main 6a78d57c, 43,980 on the combined head (+973), so main's 43,018 to 43,991.
+  // cimip-gaps-3 t7: the transcript fades (scroll-fade.ts): 43,980 on origin/main 4e438ecb and on 8b090549, 50,042 on the t7 head (+6,062), so 43,991 to 50,053.
+  assert.ok(bytes < 50_053, `Terminal bundle is ${bytes} bytes`);
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
 });
@@ -528,7 +604,9 @@ test("LoopsToggleIcon alone loads the icon button and the hold, and not Switch",
 // not disabled, DECISIONS 246): CopyButton 18,551 measured, 18,550 to 18,600.
 // DECISIONS 326: a text toggle's seat holds its glyph and hands over to the check (button.tsx), about 185 bytes on every Button: DirectoryList 20,212 (20,050 to 20,250), Reveal 19,810 (19,650 to 19,850), CopyButton 18,749 (18,600 to 18,800).
 // DirectoryList 20,350 to 20,950, Reveal 19,950 to 20,550 and CopyButton 18,900 to 19,500 (from main's) in DECISIONS 336: Button's edge and done seat.
-for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_000, false], ["BackLink", 5_500, false], ["BigLinkList", 1_000, false], ["BigLinkRow", 6_000, false], ["DirectoryRow", 6_500, false], ["DirectoryList", 20_950, true], ["Reveal", 20_550, true], ["CopyButton", 19_500, true]]) {
+// The stream's merge (several batches): DirectoryList 20,925 to 21,053 (+128; main's 20,950 to 21,078), Reveal 20,521 to 20,649 (+128; 20,550 to 20,678), CopyButton
+// 19,485 to 19,613 (+128; 19,500 to 19,628), measured with graph() on origin/main 6a78d57c and on the combined head.
+for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_000, false], ["BackLink", 5_500, false], ["BigLinkList", 1_000, false], ["BigLinkRow", 6_000, false], ["DirectoryRow", 6_500, false], ["DirectoryList", 21_078, true], ["Reveal", 20_678, true], ["CopyButton", 19_628, true]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -601,7 +679,7 @@ test("the whole package up front, tracked subpaths, and styles.css, minified and
 test("importing every file in dist allocates no registry or formatter, reads no browser global, and throws nothing", async () => {
   const { execFileSync } = await import("node:child_process");
   const dist = path.join(pkg, "dist");
-  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && !["command-panel.js", "release-sources.js", "rail-tooltip.js"].includes(path.basename(f)) && !["head/theme.js", "head/loops.js"].includes(f.split(path.sep).join("/"))).sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
+  const files = nodeFs.readdirSync(dist, { recursive: true }).filter((f) => f.endsWith(".js") && !["command-panel.js", "release-sources.js", "rail-tooltip.js", "anchored-popover.js", "stream-more.js"].includes(path.basename(f)) && !["head/theme.js", "head/loops.js"].includes(f.split(path.sep).join("/"))).sort((a, b) => Number(path.basename(b).startsWith("chunk-")) - Number(path.basename(a).startsWith("chunk-")) || a.localeCompare(b));
   assert.ok(files.length > 200, `${files.length} files in dist`);
   const script = `
     import { pathToFileURL } from "node:url";
@@ -734,7 +812,10 @@ test("the imports plugin never rewrites a file that resolves another copy of Bas
 // The repo review's press guard (Promise.allSettled in takeClick, in every button) merged in: ReleaseNotes 67,639, so 67,650.
 // cimip-gaps-3 E2 (DECISIONS 246, this file's graph() on origin/main 9f17176f and the E2 head): ReleaseNotes 68,285 on main, 68,405 with E2 (+120: DotLine
 // holds each fact with its dot, and the read ", " is inline text), so 68,250 to 68,450.
-for (const [name, limit] of [["VersionLink", 2_150], ["ReleaseIndex", 31_050], ["ReleaseNotes", 68_450]]) {
+// The stream's merge: ReleaseNotes 68,405 on origin/main 6a78d57c, 68,533 on the combined head (+128), so main's 68,450 to 68,578.
+// cimip-gaps-3 T5 (this file's graph() on origin/main 4e438ecb and on the T5 head): ReleaseNotes 68,533 on main, 68,708 with T5 (+175: Callout's `meta`,
+// the head row a callout draws only when it is given one), so the limit goes up by that increase, 68,578 to 68,753.
+for (const [name, limit] of [["VersionLink", 2_150], ["ReleaseIndex", 31_050], ["ReleaseNotes", 68_753]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -753,10 +834,19 @@ test("ReleaseNotes loads no popup up front: no popover, no positioning, no Float
 
 // AppShell measured alone (the size table): 103,887 before the version, 115,101 with the rail's tooltip up front, 104,373 with it on demand; with
 // splitting its static graph measures 104,964, so the limit is 105,000.
+// cimip-gaps-3 T5 (graph() on origin/main 4e438ecb and on the T5 head): 104,924 on main, 105,239 with T5 (+315: `rail`, `banner`, `footnote` and the
+// title context a phone page head registers in), so the limit goes up by that increase, 105,000 to 105,315.
 test("AppShell loads the rail's tooltip for the version on demand", async () => {
   const { inputs, bytes } = await graph("AppShell");
   assert.deepEqual(inputs.filter((input) => /rail-tooltip/.test(input)), []);
-  assert.ok(bytes < 105_000, `AppShell: ${bytes} bytes (limit 105,000)`);
+  assert.ok(bytes < 105_315, `AppShell: ${bytes} bytes (limit 105,315)`);
+});
+
+// cimip-gaps-3 T5: a stream message's More popover (the quiet actions' touch form) loads the first time a reader reaches for More, from stream-more.js,
+// built on its own with Base UI's popover inlined. With it up front StreamMessage measured 130,133 in the size table; on demand, 19,640 (15,052 on origin/main 4e438ecb before the quiet actions, the seat and the time link).
+test("StreamMessage loads no popup up front: no popover, no positioning, no Floating UI until More is pressed", async () => {
+  const { inputs } = await graph("StreamMessage");
+  assert.deepEqual(inputs.filter((input) => /@floating-ui\/(dom|core|react-dom)|floating-ui-react|@base-ui\/react\/popover|stream-more|useAnchorPositioning/.test(input)), []);
 });
 
 // DECISIONS 316, ruling 3: TextButton draws its end icon through ControlIcon, so a chevron that opens something in place morphs; measured 11,412 (10,600 to 11,450).
@@ -769,14 +859,25 @@ test("AppShell loads the rail's tooltip for the version on demand", async () => 
 // `spoken` and the rail's whole seconds are about 312 of it); RunStage 38,512, 22,181 (38,550 to 22,200); StageList, RunStage 39,277, 22,948 (39,300 to 22,950); StageRail,
 // RunStage 39,229, 22,900 (39,250 to 22,950). StageMark 14,451 (31,147 on main), StageBadge 5,414 (22,072), RunAnnouncer 582 (19,047) and formatRunTime 649 (19,114)
 // are under the limits E1 left as they were, and none of them loads Base UI again.
-for (const [name, limit, phosphor] of [["StageMark", 14_500, true], ["StageBadge", 5_450, false], ["RunTimer", 6_100, false], ["RunAnnouncer", 600, false], ["formatRunTime", 750, false], ["RunStage", 22_200, true], ["StageList, RunStage", 22_950, true], ["StageRail, RunStage", 22_950, true]]) {
+// cimip-gaps-3 T1 (idle: Phosphor's CircleDashed, the badge's `states` seat, RunTimer's minute grain, the empty link before an idle node) and T2 (warning:
+// Phosphor's Warning and the warning status; the clock seat, formatClock and formatStatTime; the stage's own disclosure, its chevron morph, ControlIcon and the
+// popup level; the rail's popover, lazy in anchored-popover.js, built on its own with Base UI's popover inlined, so none of these loads Base UI) ship in one PR.
+// Measured with this file's graph() on origin/main c67926bf and on the combined head; each limit is main's plus the combined increase: StageMark 14,451 to
+// 22,797 (+8,346; 14,500 to 22,846); StageBadge 5,414 to 5,724 (+310; 5,450 to 5,760); RunTimer 6,091 to 6,897 (+806; 6,100 to 6,906, T1's alone); formatRunTime
+// 649 to 818 (+169; 750 to 919: T1's minute grain in run-format.ts); RunStage 22,181 to 39,733 (+17,552; 22,200 to 39,752); StageList, RunStage 22,948 to 40,985
+// (+18,037; 22,950 to 40,987); StageRail, RunStage 22,900 to 41,330 (+18,430; 22,950 to 41,380).
+// The stream's merge (T1, T2 and T4's Reserve), measured with graph() on origin/main 6a78d57c and on the combined head, main's limit plus the combined increase:
+// StageBadge 5,414 to 5,841 (+427; 5,450 to 5,877), RunTimer 6,091 to 7,016 (+925; 6,100 to 7,025), RunStage 22,181 to 39,851 (+17,670; 22,200 to 39,870),
+// StageList, RunStage 22,948 to 41,103 (+18,155; 22,950 to 41,105), StageRail, RunStage 22,900 to 41,448 (+18,548; 22,950 to 41,498). StageMark (22,797) and
+// formatRunTime (818) stay under 22,846 and 919.
+for (const [name, limit, phosphor] of [["StageMark", 22_846, true], ["StageBadge", 5_877, false], ["RunTimer", 7_025, false], ["RunAnnouncer", 600, false], ["formatRunTime", 919, false], ["RunStage", 39_870, true], ["StageList, RunStage", 41_105, true], ["StageRail, RunStage", 41_498, true]]) {
   test(`${name} alone loads no Base UI${phosphor ? "" : " and no Phosphor"} (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
     assert.deepEqual(inputs.filter((f) => /@base-ui|cmdk|shiki/.test(f)), [], `${name} loads Base UI, cmdk or Shiki`);
     assert.deepEqual(inputs.filter((f) => /run-timeline/.test(f)), [], `${name} pays for RunTimeline's counter`);
     const marks = inputs.filter((f) => /@phosphor-icons/.test(f)).map((f) => path.basename(f).replace(/\.es\.js$|\.mjs$|\.js$/, ""));
-    if (phosphor) assert.deepEqual([...new Set(marks)].filter((m) => !/^(IconBase|context|SSRBase)$/.test(m)).sort(), ["CheckCircle", "Circle", "MinusCircle", "Prohibit", "XCircle"]);
+    if (phosphor) assert.deepEqual([...new Set(marks)].filter((m) => !/^(IconBase|context|SSRBase)$/.test(m)).sort(), ["CheckCircle", "Circle", "CircleDashed", "MinusCircle", "Prohibit", "Warning", "XCircle"]);
     else assert.deepEqual(marks, []);
   });
 }
@@ -786,9 +887,36 @@ for (const [name, limit, phosphor] of [["StageMark", 14_500, true], ["StageBadge
 // scroll, focus and landing) adds about 730 bytes: measured 42,569 on the merged tree, so the limit is 42,600.
 // cimip-gaps-3 E1 (DECISIONS 246): RunStep's `format` and `spoken` and RunTimer's add 371. E5: with the shared chunk gone (diagram-actions built on its own,
 // build.mjs) it measures 42,941 (46,635 on main), so the limit is 46,650 to 42,950.
-test("RunTimeline with RunStep loads Base UI's button and nothing else of Base UI (42,950 bytes at most)", async () => {
+// cimip-gaps-3 T1: the idle mark (CircleDashed) and RunTimer's minute grain: 42,930 on main, 48,818 here (+5,888), so the limit is 42,950 to 48,838.
+// The stream's merge (T1's idle and minute grain, T2's warning and its toggle count, T4's Reserve): 42,930 on origin/main 6a78d57c, 52,504 on the combined head (+9,574), so
+// main's 42,950 to 52,524.
+test("RunTimeline with RunStep loads Base UI's button and nothing else of Base UI (52,524 bytes at most)", async () => {
   const { bytes, inputs } = await graph("RunTimeline, RunStep");
-  assert.ok(bytes < 42_950, `RunTimeline bundle is ${bytes} bytes (limit 42,950)`);
+  assert.ok(bytes < 52_524, `RunTimeline bundle is ${bytes} bytes (limit 52,524)`);
   assert.deepEqual(inputs.filter((f) => /cmdk|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|progress|meter|tooltip)\//.test(f)), "an unrelated Base UI part");
+});
+
+// cimip-gaps-3 T2: Stat's hint and a rail stage's detail open the anchored popover, which is lazy (anchored-popover.js, built on its own with Base UI's
+// popover inlined): neither Stat nor StageRail has it in its static graph, and each reaches it only through a dynamic import.
+test("Stat and StageRail load the anchored popover only on demand", async () => {
+  for (const name of ["Stat", "StageRail"]) {
+    const result = await esbuild.build({
+      stdin: { contents: `import { ${name} } from "./dist/index.js"; console.log(${name});`, resolveDir: pkg, loader: "js" },
+      bundle: true, minify: true, format: "esm", splitting: true, outdir: path.join(pkg, ".bundle-check"), write: false, metafile: true,
+      external: ["react", "react-dom", "react/jsx-runtime"], logLevel: "silent",
+    });
+    const outputs = result.metafile.outputs;
+    const entry = Object.keys(outputs).find((file) => outputs[file].entryPoint === "<stdin>");
+    const seen = new Set();
+    const visit = (file) => { if (seen.has(file)) return; seen.add(file); for (const imported of outputs[file].imports) if (!imported.external && imported.kind !== "dynamic-import") visit(imported.path); };
+    visit(entry);
+    const holds = (file) => Object.keys(outputs[file].inputs).some((input) => /dist\/anchored-popover\.js$/.test(input));
+    assert.deepEqual([...seen].filter(holds), [], `${name} loads the anchored popover up front`);
+    assert.ok(Object.keys(outputs).some((file) => !seen.has(file) && holds(file)), `${name} never reaches the anchored popover`);
+    const dynamic = [...seen].flatMap((file) => outputs[file].imports.filter((imported) => imported.kind === "dynamic-import").map((imported) => imported.path));
+    assert.ok(dynamic.some((file) => holds(file)), `${name} reaches the anchored popover only through a dynamic import`);
+    const statics = [...seen].flatMap((file) => Object.keys(outputs[file].inputs));
+    assert.deepEqual(statics.filter((input) => /@base-ui\/react\/(esm\/)?popover/.test(input)), [], `${name} loads Base UI's popover up front`);
+  }
 });

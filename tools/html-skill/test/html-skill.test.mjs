@@ -77,7 +77,12 @@ describe("the skill files", () => {
     assert.match(css, /prefers-color-scheme:\s*dark/);
     for (const name of Object.keys(files).filter((f) => /^parts\/.*\.css$/.test(f) && !f.endsWith("geist.css"))) {
       const primitives = name === "parts/core.css" ? css.slice(css.indexOf("@layer basalt{")) : files[name];
-      assert.doesNotMatch(primitives, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|gradient\(/i, `${name}: no raw colour or gradient in the primitives`);
+      // The cut-content fade's three mask layers (DECISIONS 395 to 399, cimip-gaps-3 t7) are gradients of alpha that paint no colour. In the fade module's
+      // stylesheet alone, and only as those three declarations, a gradient is allowed: each is removed by name, and the rest of that file, like every
+      // other file, is held to the whole rule.
+      const checked = name === "parts/fade.css" ? primitives.replace(/--_(?:mask-x|mask-y|strip):linear-gradient\([^;}]*\)(?=[;}])/g, "") : primitives;
+      if (name === "parts/fade.css") assert.equal(primitives.match(/--_(?:mask-x|mask-y|strip):linear-gradient\(/g)?.length, 3, "the fade's three approved mask layers, and no other");
+      assert.doesNotMatch(checked, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|gradient\(/i, `${name}: no raw colour or gradient in the primitives`);
     }
   });
 
@@ -286,7 +291,7 @@ describe("touch", () => {
 describe("reduced motion", () => {
   const spinners = '<span class="spinner" id="ring"></span><braille-spinner></braille-spinner>';
 
-  test("holds still: braille is a held frame, the ring and the busy button only fade, nothing moves", async () => {
+  test("holds still: braille is a held frame, the ring and the busy button stand still (no loop runs, cimip-gaps-3 T1), nothing moves", async () => {
     const { page, context } = await open("template-interactive.html", { reducedMotion: "reduce", all: true });
     await page.locator("#recalc").click();
     await page.evaluate((html) => { document.querySelector("#status").insertAdjacentHTML("afterend", html); }, spinners);
@@ -295,10 +300,16 @@ describe("reduced motion", () => {
       const kinds = document.getAnimations().map((a) => ({ name: a.animationName ?? a.transitionProperty, properties: [...new Set(a.effect.getKeyframes().flatMap((k) => Object.keys(k)))].filter((k) => !["offset", "easing", "composite", "computedOffset"].includes(k)) }));
       const dot = getComputedStyle(document.querySelector(".braille-dot"));
       const held = [...document.querySelectorAll("braille-spinner .braille-dot")].map((d) => getComputedStyle(d).opacity);
-      return { kinds, animationName: dot.animationName, held, busyRing: getComputedStyle(document.querySelector("#recalc"), "::after").animationName };
+      const busy = getComputedStyle(document.querySelector("#recalc"), "::after");
+      const ring = getComputedStyle(document.querySelector("#ring"));
+      return { kinds, animationName: dot.animationName, held, busyRing: busy.animationName, busyArc: busy.borderTopColor === busy.color, ring: ring.animationName, ringArc: ring.borderTopColor === ring.color, infinite: document.getAnimations().filter((a) => a.effect.getComputedTiming().iterations === Infinity).map((a) => a.animationName) };
     });
     assert.equal(report.animationName, "none", "braille does not step");
-    assert.equal(report.busyRing, "bh-fade", "the busy ring fades instead of turning");
+    assert.equal(report.busyRing, "none", "the busy ring stands still");
+    assert.equal(report.busyArc, true, "its quarter arc stays in currentColor");
+    assert.equal(report.ring, "none", "the ring stands still");
+    assert.equal(report.ringArc, true, "the ring's quarter arc stays in currentColor");
+    assert.deepEqual(report.infinite, [], "no loop runs");
     assert.deepEqual(report.held, ["1", "1", "0", "1", "0", "0"], "braille holds its first frame (⠋: dots 1, 2 and 4 of the six)");
     for (const k of report.kinds) assert.ok(k.properties.every((p) => ["opacity", "backgroundColor", "color", "boxShadow"].includes(p)), `${k.name} animates ${k.properties.join(", ")}: only opacity and colour steps may run`);
     await context.close();
@@ -453,7 +464,7 @@ describe("the palette", () => {
 
   test("the result count is spoken inside the dialog, once the typing pauses, and only when it changed", async () => {
     const { page, context } = await open("template-interactive.html");
-    await page.evaluate(() => { window.__spoken = []; new MutationObserver(() => window.__spoken.push(document.querySelector(".palette [role=status]")?.textContent)).observe(document.body, { subtree: true, childList: true, characterData: true }); });
+    await page.evaluate(() => { window.__spoken = []; new MutationObserver(() => window.__spoken.push(document.querySelector(".palette .command-count [role=status]")?.textContent)).observe(document.body, { subtree: true, childList: true, characterData: true }); });
     // The count is spoken once the typing pauses: the page's timers are on the shared clock from before the palette opens, so the pause is the test's to give, not the machine's.
     const clock = await freezeAnimations(page);
     await page.keyboard.press("Control+k");
@@ -463,7 +474,8 @@ describe("the palette", () => {
     await clock.advance(900);
     const spoken = (await page.evaluate(() => window.__spoken)).filter(Boolean);
     assert.ok(spoken.length <= 2, `spoken ${JSON.stringify(spoken)}`);
-    assert.match(spoken.at(-1), /^\d+ results?$/);
+    // cimip-gaps-3 t6: the palette's foot counts as the command list's does ("2 of 9"), and its first text, on opening, is not spoken.
+    assert.match(spoken.at(-1), /^\d+ of \d+$|^\d+ commands?$/);
     assert.equal(await page.evaluate(() => document.getElementById("basalt-live")?.textContent ?? ""), "", "the page-level region is not used");
     await page.keyboard.press("Backspace");
     await page.keyboard.type("n", { delay: 10 });
@@ -477,7 +489,7 @@ describe("the palette", () => {
     const described = (page) => page.evaluate(() => {
       const id = document.querySelector(".palette input").getAttribute("aria-describedby");
       const el = id && document.getElementById(id);
-      return el ? { footer: el.classList.contains("palette-footer"), words: ["Navigate", "Run", "Close"].filter((w) => el.textContent.includes(w)) } : null;
+      return el ? { footer: el.classList.contains("command-hints") && !!el.closest(".command-foot"), words: ["Navigate", "Run", "Close"].filter((w) => el.textContent.includes(w)) } : null;
     });
     const desktop = await open("template-interactive.html");
     await desktop.page.keyboard.press("Control+k");
@@ -1002,13 +1014,14 @@ describe("palette keys", () => {
     await context.close();
   });
 
-  test("the footer says Run and the empty state says No commands match.", async () => {
+  test("the foot's legend says Run, and with nothing shown the empty block says what was typed and offers Clear search (cimip-gaps-3 t6)", async () => {
     const { page, context } = await open("template-interactive.html");
     await page.keyboard.press("Control+k");
     await page.keyboard.type("qqqq");
-    assert.equal(await page.locator(".palette-empty").textContent(), "No commands match.");
-    assert.equal(await page.locator(".palette-empty").isVisible(), true);
-    assert.deepEqual(await page.locator(".palette-footer > span").evaluateAll((spans) => spans.map((span) => span.lastChild.textContent)), ["Navigate", "Run", "Close"]);
+    assert.equal(await page.locator(".palette .command-none p").textContent(), "Nothing matches “qqqq”.");
+    assert.equal(await page.locator(".palette .command-none").isVisible(), true);
+    assert.equal(await page.locator(".palette .command-none button").textContent(), "Clear search");
+    assert.deepEqual(await page.locator(".palette .command-hints > span").evaluateAll((spans) => spans.map((span) => span.lastChild.textContent.trim())), ["Navigate", "Run", "Close"]);
     await context.close();
   });
 });

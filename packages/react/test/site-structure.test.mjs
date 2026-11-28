@@ -398,7 +398,8 @@ describe("the narrow menu", () => {
     page = await open(site(), { width: 390, height: 360 });
     await page.locator(".basalt-site-menu-trigger").click();
     await settle(page);
-    const short = await page.locator(".basalt-site-menu").evaluate((el) => ({ h: el.getBoundingClientRect().height, scroll: el.scrollHeight, client: el.clientHeight, y: getComputedStyle(el).overflowY }));
+    // The menu's sheet keeps its rim and clips; its port scrolls (cimip-gaps-3 t7).
+    const short = await page.locator(".basalt-site-menu").evaluate((el) => { const port = el.querySelector(":scope > .basalt-sheet-scroll") ?? el; return { h: el.getBoundingClientRect().height, scroll: port.scrollHeight, client: port.clientHeight, y: getComputedStyle(port).overflowY }; });
     near(short.h, 360, "no taller than the viewport", 1);
     assert.ok(short.scroll > short.client && short.y === "auto", "it scrolls inside");
     await page.close();

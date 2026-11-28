@@ -51,8 +51,15 @@ export function SkipLink({ target, onSkip, children = "Skip to content", classNa
   React.useEffect(() => () => stop.current?.(), []);
   const place = (link: HTMLElement) => {
     const bar = link.ownerDocument.querySelector(BAR);
-    if (bar) link.style.top = `calc(${Math.max(0, bar.getBoundingClientRect().bottom)}px + var(--basalt-space-2))`;
-    else link.style.removeProperty("top");
+    if (!bar) { link.style.removeProperty("top"); return; }
+    let bottom = bar.getBoundingClientRect().bottom;
+    // A connection bar stuck under the bar (cimip-gaps-3 T5) is cleared too: what sticks under the bar is the bar's own room.
+    const banner = link.ownerDocument.querySelector(".basalt-connection-bar");
+    if (banner && getComputedStyle(banner).position === "sticky") {
+      const band = banner.getBoundingClientRect();
+      if (band.height && band.top <= bottom + 1) bottom = Math.max(bottom, band.bottom);
+    }
+    link.style.top = `calc(${Math.max(0, bottom)}px + var(--basalt-space-2))`;
   };
   const handleFocus = (event: React.FocusEvent<HTMLAnchorElement>) => {
     onFocus?.(event);

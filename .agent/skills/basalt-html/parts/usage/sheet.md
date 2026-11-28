@@ -7,3 +7,4 @@ A modal side panel on the dialog's rules (`--usage dialog`): `<dialog class="pan
 - **Menu and Close:** `<span data-glyph="menu"></span>` and `<span data-glyph="close"></span>` are the core set's glyphs (`--usage glyph`). React morphs Menu into Close; the skill swaps them at once (a recorded difference).
 - **Head, body, foot:** `header.sheet-head` > `.sheet-head-text` (a `.dialog-title` with `tabindex="-1"`, a `.dialog-description` count) and a ghost `.btn.sheet-close` with `data-icon-only data-edge="end"` and `data-dialog-close` (its glyph on the title's line); then `.sheet-body` (scrolls, `tabindex="0"`) and `footer.sheet-foot`. No sheet padding.
 - **Steps:** swap the body and foot, then `title.focus()` on this sheet's title, so the new one is read.
+- **Wide:** `data-size="wide"` on a right or left sheet reads a record while the list stays behind it: 720px at most (the window less 48 from 720, the whole window under it), its title 18/26. A form stays a dialog.

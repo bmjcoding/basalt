@@ -296,7 +296,8 @@ describe("geometry: a 36px plate in a 40px hit area, and the gap drawn inside th
     });
     const row = getComputedStyle(rows[0]);
     return {
-      panelPadding: [ps.paddingTop, ps.paddingRight, ps.paddingBottom, ps.paddingLeft], panelRadius: ps.borderTopLeftRadius,
+      // The padding is the popup's port's since cimip-gaps-3 t7 (the popup keeps the rim and the radius; the port holds the padding and the rows).
+      panelPadding: ((pp) => [pp.paddingTop, pp.paddingRight, pp.paddingBottom, pp.paddingLeft])(getComputedStyle(panel.querySelector(":scope > .basalt-menu-scroll") ?? panel)), panelRadius: ps.borderTopLeftRadius,
       rowHeights: rects.map((r) => r.height), touching: rects.slice(1).map((r, i) => r.top - rects[i].bottom),
       plateHeights: plates.map((p) => p.height), plateGaps: plates.slice(1).map((p, i) => p.top - (plates[i].top + plates[i].height)),
       plateFromRim: plates[0].top - panel.getBoundingClientRect().top - parseFloat(ps.borderTopWidth), plateLeft: plates[0].left - panel.getBoundingClientRect().left - parseFloat(ps.borderLeftWidth),

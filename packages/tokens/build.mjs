@@ -6,8 +6,10 @@
 //   dist/css/accents.css  the accent classes: one [data-accent] rule per class, in @layer basalt
 //   dist/css/shadcn.css   the shadcn/ui variable names, mapped onto Basalt's
 //   dist/css/breakpoints.css  the breakpoints as @custom-media rules, for apps that build with PostCSS
+//   dist/css/base.css     the opt-in page base (src/base.css, copied as written): one body rule in @layer basalt
 //   dist/js/tokens.js     resolved values per theme, and the accent classes, for TypeScript and charts
-//   dist/js/breakpoints.js the breakpoint numbers alone (the 720, 1024, 480, 340 and 640 of the media and container queries)
+//   dist/js/breakpoints.js the breakpoint numbers alone (the 720, 1024, 480, 340 and 640 of the media and container queries, and the
+//                         480 of the short window's height query)
 //   dist/js/durations.js   the duration numbers alone, in milliseconds (a confirmation's hold)
 //   dist/json/tokens.json resolved values with sRGB hex and OKLCH, for native generators
 //
@@ -268,7 +270,7 @@ write("css/shadcn.css", shadcn);
 // The breakpoints. A media query cannot read a custom property, so CSS writes the number (range syntax, with a lint exception that
 // names the token); apps that build with PostCSS can use these named queries from the same source instead, and a script reads the numbers.
 // The key is the token's name after `size-breakpoint-`, in camelCase: `container-sm` is `containerSm`.
-const BREAKPOINTS = ["md", "lg", "container", "container-sm", "container-lg"];
+const BREAKPOINTS = ["md", "lg", "container", "container-sm", "container-lg", "short"];
 const breakpointKey = (name) => name.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 const breakpointPx = Object.fromEntries(BREAKPOINTS.map((name) => {
   const token = primitives.find((t) => t.path.join(".") === `size.breakpoint-${name}`);
@@ -288,10 +290,12 @@ const breakpointsCss = [
   `@custom-media --${PREFIX}-md (width >= ${breakpointPx.md}px);`,
   `@custom-media --${PREFIX}-lg (width >= ${breakpointPx.lg}px);`,
   `@custom-media --${PREFIX}-rail (${breakpointPx.md}px <= width < ${breakpointPx.lg}px);`,
+  `@custom-media --${PREFIX}-short (height < ${breakpointPx.short}px);`,
   "",
 ].join("\n");
 write("css/breakpoints.css", breakpointsCss);
 write("css/accents.css", accents);
+write("css/base.css", fs.readFileSync(path.join(here, "src", "base.css"), "utf8"));
 write("json/tokens.json", JSON.stringify(json, null, 2) + "\n");
 const accentsJson = Object.fromEntries(accentClasses.map((c) => [c.name, { light: entry({ $type: "color", $value: c.light }), dark: entry({ $type: "color", $value: c.dark }) }]));
 write("js/tokens.js", `${header}export const tokens = ${JSON.stringify(json, null, 2)};\nexport const accents = ${JSON.stringify(accentsJson, null, 2)};\n/** The breakpoints in CSS pixels, so a script never carries the number: matchMedia(\`(width >= \${breakpoint.md}px)\`). */\nexport const breakpoint = ${JSON.stringify(breakpointPx, null, 2)};\n/** The durations in milliseconds, so a script that holds a timer never carries the number: setTimeout(done, duration.confirm). */\nexport const duration = ${JSON.stringify(durationMs, null, 2)};\nexport default tokens;\n`);

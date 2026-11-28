@@ -171,6 +171,7 @@ function PersistDemo() {
         ]}
         value={step}
         onValueChange={setStep}
+        onDone={() => {}}
       />
       <SegmentedControl aria-label="Window" value={range} onValueChange={setRange}>
         <Segment value="day">Day</Segment>

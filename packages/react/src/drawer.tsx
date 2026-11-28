@@ -3,6 +3,7 @@ import * as React from "react";
 import { Button } from "./button";
 import type { ButtonProps } from "./button";
 import { ChevronLeftGlyph } from "./glyphs/chevron-left";
+import { useScrollFade } from "./fade-port";
 import { useScrollStop } from "./scroll-stop";
 import { join } from "./utils";
 
@@ -58,14 +59,20 @@ export interface DrawerSectionProps extends Omit<React.ComponentProps<"div">, "t
 export function DrawerSection({ title, level = 2, actions, className, children, ...props }: DrawerSectionProps) {
   const id = React.useId();
   const Heading = `h${level}` as const;
-  const body = useScrollStop<HTMLDivElement>({ labelledBy: id });
+  // The body stays the port (its stop and its name) and fades at each edge that hides more (cimip-gaps-3 t7); a host round it takes its place in the column and
+  // draws its ring at +2, since a mask erases the port's own outline.
+  const port = React.useRef<HTMLDivElement | null>(null);
+  const body = useScrollStop<HTMLDivElement>({ labelledBy: id }, port);
+  useScrollFade(port, { axis: "block", ring: 4 });
   return (
     <div {...props} role="group" aria-labelledby={id} className={join("basalt-drawer-section", className)}>
       <div className="basalt-drawer-head">
         <Heading id={id} className="basalt-drawer-title">{title}</Heading>
         {actions ? <div className="basalt-drawer-actions">{actions}</div> : null}
       </div>
-      <div {...body.attributes} ref={body.ref} className="basalt-drawer-body">{children}</div>
+      <div className="basalt-drawer-body-host">
+        <div {...body.attributes} ref={body.ref} className="basalt-drawer-body">{children}</div>
+      </div>
     </div>
   );
 }

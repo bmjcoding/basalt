@@ -5,23 +5,48 @@ import { join } from "./utils";
 // ---- FilterResult: the one thing a filter says aloud ----
 // A module of its own, so the command list (which counts what it shows) shares it without loading the filter and its popover.
 
-export interface FilterResultProps extends Omit<React.ComponentProps<"p">, "children"> {
-  /** The result in words, e.g. "Showing 3 of 24 runs". */
-  children: string;
+export type FilterResultProps = Omit<React.ComponentProps<"p">, "children"> & {
   /** Milliseconds the text must hold still before it is spoken. Toggling several chips in a row is one announcement. */
   delay?: number;
-}
+  /**
+   * The widest drawn form, written as `children` are ("Showing 428 of 428 lots"), laid out unseen in the line's one cell, so the line and its toolbar wrap the same
+   * from the first frame. It is a sizing copy: no form field and no `id` in it (`inert` stops neither a submit nor validation; development warns on a field).
+   */
+  reserve?: React.ReactNode;
+} & (
+  /** The result in words, e.g. "Showing 3 of 24 runs". `spoken`, when given, is what is said in its place. */
+  | { children: string; spoken?: string }
+  /** The result drawn as a node ("Lots shown" and a figure set apart): `spoken` is then the words that are said. */
+  | { children: React.ReactNode; spoken: string }
+);
+
+declare const process: { env: { NODE_ENV?: string } };
+let warnedField = false;
 
 /**
  * The result of filtering, shown at once and spoken once: a polite, atomic live region outside the filter, updated after the
  * text has held still for `delay` milliseconds. Each chip speaks its own state ("checked"); this says only what it did to the
- * list. Render it once per filtered list.
+ * list. Render it once per filtered list. The drawn form (`children`) is hidden from assistive technology; what is said is `spoken`, or
+ * `children` when they are words, through the one `StatusLine`. An empty result keeps one line's height. The words stay the app's.
  */
-export function FilterResult({ children, delay = 400, className, ...props }: FilterResultProps) {
+export function FilterResult({ children, spoken, reserve, delay = 400, className, ...props }: FilterResultProps) {
+  const said = spoken ?? (typeof children === "string" ? children : "");
+  const sizer = React.useRef<HTMLSpanElement | null>(null);
+  React.useEffect(() => {
+    if (process.env.NODE_ENV !== "production" && !warnedField && sizer.current?.querySelector("input,select,textarea,button,[id]")) {
+      warnedField = true;
+      console.warn("Basalt FilterResult: `reserve` is a sizing copy and holds no form field or id");
+    }
+  });
   return (
-    <p {...props} className={join("basalt-filter-result", className)}>
-      <span aria-hidden="true">{children}</span>
-      <StatusLine delay={delay}>{children}</StatusLine>
+    <p {...props} data-reserve={reserve !== undefined ? "" : undefined} className={join("basalt-filter-result", className)}>
+      {reserve !== undefined ? (
+        <span className="basalt-filter-result-cell">
+          <span aria-hidden="true">{children}</span>
+          <span ref={sizer} className="basalt-filter-result-sizer" aria-hidden="true" inert>{reserve}</span>
+        </span>
+      ) : <span aria-hidden="true">{children}</span>}
+      <StatusLine delay={delay}>{said}</StatusLine>
     </p>
   );
 }

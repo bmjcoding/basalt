@@ -116,6 +116,11 @@
 
   /* ---- Layout ---- */
 
+  /* The top of anything that sticks under the bar (React's --basalt-sticky-top): the bar's own height, and a banner's while one is drawn and sticky. Zero in a
+     window under size-breakpoint-short tall, where nothing is pinned. */
+  :root { --basalt-sticky-top: calc(var(--basalt-sticky-offset, var(--basalt-space-0)) + var(--basalt-banner-height, var(--basalt-space-0))); }
+  @media (height < %bp-short%) { :root:root:root { --basalt-sticky-top: var(--basalt-space-0); } }
+
   .page { width: 100%; max-width: var(--basalt-size-page-width); margin-inline: auto; padding: var(--basalt-space-8) var(--basalt-gutter) var(--basalt-space-16); }
   /* A raw length on purpose: 46rem is a narrower data page, and no layout token names it (size-prose-width is a text measure). A token would be a design decision, so it stays a length of its own. */
   /* stylelint-disable-next-line unit-disallowed-list -- the narrow page's measure in rem, so it follows the reader's text size as size-prose-width does; no token holds this one */
@@ -132,6 +137,12 @@
   @media (width < %bp-md%) { .hide-narrow { display: none !important; } }
   .section { margin-top: var(--basalt-space-12); }
   .section > .section-head { margin-bottom: var(--basalt-space-4); }
+  /* An app page's rhythm (React's AppSections, cimip-gaps-3 T5): sections space-8 apart under 720, space-10 in a tab panel from 720, space-8 nested. A
+     section head's description is 14/20 in secondary, space-1 under the title, at most the prose width. */
+  @media (width < %bp-md%) { .section { margin-top: var(--basalt-space-8); } }
+  @media (width >= %bp-md%) { .tabpanel .section { margin-top: var(--basalt-space-10); } }
+  .section .section { margin-top: var(--basalt-space-8); }
+  .section-description { max-width: var(--basalt-size-prose-width); margin: var(--basalt-space-1) 0 0; color: var(--basalt-text-secondary); font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); text-wrap: pretty; }
   /* A head's last ghost .btn is hung at its end by itself (DECISIONS 336, Q10): a .panel-head into its own space-4, a page's own section head into the
      gutter. A section head in a column, a grid or a card declares no room, and its button stays on the line with its edge. */
   .page > .section > .section-head { --basalt-edge-room: var(--basalt-gutter); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; }
@@ -145,6 +156,16 @@
   .skip-link:focus { transform: none; box-shadow: var(--basalt-shadow-overlay); }
   /* stylelint-disable-next-line unit-disallowed-list -- the 1px clip box of the visually-hidden pattern; it must be exactly 1px */
   .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+  /* Cut text (React's Text lines): data-lines="1" is one line with an ellipsis; data-lines="n" a clamp of n whose height is capped at n of the reader's own lines (1lh), in the
+     clamp's own rule. The peek module reads it whole on a plate. Without hover a clamp inside a control lifts, so the text is whole at rest, unless data-peek="off". */
+  [data-lines] { display: block; min-width: 0; overflow: hidden; --_lines: 2; }
+  [data-lines="1"] { text-overflow: ellipsis; white-space: nowrap; }
+  [data-lines="3"] { --_lines: 3; }
+  [data-lines="4"] { --_lines: 4; }
+  [data-lines]:not([data-lines="1"]) { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--_lines); line-clamp: var(--_lines); max-block-size: calc(var(--_lines) * 1lh); }
+  @media (hover: none) {
+    :is(a[href], button, summary, label, [role="button"], [role="link"], [role="tab"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="checkbox"], [role="radio"], [role="switch"], [role="treeitem"]) [data-lines]:not([data-peek="off"]) { display: block; overflow: visible; text-overflow: clip; white-space: normal; -webkit-line-clamp: none; line-clamp: none; max-block-size: none; }
+  }
 
   /* ---- Panels: levels and the rim ----
      A panel is one level above what it sits in, capped at 3. Level is position, not importance: a hero,
@@ -320,13 +341,13 @@
   }
 
   @keyframes bh-spin { to { transform: rotate(360deg); } }
-  @keyframes bh-fade { 50% { opacity: 0.55; } }
 
   /* ---- Motion: durations come from the tokens (0, 100, 150, 200, 300ms). Reduced motion: opacity only. ---- */
 
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
-    .btn[aria-busy="true"]::after { animation: bh-fade var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite; border-top-color: color-mix(in oklch, currentColor 25%, transparent); }
+    /* No loop runs: a busy button's ring stands still at its drawing (the quarter arc in currentColor), at full opacity, as held. */
+    .btn[aria-busy="true"]::after { animation: none; }
     /* A press keeps its colour step and its scale is 1. Same specificity as the press rule, and later; transform leaves the
        transition list too, so switching to reduced motion while a button is held doesn't animate the scale back. */
     .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { transform: none; }

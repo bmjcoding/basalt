@@ -31,23 +31,55 @@
   .segment [aria-pressed="true"] [data-pair] > :last-child { opacity: 1; }
   @media (pointer: coarse), (width < %bp-md%) { .segment button { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); } }
 
+  /* A status dot (data-status on the button, as React's Segment status): Badge's 6px dot before the label, space-1-5 from it, aria-free (the label names the
+     state). Neutral is tertiary; pending is the hollow ring in the label's ink; the rest are their status colours. No empty seat on a button without it. */
+  .segment button[data-status] { display: inline-flex; align-items: center; justify-content: center; gap: var(--basalt-space-1-5); }
+  .segment button[data-status]::before { content: ""; flex: none; box-sizing: border-box; width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: var(--dot, currentColor); }
+  .segment button[data-status="neutral"] { --dot: var(--basalt-text-tertiary); }
+  .segment button[data-status="success"] { --dot: var(--basalt-status-success); }
+  .segment button[data-status="warning"] { --dot: var(--basalt-status-warning); }
+  .segment button[data-status="danger"] { --dot: var(--basalt-status-danger); }
+  .segment button[data-status="pending"]::before { background: transparent; border: var(--basalt-size-hairline) solid currentColor; }
+  .segment button[data-status]:disabled { --dot: var(--basalt-text-disabled); }
+  .segment button[data-status="pending"]:disabled::before { border-color: var(--basalt-text-disabled); }
+
+  /* A control wider than its column scrolls in its track and never wraps, narrows or cuts a label (as React's). The track is held to the column and its
+     buttons keep their width on one line. While it fits it is not a scrollport, so the ring at +2 is whole; while it overflows (data-overflow, which the
+     script sets) it scrolls with no scrollbar drawn, a button brought into view keeps the fade and space-1 clear (t7), and a button's ring is drawn inside at -2. With no
+     script it is as it ships. */
+  .segment { box-sizing: border-box; max-width: 100%; }
+  .segment button { flex: none; }
+  /* The script splits the control into a host and a port, as React's (cimip-gaps-3 t7): the host (.segment) keeps the fill and the radius and loses its padding;
+     the port (.segment-scroll, a real box at all times) holds the pill, the 2px padding, the gap and the buttons, so the control is the size and place it was.
+     While it overflows the host clips to its radius and the port scrolls, fading at each side that hides buttons; the track is never masked. */
+  .segment:has(> .segment-scroll) { gap: 0; padding: 0; }
+  .segment-scroll { position: relative; box-sizing: border-box; display: inline-flex; gap: var(--basalt-space-0-5); max-width: 100%; padding: var(--basalt-space-0-5); border-radius: inherit; }
+  .segment[data-overflow] { overflow: hidden; }
+  .segment[data-overflow] > .segment-scroll { flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; overscroll-behavior-inline: contain; scroll-behavior: auto; }
+  .segment[data-overflow] > .segment-scroll::-webkit-scrollbar { display: none; }
+  .segment[data-overflow] button { scroll-margin-inline: calc(var(--basalt-size-scroll-fade) + var(--basalt-space-1)); }
+  .segment[data-overflow] button:focus-visible { outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+
   /* The sliding pill: segment.js adds one shared pill as the first child and measures the pressed button into --pill-x, --pill-y, --pill-w and
      --pill-h (data-slide marks the group once it has; data-snap places it without a move: the first measurement, a resize, a font arriving).
      A new choice changes them, and the pill travels by transform and width on duration-slow, ease-out, whatever the distance. It is an
      enhancement over each button painting its own pill (above): drawn only once measured, and never under reduced motion or in forced colours,
      where each button paints its own (a short fade under reduced motion, Highlight and HighlightText in forced colours). */
-  .segment > .pill { display: none; position: absolute; top: 0; left: 0; box-sizing: border-box; width: var(--pill-w); height: var(--pill-h); transform: translate(var(--pill-x), var(--pill-y)); border-radius: var(--basalt-radius-sm); background: var(--pill-fill); box-shadow: var(--pill-edge); pointer-events: none; transition-property: transform, width, height; transition-duration: var(--basalt-duration-slow); transition-timing-function: var(--basalt-ease-out); }
-  .segment[data-snap] > .pill { transition: none; }
+  :is(.segment, .segment-scroll) > .pill { display: none; position: absolute; top: 0; left: 0; box-sizing: border-box; width: var(--pill-w); height: var(--pill-h); transform: translate(var(--pill-x), var(--pill-y)); border-radius: var(--basalt-radius-sm); background: var(--pill-fill); box-shadow: var(--pill-edge); pointer-events: none; transition-property: transform, width, height; transition-duration: var(--basalt-duration-slow); transition-timing-function: var(--basalt-ease-out); }
+  :is(.segment, .segment-scroll)[data-snap] > .pill { transition: none; }
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
-    .segment[data-slide] > .pill { display: block; }
+    :is(.segment, .segment-scroll)[data-slide] > .pill { display: block; }
     /* The pill is the shared one: the pressed button paints none of its own, and only its ink changes. */
-    .segment[data-slide] button { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
-    .segment[data-slide] button:is([aria-pressed="true"], [aria-checked="true"]) { background: transparent; box-shadow: none; }
+    :is(.segment, .segment-scroll)[data-slide] button { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+    :is(.segment, .segment-scroll)[data-slide] button:is([aria-pressed="true"], [aria-checked="true"]) { background: transparent; box-shadow: none; }
   }
 
   @media (forced-colors: active) {
     .segment button:is([aria-pressed="true"], [aria-checked="true"]) { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
     /* The chosen button opts out of colour adjustment for its fill; its focus ring is still the system's, as an ordinary control's is (decision 145). */
     .segment button:is([aria-pressed="true"], [aria-checked="true"]):focus-visible { outline-color: Highlight; }
+    .segment[data-overflow] button:is([aria-pressed="true"], [aria-checked="true"]):focus-visible { outline-color: HighlightText; }
+    .segment button[data-status]:not([data-status="pending"])::before { border: calc(var(--basalt-size-dot) / 2) solid; background: none; }
+    .segment button[data-status="pending"]::before { border-color: currentColor; }
   }
 }

@@ -17,12 +17,31 @@
         list.parentNode.insertBefore(scroll, list);
         scroll.appendChild(list);
       }
-      // The browser's own scroll on focus moves only a tab that is wholly out of view, and centres it: a partly cut tab stays cut. So the keys focus
-      // without it, and one listener brings any tab that takes focus (the arrows, Home, End, Tab into the row, a click on a cut tab) into view by the
-      // nearest way, its scroll-margin-inline (the ring's 4 and a hairline) kept clear.
-      list.addEventListener('focusin', function (e) {
-        if (e.target.getAttribute('role') === 'tab') e.target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-      });
+      // The port's padding is the ring's room, and a scrollport shows content through it: while content is hidden past a side, that side is clipped at the
+      // column's edge (the content edge, and the hang on the start side), so a cut tab and the divider stop there. A side with nothing past it keeps its room.
+      // Each side that hides tabs fades inside its clip line (cimip-gaps-3 t7, core's scrollFade): the clip stays the bound and the hit-test edge, and a
+      // focused tab with its ring is never under the band.
+      var port = list.parentElement && list.parentElement.classList.contains('tabs-scroll') ? list.parentElement : null;
+      if (port) {
+        var clip = function () {
+          var box = port.getBoundingClientRect(), at = list.getBoundingClientRect(), st = getComputedStyle(port);
+          var pl = parseFloat(st.paddingLeft) || 0, pr = parseFloat(st.paddingRight) || 0;
+          var hl = Math.max(0, -(parseFloat(st.marginLeft) || 0) - pl), hr = Math.max(0, -(parseFloat(st.marginRight) || 0) - pr);
+          var rtl = st.direction === 'rtl';
+          var l = at.left < box.left + port.clientLeft + pl - 0.5 ? pl + (rtl ? 0 : hl) : 0;
+          var r = at.right > box.left + port.clientLeft + port.clientWidth - pr + 0.5 ? pr + (rtl ? hr : 0) : 0;
+          port.style.setProperty('--clip-left', l + 'px');
+          port.style.setProperty('--clip-right', r + 'px');
+          port.toggleAttribute('data-clip', l > 0 || r > 0);
+          return { left: l, right: r };
+        };
+        var fade = _.scrollFade(port, { axis: 'inline', content: list, insets: clip, ring: 4 });
+        // A tab that takes focus (the arrows, Home, End, Tab into the row, a click on a cut tab) is brought into view by the nearest way, measured from the
+        // column's edges (the clip lines), its scroll-margin-inline (the fade and the ring's room) kept clear. The keys focus without the browser's own scroll.
+        list.addEventListener('focusin', function (e) {
+          if (e.target.getAttribute('role') === 'tab') { _.revealIn(port, e.target, clip()); fade.refresh(); }
+        });
+      }
       var tabs = Array.prototype.slice.call(list.querySelectorAll('[role="tab"]'));
       var panelOf = function (tab) { return document.getElementById(tab.getAttribute('aria-controls')); };
       var select = function (tab, focus) {

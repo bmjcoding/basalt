@@ -3,7 +3,7 @@ import { isMain } from "./is-main.mjs";
 import { runSteps } from "./run-steps.mjs";
 
 export const LINT = [
-  { label: "stylelint", command: 'stylelint "packages/react/src/styles/**/*.css" "tools/html-skill/src/**/*.css" "sites/**/*.css"' },
+  { label: "stylelint", command: 'stylelint "packages/react/src/styles/**/*.css" "packages/tokens/src/**/*.css" "tools/html-skill/src/**/*.css" "sites/**/*.css"' },
   { label: "oxlint", command: "oxlint --type-aware ." },
   { label: "dependency allowlist", command: "node scripts/check-deps.mjs" },
   { label: "sink check", command: "node scripts/check-sinks.mjs" },

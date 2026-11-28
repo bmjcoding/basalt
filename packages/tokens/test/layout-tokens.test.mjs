@@ -19,6 +19,8 @@ const LENGTHS = {
   "size-control-2xl": ["44px", 44, "control2xl"], "size-control-3xl": ["48px", 48, "control3xl"], "size-control-4xl": ["52px", 52, "control4xl"],
   "size-control-5xl": ["56px", 56, "control5xl"], "size-control-6xl": ["64px", 64, "control6xl"],
   "size-breakpoint-container-sm": ["340px", 340, "breakpointContainerSm"], "size-breakpoint-container-lg": ["640px", 640, "breakpointContainerLg"],
+  // cimip-gaps-3 T5: the short window's height and the wide record sheet.
+  "size-breakpoint-short": ["480px", 480, "breakpointShort"], "size-sheet-width-wide": ["720px", 720, "sheetWidthWide"],
   "size-chart-line": ["2px", 2, "chartLine"], "size-chart-mark": ["8px", 8, "chartMark"], "size-cut": ["2px", 2, "cut"], "size-hatch-pitch": ["4px", 4, "hatchPitch"],
   "size-chart-bar-max": ["24px", 24, "chartBarMax"], "size-chart-bar-min": ["2px", 2, "chartBarMin"], "size-chart-dash": ["6px", 6, "chartDash"],
   "size-chart-dash-gap": ["4px", 4, "chartDashGap"], "size-chart-plot": ["240px", 240, "chartPlot"],
@@ -58,8 +60,9 @@ test("the breakpoints are generated as @custom-media rules, and exported as numb
   assert.match(media, /@custom-media --basalt-md \(width >= 720px\);/);
   assert.match(media, /@custom-media --basalt-lg \(width >= 1024px\);/);
   assert.match(media, /@custom-media --basalt-rail \(720px <= width < 1024px\);/);
+  assert.match(media, /@custom-media --basalt-short \(height < 480px\);/);
   const { breakpoint } = await import(new URL("../dist/js/breakpoints.js", import.meta.url));
-  assert.deepEqual({ ...breakpoint }, { md: 720, lg: 1024, container: 480, containerSm: 340, containerLg: 640 });
+  assert.deepEqual({ ...breakpoint }, { md: 720, lg: 1024, container: 480, containerSm: 340, containerLg: 640, short: 480 });
   const all = await import(new URL("../dist/js/tokens.js", import.meta.url));
   assert.deepEqual({ ...all.breakpoint }, { ...breakpoint });
 });
@@ -145,9 +148,9 @@ test("font-family-sans is Geist, then Geist Fallback, then the system chain; the
   assert.match(css, /--basalt-font-family-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;/);
 });
 
-test("the breakpoints are still 720, 1024 and 480, with the two container widths 340 and 640 (A5-25): no 900 and no 1280 token", async () => {
+test("the breakpoints are still 720, 1024 and 480, with the two container widths 340 and 640 (A5-25) and the short window's height 480 (cimip-gaps-3 T5): no 900 and no 1280 token", async () => {
   const { breakpoint } = await import(new URL("../dist/js/breakpoints.js", import.meta.url));
-  assert.deepEqual({ ...breakpoint }, { md: 720, lg: 1024, container: 480, containerSm: 340, containerLg: 640 });
+  assert.deepEqual({ ...breakpoint }, { md: 720, lg: 1024, container: 480, containerSm: 340, containerLg: 640, short: 480 });
   assert.doesNotMatch(css, /breakpoint-(?:900|1280)|--basalt-size-breakpoint-xl/);
 });
 

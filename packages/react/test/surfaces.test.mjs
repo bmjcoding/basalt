@@ -285,8 +285,8 @@ describe("CommandMenu", () => {
     assert.equal(m.keys, 2);
     assert.equal(m.shortcut, "Meta+D");
     assert.equal(m.described, "Command D");
-    // the footer's keys are chips too
-    assert.equal(await page.locator(".basalt-command-footer .basalt-kbd-key").count(), 2, "↵ and Esc, one chip each");
+    // the foot's legend keys are chips too
+    assert.equal(await page.locator(".basalt-dialog .basalt-command-hints .basalt-kbd-key").count(), 2, "↵ and Esc, one chip each");
     await page.close();
   });
 

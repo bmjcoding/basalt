@@ -166,7 +166,7 @@ describe("CommandMenu when its chunk fails", () => {
       assert.equal(await page.locator(".basalt-spinner").count(), 0, "the ring is gone when the panel is ready");
       assert.deepEqual(ready, waiting, "the ready band is the loading band: nothing moved when loading ended");
       assert.equal(await page.evaluate(() => document.activeElement?.matches(".basalt-command-input")), true);
-      assert.equal(await dialog.getByText("No commands match.").count(), 1, "and it filters");
+      assert.equal(await dialog.getByText("Nothing matches “zz”.").count(), 1, "and it filters");
       await page.keyboard.press("Backspace");
       await page.keyboard.press("Backspace");
       assert.equal(await dialog.getByRole("option", { name: "One" }).count(), 1);

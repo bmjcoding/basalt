@@ -25,6 +25,8 @@
       "types": "./dist/tooling/imports.d.ts",
       "default": "./dist/tooling/imports.js"
     },
+    "./lint": "./lint/run.mjs",
+    "./stylelint-config": "./lint/stylelint-config.mjs",
     "./diagram-export": {
       "types": "./dist/diagram-export.d.ts",
       "default": "./dist/diagram-export.js"
@@ -45,14 +47,17 @@
     "./head/loops.js": "./dist/head/loops.js",
     "./styles.css": "./dist/styles.css",
     "./components.css": "./dist/components.css",
-    "./fonts.css": "./dist/fonts.css"
+    "./fonts.css": "./dist/fonts.css",
+    "./base.css": "./dist/base.css"
   },
   "bin": {
-    "basalt-diagram-export": "./bin/basalt-diagram-export.mjs"
+    "basalt-diagram-export": "./bin/basalt-diagram-export.mjs",
+    "basalt-lint": "./bin/basalt-lint.mjs"
   },
   "files": [
     "dist",
     "bin",
+    "lint",
     "THIRD-PARTY-MARKS.md",
     "THIRD-PARTY-NOTICES.md"
   ],

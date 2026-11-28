@@ -9,7 +9,6 @@ import { attachZoom, drawnSize, measureViewerFigure, revealIn, VIEWER_KEYS, view
 (function (B) {
   'use strict';
   var _ = B._;
-  var serial = 0;
 
   function esc(s) { return _.diagramKit.escapeHtml(String(s == null ? '' : s)); }
   function kbd(k) { return '<kbd class="kbd">' + esc(k) + '</kbd>'; }
@@ -22,15 +21,21 @@ import { attachZoom, drawnSize, measureViewerFigure, revealIn, VIEWER_KEYS, view
     // An automatic figure's key hint is read from a placed model, as React's (unplaced, every card is in one cell).
     // Its list sits under the dialog's h2, whatever the page's heading: h3 sub-headings and h4 group lines, as React's. The model's alone.
     var model = kit.buildModel(Object.assign({}, still, { heading: 2 }), { placement: Array.isArray(still.placement) ? still.placement[0] : still.placement });
-    var id = 'dgv' + (++serial);
+    // The dialog's ids and its drawing's are built on the page figure's base (G146), so they are as stable as its own; `-v` and `-viewer` meet none of them.
+    // A viewer still leaving (opened again during its exit) goes first, so no id is held twice and nothing names the closed one.
+    var id = ctx.base + '-viewer';
+    var gone = page.__viewer;
+    if (gone) { clearTimeout(gone.__leave); gone.remove(); }
     var key = kit.figureKey('diagram', model);
     var hint = viewerHint(kit.hintEntries(model, { layout: 'drawn' })).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + esc(e.words) + '</span>'; }).join('');
     var d = document.createElement('dialog');
     d.className = 'panel float modal dialog diagram-viewer';
     d.setAttribute('data-form', '');
     d.setAttribute('aria-describedby', id + '-summary');
+    d.setAttribute('aria-labelledby', id + '-title');
+    page.__viewer = d;
     d.innerHTML =
-      '<header class="sheet-head"><div class="sheet-head-text"><h2 class="dialog-title" tabindex="-1">' + esc(model.title) + '</h2>' +
+      '<header class="sheet-head"><div class="sheet-head-text"><h2 class="dialog-title" id="' + id + '-title" tabindex="-1">' + esc(model.title) + '</h2>' +
         (spec.source ? '<p class="dialog-description diagram-viewer-source">' + esc(spec.source) + '</p>' : '') + '</div>' +
         '<button type="button" class="btn sheet-close" data-variant="ghost" data-icon-only data-edge="end" data-dialog-close aria-label="Close">%glyph-svg:close%</button></header>' +
       '<p class="visually-hidden" id="' + id + '-summary">' + esc(spec.summary) + '</p>' +
@@ -65,7 +70,7 @@ import { attachZoom, drawnSize, measureViewerFigure, revealIn, VIEWER_KEYS, view
     });
     var memo = {};
     var view = {
-      layer: layer, avail: 0, row: 1104, contain: 480, memo: memo, measureFigure: kit.measureFigure, keys: VIEWER_KEYS,
+      layer: layer, avail: 0, row: 1104, contain: 480, memo: memo, measureFigure: kit.measureFigure, keys: VIEWER_KEYS, base: ctx.base + '-v',
       room: function () { var pad = parseFloat(getComputedStyle(sizer).paddingTop) || 0; return { w: stage.clientWidth - 2 * pad, h: stage.clientHeight - 2 * pad }; },
       measure: function (f, m, p, base, current, apply, warn) { return measureViewerFigure(f, m, p, base, current, apply, warn, view); },
       textWidth: function (need) { viewerTextWidth(view, need); },
@@ -141,9 +146,9 @@ import { attachZoom, drawnSize, measureViewerFigure, revealIn, VIEWER_KEYS, view
       observer.disconnect();
       zoom.destroy();
       if (fig.__diagram) fig.__diagram.stop();
-      page.removeAttribute('data-viewing');
+      if (page.__viewer === d) page.removeAttribute('data-viewing');
       // The dialog leaves on its own motion, then goes.
-      setTimeout(function () { d.remove(); }, px(d, '--_dur') * 0.75 || 300);
+      d.__leave = setTimeout(function () { d.remove(); if (page.__viewer === d) page.__viewer = null; }, px(d, '--_dur') * 0.75 || 300);
     });
   }
 

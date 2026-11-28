@@ -8,6 +8,7 @@ import { SearchGlyph } from "./glyphs/search";
 import { Icon } from "./icon";
 import { isComposingKey } from "./keyboard";
 import type { FocusTarget } from "./types";
+import { Portless, useFadeRef } from "./fade-port";
 import { join } from "./utils";
 
 // ---- The search trigger: a button shaped like a field ----
@@ -66,6 +67,7 @@ export function SearchDialog({ open, onOpenChange, title, label, placeholder, qu
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* Its top is held where the full box has it and the box ends under what it shows (DECISIONS 336, Q3). */}
       <DialogHoldsTop.Provider value>
+      <Portless.Provider value>
       <DialogContent className="basalt-search" finalFocus={finalFocus}>
         <DialogTitle className="basalt-visually-hidden">{title}</DialogTitle>
         <form
@@ -94,6 +96,7 @@ export function SearchDialog({ open, onOpenChange, title, label, placeholder, qu
         <FilterResult className="basalt-search-count">{count}</FilterResult>
         {children}
       </DialogContent>
+      </Portless.Provider>
       </DialogHoldsTop.Provider>
     </Dialog>
   );
@@ -113,8 +116,10 @@ export interface SearchResultsProps extends React.ComponentProps<"ul"> {
  * scrolls inside past it; on a short window it is the room the dialog has. The dialog's top is held where the full box has it, so the field and
  * the count never move and the box ends under what it shows (DECISIONS 336).
  */
-export function SearchResults({ logoRows = 3, rows = 5, all = true, className, style, ...props }: SearchResultsProps) {
-  return <ul {...props} data-grows="" className={join("basalt-search-results", className)} style={{ "--_logos": logoRows, "--_packs": rows, "--_alls": all ? 1 : 0, ...style } as React.CSSProperties} />;
+export function SearchResults({ logoRows = 3, rows = 5, all = true, className, style, ref, ...props }: SearchResultsProps) {
+  // The area fades at each edge that hides results; a focused result and its ring are never under a band (cimip-gaps-3 t7).
+  const port = useFadeRef<HTMLUListElement>({ axis: "block", ring: 4 }, ref);
+  return <ul {...props} ref={port} data-grows="" className={join("basalt-search-results", className)} style={{ "--_logos": logoRows, "--_packs": rows, "--_alls": all ? 1 : 0, ...style } as React.CSSProperties} />;
 }
 
 export interface SearchResultProps extends Omit<React.ComponentProps<"a">, "children" | "media"> {
@@ -259,44 +264,9 @@ export function SearchField({ label, value, onValueChange, placeholder, onSubmit
   );
 }
 
-/** A match in a passage: from `start` up to (not including) `end`, in UTF-16 code units, as a server's highlighter reports them. */
-export type MatchRange = readonly [start: number, end: number];
-
-export type SearchMatchProps = React.ComponentProps<"mark">;
-
-/** A matched word in a passage: a `mark` in primary ink at 600 on the passage's secondary ink. No fill and no colour: the weight and the ink are the mark. */
-export function SearchMatch({ className, ...props }: SearchMatchProps) {
-  return <mark {...props} className={join("basalt-search-match", className)} />;
-}
-
-/**
- * A passage with its matches marked, from the ranges a server sends: overlapping and touching ranges are joined, ranges outside the text are cut
- * to it, a boundary inside a code point widens to the whole of it, and the order they come in does not matter. Plain text in, nodes out: nothing is parsed as HTML.
- */
-export function markMatches(text: string, ranges: readonly MatchRange[]): React.ReactNode[] {
-  // A boundary inside a code point (between the two halves of a surrogate pair, an emoji) widens to take the whole code point.
-  const inside = (at: number) => at > 0 && at < text.length && /[\uDC00-\uDFFF]/.test(text[at]!) && /[\uD800-\uDBFF]/.test(text[at - 1]!);
-  const sorted = ranges
-    .map(([start, end]) => [Math.max(0, Math.min(start, end)), Math.min(text.length, Math.max(start, end))] as const)
-    .map(([start, end]) => [inside(start) ? start - 1 : start, inside(end) ? end + 1 : end] as const)
-    .filter(([start, end]) => end > start)
-    .sort((a, b) => a[0] - b[0]);
-  const joined: Array<[number, number]> = [];
-  for (const [start, end] of sorted) {
-    const last = joined[joined.length - 1];
-    if (last && start <= last[1]) last[1] = Math.max(last[1], end);
-    else joined.push([start, end]);
-  }
-  const out: React.ReactNode[] = [];
-  let at = 0;
-  for (const [start, end] of joined) {
-    if (start > at) out.push(text.slice(at, start));
-    out.push(<SearchMatch key={start}>{text.slice(start, end)}</SearchMatch>);
-    at = end;
-  }
-  if (at < text.length) out.push(text.slice(at));
-  return out;
-}
+// The marks live in a module of their own (the command row draws them, and must not load this module's dialog); re-exported here.
+export { markMatches, SearchMatch } from "./search-match";
+export type { MatchRange, SearchMatchProps } from "./search-match";
 
 export interface SearchPassagesProps extends React.ComponentProps<"ol"> {
   /**
@@ -314,9 +284,11 @@ export interface SearchPassagesProps extends React.ComponentProps<"ol"> {
  * that scrolls inside, as the site search's results area has; the query, its paging and any grouping are the app's. While the first results are on their way,
  * draw it in a `LoadingShape` with stand-in passages; while a changed query runs, keep the last results on screen (`refreshing`).
  */
-export function SearchPassages({ rows, lines = 2, className, style, ...props }: SearchPassagesProps) {
+export function SearchPassages({ rows, lines = 2, className, style, ref, ...props }: SearchPassagesProps) {
+  // A budget scrolls inside and fades at each edge that hides passages (cimip-gaps-3 t7); the ring is at 0 outside the plate's box.
+  const port = useFadeRef<HTMLOListElement>({ axis: "block", ring: 2 }, ref);
   const budget = rows === undefined ? undefined : ({ "--_rows": rows, "--_lines": lines } as React.CSSProperties);
-  return <ol {...props} className={join("basalt-passages", className)} data-budget={rows === undefined ? undefined : ""} style={budget ? { ...budget, ...style } : style} />;
+  return <ol {...props} ref={port} className={join("basalt-passages", className)} data-budget={rows === undefined ? undefined : ""} style={budget ? { ...budget, ...style } : style} />;
 }
 
 export interface SearchPassageProps extends Omit<React.HTMLAttributes<HTMLElement>, "children"> {

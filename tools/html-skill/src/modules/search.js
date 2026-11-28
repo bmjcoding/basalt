@@ -26,6 +26,8 @@
   function again() { document.querySelectorAll('dialog.search[open]').forEach(place); }
 
   B._.step(131, 'searchTop', function () {
+    // The results fade at each edge that hides more (cimip-gaps-3 t7); a focused result and its +2 ring are never under a band. The dialog has no second port.
+    document.querySelectorAll('dialog.search .search-results').forEach(function (r) { B._.scrollFade(r, { axis: 'block', ring: 4 }); });
     new MutationObserver(function (list) {
       list.forEach(function (m) { var d = m.target; if (d.matches('dialog.search') && d.open && m.oldValue === null) place(d); });
     }).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['open'], attributeOldValue: true });

@@ -1,5 +1,6 @@
 import * as React from "react";
 
+import { ReserveErrorsContext } from "./field-reserve";
 import { join } from "./utils";
 
 /**
@@ -34,6 +35,8 @@ export interface FormGridProps extends React.ComponentProps<"div"> {
    * apart by `space-8`. Anything else is read as `"1-1"`.
    */
   columns?: string;
+  /** The default `reserveError` of the fields inside (a `Form`'s, when this is not given). A field's own `reserveError` (`false` included) wins. */
+  reserveErrors?: boolean;
 }
 
 /** `"3-2"` to `"minmax(0, 3fr) minmax(0, 2fr)"`; anything that is not digits and hyphens is `"1-1"`. */
@@ -51,13 +54,14 @@ function template(columns: string): string {
  * `size-breakpoint-md` (720), and one column in the markup's order anywhere else (a phone, a 480 dialog, a narrow pane), as a `Form` is, so keep the markup in the order it is
  * to be read. The grid sits in a frame of its own (`basalt-form-grid-frame`), the container its width is read from; the props go to the grid.
  */
-export function FormGrid({ columns = "1-1", className, style, ...props }: FormGridProps) {
+export function FormGrid({ columns = "1-1", reserveErrors, className, style, ...props }: FormGridProps) {
   const own = { "--_fg-columns": template(columns) } as React.CSSProperties;
-  return (
+  const grid = (
     <div className="basalt-form-grid-frame">
       <div {...props} style={{ ...own, ...style }} className={join("basalt-form-grid", className)} />
     </div>
   );
+  return reserveErrors === undefined ? grid : <ReserveErrorsContext.Provider value={reserveErrors}>{grid}</ReserveErrorsContext.Provider>;
 }
 
 export interface FormGridItemProps extends React.ComponentProps<"div">, FormGridPlacement {}

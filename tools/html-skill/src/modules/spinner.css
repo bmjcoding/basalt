@@ -1,4 +1,4 @@
-/* The ring spinner: the default wait. A module; the keyframes (bh-spin, bh-fade) live in core, where the busy button uses them.
+/* The ring spinner: the default wait. A module; the keyframes (bh-spin) live in core, where the busy button uses them.
    Like React's Spinner it is a fixed 16px in secondary ink, and takes the ink around it only inside a button or the palette's slot. */
 
 @layer basalt {
@@ -11,7 +11,8 @@
   /* The hold (data-loops="held", set before first paint from a stored choice): the ring stands still at its drawing, at full opacity, whatever the OS says. */
   :root[data-loops="held"] .spinner { animation: none; border-top-color: currentColor; }
 
+  /* Reduced motion: no loop runs, so the ring stands still at the same drawing as held. */
   @media (prefers-reduced-motion: reduce) {
-    .spinner { animation: bh-fade var(--basalt-duration-loop-fade) var(--basalt-ease-in-out) infinite; border-top-color: color-mix(in oklch, currentColor 25%, transparent); }
+    .spinner { animation: none; }
   }
 }

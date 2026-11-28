@@ -128,7 +128,7 @@ const CASES = [
       // sliding pill (.basalt-pill, .pill) wherever the pill is drawn, and on the button itself only where it is not (reduced motion,
       // forced colours, no script: tested in parity-2.test.mjs).
       ["pressed", ".basalt-segment[aria-pressed=true]", ".segment button[aria-pressed=true]", [...GEOMETRY, ...TYPE, "color", "borderTopColor", "borderTopWidth"]],
-      ["pressed fill", ".basalt-segmented[data-slide] > .basalt-pill", ".segment[data-slide] > .pill", ["backgroundColor", "boxShadow", "borderTopLeftRadius", "boxHeight", "boxWidth"]],
+      ["pressed fill", ".basalt-segmented-scroll[data-slide] > .basalt-pill", ".segment-scroll[data-slide] > .pill", ["backgroundColor", "boxShadow", "borderTopLeftRadius", "boxHeight", "boxWidth"]],
       ["pressed, with the shared pill", ".basalt-segment[aria-pressed=true]", ".segment button[aria-pressed=true]", ["backgroundColor", "boxShadow"]],
       ["rest", ".basalt-segment[aria-pressed=false]", ".segment button[aria-pressed=false]", BOX],
       ["pressed width", ".basalt-segment[aria-pressed=true]", ".segment button[aria-pressed=true]", ["boxWidth", "fontWeight"]],
@@ -246,7 +246,10 @@ const PALETTE_PAIRS = [
   ["two-line row", ".basalt-menu-item[data-described]", ".row[data-described]", [...GEOMETRY, ...TYPE, "color", "backgroundColor", "boxHeight", "boxWidth", "display", "gridTemplateColumns", "gridTemplateRows", "rowGap", "columnGap"]],
   ["row description", ".basalt-menu-item-description", ".row-description", [...TYPE, "color", "boxHeight", "boxWidth", "overflowX", "textOverflow", "whiteSpace", "gridColumnStart", "gridRowStart"]],
   ["row description's label", ".basalt-menu-item[data-described] .basalt-menu-item-label", ".row[data-described] .row-label", ["boxHeight", "boxWidth", "gridColumnStart", "gridRowStart"]],
-  ["footer", ".basalt-command-footer", ".palette-footer", [...TYPE, "color", "paddingTop", "paddingLeft", "gap", "borderTopWidth"]],
+  // cimip-gaps-3 t6: the modal's foot is the list's foot band, in React and in the palette; its legend is the list's legend.
+  ["foot", ".basalt-dialog .basalt-command-foot", ".palette .command-foot", ["color", "paddingTop", "paddingLeft", "rowGap", "columnGap", "borderTopWidth", "boxHeight"]],
+  ["foot's count", ".basalt-dialog .basalt-command-count", ".palette .command-count", [...TYPE, "color"]],
+  ["foot's legend", ".basalt-dialog .basalt-command-hints", ".palette .command-hints", [...TYPE, "color", "columnGap"]],
 ];
 
 const PALETTE_REACT = `
@@ -443,7 +446,7 @@ const OVERLAYS = [
       ["item plate", ".basalt-menu-item:not([data-highlighted]):not([data-described]):not([data-danger])", ".menu-item[role=menuitemradio][aria-checked=true]", ["top", "bottom", "borderTopLeftRadius", "backgroundColor", "boxHeight"], { pseudo: "::before" }],
       ["lit item", ".basalt-menu-item[data-highlighted]", ".menu-item[data-highlighted]", [...GEOMETRY, ...TYPE, "color", "backgroundColor", "gap", "boxHeight"]],
       ["lit plate", ".basalt-menu-item[data-highlighted]", ".menu-item[data-highlighted]", ["top", "bottom", "borderTopLeftRadius", "backgroundColor", "boxHeight"], { pseudo: "::before" }],
-      ["glide plate", ".basalt-plate", ".menu > .plate", ["backgroundColor", "borderTopLeftRadius", "boxHeight", "boxWidth", "display", "opacity", "firstTransitionDuration", "firstTransitionTimingFunction"]],
+      ["glide plate", ".basalt-menu-scroll > .basalt-plate", ".menu-scroll > .plate", ["backgroundColor", "borderTopLeftRadius", "boxHeight", "boxWidth", "display", "opacity", "firstTransitionDuration", "firstTransitionTimingFunction"]],
       ["glyph and shortcut item", ".basalt-menu-item:has(.basalt-menu-item-shortcut)", ".menu-item:has(.kbd-group)", [...GEOMETRY, "gap", "boxHeight"]],
       ["shortcut", ".basalt-menu-item-shortcut", ".menu-item .kbd-group", ["marginLeft", "gap", "display"]],
       ["described item", ".basalt-menu-item[data-described]", ".menu-item:has(.menu-item-description)", [...GEOMETRY, ...TYPE, "color", "gap", "boxHeight", "display", "gridTemplateColumns", "gridTemplateRows"]],

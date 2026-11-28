@@ -418,7 +418,7 @@ for (const scheme of ["dark", "light"]) {
       const { page, context } = await open({ scheme });
       await page.click("#open-menu");
       await settle(page);
-      const plate = () => page.evaluate(() => { const p = document.querySelector("#menu > .plate"); const c = getComputedStyle(p); const r = p.getBoundingClientRect(); return { display: c.display, state: p.dataset.state, top: r.top, height: r.height, width: r.width, glide: document.getElementById("menu").hasAttribute("data-glide") }; });
+      const plate = () => page.evaluate(() => { const p = document.querySelector("#menu > .menu-scroll > .plate"); const c = getComputedStyle(p); const r = p.getBoundingClientRect(); return { display: c.display, state: p.dataset.state, top: r.top, height: r.height, width: r.width, glide: document.querySelector("#menu > .menu-scroll").hasAttribute("data-glide") }; });
       assert.equal((await plate()).glide, true);
       await page.hover("#m-name");
       await frames(page, 3);
@@ -607,7 +607,7 @@ for (const scheme of ["dark", "light"]) {
       await context.close();
     });
 
-    test("swiping a toast to the right dismisses it past 60px and springs back before; a press on its buttons is not a swipe", async () => {
+    test("swiping a toast to the right dismisses it past 40px (React's) and springs back before; a press on its buttons is not a swipe", async () => {
       const { page, context } = await open({ scheme });
       const clock = await freezeAnimations(page);
       await page.evaluate(() => Basalt.toast({ title: "Only copy" }));
@@ -615,7 +615,9 @@ for (const scheme of ["dark", "light"]) {
       const box = await rect(page, ".toast");
       await page.mouse.move(box.left + 40, box.top + 20);
       await page.mouse.down();
-      await page.mouse.move(box.left + 70, box.top + 20);
+      // The first move is the gesture's start (Base UI's, for the late press iOS reports); the distance is counted from it.
+      await page.mouse.move(box.left + 41, box.top + 20);
+      await page.mouse.move(box.left + 71, box.top + 20);
       await clock.advance(50);
       assert.equal(await page.evaluate(() => document.querySelector(".toast").hasAttribute("data-swiping")), true);
       assert.equal(await page.evaluate(() => document.querySelector(".toast").style.getPropertyValue("--toast-swipe-movement-x")), "30px", "it follows the pointer");
@@ -625,6 +627,7 @@ for (const scheme of ["dark", "light"]) {
       assert.equal(await page.evaluate(() => document.querySelector(".toast").style.getPropertyValue("--toast-swipe-movement-x")), "");
       await page.mouse.move(box.left + 40, box.top + 20);
       await page.mouse.down();
+      await page.mouse.move(box.left + 41, box.top + 20);
       await page.mouse.move(box.left + 160, box.top + 20);
       await page.mouse.up();
       assert.equal(await page.evaluate(() => document.querySelector(".toast").getAttribute("data-swipe-direction")), "right");
@@ -819,7 +822,7 @@ describe("forced colours, reduced motion and touch", () => {
     await page.focus("#open-menu");
     await page.keyboard.press("ArrowDown");
     await frames(page, 3);
-    const row = await page.evaluate(() => { const r = document.getElementById("m-dup"); return { color: getComputedStyle(r).color, plate: getComputedStyle(r, "::before").backgroundColor, kbd: getComputedStyle(r.querySelector(".kbd")).color, chip: getComputedStyle(r.querySelector(".kbd")).backgroundColor, glide: getComputedStyle(document.querySelector("#menu > .plate")).display }; });
+    const row = await page.evaluate(() => { const r = document.getElementById("m-dup"); return { color: getComputedStyle(r).color, plate: getComputedStyle(r, "::before").backgroundColor, kbd: getComputedStyle(r.querySelector(".kbd")).color, chip: getComputedStyle(r.querySelector(".kbd")).backgroundColor, glide: getComputedStyle(document.querySelector("#menu > .menu-scroll > .plate")).display }; });
     assert.deepEqual([row.color, row.plate, row.kbd, row.chip, row.glide], [sys.HighlightText, sys.Highlight, sys.HighlightText, sys.Highlight, "none"], "each row paints its own: no shared plate");
     await page.keyboard.press("Escape");
     await page.click("#bell > .btn");
@@ -844,7 +847,7 @@ describe("forced colours, reduced motion and touch", () => {
     const heights = await page.evaluate(() => [...document.querySelectorAll("#menu .menu-item")].map((r) => r.getBoundingClientRect().height));
     assert.ok(heights.every((h) => h >= 44), heights.join(", "));
     assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#menu .kbd-group")).display), "none");
-    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#menu > .plate")).display), "none", "no shared plate on touch");
+    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#menu > .menu-scroll > .plate")).display), "none", "no shared plate on touch");
     await context.close();
   });
 

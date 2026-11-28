@@ -30,7 +30,8 @@
   var badKeys = {};
   function binding(item) {
     var keys = item.keys;
-    if (!keys) return null;
+    // A command that cannot run now draws no chip and binds no keys: its shortcut would run nothing.
+    if (!keys || item.unavailable != null) return null;
     if (!Array.isArray(keys)) {
       if (!badKeys['a:' + item.label]) { badKeys['a:' + item.label] = 1; console.warn('Basalt: "' + item.label + '" has keys that are not an array; write keys: [\'⌘\', \'S\']'); }
       return null;
@@ -68,8 +69,9 @@
     return mods && (String(e.key).toLowerCase() === b.key || (b.key.length === 1 && /^[a-z]$/.test(b.key) && e.code === 'Key' + b.key.toUpperCase()));
   }
 
-  /** Runs an item the way choosing it does, once the palette (if any) is closed. */
+  /** Runs an item the way choosing it does, once the palette (if any) is closed. An item that cannot run (`unavailable`) never runs. */
   function activate(item, o) {
+    if (item.unavailable != null) return;
     if (item.onSelect) item.onSelect(item);
     if (o.onSelect) o.onSelect(item);
     if (item.href) {
@@ -122,15 +124,62 @@
         var keys = binding(it) ? it.keys : null;
         // The chip is aria-hidden, so the shortcut is also said in words, from a hidden element outside the option (the name stays "Copy").
         if (keys) words += '<span id="' + id + '-o' + n + '-keys">' + esc(keywords(keys)) + '</span>';
-        html += '<div class="row" role="option" id="' + id + '-o' + n + '" data-index="' + n + '" aria-selected="false"' + (it.danger ? ' data-danger' : '') + (it.description ? ' data-described' : '') +
+        // An item that cannot run (`unavailable`, its reason) is aria-disabled, never skipped by the keys; the reason takes the second line and wraps,
+        // and unavailable wins over danger. A description stays a search keyword.
+        var off = it.unavailable != null;
+        var second = off ? String(it.unavailable) : it.description;
+        html += '<div class="row" role="option" id="' + id + '-o' + n + '" data-index="' + n + '" aria-selected="false"' + (it.danger && !off ? ' data-danger' : '') + (second ? ' data-described' : '') +
+          (off ? ' data-unavailable aria-disabled="true"' : '') +
           (keys ? ' aria-keyshortcuts="' + esc(keyshortcuts(keys)) + '" aria-describedby="' + id + '-o' + n + '-keys"' : '') + '>' +
           (it.icon ? icon(it.icon) : '') + '<span class="row-label">' + esc(it.label) + '</span>' +
-          (it.description ? '<span class="row-description">' + esc(it.description) + '</span>' : '') +
+          (second ? '<span class="row-description">' + esc(second) + '</span>' : '') +
           (it.hint ? '<span class="row-hint">' + esc(it.hint) + '</span>' : '') + (keys ? kbdGroup(keys) : '') + (chevron || '') + '</div>';
       });
       html += '</div>';
     });
     return { html: html, words: words, flat: flat };
+  }
+
+  /**
+   * Fills a surface's "nothing shown" block: with words, "Nothing matches “…”." and a ghost Clear search; with none, "Nothing to show."; or the page's own
+   * `<template data-empty>`, cloned (never HTML from data), where an element with `data-clear` clears the search. A key other than Esc stops in the block,
+   * so the surface's own Enter never eats a button's or a link's activation.
+   */
+  function fillNone(none, q, template, clear) {
+    none.textContent = '';
+    if (template) none.appendChild(template.content.cloneNode(true));
+    else {
+      var p = document.createElement('p');
+      p.textContent = q ? 'Nothing matches “' + q + '”.' : 'Nothing to show.';
+      none.appendChild(p);
+      if (q) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn';
+        b.setAttribute('data-variant', 'ghost');
+        b.setAttribute('data-size', 'sm');
+        b.setAttribute('data-clear', '');
+        b.textContent = 'Clear search';
+        none.appendChild(b);
+      }
+    }
+    [].forEach.call(none.querySelectorAll('[data-clear]'), function (el) { el.addEventListener('click', clear); });
+    if (!none.__bhKeys) {
+      none.__bhKeys = true;
+      none.addEventListener('keydown', function (e) { if (e.key !== 'Escape') e.stopPropagation(); });
+    }
+  }
+
+  /** The count line: "7 commands" at rest, "2 of 7" while a search narrows the rows ("7 of 7" when every row matches), or the page's own (`count`). */
+  function countLine(shown, total, noun, filtering, count) {
+    if (count != null) return String(count);
+    return filtering ? shown + ' of ' + total : total + ' ' + (total === 1 ? noun : noun + 's');
+  }
+
+  /** Says a reason at once, and again on a second press: the line is emptied, then filled a task later. */
+  function sayNow(line, text) {
+    line.textContent = '';
+    setTimeout(function () { line.textContent = text; }, 0);
   }
 
   /**
@@ -146,6 +195,16 @@
     var id = 'bh-palette-' + (++paletteSeq);
     var label = o.label || 'Command palette';
     var opener = document.activeElement;
+    // The noun and the count line come from the options, or from data-noun and data-count on the trigger or the palette's JSON; the empty block from
+    // a <template data-empty> outside any command list.
+    var trigger = opener && opener.closest ? opener.closest('[data-open-palette]') : null;
+    var json = document.querySelector('script[type="application/json"][data-palette]');
+    var attr = function (name) { return (trigger && trigger.getAttribute(name)) || (json && json.getAttribute(name)) || null; };
+    var noun = o.noun || attr('data-noun') || 'command';
+    var count = o.count != null ? o.count : attr('data-count');
+    var template = o.empty || [].filter.call(document.querySelectorAll('template[data-empty]'), function (t) { return !t.closest('.command-list'); })[0] || null;
+    var total = 0;
+    groups.forEach(function (g) { total += (g.items || []).length; });
 
     var scrim = document.createElement('div');
     scrim.className = 'scrim palette-scrim';
@@ -156,29 +215,34 @@
           '" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="' + esc(o.placeholder || 'Type a command or search') + '">' +
         '</div>' +
         '<div class="rows palette-list" id="' + id + '-list" role="listbox" aria-label="Results"></div>' +
-        '<div class="palette-empty" hidden>No commands match.</div>' +
-        '<div class="visually-hidden" role="status"></div>' +
+        '<div class="command-none" hidden></div>' +
         '<div hidden id="' + id + '-keys"></div>' +
-        '<div class="divider" data-kbd-hint></div>' +
-        '<div class="palette-footer" id="' + id + '-hints" data-kbd-hint>' +
-          '<span>' + kbdGroup(['↑', '↓']) + 'Navigate</span><span>' + kbdGroup(['↵']) + 'Run</span><span>' + kbdGroup(['Esc']) + 'Close</span>' +
+        '<div class="command-foot">' +
+          '<p class="command-count"><span aria-hidden="true"></span><span role="status" aria-live="polite" aria-atomic="true" class="visually-hidden"></span></p>' +
+          // The legend keeps its id while hidden from assistive technology, so the field's description still resolves.
+          '<span class="command-hints" id="' + id + '-hints" data-kbd-hint aria-hidden="true"><span>' + kbdGroup(['↑', '↓']) + ' Navigate</span><span>' + kbdGroup(['↵']) + ' Run</span><span>' + kbdGroup(['Esc']) + ' Close</span></span>' +
         '</div>' +
+        '<div class="visually-hidden" role="status" data-reason></div>' +
       '</div>';
 
     var dialog = scrim.firstElementChild;
     var input = dialog.querySelector('input');
     var list = dialog.querySelector('[role="listbox"]');
-    var empty = dialog.querySelector('.palette-empty');
-    var status = dialog.querySelector('[role="status"]');
+    var none = dialog.querySelector('.command-none');
+    var shownText = dialog.querySelector('.command-count').firstChild;
+    var status = dialog.querySelector('.command-count').lastChild;
+    var reason = dialog.querySelector('[data-reason]');
     var words = dialog.querySelector('#' + id + '-keys');
     var flat = [];
     var index = 0;
-    var spoken = '';
+    var spoken = null;
     var timer;
 
-    /** The result count goes to a live region inside the dialog, once the typing pauses, and only when it changed. */
+    /** The count is shown at once and spoken once, after it has held still for 400ms, and never on opening (its first text is not announced). */
     function speak(msg) {
+      shownText.textContent = msg;
       clearTimeout(timer);
+      if (spoken === null) { spoken = msg; return; }
       if (msg === spoken) return;
       timer = setTimeout(function () { status.textContent = spoken = msg; }, 400);
     }
@@ -197,10 +261,11 @@
       list.insertBefore(plate, list.firstChild);
       words.innerHTML = r.words;
       list.hidden = flat.length === 0;
-      empty.hidden = flat.length !== 0;
+      none.hidden = flat.length !== 0;
+      if (!flat.length) fillNone(none, q, template, function () { input.value = ''; index = 0; render(); input.focus(); });
       index = Math.min(index, Math.max(flat.length - 1, 0));
       setActive(flat.length ? index : -1, false);
-      speak(flat.length ? flat.length + (flat.length === 1 ? ' result' : ' results') : 'No commands match.');
+      speak(countLine(flat.length, total, noun, q !== '', count));
     }
 
     function setActive(i, scroll) {
@@ -211,12 +276,15 @@
       rows[i].setAttribute('aria-selected', 'true');
       rows[i].setAttribute('data-active', '');
       input.setAttribute('aria-activedescendant', rows[i].id);
-      if (scroll !== false) rows[i].scrollIntoView({ block: 'nearest' });
+      // Focus stays in the field: the row the keys are on is brought clear of the fade and kept there (cimip-gaps-3 t7).
+      if (scroll !== false) { if (!list.__bhFade) list.__bhFade = _.scrollFade(list, { axis: 'block' }); list.__bhFade.keep(rows[i]); }
     }
 
     function choose(i) {
       var item = flat[i];
       if (!item) return;
+      // A row that cannot run: nothing runs and nothing closes; its reason is said, again on every press.
+      if (item.unavailable != null) { setActive(i, false); sayNow(reason, String(item.unavailable)); return; }
       close();
       activate(item, o);
     }
@@ -260,6 +328,16 @@
       syncHints();
       if (composing(e)) return; // finishing or cancelling a composition is not a command
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); return; }
+      if (e.key === 'Tab') {
+        // The field and whatever the empty block holds are the palette's stops; focus cycles among them.
+        var stops = [input].concat([].filter.call(none.hidden ? [] : none.querySelectorAll('a[href], button:not(:disabled), input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])'), function (el) { return el.getClientRects().length > 0; }));
+        e.preventDefault();
+        var at = stops.indexOf(document.activeElement);
+        stops[(at + (e.shiftKey ? stops.length - 1 : 1)) % stops.length].focus();
+        return;
+      }
+      // Keys inside the empty block are its own (a button's or a link's Enter).
+      if (none.contains(e.target)) return;
       if (e.key === 'ArrowDown') { e.preventDefault(); if (flat.length) setActive((index + 1) % flat.length); return; }
       if (e.key === 'ArrowUp') { e.preventDefault(); if (flat.length) setActive((index - 1 + flat.length) % flat.length); return; }
       // Only a bare Enter runs the highlighted row. With a modifier it is a shortcut for the page, which the shortcut handler sees.
@@ -269,7 +347,6 @@
         if (flat.length) choose(index);
         return;
       }
-      if (e.key === 'Tab') { e.preventDefault(); input.focus(); } // the input is the dialog's only tab stop
     }
 
     list.addEventListener('pointermove', function (e) {
@@ -280,6 +357,8 @@
       var row = e.target.closest('[role="option"]');
       if (row) choose(Number(row.dataset.index));
     });
+    // A press on a row that cannot run keeps focus in the field.
+    list.addEventListener('mousedown', function (e) { if (e.target.closest('[role="option"][aria-disabled="true"]')) e.preventDefault(); });
     scrim.addEventListener('pointerdown', function (e) { if (e.target === scrim) close(); });
     scrim.addEventListener('toggle', function (e) { if (e.newState === 'closed') close(); });
     input.addEventListener('input', function () { index = 0; render(); });
@@ -305,6 +384,7 @@
       }
       document.documentElement.style.overflow = 'hidden';
       // The glide listens before the palette's own key handler does, so a key has set its modality before the highlight moves (and moves the plate at once).
+      if (!list.__bhFade) list.__bhFade = _.scrollFade(list, { axis: 'block' });
       unglide = _.glide(list, plate, { active: '.row[data-active]', attr: 'data-active' });
       document.addEventListener('keydown', onKey, true);
       activePalette = api;
@@ -366,7 +446,7 @@
   }
 
   // The in-page command list builds its rows, filters and runs items with these.
-  _.palette = { rows: rowsOf, tier: tier, matches: matches, activate: activate, composing: composing };
+  _.palette = { rows: rowsOf, tier: tier, matches: matches, activate: activate, composing: composing, fillNone: fillNone, countLine: countLine, sayNow: sayNow };
   B.openPalette = openPalette;
   B.closePalette = closePalette;
   _.step(110, 'wirePalette', function (o) { wirePalette(o.palette); });

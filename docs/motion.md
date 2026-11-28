@@ -161,6 +161,14 @@ A chart (decision 101) is drawn at rest on its first paint, unless it is its pag
 | The phase chart's open week (DECISIONS 153, vote 17) | The plate behind the plot and the lane slides to the chosen week over `duration-slow` on `ease-out` (the segmented control's rule); under reduced motion it sets in place, and in forced colours it is an outline. Picking a day on the plot does not move it. |
 | A marks row's new values (DECISIONS 153, consent row 11) | Each mark glides to its height over `duration-slow`; none under reduced motion. The share bar, the coverage strip, the marks row and the range meter draw at rest and are never a page's one entrance; the range meter's marker glides over `duration-slow`. |
 | The entrance (`entrance` on a chart that is its page's one) | Each mark draws once on a first visit over `duration-figure`; a change of data mid-entrance takes over and glides every mark from where it is drawn. |
+| A share bar's legend indicator (cimip-gaps-3 T2) | The 2px line under the hovered or focused part's segment fades in over `duration-fast`; nothing else dims or moves | The same (opacity only) | The same |
+| A heatmap (cimip-gaps-3 T2) | At rest, never a page's entrance; a changed value's fill crosses over `duration-slow` on `ease-out`; picking is instant. Nothing loops | The fill lands at once | The same |
+
+## The event log's newest-first feed
+
+cimip-gaps-3 T2 (see [foundations](foundations.md#lists-and-facts)). An arrival shown at once fades in over `duration-base` and the lines under it move down by transform over
+`duration-slow` on `ease-out`, as `Reflow` does (past 48 lines, at once). Under reduced motion they land at once and the arrival fades over 100ms (`duration-fast`). A waiting arrival is
+not in the DOM: nothing moves. The release control fades over `duration-fast` and never slides; a press lands the waiting lines at once, with no travel. The hold makes every arrival wait.
 
 ## The clear bar and framed art
 
@@ -174,7 +182,7 @@ first pixel of scroll.
 | A departure first reported past the headroom's 24px slack: an instant anchor, a `scrollTo`, a restored scroll position, a scroll the browser doesn't animate | Everything switches at once: art past the headroom is already under the bar. A scroll the browser animates (Page Down, Space, a smooth anchor) is first reported inside the slack and gets the fade above. |
 | A page opening at the top | Clear in its first frame when script runs: no fade from smoked. Without script it stays smoked. |
 | Reduced motion | The duration tokens' 100ms fade (75ms leaving). Nothing moves, so there is no movement to remove. |
-| Reduced transparency, forced colours, print | No change: the bar is opaque in both states. |
+| Reduced transparency, more contrast, forced colours, print | No change: the bar is opaque in both states. |
 
 DECISIONS 146 D. A bar that arrives, or leaves and returns (`useSitePhase`; see [foundations](foundations.md#a-bar-that-arrives-or-leaves-and-returns)):
 
@@ -208,19 +216,22 @@ Status: decided by the council for the owner's handoff (DECISIONS 302, 304, 307,
 | A run timeline's roll | Each row inside the window moves by transform from where it was drawn over `slow` on `ease-out`, the ink stepping on the same clock; the arriving step fades over `base`; past 48 counted rows it lands at once | Lands at once; the arrival fades over 100ms | Lands at once |
 | A stage transcript's step back | A colour step over `fast`; nothing moves | The same | Lands at once |
 | The queued breath | See Spinners | Still, at full | Still, at full |
+| The idle mark (not started) | None: still `CircleDashed`, in every mode | Still | Still |
+| A `StagePlace`'s advance (cimip-gaps-3 T2) | The long pill moves to the new current (the widths and inks) over `slow` on `ease-out` | Lands at once | Lands at once |
+| A stage's own disclosure (cimip-gaps-3 T2) | The chevron turns right to down by the morph; the detail opens with the stage detail's clip | The detail lands at once | Lands at once |
 
 ## Spinners
 
 | Variant | Use it |
 |---|---|
-| `ring` | A wait: the default arc, in a loading button, the command menu's loading slot, and wherever a spinner stands without a visible word. One turn in 640ms. Under reduced motion it fades on `duration-loop-fade`. |
+| `ring` | A wait: the default arc, in a loading button, the command menu's loading slot, and wherever a spinner stands without a visible word. One turn in 640ms. Under reduced motion it stands still, at full opacity. |
 | `braille` | A status: work that runs beside a word that says so, in a table, a list row, a toast or a log line. Never in a button, never without its word. Basalt's own six-dot cell drawn in SVG, 6 by 10 with 2px dots on whole pixels (9 by 15 at size 20, 12 by 20 at 24), ten frames (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏), one 800ms cycle (80ms a frame), hard `step-end`; unlit dots are not drawn. It takes the status dot's place and gap, in its word's colour. It holds its first frame under reduced motion. |
 
 **The queued breath** (DECISIONS 316) is a `StageMark`'s at `queued`, and no other mark's: by opacity alone, from `opacity-queued` (0.65) to 1 and back on `duration-loop-fade` and `ease-in-out`, alternating, in secondary ink, 3:1 or better at its lowest on every surface. It joins the shared clock and the hold, and is still, at full, under reduced motion, in forced colours and in print. A `Badge`'s pending ring never breathes.
 
 Spinners on a page share one clock: each animation starts at the document timeline's origin, so spinners mounted at different moments tick in phase, each variant on its own period.
 
-**The hold.** `<html data-loops="held">` (set by `useLoops()`) stops every Basalt loop, portals included: braille stays on ⠋ and the ring stands still at its drawing, at full opacity; a busy Button's ring, a busy TextButton's underline (dashed and full), Sparkline's loading line, Skeleton's pulse, a written field's fill and a queued `StageMark`'s breath stop with them, and the indeterminate Progress bar holds as the empty track, its indicator hidden (a still bar reads as a value). Nothing is hidden, swapped or announced. It outranks reduced motion by specificity, so held is one look whatever the OS says and the ring's fade stops too; reduced motion never turns it on. The state is stored for this app's origin in this browser (`basalt-loops`, `localStorage`) and follows across the app's tabs. Releasing jumps to now: every Basalt loop's `startTime` goes back to the timeline's origin, so spinners mounted at different moments tick in phase, and nothing resumes from the held frame. The toast's drain is a countdown, not a loop, so the hold does not stop it. An app reads `held` for its own rewriting text (an elapsed time shows when the work started; a streaming count hides). This is the WCAG 2.2.2 mechanism; the control is `LoopsToggle`, in the form the place needs (an icon toggle in a site header, a pressed-toggle Button in the view's head, a settings row with a Switch; a command is the app's part). The hold stops the page's ambient loop as well. See [foundations](foundations.md#motion).
+**The hold.** `<html data-loops="held">` (set by `useLoops()`) stops every Basalt loop, portals included: braille stays on ⠋ and the ring stands still at its drawing, at full opacity; a busy Button's ring, a busy TextButton's underline (dashed and full), Sparkline's loading line, Skeleton's pulse, a written field's fill and a queued `StageMark`'s breath stop with them, and the indeterminate Progress bar holds as the empty track, its indicator hidden (a still bar reads as a value). Nothing is hidden, swapped or announced. It outranks reduced motion by specificity, so held is one look whatever the OS says; reduced motion never turns it on. The state is stored for this app's origin in this browser (`basalt-loops`, `localStorage`) and follows across the app's tabs. Releasing jumps to now: every Basalt loop's `startTime` goes back to the timeline's origin, so spinners mounted at different moments tick in phase, and nothing resumes from the held frame. The toast's drain is a countdown, not a loop, so the hold does not stop it. An app reads `held` for its own rewriting text (an elapsed time shows when the work started; a streaming count hides). This is the WCAG 2.2.2 mechanism; the control is `LoopsToggle`, in the form the place needs (an icon toggle in a site header, a pressed-toggle Button in the view's head, a settings row with a Switch; a command is the app's part). The hold stops the page's ambient loop as well. See [foundations](foundations.md#motion).
 
 Beside a word, braille's size follows the word's cap height (16 beside 12 to 16px text, 20 beside 18 to 24px, 24 beside 30px and up), the seat is the cell's width and the gap equals it (6, 9 and 12px), so words start at 12, 18 and 24.
 

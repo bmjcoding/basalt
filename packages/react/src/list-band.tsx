@@ -49,11 +49,17 @@ export interface ListBandProps extends Omit<React.ComponentProps<"div">, "childr
   rangeTotal?: boolean;
   /**
    * Under 720 the foot (Previous, the count and Next under the list) is drawn only with more than one page, so a list whose rows arrive after its first frame grows the
-   * foot then, and what is under it moves. Set this to hold the foot's room from the first frame, at one page or none as well (its arrows hidden, as `Pagination keepRoom`
-   * holds the band's) (G88). Opt-in, pending the council's decision on the default (topic T3: DECISIONS 227 removed this empty room at the owner's
-   * objection): left out or `false`, the foot is as shipped.
+   * foot then, and what is under it moves. Set this to hold the foot's room from the first frame (G88): at one page or none the foot holds its room and draws nothing (its
+   * arrows and its count hidden, no landmark), since the band above already says the range. Use it for a list whose rows arrive after the first frame and that expects more
+   * than one page. Opt-in: left out or `false`, the foot is as shipped (DECISIONS 227 removed this empty room under every short list).
    */
   keepFootRoom?: boolean;
+  /**
+   * What the band shows at one page or none. `"band"` (the default): the range and the page size; in the narrow form (under 640 of its width) the pager is not drawn and the
+   * range starts the row. `"size"`: the page size alone at the band's end (the range and the pager keep their seats unseen in the wide form, and are not drawn in the narrow one).
+   * A smaller size that makes a second page fills the seats; the select never moves or remounts.
+   */
+  onePage?: "band" | "size";
   /** The current page, from 1. */
   page: number;
   /** Rows on a page. */
@@ -121,10 +127,11 @@ function returnToRest(sentinel: HTMLElement, owner: HTMLElement | null) {
  * polite status line; a change of `filterKey` (a search or a filter) clears it, since the filter's result line speaks that. When the page or size the reader asked for arrives while the band is stuck, the scroller returns
  * to where the band rests, so the new page's first row shows under the band and Next stays under the pointer. Under 640px of its own width the numbers go (Previous, the count and Next),
  * and under 340px the page size moves to the end of a second row. Under 720, with more than one page, the band's Previous, count and Next are drawn again, centred under the list (its foot):
- * a press there changes the page, returns the scroller to where the band rests and moves focus to the band's own arrow (with `keepFootRoom`, its room is held at one page too). Back to top sits in a dock of zero height after the band.
+ * a press there changes the page, returns the scroller to where the band rests and moves focus to the band's own arrow (with `keepFootRoom`, its room is held at one page too,
+ * drawing nothing). At one page or none the narrow band draws no pager: the range starts the row and the page size ends it (`onePage="size"` shows the page size alone). Back to top sits in a dock of zero height after the band.
  * The scroller is the window unless `scroller` names a pane.
  */
-export function ListBand({ total, maxTotal, seatTotal, rangeTotal = true, keepFootRoom = false, page, pageSize, pageSizes = DEFAULT_SIZES, onPageChange, onPageSizeChange, noun, sizeLabel = "per page", pagerLabel, delay, heading, backToTop = true, footLabel = "Pagination, end of list", filterKey, scroller, children, className, ...props }: ListBandProps) {
+export function ListBand({ total, maxTotal, seatTotal, rangeTotal = true, keepFootRoom = false, onePage = "band", page, pageSize, pageSizes = DEFAULT_SIZES, onPageChange, onPageSizeChange, noun, sizeLabel = "per page", pagerLabel, delay, heading, backToTop = true, footLabel = "Pagination, end of list", filterKey, scroller, children, className, ...props }: ListBandProps) {
   const count = Math.max(0, Math.floor(total) || 0);
   const size = Math.max(1, Math.floor(pageSize) || 1);
   const pages = Math.max(1, Math.ceil(count / size));
@@ -210,7 +217,7 @@ export function ListBand({ total, maxTotal, seatTotal, rangeTotal = true, keepFo
   return (
     <div className="basalt-list-band-wrap" data-scroller={scroller ? "" : undefined}>
       <div ref={sentinel} className="basalt-list-band-sentinel" aria-hidden="true" />
-      <div {...props} ref={band} data-stuck={stuck ? "" : undefined} data-pinned-edge="top" className={join("basalt-list-band", className)}>
+      <div {...props} ref={band} data-stuck={stuck ? "" : undefined} data-whole={pages <= 1 ? "" : undefined} data-one-page={onePage === "size" ? "size" : undefined} data-pinned-edge="top" className={join("basalt-list-band", className)}>
         <div className="basalt-list-band-row">
           <p className="basalt-list-band-range">{range}</p>
           <Pagination

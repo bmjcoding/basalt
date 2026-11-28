@@ -10,7 +10,7 @@ import type { IconComponent } from "./types";
 import { useScreenKeyboardLayout } from "./screen-keyboard";
 import { useKeysMark } from "./use-media";
 import { join } from "./utils";
-import { VersionContext, VersionPlaceContext } from "./version-place";
+import { FootnoteContext, VersionContext, VersionPlaceContext } from "./version-place";
 
 // The phone tab bar (decisions 96): the destinations of an app under 720, always glyph over label. It is navigation, so a
 // `nav` of links with `aria-current="page"`, never a tablist. Solid `surface-page` with a hairline on top: the header is the
@@ -57,15 +57,20 @@ export interface TabBarItemProps extends Omit<React.ComponentProps<"a">, "childr
   current?: boolean;
   /** Something new here: a 6px dot in the label's ink at the glyph's top end. These words are spoken with the name ("New activity"). Counts are spoken, never drawn. */
   dot?: string;
+  /**
+   * `"direct"` draws the dot in a 1px ring: something new addressed to the reader (a mention). The words in `dot` say it ("3 unread, 1 for you"). It is
+   * separate from `current`, whose filled glyph still means the current page. Default `"plain"`.
+   */
+  dotKind?: "plain" | "direct";
 }
 
 /** The cell's glyph, label and dot, shared by a link and by More. */
-function Cell({ icon, label, current, dot }: { icon: IconComponent; label: string; current: boolean; dot?: string }) {
+function Cell({ icon, label, current, dot, dotKind }: { icon: IconComponent; label: string; current: boolean; dot?: string; dotKind?: "plain" | "direct" }) {
   return (
     <>
       <span className="basalt-tabbar-glyph">
         <ControlIcon icon={icon} size={24} selected={current} eager={current} />
-        {dot ? <span className="basalt-tabbar-dot" aria-hidden="true" /> : null}
+        {dot ? <span className="basalt-tabbar-dot" data-kind={dotKind === "direct" ? "direct" : undefined} aria-hidden="true" /> : null}
       </span>
       <span className="basalt-tabbar-label" data-label={label}>{label}</span>
     </>
@@ -73,11 +78,11 @@ function Cell({ icon, label, current, dot }: { icon: IconComponent; label: strin
 }
 
 /** One destination: a link that fills its cell. */
-export function TabBarItem({ icon, children, current = false, dot, className, ...props }: TabBarItemProps) {
+export function TabBarItem({ icon, children, current = false, dot, dotKind, className, ...props }: TabBarItemProps) {
   return (
     <li className="basalt-tabbar-entry">
       <a {...props} aria-current={current ? "page" : props["aria-current"]} className={join("basalt-tabbar-item", className)}>
-        <Cell icon={icon} label={children} current={current} dot={dot} />
+        <Cell icon={icon} label={children} current={current} dot={dot} dotKind={dotKind} />
         {dot ? <span className="basalt-visually-hidden">, {dot}</span> : null}
       </a>
     </li>
@@ -93,24 +98,32 @@ export interface TabBarMoreProps {
   current?: string;
   /** Something new under More, drawn as the cell's dot. */
   dot?: string;
+  /** `"direct"` rings the dot: something new under More is addressed to the reader. Default `"plain"`. */
+  dotKind?: "plain" | "direct";
   /** The destinations that did not fit: `NavItem`s, drawn as `Nav` rows in the bottom sheet. */
   children: React.ReactNode;
+  /**
+   * Rows that are not destinations, under the sheet's title and above the `Nav`, a divider under them: each child full width, 44 tall, on the `Nav`
+   * rows' inset (`LoopsToggle`'s Button form, "Pause animations", say). They are outside the `nav` landmark, and a press on one leaves the sheet open.
+   */
+  before?: React.ReactNode;
 }
 
 /**
  * The last cell when there are more than five destinations: a button that opens the rest in a bottom `Sheet`. Inside `AppShell` with a `version`,
  * the sheet's last row is that version, under a divider (DECISIONS 320, 1.2).
  */
-export function TabBarMore({ icon = MoreNavGlyph, label = "More", current, dot, children }: TabBarMoreProps) {
+export function TabBarMore({ icon = MoreNavGlyph, label = "More", current, dot, dotKind, before, children }: TabBarMoreProps) {
   const [open, setOpen] = React.useState(false);
   const version = React.useContext(VersionContext);
+  const footnote = React.useContext(FootnoteContext);
   const closeOnLink = (event: React.MouseEvent) => { if ((event.target as Element).closest("a")) setOpen(false); };
   const name = current ? `${label}, ${current}, current page` : label;
   return (
     <li className="basalt-tabbar-entry">
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger aria-label={name} data-current={current ? "" : undefined} className="basalt-tabbar-item basalt-tabbar-more">
-          <Cell icon={icon} label={label} current={Boolean(current)} dot={dot} />
+          <Cell icon={icon} label={label} current={Boolean(current)} dot={dot} dotKind={dotKind} />
           {dot ? <span className="basalt-visually-hidden">, {dot}</span> : null}
         </SheetTrigger>
         <SheetContent side="bottom" className="basalt-tabbar-sheet">
@@ -118,7 +131,9 @@ export function TabBarMore({ icon = MoreNavGlyph, label = "More", current, dot, 
             <SheetTitle>{label}</SheetTitle>
             <SheetClose render={<IconButton icon={CloseGlyph} label={`Close ${label.toLowerCase()}`} edge="end" />} />
           </div>
+          {before != null ? <div className="basalt-tabbar-before">{before}</div> : null}
           <Nav aria-label={label} onClick={closeOnLink}>{children}</Nav>
+          {footnote != null ? <div className="basalt-tabbar-footnote"><VersionPlaceContext.Provider value="more">{footnote}</VersionPlaceContext.Provider></div> : null}
           {version ? <div className="basalt-tabbar-version" onClick={closeOnLink}><VersionPlaceContext.Provider value="more">{version}</VersionPlaceContext.Provider></div> : null}
         </SheetContent>
       </Sheet>

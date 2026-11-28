@@ -117,8 +117,9 @@ for (const theme of THEMES) {
         assert.deepEqual(bodies, [{ tabindex: "0", role: "region", name: "Session" }, { tabindex: "0", role: "region", name: "Sources" }]);
         await page.locator("#act").focus();
         await page.keyboard.press("Tab");
-        assert.equal(await page.evaluate(() => document.activeElement?.closest(".basalt-drawer-body") === document.activeElement && document.activeElement.parentElement.querySelector(".basalt-drawer-title").textContent), "Session", "Tab from the head's button lands on the body");
-        const outline = await ring(page, ".basalt-drawer-body:focus");
+        assert.equal(await page.evaluate(() => document.activeElement?.closest(".basalt-drawer-body") === document.activeElement && document.activeElement.closest(".basalt-drawer-section").querySelector(".basalt-drawer-title").textContent), "Session", "Tab from the head's button lands on the body");
+        // The ring is the body's host's since cimip-gaps-3 t7 (the body is masked while it hides more).
+        const outline = await ring(page, ".basalt-drawer-body-host:has(> .basalt-drawer-body:focus)");
         assert.deepEqual({ style: outline.style, width: outline.width, offset: outline.offset }, { style: "solid", width: "2px", offset: "2px" });
         assert.equal(outline.color, await page.evaluate(() => { const probe = document.createElement("i"); probe.style.color = "var(--basalt-border-focus)"; document.body.append(probe); const color = getComputedStyle(probe).color; probe.remove(); return color; }), "Basalt's ring, not the browser's auto");
         const before = await page.evaluate(() => document.querySelector(".basalt-drawer-body").scrollTop);
@@ -178,7 +179,8 @@ for (const theme of THEMES) {
           await page.locator(".basalt-sheet-body").focus();
           await page.keyboard.press("Tab");
           await page.locator(".basalt-sheet-body").focus();
-          assert.equal((await ring(page, ".basalt-sheet-body:focus-visible")).style, "solid");
+          // The ring is the host's ::after since cimip-gaps-3 t7, inside at -2, above the masked body.
+          assert.equal(await page.locator(".basalt-sheet-body-host:has(> .basalt-sheet-body:focus-visible)").evaluate((el) => getComputedStyle(el, "::after").outlineStyle), "solid");
           assert.deepEqual(await axe(page), []);
         } finally { await page.close(); }
       });

@@ -35,6 +35,8 @@ export interface SiteMenuProps {
   loops?: boolean;
   /** At most one primary `Button`, at the foot of the sheet, full width. */
   action?: React.ReactNode;
+  /** The bar's account control, drawn again as a row of the sheet, under the links and above the foot's action, on a divider. Give it no `id`. */
+  account?: React.ReactNode;
   /** The links' landmark name, in the sheet. Default "Primary". */
   navLabel?: string;
   /** The trigger's and the dialog's name. Default "Menu". */
@@ -47,7 +49,7 @@ export interface SiteMenuProps {
  * The narrow menu's trigger and its top sheet. Place it last in the bar's end cluster. The trigger is the icon only (`display: none` from 720); it has the bar's
  * 44px box at every pointer.
  */
-export function SiteMenu({ brand, links = [], tools, themeToggle, loops = false, action, navLabel = "Primary", menuLabel = "Menu", closeLabel = "Close menu" }: SiteMenuProps) {
+export function SiteMenu({ brand, links = [], tools, themeToggle, loops = false, action, account, navLabel = "Primary", menuLabel = "Menu", closeLabel = "Close menu" }: SiteMenuProps) {
   const [open, setOpen] = React.useState(false);
   const wide = useMediaQuery(`(width >= ${breakpoint.md}px)`);
   const trigger = React.useRef<HTMLButtonElement>(null);
@@ -91,6 +93,7 @@ export function SiteMenu({ brand, links = [], tools, themeToggle, loops = false,
             {links.map((link) => <NavItem key={link.href + link.label} href={link.href} current={link.current}>{link.label}</NavItem>)}
           </Nav>
         ) : null}
+        {account ? <div className="basalt-site-menu-account">{account}</div> : null}
         {action ? <div className="basalt-site-menu-foot">{action}</div> : null}
       </SheetContent>
     </Sheet>

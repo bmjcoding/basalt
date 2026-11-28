@@ -17,9 +17,11 @@
     if (state === 'failed') return seat(icon('XCircle', { size: 16 }), 'Failed');
     if (state === 'skipped') return seat('%glyph-svg:minus%');
     if (state === 'canceled') return seat(icon('Prohibit', { size: 16 }));
+    // An ending with a warning (cimip-gaps-3 T2): the Warning triangle in status-warning, its word drawn first.
+    if (state === 'warning') return seat(icon('Warning', { size: 16 }));
     return '<span ' + (worded ? 'aria-hidden="true"' : 'role="img" aria-label="Running"') + ' class="terminal-braille"><braille-spinner></braille-spinner></span>';
   }
-  var STAGE_WORDS = { skipped: 'Skipped', canceled: 'Canceled' };
+  var STAGE_WORDS = { skipped: 'Skipped', canceled: 'Canceled', warning: 'Warning' };
 
   /** Words that change in place stand in one grid cell: [key, html] pairs, the one shown marked. The cell is as wide as the widest. */
   function swap(show, forms) {
@@ -94,6 +96,8 @@
     var frame = 0;
     var atEnd = true;
     pre.addEventListener('scroll', function () { atEnd = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 2; });
+    // Each side that hides lines fades (cimip-gaps-3 t7): inline on a static transcript, and down too while lines arrive; following the end, the bottom band is 0.
+    _.scrollFade(pre, { axis: 'both', skip: { get end() { return root.hasAttribute('data-live') && atEnd; } } });
 
     function show(swapEl, key, forms) {
       Array.prototype.forEach.call(swapEl.children, function (child, i) { child.toggleAttribute('data-on', forms[i] === key); });

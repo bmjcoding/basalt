@@ -66,12 +66,46 @@
     if (--locks === 0) document.documentElement.style.paddingInlineEnd = document.documentElement.__pad || '';
   }
 
+  /**
+   * A dialog's or a sheet's port (cimip-gaps-3 t7), made the first time it opens: a body (.sheet-body) gets a host round it and stays the port; a sheet with no
+   * head, body or foot, and a dialog that is not a form, move their content into a port (.sheet-scroll, .dialog-scroll) that scrolls and fades while the
+   * box keeps its rim, fill, shadow and ring. A sheet's held actions are an opaque strip at the port's foot, so the band ends on their divider. A composed
+   * dialog (search, the palette) keeps its own. A port or a body that overflows and holds nothing focusable is a keyboard stop named by the title.
+   */
+  function portOf(d) {
+    if (d.__bhPorted) return;
+    d.__bhPorted = true;
+    var title = function () { return d.getAttribute('aria-labelledby'); };
+    var body = d.querySelector(':scope > .sheet-body');
+    if (body) {
+      var host = document.createElement('div');
+      host.className = 'sheet-body-host';
+      d.insertBefore(host, body);
+      host.appendChild(body);
+      _.scrollFade(body, { axis: 'block', ring: 4 });
+      _.scrollStop(body, title);
+      return;
+    }
+    if (d.matches('.search, .palette') || d.hasAttribute('data-form') || d.querySelector(':scope > .sheet-head, :scope > .sheet-foot')) return;
+    var sheet = d.matches('.sheet');
+    var held = function (box) {
+      var actions = box.querySelector(':scope > .dialog-actions');
+      if (!actions) return {};
+      var clip = /inset\(\s*([\d.]+)px/.exec(getComputedStyle(actions).clipPath);
+      var top = actions.getBoundingClientRect().top + (clip ? parseFloat(clip[1]) : 0);
+      return { bottom: Math.max(0, Math.min(box.getBoundingClientRect().bottom - top, actions.offsetHeight)) };
+    };
+    var box = _.port(d, sheet ? 'sheet-scroll' : 'dialog-scroll', { axis: 'block', ring: 4, pinned: sheet ? function () { return held(box); } : undefined });
+    _.scrollStop(box, title);
+  }
+
   /** Opens a dialog (an element, or its id or selector) as a modal. `opener` is where focus goes back to; it defaults to what has focus now. */
   function openDialog(el, opener) {
     var d = find(el);
     if (!d || d.open) return d;
     wire(d);
     name(d);
+    portOf(d);
     if (!d.hasAttribute('tabindex')) d.setAttribute('tabindex', '-1');
     d.__opener = opener || document.activeElement;
     lock(d); // measured before the root's overflow is hidden

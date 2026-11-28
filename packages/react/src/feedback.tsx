@@ -19,6 +19,8 @@ import { codeLanguageStatus, highlightCode, loadCodeLanguage } from "./syntax";
 import type { CodeToken } from "./syntax";
 import { inLevel, useFloatingLayer, usePanelLevel, usePopupLevel } from "./layers";
 import type { Align, ChangeDetails, CollisionAvoidance, FocusTarget, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopoverHandle, PopupActions, Side } from "./types";
+import { FadePort, popupName, Portless } from "./fade-port";
+import { watchScrollFade } from "./scroll-fade";
 import { join, withClass } from "./utils";
 import { useInRequiredField } from "./field-group";
 import { useJoinedRef, useWriting } from "./wait";
@@ -178,12 +180,14 @@ const KEEP_AXIS: CollisionAvoidance = { fallbackAxisSide: "none" };
 
 export function PopoverContent({ side = "bottom", align = "start", sideOffset = 6, anchor, alignOffset, collisionAvoidance, collisionBoundary, collisionPadding, sticky, className, children, ...props }: PopoverContentProps) {
   const layer = useFloatingLayer();
+  // CountNames and the notification centre hold their own port, so they draw no second one (cimip-gaps-3 t7).
+  const portless = React.useContext(Portless);
   // One level above its opener (floor 1, cap 3).
   const level = usePopupLevel();
   return (
     <BasePopover.Portal>
       <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} alignOffset={alignOffset} collisionAvoidance={collisionAvoidance ?? KEEP_AXIS} collisionBoundary={collisionBoundary} collisionPadding={collisionPadding} sticky={sticky} style={layer} className="basalt-positioner">
-        <BasePopover.Popup {...props} data-level={level} className={withClass("basalt-popover", className)}>{inLevel(level, children)}</BasePopover.Popup>
+        <BasePopover.Popup {...props} data-level={level} className={withClass("basalt-popover", className)}>{portless ? inLevel(level, children) : <FadePort className="basalt-popover-scroll" labelledBy={popupName}>{inLevel(level, children)}</FadePort>}</BasePopover.Popup>
       </BasePopover.Positioner>
     </BasePopover.Portal>
   );
@@ -220,6 +224,12 @@ export interface CalloutProps extends Omit<React.ComponentProps<"div">, "title">
    * the heading takes the title's type. Without it the title is not a heading.
    */
   heading?: 2 | 3 | 4 | 5 | 6;
+  /**
+   * A fact beside the title: a `Presence`, a `Badge`, a time. It sits after the title on its baseline, `space-2` from it, and goes whole to a line of
+   * its own above the body when the two do not fit (only a `meta` wider than the callout itself wraps inside). Plain words in it are 13/18 at 400 in
+   * secondary. With `heading`, the heading holds the title alone and `meta` is read after it. The status icon is never replaced.
+   */
+  meta?: React.ReactNode;
   /** What to do about it. */
   children?: React.ReactNode;
   /** Actions, usually one or two small buttons. */
@@ -236,7 +246,7 @@ export interface CalloutProps extends Omit<React.ComponentProps<"div">, "title">
  * decision, or information the reader shouldn't miss. Status is the icon's shape and colour plus
  * the words; the surface stays neutral.
  */
-export function Callout({ status = "info", title, heading, children, actions, live, className, ...props }: CalloutProps) {
+export function Callout({ status = "info", title, heading, meta, children, actions, live, className, ...props }: CalloutProps) {
   const level = usePanelLevel();
   const Title = heading ? (`h${heading}` as const) : "div";
   return (
@@ -249,7 +259,12 @@ export function Callout({ status = "info", title, heading, children, actions, li
     >
       <Icon icon={CALLOUT_ICON[status]} size={16} className="basalt-callout-icon" />
       <div className="basalt-callout-body">
-        <Title className="basalt-callout-title">{title}</Title>
+        {meta != null ? (
+          <div className="basalt-callout-head">
+            <Title className="basalt-callout-title">{title}</Title>
+            <div className="basalt-callout-meta">{meta}</div>
+          </div>
+        ) : <Title className="basalt-callout-title">{title}</Title>}
         {children ? <div className="basalt-callout-text">{inLevel(level, children)}</div> : null}
         {actions ? <div className="basalt-callout-actions">{inLevel(level, actions)}</div> : null}
       </div>
@@ -338,8 +353,19 @@ export interface CodeBlockProps {
    * continuation is indented 2ch (beside a prompt, it starts at the text's edge), so it never reads as a new line. Copy is unchanged.
    */
   wrap?: boolean;
+  /**
+   * Number every source line (CRLF and blank lines inside included, no number for a final newline) in a column of its own: Geist Mono 13/20,
+   * tertiary, end-aligned, at least 24px and as wide as the widest number, `space-4` before the text (or the prompt, when there is one). The
+   * numbers are never copied or read. With `wrap`, a number sits on its line's first row. Off by default.
+   */
+  lineNumbers?: boolean;
+  /** The first line's number, an integer, read only with `lineNumbers`. 1 by default. */
+  startLine?: number;
   className?: string;
 }
+
+/** The line under a block whose lines are wider than its box. */
+const SCROLL_HINT = "Scroll sideways to see the long lines";
 
 /** Code longer than this (UTF-16 code units) is, in a browser, coloured once its plain text has painted; shorter code is coloured in the render. */
 const COLOUR_LATER_FROM = 10_000;
@@ -348,7 +374,7 @@ const COLOUR_LATER_FROM = 10_000;
 const noSubscription = () => () => {};
 
 /** Code, commands or logs, in mono on a sunken surface, scrolling sideways rather than wrapping (`wrap` breaks long lines at spaces instead). */
-export function CodeBlock({ code, language, title, copyable = true, prompt, wrap = false, className }: CodeBlockProps) {
+export function CodeBlock({ code, language, title, copyable = true, prompt, wrap = false, lineNumbers = false, startLine = 1, className }: CodeBlockProps) {
   // A well: level 1 on the page, one deeper inside a card, and so on up to 3.
   const level = usePanelLevel();
   // The code renders as plain text at once; colour follows when its grammar has loaded, with
@@ -398,7 +424,59 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, wrap
   }, [tokens, code]);
   // With a prompt, every line has a gutter, so the text is cut into lines; without one the block is a single run of text.
   // A block that wraps is cut into lines too, each a row of words that break only at a space.
-  const lines = React.useMemo(() => (prompt === undefined && !wrap ? null : codeLines(code, tokens)), [prompt, wrap, code, tokens]);
+  const lines = React.useMemo(() => (prompt === undefined && !wrap && !lineNumbers ? null : codeLines(code, tokens)), [prompt, wrap, lineNumbers, code, tokens]);
+  const first = Number.isInteger(startLine) ? startLine : 1;
+  // The sideways cue: a line of words under the code while the pre is wider than its box, measured before the first paint in the browser (on a
+  // server-drawn page it arrives at hydration) and never changed while it scrolls.
+  const pre = React.useRef<HTMLPreElement>(null);
+  const [overflows, setOverflows] = React.useState(false);
+  React.useLayoutEffect(() => {
+    const box = pre.current;
+    if (!box) return undefined;
+    const measure = () => setOverflows(box.scrollWidth > box.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    if (box.firstElementChild) observer.observe(box.firstElementChild);
+    return () => observer.disconnect();
+    // The code changing changes what overflows without resizing the pre.
+  }, [code, Boolean(lines), wrap, lineNumbers]);
+  // Each side that hides code fades (cimip-gaps-3 t7); the line of words stays. The ring is the figure's (the pre is masked, and a mask erases its own outline).
+  // An untitled block's Copy button hangs over the code's corner: on the whole rows its box touches, the end band ends at the button's start edge (alpha 0
+  // under the button, then the ramp inward over what is hidden at the end), mirrored from the button's real rect in right to left. The button has no backing.
+  const figure = React.useRef<HTMLElement>(null);
+  const untitledCopy = copyable && !title;
+  React.useLayoutEffect(() => {
+    const box = pre.current;
+    if (!box) return undefined;
+    const fade = watchScrollFade(box, { axis: "inline" });
+    const button = untitledCopy ? figure.current?.querySelector<HTMLElement>(":scope > .basalt-code-copy") : null;
+    if (!button) return () => fade.stop();
+    const rows = () => {
+      const at = button.getBoundingClientRect();
+      const port = box.getBoundingClientRect();
+      const style = getComputedStyle(box);
+      const top = parseFloat(style.paddingTop) || 0;
+      const line = parseFloat(style.lineHeight) || 20;
+      // Whole rows: a row is never divided by the layer's edge.
+      const height = top + Math.max(0, Math.ceil((at.bottom - port.top - top) / line)) * line;
+      const rtl = style.direction === "rtl";
+      box.style.setProperty("--_copy-h", `${height}px`);
+      box.style.setProperty("--_copy-in", `${Math.max(0, rtl ? at.right - port.left : port.right - at.left)}px`);
+      box.setAttribute("data-fade-copy", rtl ? "left" : "right");
+    };
+    rows();
+    const sizes = new ResizeObserver(rows);
+    sizes.observe(button);
+    sizes.observe(box);
+    return () => {
+      sizes.disconnect();
+      fade.stop();
+      box.removeAttribute("data-fade-copy");
+      box.style.removeProperty("--_copy-h");
+      box.style.removeProperty("--_copy-in");
+    };
+  }, [untitledCopy]);
   // What the last copy did, held for CONFIRM_MS: the check, or the close for a refused write (copy-result.ts; DECISIONS 336, the open items' ruling).
   const copyResult = useCopyResult();
   // The copy glyph is one that changes (Copy, then Check): the morph's engine is on its way before the first click.
@@ -413,7 +491,7 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, wrap
     </span>
   ) : null;
   return (
-    <figure className={join("basalt-code", className)} data-titled={title ? "" : undefined} data-wrap={wrap ? "" : undefined} data-level={level}>
+    <figure ref={figure} className={join("basalt-code", className)} data-titled={title ? "" : undefined} data-wrap={wrap ? "" : undefined} data-level={level}>
       {title ? (
         <figcaption className="basalt-code-title">
           <span>{title}</span>
@@ -421,11 +499,12 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, wrap
         </figcaption>
       ) : null}
       {/* a scrollable region must be reachable by keyboard */}
-      <pre className="basalt-code-pre" tabIndex={0} role="region" aria-label={title ? `${title} code` : "Code"}>
-        {lines && prompt !== undefined ? (
-          <code data-language={language} className="basalt-code-lines">
+      <pre ref={pre} className="basalt-code-pre" tabIndex={0} role="region" aria-label={title ? `${title} code` : "Code"}>
+        {lines && (prompt !== undefined || lineNumbers) ? (
+          <code data-language={language} className="basalt-code-lines" data-numbered={lineNumbers ? "" : undefined} data-prompted={prompt !== undefined ? "" : undefined}>
             {lines.map((line, i) => (
-              <CodeLine key={i} gutter={i > 0 && continues(lines[i - 1]) ? null : <CodePrompt>{prompt}</CodePrompt>}>
+              // A line after a trailing backslash keeps its number; only its prompt's seat is empty.
+              <CodeLine key={i} number={lineNumbers ? first + i : undefined} bare={prompt === undefined} gutter={prompt === undefined || (i > 0 && continues(lines[i - 1])) ? null : <CodePrompt>{prompt}</CodePrompt>}>
                 {/* A line that is one plain run is passed as a string. React hydrates a string child by its text alone, so a cold
                     client (grammar not loaded yet) matches a server that sent coloured spans for the same line. */}
                 {wrap ? codeWords(line) : line.length === 1 && line[0] && !line[0].color ? line[0].text : line.map((run, j) => (run.color ? <span key={j} style={{ color: run.color }}>{run.text}</span> : <React.Fragment key={j}>{run.text}</React.Fragment>))}
@@ -441,6 +520,8 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, wrap
           <code data-language={language}>{tokens ? <>{content.nodes}{content.rest}</> : code}</code>
         )}
       </pre>
+      {/* Hidden from assistive technology: the pre is already a named, focusable region. */}
+      <p className="basalt-code-hint" aria-hidden="true" hidden={!overflows}>{SCROLL_HINT}</p>
       {title ? null : copyButton}
     </figure>
   );

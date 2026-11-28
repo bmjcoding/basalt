@@ -215,6 +215,47 @@ for (const theme of ["dark", "light"]) {
       await p.close();
     });
 
+    // cimip-gaps-3 T1: under more contrast the bar takes its opaque fallback, smoked or clear, at the top and scrolled, read after transitions settle.
+    for (const [label, options] of [["a clear bar over a declared stage", {}], ["a smoked bar with no stage", { stage: false }]]) {
+      test(`more contrast, ${label}: opaque surface-page, no filter, the hairline, at the top and scrolled`, async () => {
+        const { page: p } = await fixturePage(browser, page(options), { theme, viewport: { width: 1440, height: 800 }, contrast: "more" });
+        assert.ok(await p.evaluate(() => matchMedia("(prefers-contrast: more)").matches), "the query is emulated");
+        await settle(p); await frames(p);
+        for (const y of [0, 900]) {
+          await scrollTo(p, y);
+          await settle(p); await frames(p);
+          const s = await bar(p);
+          assert.equal(s.top, y === 0, `at ${y}`);
+          assert.deepEqual(await rgba(p, s.background), await rgba(p, await token(p, "surface-page")), `opaque at ${y}`);
+          assert.deepEqual(await rgba(p, s.line), await rgba(p, await token(p, "border-hairline", "borderBottomColor")), `the hairline at ${y}`);
+          assert.equal(s.filter, "none", `no filter at ${y}`);
+          assert.deepEqual(await running(p), [], `nothing fading at ${y}`);
+        }
+        await p.close();
+      });
+    }
+
+    test("more contrast with forced colours: Canvas still wins", async () => {
+      const { page: p } = await fixturePage(browser, page(), { theme, viewport: { width: 1440, height: 800 }, contrast: "more", forcedColors: "active" });
+      await settle(p); await frames(p);
+      const s = await bar(p);
+      const canvas = await p.evaluate(() => { const d = document.createElement("div"); d.style.background = "Canvas"; document.body.append(d); const v = getComputedStyle(d).backgroundColor; d.remove(); return v; });
+      assert.equal(s.background, canvas);
+      assert.equal(s.filter, "none");
+      await p.close();
+    });
+
+    test("reduced transparency alone is unchanged by the more-contrast rule; without either the bar is smoked once scrolled", async () => {
+      const { page: p } = await fixturePage(browser, page({ stage: false }), { theme, viewport: { width: 1440, height: 800 } });
+      await settle(p); await frames(p);
+      await scrollTo(p, 900);
+      await settle(p); await frames(p);
+      const s = await bar(p);
+      assert.deepEqual(await rgba(p, s.background), await rgba(p, await token(p, "surface-chrome")), "smoked");
+      assert.match(s.filter, /blur\(12px\)/);
+      await p.close();
+    });
+
     test("forced colours: Canvas and CanvasText with a real line, even at the top over a declared stage", async () => {
       const { page: p } = await fixturePage(browser, page(), { theme, viewport: { width: 1440, height: 800 } });
       await p.emulateMedia({ forcedColors: "active" });

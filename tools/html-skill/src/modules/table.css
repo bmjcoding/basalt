@@ -37,6 +37,15 @@
   .table-call { display: grid; gap: var(--basalt-space-0-5); white-space: normal; }
   .table-call-main { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-medium); }
   .table-call-detail { color: var(--basalt-text-secondary); }
+  /* A two-line call has its air in every table, flat or not (cimip-gaps-3 T3, 2): space-2 above and below, so a call row is 54. */
+  :is(td, tbody th[scope="row"]):has(> .table-call) { padding-block: var(--basalt-space-2); }
+
+  /* A row that opens what it names (React's TableRow linked, cimip-gaps-3 T3, 5): tr[data-linked]. A plain press on the row is handed to its link (data-row-opener, else the
+     first link or button in its row head, else its first link), which stays the one control and keeps its own ring. Its cells take the pointer cursor (a cut cell and a control
+     keep theirs); while the row is hovered the opener's underline lifts; a press on the row steps it to the selected wash. No chevron, no outline, no bar. */
+  tr[data-linked] > :is(td, th):not([data-cut]) { cursor: pointer; }
+  @media (hover: hover) { tr[data-linked]:hover [data-row-opens] { text-decoration-color: currentColor; } }
+  tbody tr[data-linked]:not([aria-selected="true"]):active:not(:has(:is(a[href], button, input, select, textarea, label, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="checkbox"], [role="switch"], [role="menuitem"], [data-cut]):active)) { background: var(--basalt-state-selected); }
 
   /* The one line under a table that is wider than its box. table.js fills it and shows it only while the table overflows; never changed while scrolling. */
   .table-hint { margin: var(--basalt-space-2) 0 0; font: var(--basalt-font-weight-regular) var(--bh-xs); color: var(--basalt-text-tertiary); }

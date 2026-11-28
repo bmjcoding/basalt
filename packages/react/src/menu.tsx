@@ -6,6 +6,7 @@ import { ChevronRightGlyph } from "./glyphs/chevron-right";
 import { Icon } from "./icon";
 import { Kbd } from "./kbd";
 import { GlidePlate } from "./plate";
+import { MenuPort } from "./fade-port";
 import { useApplePlatform } from "./keyboard";
 import { ariaShortcut, shortcutKeys, spokenShortcut } from "./shortcut";
 import type { Align, ChangeDetails, ChoiceValue, FocusTarget, HighlightDetails, IconComponent, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopupActions, Side } from "./types";
@@ -86,8 +87,15 @@ export interface MenuTriggerProps extends PartProps<"button"> {
   closeDelay?: number;
 }
 
-export function MenuTrigger({ className, ...props }: MenuTriggerProps) {
+/**
+ * The button that opens a `Menu`. With no `render` it is a bare button, which keeps its own look and is given the shared target floor as hit
+ * area alone (24px, 44 on touch and under 720; `data-bare`), with no change to layout. Its words are a label raised over every neighbour's
+ * hit box, as a stacked `Link`'s are, so a press on a trigger's own words is always that trigger's. A `render` element (a `Button`, an
+ * `IconButton`) keeps its own sizes and children.
+ */
+export function MenuTrigger({ className, children, ...props }: MenuTriggerProps) {
   const waiting = (React.useContext(MenuWaitContext)?.waiting ?? 0) > 0;
+  const bare = props.render === undefined;
   // The trigger is where focus returns when the menu closes, so the wait of an item is shown and held here: a `Button` it renders takes it as its own.
   return (
     <WaitContext.Provider value={waiting}>
@@ -97,7 +105,10 @@ export function MenuTrigger({ className, ...props }: MenuTriggerProps) {
         aria-busy={waiting ? true : props["aria-busy"]}
         aria-disabled={waiting ? true : props["aria-disabled"] || undefined}
         className={withClass("basalt-menu-trigger", className)}
-      />
+        data-bare={bare ? "" : undefined}
+      >
+        {bare && children != null ? <span className="basalt-menu-trigger-label">{children}</span> : children}
+      </BaseMenu.Trigger>
     </WaitContext.Provider>
   );
 }
@@ -112,14 +123,21 @@ export interface MenuContentProps extends PartProps<"div">, PlacementProps {
 }
 
 /** The floating panel: portalled, positioned against the trigger, and dismissed on Esc or outside click. */
-export function MenuContent({ side = "bottom", align = "start", sideOffset = 6, anchor, alignOffset, collisionAvoidance, collisionBoundary, collisionPadding, sticky, className, children, ...props }: MenuContentProps) {
+export function MenuContent({ side = "bottom", align = "start", sideOffset = 6, anchor, alignOffset, collisionAvoidance, collisionBoundary, collisionPadding, sticky, className, children, "aria-describedby": describedBy, ...props }: MenuContentProps) {
   const layer = useFloatingLayer();
   // One level above whatever opened it (floor 1, cap 3); its own submenus go one deeper.
   const level = usePopupLevel();
+  // A `MenuText` outside any group describes the menu.
+  const [texts, register] = useDescribedBy();
   return (
     <BaseMenu.Portal>
       <BaseMenu.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} alignOffset={alignOffset} collisionAvoidance={collisionAvoidance} collisionBoundary={collisionBoundary} collisionPadding={collisionPadding} sticky={sticky} style={layer} className="basalt-positioner">
-        <BaseMenu.Popup {...props} data-level={level} data-actions="" className={withClass("basalt-menu", className)}><GlidePlate />{inLevel(level, children)}</BaseMenu.Popup>
+        <BaseMenu.Popup {...props} aria-describedby={join(describedBy, texts) || undefined} data-level={level} data-actions="" className={withClass("basalt-menu", className)}>
+          <MenuPort>
+            <GlidePlate />
+            <MenuTextHost.Provider value={register}>{inLevel(level, children)}</MenuTextHost.Provider>
+          </MenuPort>
+        </BaseMenu.Popup>
       </BaseMenu.Positioner>
     </BaseMenu.Portal>
   );
@@ -206,8 +224,41 @@ export function MenuSeparator({ className, ...props }: MenuSeparatorProps) {
   return <BaseMenu.Separator {...props} className={withClass("basalt-menu-separator", className)} />;
 }
 
-export function MenuGroup(props: PartProps<"div">) {
-  return <BaseMenu.Group {...props} />;
+/** Where a `MenuText` registers its id: the group it sits in, or the menu itself. */
+const MenuTextHost = /* @__PURE__ */ React.createContext<((id: string) => () => void) | null>(null);
+
+/** The ids of the `MenuText` lines inside a group or a menu, for its `aria-describedby`, and the way they register. */
+function useDescribedBy(): [string | undefined, (id: string) => () => void] {
+  const [ids, setIds] = React.useState<readonly string[]>([]);
+  const register = React.useCallback((id: string) => {
+    setIds((now) => (now.includes(id) ? now : [...now, id]));
+    return () => setIds((now) => now.filter((other) => other !== id));
+  }, []);
+  return [ids.length ? ids.join(" ") : undefined, register];
+}
+
+export function MenuGroup({ "aria-describedby": describedBy, ...props }: PartProps<"div">) {
+  const [texts, register] = useDescribedBy();
+  return (
+    <MenuTextHost.Provider value={register}>
+      <BaseMenu.Group {...props} aria-describedby={join(describedBy, texts) || undefined} />
+    </MenuTextHost.Provider>
+  );
+}
+
+export type MenuTextProps = React.ComponentProps<"div">;
+
+/**
+ * A line of words in a menu that is not a row: 13/18 at 400 in tertiary, the group label's edge (`space-3` at each side), `space-1` below, wrapping
+ * inside the menu's 320. It is never lit, has no plate, no tab stop and no disabled state, and the arrows and type-ahead skip it: it is not an item.
+ * Put it under a `MenuGroupLabel`: in a `MenuGroup` it describes the group (`aria-describedby`, wired by the group); with no group it describes the menu.
+ */
+export function MenuText({ id: given, className, ...props }: MenuTextProps): React.JSX.Element {
+  const own = React.useId();
+  const id = given ?? own;
+  const register = React.useContext(MenuTextHost);
+  React.useLayoutEffect(() => register?.(id), [register, id]);
+  return <div {...props} id={id} className={join("basalt-menu-text", className)} />;
 }
 
 export function MenuGroupLabel({ className, ...props }: PartProps<"div">) {

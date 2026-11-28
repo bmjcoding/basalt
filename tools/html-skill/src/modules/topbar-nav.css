@@ -119,4 +119,9 @@
     .topbar .topbar-links[data-keys] a:is(:hover, :active) { forced-color-adjust: auto; color: inherit; }
     .topbar-links[data-keys] a:is(:hover, :active)::before { background-color: transparent; }
   }
+
+  /* The account's row in the menu (React's SiteHeader account): the same control, at the band's gutter, 44 tall, a divider above it. Under 720 a bar with a
+     menu draws it there and not in the bar. */
+  .topbar-menu-account { box-sizing: border-box; display: flex; align-items: center; min-height: var(--basalt-size-tap-min); padding-inline: var(--bh-pad-start) var(--bh-pad-end); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+  @media (width < %bp-md%) { .topbar-inner:has(> .topbar-menu-trigger) .topbar-account, .topbar-inner:has(.topbar-menu-trigger) .topbar-account { display: none; } }
 }

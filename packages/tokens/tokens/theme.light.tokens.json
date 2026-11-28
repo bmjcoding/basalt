@@ -86,7 +86,7 @@
       },
       "chrome": {
         "$value": { "colorSpace": "oklch", "components": [0.9851, 0, 0], "alpha": 0.96 },
-        "$description": "The smoked fill of a sticky header bar (basalt-chrome): the page, #fafafa, at 96% (the owner's midpoint between the first smoke and solid, DECISIONS 146 E), over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, in print. Web only: native bars use the platform bar material or stay opaque."
+        "$description": "The smoked fill of a sticky header bar (basalt-chrome): the page, #fafafa, at 96% (the owner's midpoint between the first smoke and solid, DECISIONS 146 E), over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, under more contrast, in print. Web only: native bars use the platform bar material or stay opaque."
       },
       "placeholder": {
         "$value": "{color.neutral.94}",
@@ -250,6 +250,22 @@
       "lit-base": {
         "$value": "{color.neutral.52}",
         "$description": "The last stop of a lit mark's gradient, at the foot of the plot: the kit's own, raised so it holds 3:1 on levels 0 to 3."
+      },
+      "heat-1": {
+        "$value": "{color.neutral.52}",
+        "$description": "A heatmap's first level (values above 0, under the first bound). 3:1 on levels 0 to 3; an order, not a measure (cimip-gaps-3 T2)."
+      },
+      "heat-2": {
+        "$value": "{color.neutral.36}",
+        "$description": "A heatmap's second level. 3:1 on levels 0 to 3; neighbouring levels need not be 3:1 against each other."
+      },
+      "heat-3": {
+        "$value": "{color.neutral.20}",
+        "$description": "A heatmap's third level. 3:1 on levels 0 to 3."
+      },
+      "heat-4": {
+        "$value": "{color.neutral.9}",
+        "$description": "A heatmap's fourth level, which always holds the peak. 3:1 on levels 0 to 3."
       }
     },
     "diagram": {

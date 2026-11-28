@@ -36,11 +36,13 @@ Markup your script builds (a `.row`) isn't seen: add `<!-- basalt:use rows -->` 
 - **toggle** `aria-pressed`: secondary or ghost `.btn` only; your script flips it; its glyph's `.btn-check` seat comes first.
 - **rows** `.rows`, `.row`: `.input-row` is a panel's first child; `data-active` is the lit row's fill, never a bar.
 - **glide** `.plate`: the palette's, a menu's and the centre's shared plate; never write one.
+- **fade** `data-fades`: a scrolling part fades at an edge that hides more; never draw a fade; `data-fades="off"` on `<html>` stops all.
 - **links** `.links`, `target="_blank"`: a glyph then the name, none for a service without a mark; never write the arrow.
 - **link-rows** `.dir`: a named `ul`; no wash.
 - **tabs** `data-tabs`, `role="tablist"`: every tab has `aria-controls`; the page sets the panel's top space (`--basalt-space-4`).
 - **link-tabs** `.link-tabs`: a `nav` of links, `aria-current="page"` on one; not a tablist.
 - **disclosure** `data-disclosure`, `<details>`: the controlled element starts `hidden`.
+- **peek** `data-lines`: cut text is read whole on hover or focus; `data-peek="off"` only where a press shows it all.
 - **table** `.table-wrap`, `<table>`: a labelled region; never name it like its section.
 - **selection** `data-select-all`: the header box of a `td.select-col` column; label each box "Select NAME".
 - **still-table** `data-fixed`, `data-sortable`: a `<col>` for each column, one with no width; never size a column from content.
@@ -48,6 +50,7 @@ Markup your script builds (a `.row`) isn't seen: add `<!-- basalt:use rows -->` 
 - **filter** `.filter`: write only labelled checkboxes, the script builds the control; one `.filter-result` for each list.
 - **option-chips** `.option-chips`: native radios, eight at most; an unavailable one is `aria-disabled`, not `disabled`.
 - **code** `.code`: `tabindex="0"` goes on `pre.code-body` (it scrolls), with `<code>` inside; `.tok-k` and kin only in it.
+- **rich-text** `.rich-text`: round a renderer's elements; no width of its own; never a pasted string of markup.
 - **callout** `.callout`: the icon, then one `<div>` holding `.callout-title` and `.callout-body`.
 - **status** `.status`, `.badge`: `data-status` draws the mark, none is the word alone; never one without a word.
 - **accent** `data-accent="cobalt"`: the one accent, on `<html>` or a section; `none` turns it off.

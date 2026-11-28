@@ -98,11 +98,16 @@ const LINK_ROWS_TOKEN = /^--basalt-size-row\b/;
 const DIAGRAM_TOKEN = /^--basalt-(?:diagram-|size-diagram-)/;
 /** A diagram's durations and speeds (DECISIONS 292): the `diagram-motion` module's, out of the core and out of the still diagram's. */
 const DIAGRAM_MOTION_TOKEN = /^--basalt-(?:duration-diagram-|speed-)/;
-const inCore = Object.assign((name) => !MODULE_TOKEN.test(name) && !TYPE_LAYOUT_TOKEN.test(name) && !LINK_ROWS_TOKEN.test(name) && !DIAGRAM_TOKEN.test(name) && !DIAGRAM_MOTION_TOKEN.test(name), { keepsOther: true });
+/** The cut-content fade's two lengths (cimip-gaps-3 t7): only the fade module and the modules that require it read them. */
+const FADE_TOKEN = /^--basalt-size-scroll-fade\b/;
+const inFade = Object.assign((name) => FADE_TOKEN.test(name), { keepsOther: false });
+const inCore = Object.assign((name) => !MODULE_TOKEN.test(name) && !TYPE_LAYOUT_TOKEN.test(name) && !LINK_ROWS_TOKEN.test(name) && !DIAGRAM_TOKEN.test(name) && !DIAGRAM_MOTION_TOKEN.test(name) && !FADE_TOKEN.test(name), { keepsOther: true });
 const inDiagramMotion = Object.assign((name) => DIAGRAM_MOTION_TOKEN.test(name), { keepsOther: false });
 const inDiagram = Object.assign((name) => DIAGRAM_TOKEN.test(name), { keepsOther: false });
 const inLinkRows = Object.assign((name) => LINK_ROWS_TOKEN.test(name), { keepsOther: false });
-const inArt = Object.assign((name) => MODULE_TOKEN.test(name), { keepsOther: false });
+/** The heatmap's four levels (cimip-gaps-3 T2): the skill draws no heatmap ("What the HTML skill does not draw"), so no page carries them. */
+const HEAT_TOKEN = /^--basalt-chart-heat-/;
+const inArt = Object.assign((name) => MODULE_TOKEN.test(name) && !HEAT_TOKEN.test(name), { keepsOther: false });
 const inTypeLayout = Object.assign((name) => TYPE_LAYOUT_TOKEN.test(name), { keepsOther: false });
 
 function findPackage(name) {
@@ -137,7 +142,7 @@ const iconUri = (name) => {
   return `data:image/svg+xml,${svg.replace(/</g, "%3C").replace(/>/g, "%3E")}`;
 };
 /**
- * `%bp-md%`, `%bp-lg%`, `%bp-container%`, `%bp-container-sm%` and `%bp-container-lg%` in a source stylesheet are the layout tokens' breakpoints (size-breakpoint-md, -lg,
+ * `%bp-md%`, `%bp-lg%`, `%bp-container%`, `%bp-container-sm%`, `%bp-container-lg%` and `%bp-short%` (a window's height) in a source stylesheet are the layout tokens' breakpoints (size-breakpoint-md, -lg,
  * -container, -container-sm, -container-lg, DECISIONS 101), read from the generated tokens package and written as range syntax in a media or container query
  * (`@media (width < %bp-md%)`), so no source carries the number (foundations, "Layout"). `%duration-confirm%` in a script is the `duration-confirm` token in
  * milliseconds, the hold of a confirmation, so a timer never carries the number either.
@@ -145,7 +150,7 @@ const iconUri = (name) => {
 async function breakpoints() {
   tokensFile("breakpoints"); // fails with the plain message when the tokens are not built
   const { breakpoint } = await import(pathToFileURL(require.resolve("@srasyndicate/basalt-tokens/breakpoints")).href);
-  return { md: `${breakpoint.md}px`, lg: `${breakpoint.lg}px`, container: `${breakpoint.container}px`, "container-sm": `${breakpoint.containerSm}px`, "container-lg": `${breakpoint.containerLg}px` };
+  return { md: `${breakpoint.md}px`, lg: `${breakpoint.lg}px`, container: `${breakpoint.container}px`, "container-sm": `${breakpoint.containerSm}px`, "container-lg": `${breakpoint.containerLg}px`, short: `${breakpoint.short}px` };
 }
 async function durations() {
   tokensFile("durations");
@@ -154,7 +159,7 @@ async function durations() {
 }
 const BREAKPOINTS = await breakpoints();
 const DURATIONS = await durations();
-const minifyCss = (css) => minify(css.replaceAll("%panel%", PANEL).replace(/%bp-(md|lg|container-sm|container-lg|container)%/g, (_, name) => BREAKPOINTS[name]).replace(/%icon:(\w+)%/g, (_, name) => iconUri(name)).replace(/%glyph-mask:([\w-]+)%/g, (_, name) => glyphMaskUri(name)), "css");
+const minifyCss = (css) => minify(css.replaceAll("%panel%", PANEL).replace(/%bp-(md|lg|container-sm|container-lg|container|short)%/g, (_, name) => BREAKPOINTS[name]).replace(/%icon:(\w+)%/g, (_, name) => iconUri(name)).replace(/%glyph-mask:([\w-]+)%/g, (_, name) => glyphMaskUri(name)), "css");
 
 /**
  * `%glyph:name%` in a module's source is the path of a core glyph (packages/react/glyphs/source.mjs, the drawn set), read from the set and never copied
@@ -228,7 +233,7 @@ const glyphSvg = (name) => {
   if (!GLYPHS[name] || GLYPHS[name].board) throw new Error(`html-skill: "${name}" is not a core glyph the page can draw`);
   return `<svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true" focusable="false">${glyphMarkup(name, false)}</svg>`;
 };
-const minifyJs = (code) => minify(code.replace(/%glyph-svg:([\w-]+)%/g, (_, name) => glyphSvg(name)).replace(/%glyph:([\w-]+)%/g, (_, name) => glyphPath(name)).replace(/%bp-(md|lg|container-sm|container-lg|container)%/g, (_, name) => BREAKPOINTS[name]).replace(/%duration-(confirm)%/g, (_, name) => DURATIONS[name]), "js");
+const minifyJs = (code) => minify(code.replace(/%glyph-svg:([\w-]+)%/g, (_, name) => glyphSvg(name)).replace(/%glyph:([\w-]+)%/g, (_, name) => glyphPath(name)).replace(/%bp-(md|lg|container-sm|container-lg|container|short)%/g, (_, name) => BREAKPOINTS[name]).replace(/%duration-(confirm)%/g, (_, name) => DURATIONS[name]), "js");
 
 /**
  * The diagram module's stylesheet: the diagrams section of packages/react/src/styles/components.css (from its heading to the next section's), with React's
@@ -336,7 +341,7 @@ export function build() {
     // The art module is the token groups taken out of the core (see MODULE_TOKEN); it has no source file either.
     if (name === "art") files["parts/art.css"] = minifyCss(dedupeSystemDark(filterTokens(tokensCss(), inArt)));
     // The type-layout module's tokens come before its own rules, as the tokens come before the core's.
-    const tokens = name === "type-layout" ? `${filterTokens(tokensCss(), inTypeLayout)}\n` : name === "link-rows" ? `${filterTokens(tokensCss(), inLinkRows)}\n` : "";
+    const tokens = name === "type-layout" ? `${filterTokens(tokensCss(), inTypeLayout)}\n` : name === "link-rows" ? `${filterTokens(tokensCss(), inLinkRows)}\n` : name === "fade" ? `${filterTokens(tokensCss(), inFade)}\n` : "";
     // The diagram module's stylesheet is React's own section, renamed (diagramCss), so the two cannot drift; its script bundles React's engine.
     if (name === "diagram") files["parts/diagram.css"] = minifyCss(`${dedupeSystemDark(filterTokens(tokensCss(), inDiagram))}\n${diagramCss()}`);
     // The motion section, with the motion tokens (the diagram durations and speeds) that only an animated diagram reads.
@@ -346,7 +351,8 @@ export function build() {
     for (const ext of ["css", "js"]) {
       const file = path.join(srcDir, "modules", `${name}.${ext}`);
       if (!fs.existsSync(file)) continue;
-      if (ext === "js" && DIAGRAM_SCRIPTS.has(name)) files[`parts/${name}.js`] = minifyJs(bundleModule(file, name === "diagram-gantt" || name === "diagram-timeline"));
+      // The fade module bundles React's scroll-fade.ts (cimip-gaps-3 t7), as the diagram modules bundle React's engine.
+      if (ext === "js" && (DIAGRAM_SCRIPTS.has(name) || name === "fade")) files[`parts/${name}.js`] = minifyJs(bundleModule(file, name === "diagram-gantt" || name === "diagram-timeline"));
       else files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(tokens + fs.readFileSync(file, "utf8")) : minifyJs(fs.readFileSync(file, "utf8"));
     }
   }

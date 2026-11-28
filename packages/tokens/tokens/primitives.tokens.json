@@ -850,6 +850,14 @@
       },
       "$description": "Side sheet width, capped by the viewport."
     },
+    "sheet-width-wide": {
+      "$type": "dimension",
+      "$value": {
+        "value": 720,
+        "unit": "px"
+      },
+      "$description": "A wide side sheet (SheetContent size=\"wide\"), for reading a record while the list stays behind it: size-breakpoint-container-lg (640) plus the body's two space-5, with room for a classic scrollbar, so the parts inside draw their wide forms. From 720 it is capped at the window less space-12, so a strip of scrim stays to press; under 720 it is the window's width."
+    },
     "command-width": {
       "$type": "dimension",
       "$value": {
@@ -953,6 +961,16 @@
         "unit": "px"
       },
       "$description": "Maximum height of a scrolling popup list, such as the command list."
+    },
+    "scroll-fade": {
+      "$type": "dimension",
+      "$value": "{space.5}",
+      "$description": "The longest fade on an inline edge of a scrollport that hides more content (cimip-gaps-3 t7): the content fades to nothing at that edge over this, never more than a quarter of the port and never more than the distance hidden."
+    },
+    "scroll-fade-block": {
+      "$type": "dimension",
+      "$value": "{space.4}",
+      "$description": "The longest fade on a block edge of a scrollport that hides more content (cimip-gaps-3 t7): shorter than the inline fade, so a whole 32 to 40px row at a list's edge stays nearly opaque."
     },
     "list-width": {
       "$type": "dimension",
@@ -1090,6 +1108,14 @@
         "unit": "px"
       },
       "$description": "A component's own width, in a container query, below which panels stop sharing one seat and a bar of tabs drops from 56 to 48 (DECISIONS 154, X6 and D12). A container query cannot read a token, so CSS writes this number beside a lint exception that names the token."
+    },
+    "breakpoint-short": {
+      "$type": "dimension",
+      "$value": {
+        "value": 480,
+        "unit": "px"
+      },
+      "$description": "A window's height, not its width: under it nothing is pinned to the window's top or bottom (the header, a banner, a foot, the tab bar and the status bar are in the flow), because a 56px bar, a 56px tab bar and one 44px foot row would be more than a third of the window. It catches a phone in landscape and a short window, and no portrait phone or laptop. A media query cannot read a token, so CSS writes this number beside a lint exception that names the token."
     },
     "chart-line": {
       "$type": "dimension",
@@ -1816,7 +1842,7 @@
       }
     },
     "loop": {
-      "$description": "Loops: they repeat while work is happening, so they may run longer than an entry. Under reduced motion a spinner fades instead of moving, and a loop is never cut to the 100ms floor, or it flickers.",
+      "$description": "Loops: they repeat while work is happening, so they may run longer than an entry. Under reduced motion no loop runs: a spinner holds still, and a loop is never cut to the 100ms floor, or it flickers.",
       "ring": {
         "$type": "duration",
         "$value": {

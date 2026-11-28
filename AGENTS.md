@@ -64,13 +64,19 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   Never on controls or chips. A status callout's rim is the one coloured rim: its status colour
   at 45% mixed in sRGB over its own level, one solid colour on every side. Every other panel, a
   toast included, keeps the neutral rim. Under more contrast every side is the input boundary's value.
+- **Cut content fades.** A scrollport's edge that hides more fades its content (a mask, never an overlay) over `size-scroll-fade` (20) inline and
+  `size-scroll-fade-block` (16) on a block edge, at most a quarter of the port and never more than what is hidden; a port that fits has no mask. The mask is
+  never on a box that draws a rim, a shadow, a fill or a ring (a host round the port draws them); a classic scrollbar and held actions stay solid; a focused
+  item or the row the keys are on is never under a band. Off under more contrast, forced colours, reduced transparency, print and `data-fades="off"`. Not
+  faded: an ellipsis or clamp, a table scrolled sideways, a field being typed in, a diagram's stage, the window's edge (DECISIONS 397).
 - **One smoked surface: the sticky header.** `basalt-chrome` (`surface-chrome`: `#000` at 92.5%
   in dark, `#fafafa` at 96% in light; `blur-chrome`, 12px, no saturate) is the only translucent,
   blurred surface. Dialogs, sheets, menus, popovers, toasts and the command menu stay solid. The
   theme control is in the site footer, never in the bar. Use the class once per viewport;
   translucent layers never stack. Only primary and secondary text sits on it, and it falls
-  back to opaque `surface-page` without `backdrop-filter`, under reduced transparency, in
-  print, and in forced colours (`Canvas`).
+  back to opaque `surface-page` without `backdrop-filter`, under reduced transparency, under more contrast, in
+  print, and in forced colours (`Canvas`). Nothing is pinned to the top or bottom of a window under 480 tall
+  (`size-breakpoint-short`): the bar, a banner, a foot, the tab bar and the status bar scroll with the page.
 - **Level is position, not importance.** An in-flow surface is its parent plus one, whatever
   its role (a hero or console on the page is level 1, its input band and inner panels level
   2); only a surface that leaves the flow (menu, popover, dialog, sheet, toast, tooltip) is
@@ -93,7 +99,11 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   (hover after 600ms, keyboard focus, a long press on touch; a press sorts and cancels it), opener+1, the rim, radius 12,
   `shadow-overlay`, above the header else beside it, never over its column, WCAG 1.4.13, only for a column a reader could misread
   (DECISIONS 257, 261). At 390 the name (and the select column) is pinned, opaque in every state, and a cell focused
-  from the keyboard is never covered (a tap never scrolls the table). Pages set `scrollbar-gutter: stable`. A cut cell keeps its ellipsis and the 40px row and can always be read: while
+  from the keyboard is never covered (a tap never scrolls the table); a column is never dropped or folded as the table narrows (facts a reader
+  does not compare go in the name cell's `TableCall`, padded `space-2` in every table). Pages set `scrollbar-gutter: stable`. A row is at least
+  40px (32 compact, 44 comfortable and on touch): a `wrap` cell (a column of sentences, every cell or none, never a fixed form or a number) has the
+  one-line row's padding round its line and is never cut. A `TableRow linked` hands a plain primary press to its link, which stays the one
+  control; modified and middle clicks, drags, selections, controls and cut cells keep theirs. A cut cell keeps its ellipsis and the row and can always be read: while
   it is cut it is a focus stop, and on hover or focus its whole value opens in place on a level-3 plate (WCAG 1.4.13: Esc, hoverable,
   persistent; never past the viewport); after Esc the cell shows its own −2 ring. A column of one fixed form (a date, a time, a status)
   is sized for its longest form under WCAG 1.4.12 spacing, and so is a header's label for its column (a sortable header is its own
@@ -121,7 +131,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   horizontal tab keeps its `Highlight` underline. **No state is ever marked by an outline** (selected, active, current and
   pressed never draw one), and **there is no vertical bar anywhere.** Focus is a 2px ring at +2 outside the control, drawn
   inside at −2 only where +2 would be cut or would cross a neighbour: a field or band flush with a clipping edge,
-  a sortable header cell (a header band that is itself a button), a phone tab bar cell, a ghost control hung at an edge with less than 4 of room left, and a cut cell of a still table (a focus stop, which shows its own ring after Esc has closed its plate). These structural
+  a sortable header cell (a header band that is itself a button), a phone tab bar cell, a ghost control hung at an edge with less than 4 of room left, a segment of a track while it scrolls (a track that fits keeps +2), and a cut cell of a still table (a focus stop, which shows its own ring after Esc has closed its plate). These structural
   vertical lines are allowed, each named and never a selection, sort, active or status mark: the 1px divider at a pinned table
   column's edge while the table is scrolled, the app sidebar's 1px edge, a meter's labelled target tick, a time scale's tick lines and its labelled today line, the vertical
   `Separator` between groups of controls, the edges between a `NumberField`'s value and its steppers, a diagram's connector, a sequence diagram's lifeline with its activation bar, a frame's sides, and a stage list's or run timeline's connector (1px between two marks, never
@@ -146,7 +156,12 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **A focusable row** (a link or button in a list, not a listbox option) takes the control ring
   at +2, outside the row, and its list keeps at least `space-1-5` from any clipping edge. A
   full-bleed band holding its own control focuses that control; a band that is itself the link
-  or button takes the flush-field −2 inset.
+  or button takes the flush-field −2 inset. A split `PanelRow` (with `actions`) is the band too: its trigger shows the band's −2 inset on
+  its cover, and each action its own ring at +2.
+- **Cut text** (`Text lines`): one line or a clamp of n (capped at n of the reader's own `1lh`), read whole on the level-3 plate on hover,
+  keyboard focus or a touch and hold, Esc closing it (WCAG 1.4.13). Outside a control it is its own stop (the +2 ring, radius 6, or 8 for a
+  clamp); inside a link, button, `summary`, `label` or widget role the control is the stop, the plate opens from its hover and focus, and
+  without hover the text is whole at rest. `peek={false}` only where a press shows the whole text. Never a `title` or a `Tooltip`.
 - **Keyboard keys are chips:** a fill with no border, 20px tall (`size-kbd`), one per key, 2px apart; ⌘ ⌥ ⌃ are
   Phosphor icons at 12 inside the chip. Only real shortcuts, one per row, never on the primary fill; the chip is
   `aria-hidden` and the item carries `aria-keyshortcuts`. Shortcut chips (`data-shortcut`) and hint legends
@@ -175,7 +190,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   at load on a first visit (`duration-figure` 600ms, `duration-stagger` 22ms, at rest on a second visit and under reduced motion); a
   traveller between two resting places on screen uses `ease-in-out` (a leg of 300ms up to 150px, 2ms a pixel above, 600ms from 300px); a
   filtered or sorted list or grid moves what stays by transform and never replaces an item (past 48 items that would move, it lands at once); a number beside a figure never counts up. The hold or printing settles a running entrance at once, and a page change without a reload counts as a load.
-  Under reduced motion, opacity only. See `docs/motion.md`.
+  Under reduced motion, opacity only, and no loop runs. See `docs/motion.md`.
 - **Versions and release notes:** a version is SemVer shown with its ship date ("Version 1.4.0 · Nov 23, 2026"), one link to the
   release notes (`VersionLink`): at the sidebar's foot under the account items, the number alone in the rail, the last row of More's
   sheet on a phone, after the legal line in a site's footer. Nothing marks a release as new, and there is no "What's new" item. A
@@ -192,7 +207,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   and holds no version. The entry or release a link opens is the stream's arrival (the plate and "Linked"). Build details is on
   the running release alone, from the running build. No area filter.
 - **Density and touch:** compact moves controls one step down, with a floor of 24px. Touch
-  targets stay at least 44px whatever the density, on touch and in any window under 720 whatever the pointer (16px text entry stays touch-only), except a chart's day, reached by drag and by the keys (the phase lane's marks keep 44px); a diagram's card that answers a tap is 44px tall. A toast's Dismiss and action keep their pointer size and take
+  targets stay at least 44px whatever the density, on touch and in any window under 720 whatever the pointer (16px text entry stays touch-only), except a chart's day, reached by drag and by the keys (the phase lane's marks keep 44px), and a stream message's More control and time link, which are 44 wide and keep their line: 32 tall in a head, 24 in a joined entry (the second named exception, DECISIONS 393; never under WCAG 2.5.8's 24 by 24); a diagram's card that answers a tap is 44px tall. A toast's Dismiss and action keep their pointer size and take
   the 44px as hit area inside the toast's padding. A still table's selection column is 44 wide. Text entry is 16px on touch. A one-line notification entry is at least 44 tall on
   touch, and a `Link` on a line of its own has a 44px hit box with no change to layout, its words raised over a stacked neighbour's box; a link in a sentence keeps its line.
 - **The phone and what is pinned:** while an on-screen keyboard is up (`data-screen-keyboard`) the tab bar and the phone's status bar are covered, and the

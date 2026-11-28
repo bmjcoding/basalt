@@ -149,7 +149,7 @@ extension Basalt {
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.08)
     )
 
-    /// The smoked fill of a sticky header bar (basalt-chrome): the page, #fafafa, at 96% (the owner's midpoint between the first smoke and solid, DECISIONS 146 E), over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, in print. Web only: native bars use the platform bar material or stay opaque.
+    /// The smoked fill of a sticky header bar (basalt-chrome): the page, #fafafa, at 96% (the owner's midpoint between the first smoke and solid, DECISIONS 146 E), over a backdrop blurred by blur-chrome. The only translucent surface in Basalt. Only text-primary and text-secondary may sit on it; never tertiary, never stacked under another translucent layer. Opaque surface-page without backdrop-filter, with reduced transparency, under more contrast, in print. Web only: native bars use the platform bar material or stay opaque.
     public static let surfaceChrome = ThemedColor(
       light: RGBA(red: 0.980387, green: 0.980387, blue: 0.980387, alpha: 0.96),
       dark: RGBA(red: 0, green: 0, blue: 0, alpha: 0.925)
@@ -357,6 +357,30 @@ extension Basalt {
     public static let chartLitBase = ThemedColor(
       light: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1),
       dark: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1)
+    )
+
+    /// A heatmap's first level (values above 0, under the first bound). 3:1 on levels 0 to 3; an order, not a measure (cimip-gaps-3 T2).
+    public static let chartHeat1 = ThemedColor(
+      light: RGBA(red: 0.521561, green: 0.521561, blue: 0.521561, alpha: 1),
+      dark: RGBA(red: 0.419613, green: 0.419613, blue: 0.419613, alpha: 1)
+    )
+
+    /// A heatmap's second level. 3:1 on levels 0 to 3; neighbouring levels need not be 3:1 against each other.
+    public static let chartHeat2 = ThemedColor(
+      light: RGBA(red: 0.360806, green: 0.360806, blue: 0.360806, alpha: 1),
+      dark: RGBA(red: 0.590479, green: 0.590479, blue: 0.590479, alpha: 1)
+    )
+
+    /// A heatmap's third level. 3:1 on levels 0 to 3.
+    public static let chartHeat3 = ThemedColor(
+      light: RGBA(red: 0.200007, green: 0.200007, blue: 0.200007, alpha: 1),
+      dark: RGBA(red: 0.749072, green: 0.749072, blue: 0.749072, alpha: 1)
+    )
+
+    /// A heatmap's fourth level, which always holds the peak. 3:1 on levels 0 to 3.
+    public static let chartHeat4 = ThemedColor(
+      light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 1)
     )
 
     /// A diagram's main line and its head, and a traced line (DECISIONS 281). 3:1 or better on levels 0 to 3.
@@ -606,6 +630,8 @@ extension Basalt {
     public static let dialogWidth: Double = 480
     /// Side sheet width, capped by the viewport.
     public static let sheetWidth: Double = 440
+    /// A wide side sheet (SheetContent size="wide"), for reading a record while the list stays behind it: size-breakpoint-container-lg (640) plus the body's two space-5, with room for a classic scrollbar, so the parts inside draw their wide forms. From 720 it is capped at the window less space-12, so a strip of scrim stays to press; under 720 it is the window's width.
+    public static let sheetWidthWide: Double = 720
     /// Command menu width, capped by the viewport.
     public static let commandWidth: Double = 560
     /// A wide dialog's width, capped by the viewport: 992px (DECISIONS 158, Q1), 118 characters of Geist Mono at 14px rounded up, kept in px.
@@ -632,6 +658,10 @@ extension Basalt {
     public static let selectMin: Double = 160
     /// Maximum height of a scrolling popup list, such as the command list.
     public static let popupMaxHeight: Double = 360
+    /// The longest fade on an inline edge of a scrollport that hides more content (cimip-gaps-3 t7): the content fades to nothing at that edge over this, never more than a quarter of the port and never more than the distance hidden.
+    public static let scrollFade: Double = 20
+    /// The longest fade on a block edge of a scrollport that hides more content (cimip-gaps-3 t7): shorter than the inline fade, so a whole 32 to 40px row at a list's edge stays nearly opaque.
+    public static let scrollFadeBlock: Double = 16
     /// The list column of a list with a preview pane, fixed: a two-line row fits beside a 16px glyph. The pane takes the rest, space-4 away; below this plus that gap plus size-breakpoint-container the pane is pushed instead.
     public static let listWidth: Double = 320
     /// The sticky bar: its border box, with its hairline inside. The top safe area is padding above it, added by the layout CSS.
@@ -670,6 +700,8 @@ extension Basalt {
     public static let breakpointContainerSm: Double = 340
     /// A component's own width, in a container query, below which panels stop sharing one seat and a bar of tabs drops from 56 to 48 (DECISIONS 154, X6 and D12). A container query cannot read a token, so CSS writes this number beside a lint exception that names the token.
     public static let breakpointContainerLg: Double = 640
+    /// A window's height, not its width: under it nothing is pinned to the window's top or bottom (the header, a banner, a foot, the tab bar and the status bar are in the flow), because a 56px bar, a 56px tab bar and one 44px foot row would be more than a third of the window. It catches a phone in landscape and a short window, and no portrait phone or laptop. A media query cannot read a token, so CSS writes this number beside a lint exception that names the token.
+    public static let breakpointShort: Double = 480
     /// An observed line and the plan stroke in a chart.
     public static let chartLine: Double = 2
     /// A chart marker's diameter, or its side; the diamond has the same area.

@@ -167,13 +167,13 @@ describe("the spinners", () => {
     });
   }
 
-  test("reduced motion: the ring fades instead of turning, and braille holds ⠋ with no running animation", async () => {
+  test("reduced motion: no loop runs, so the ring stands still at full opacity, and braille holds ⠋ with no running animation (cimip-gaps-3 T1)", async () => {
     const { page } = await fixturePage(browser, render(`<><B.Spinner label="Ring" /><B.Spinner variant="braille" label="Braille" /></>`));
     await page.emulateMedia({ reducedMotion: "reduce" });
     const ring = page.getByRole("status", { name: "Ring" });
-    assert.equal(await ring.locator("svg").evaluate((el) => getComputedStyle(el).animationName), "basalt-pulse");
-    assert.equal(await ring.locator("svg").evaluate((el) => getComputedStyle(el).animationDuration), "1.2s", "the ring keeps its fade on duration-loop-fade");
-    assert.equal(await ring.evaluate((el) => el.getAnimations({ subtree: true }).filter((a) => a.playState === "running").length), 1);
+    assert.equal(await ring.locator("svg").evaluate((el) => getComputedStyle(el).animationName), "none");
+    assert.equal(await ring.locator("svg").evaluate((el) => getComputedStyle(el).opacity), "1", "the ring stands at full opacity");
+    assert.equal(await ring.evaluate((el) => el.getAnimations({ subtree: true }).length), 0, "the ring runs nothing");
     const braille = page.getByRole("status", { name: "Braille" });
     assert.deepEqual(await braille.evaluate(litDotsIn), [1, 2, 4]);
     assert.equal(await braille.locator("[data-dot='1']").evaluate((el) => getComputedStyle(el).animationName), "none");
