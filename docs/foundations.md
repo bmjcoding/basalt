@@ -939,7 +939,7 @@ Decided by the council (micro-details m1, DECISIONS 405 and 409; Fable decided, 
   selected one; the select trigger and the file input (from its native input, never from Clear) press to the selected wash over their
   raised fill as one colour, the edge at secondary ink unless invalid. The accordion's caret and the skill's plain disclosure chevron
   lift from secondary to primary. A popup's option row and a notification entry press to everything the lit row has; an in-flow
-  listbox option steps its hover band to the selected wash. Colour only, in at `duration-instant` and out over the control's own
+  listbox option steps its own box (the chosen option's plate) from the hover wash to the selected one. Colour only, in at `duration-instant` and out over the control's own
   `duration-fast`, kept under reduced motion; never a scale (the .98 is Button's and IconButton's) and never on a disabled, read-only,
   unavailable or busy control. A pressed control keeps every ink promotion its lit, hovered or selected state has, and tertiary text
   on a press fill is secondary for the press.
@@ -1498,7 +1498,7 @@ implementation hasn't been reviewed.
   full bleed and lifts no ink (the name and the detail both keep their ink: tertiary passes 4.5:1 on the wash over the dialog's level, 6.00:1 in dark and 4.88:1 in light, secondary 9.12:1 and 7.74:1, so no step is needed); there is no active row (3 to 1; one member wanted options in a listbox with arrow keys). The field's mark is a real 2px outline at −2
   round its band (no majority, the vote's first option stands). The browser's own clear × is hidden: the band has one ×. The count is `FilterResult`'s debounced line.
 - **The listbox and the opening list.** A listbox is a single choice that stays in the page, with one tab stop, `aria-activedescendant`, and a choice that follows
-  the arrow keys; the chosen option has the core check in its gutter (the open list keeps its cursor chevron; DECISIONS 167) and primary ink, and its weight does not change. Rows that open have the name as a button stretched
+  the arrow keys; the chosen option has the core check in its gutter (the open list keeps its cursor chevron; DECISIONS 167) and primary ink, and its weight does not change. Hover and press fill the option's own box, the chosen option's plate: the hover wash, and the selected wash on a press. The option answers across the list's full width (the decider's ruling in micro-details m1, 28 Nov 2026, applying DECISIONS 48). Rows that open have the name as a button stretched
   over the row, one cursor row with the one tab stop, a `↵` chip on it only (`aria-hidden`, hidden on touch, 4 to 0), and a filter that leaves every row in place: a
   non-match steps to tertiary ink, hides its cells, and the cursor skips it (4 to 0; no match mark). Rows are 24 (radius 6), two lines 48 and a coarse pointer's 44
   (radius 8), by the drawn-box rule. Focus is the control ring on the listbox's own box: 2px at +2 with corners of radius 8 (DECISIONS 159, the owner, on a 2 to 2 deadlock in DECISIONS 157, Q2; not square), the list 6px from a clipping edge, or the same ring inside at −2 where the list is flush (its outer curve is the box's corner, 8, its inner 6). The list has no fill or border, so the radius draws nothing at rest, and the rows scroll in a box inside it, so the rounded corners clip no row.

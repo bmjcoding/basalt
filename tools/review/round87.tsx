@@ -66,6 +66,10 @@ const BEFORE_CSS = `
 .r87-spaced, .r87-spaced * { line-height: 1.5 !important; }
 .r87-col { width: 300px; max-width: 100%; }
 .r87-line { box-shadow: inset 0 calc(-1 * var(--basalt-size-hairline)) 0 var(--basalt-border-hairline); }
+@media (hover: hover) {
+  .r87-before .basalt-listbox-option:not([aria-selected="true"], [aria-disabled="true"]):is(:hover, :active) { background: transparent; color: var(--basalt-text-secondary); }
+  .r87-before .basalt-listbox-option:not([aria-selected="true"], [aria-disabled="true"]):hover::before { background: var(--basalt-state-hover); }
+}
 .r87-readout { font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); color: var(--basalt-text-secondary); white-space: pre-wrap; margin: 0; }
 `;
 
@@ -153,6 +157,42 @@ function ControlSet({ pressed }: { pressed: boolean }) {
       {set}
     </Press>
   );
+}
+
+// ---- 2b. The listbox's hover and press (the decider's ruling) ----
+
+function ListboxPair({ press }: { press: boolean }) {
+  const list = (
+    <div style={{ maxWidth: 320 }}>
+      <Listbox label="Sailings" defaultValue="0740">
+        <ListboxOption value="0740">07:40 from the north pier</ListboxOption>
+        <ListboxOption value="0915" trailing="35 min">09:15 from the south pier</ListboxOption>
+        <ListboxOption value="1130">11:30 from the north pier</ListboxOption>
+      </Listbox>
+    </div>
+  );
+  return <HoldOption kinds={press ? "hover active" : "hover"}>{list}</HoldOption>;
+}
+
+/** Holds the second option of the list it wraps hovered (and pressed), with the real :hover and :active. */
+function HoldOption({ kinds, children }: { kinds: string; children: React.ReactNode }) {
+  const box = React.useRef<HTMLDivElement>(null);
+  React.useLayoutEffect(() => {
+    box.current?.querySelectorAll(".basalt-listbox-option")[1]?.setAttribute("data-wt-force", kinds);
+  });
+  return <div ref={box} style={{ display: "contents" }}>{children}</div>;
+}
+
+function Listboxes() {
+  const side = (
+    <div style={stack}>
+      <p style={label}>Hovered</p>
+      <ListboxPair press={false} />
+      <p style={label}>Hovered and pressed (a mouse press)</p>
+      <ListboxPair press />
+    </div>
+  );
+  return <Pair before={side} after={side} names={["Before (main: the hover band full bleed and square, no press)", "After (this build: hover and press on the option's own box, the chosen plate's)"]} />;
 }
 
 // ---- 3. A still finger on a menu row ----
@@ -311,7 +351,7 @@ export const ROUND_87: Round = {
     {
       id: "press-controls",
       name: "Before and after: a pressed tab, segment, link, page link, field trigger and disclosure",
-      intro: "A control with no wash rung presses to its hover step, so a finger sees what a pointer sees: a tab, a link tab and a segment lift to primary ink with no wash; TextButton's quiet words and a link's underline go to the ink; a page link takes primary on the selected wash. The select trigger and the file input press to the selected wash over their raised fill as one colour, with the placeholder and empty line at secondary; the search trigger to the selected wash under 720 and primary ink from 720; the accordion's caret lifts; a disclosure row lifts its ink; a listbox option steps its band. The listbox option is held hovered and pressed at once, as a mouse press is: the press wins.",
+      intro: "A control with no wash rung presses to its hover step, so a finger sees what a pointer sees: a tab, a link tab and a segment lift to primary ink with no wash; TextButton's quiet words and a link's underline go to the ink; a page link takes primary on the selected wash. The select trigger and the file input press to the selected wash over their raised fill as one colour, with the placeholder and empty line at secondary; the search trigger to the selected wash under 720 and primary ink from 720; the accordion's caret lifts; a disclosure row lifts its ink; a listbox option presses on its own box, the chosen option's plate (the listbox step below has the before and after). The listbox option is held hovered and pressed at once, as a mouse press is: the press wins.",
       decisions: [
         "No wash on a tab or segment: a filled tab is a look tabs don't have, and a wash in the track reads as a second pill.",
         "No step down on a link or TextButton: stepping down an ink is the busy sign.",
@@ -325,6 +365,23 @@ export const ROUND_87: Round = {
       height: 1100,
       heights: { "default@390": 1700, "forced-colours@390": 1700 },
       demo: () => <Pair before={<ControlSet pressed={false} />} after={<ControlSet pressed />} />,
+    },
+    {
+      id: "listbox",
+      name: "Before and after: the listbox's hover and press on the option's own box",
+      intro: "A listbox's hover filled a full-bleed square band, 6px wider each side than the chosen option's plate and touching it, so the two rows read as one stepped shape. Hover and press now fill the option's own box, the chosen option's plate: the hover wash, and the selected wash on a press. The option still answers across the list's full width.",
+      decisions: [
+        "The decider's ruling on m1 (28 Nov 2026), applying DECISIONS 48: a choose-one list uses the plate. A fix inside the agreed design; it moves pixels on main (hover: 6px each side and four corners), so the owner sees it here.",
+        "The ::before stays as the hit area and is never filled. No gap between rows: the 24px pitch stands.",
+        "The skill has no listbox; its option rows are already inset plates.",
+        NOT_REVIEWED,
+      ],
+      tryIt: ["Point at 09:15, then press and hold it: the fill matches 07:40's plate in width and corners."],
+      states: ["forced-colours"],
+      widths: [1440, 390],
+      height: 460,
+      heights: { "default@390": 900, "forced-colours@390": 900 },
+      demo: () => <Listboxes />,
     },
     {
       id: "finger",

@@ -8380,7 +8380,8 @@
   @media (width >= 720px) { .basalt-notice-bar-in { flex-wrap: nowrap; padding-block-start: 0; } }
 
   /* The listbox (D13c): a single-select list in the page. Rest ink is secondary; the chosen option is primary with the core check in its gutter and
-     a plate. A row is 24 (6 radius), two lines 48 (8), and 44 at least on a coarse pointer. The hover wash runs full bleed. */
+     a plate. A row is 24 (6 radius), two lines 48 (8), and 44 at least on a coarse pointer. Hover and press fill the option's own box, the chosen
+     option's plate (m1's listbox ruling, DECISIONS 48: a choose-one list uses the plate); the option answers across the list's full width. */
   .basalt-listbox { box-sizing: border-box; display: flex; flex-direction: column; min-width: 0; border-radius: var(--basalt-radius-md); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); outline: none; }
   /* The ring is on the list's own box, which has no fill, border or clip: radius 8 draws nothing at rest. The rows scroll in the box inside it, so the corners clip nothing. */
   /* The rows fade at each edge that hides more (cimip-gaps-3 t7); a row brought into view keeps the fade and space-0-5 clear. */
@@ -8406,6 +8407,7 @@
     user-select: none;
   }
   .basalt-listbox-option[data-detail] { min-height: var(--basalt-space-12); border-radius: var(--basalt-radius-md); }
+  /* The hit area only, never filled: it reaches the list's own edge (the list's inset, space-1-5), so the option answers across the full width. */
   .basalt-listbox-option::before { content: ""; position: absolute; z-index: -1; inset-block: 0; inset-inline: calc(-1 * var(--basalt-space-1-5)); }
   .basalt-listbox-gutter { grid-column: 1; display: flex; align-items: center; justify-content: center; color: var(--basalt-text-primary); }
   .basalt-listbox-name { grid-column: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -8415,14 +8417,13 @@
   .basalt-listbox-option[aria-selected="true"] :is(.basalt-listbox-trailing, .basalt-listbox-detail, .basalt-listbox-leading .basalt-event-time) { color: var(--basalt-text-secondary); }
   .basalt-listbox-option[aria-disabled="true"] { color: var(--basalt-text-disabled); }
   @media (hover: hover) {
-    .basalt-listbox-option:not([aria-selected="true"], [aria-disabled="true"]):hover::before { background: var(--basalt-state-hover); }
+    .basalt-listbox-option:not([aria-selected="true"], [aria-disabled="true"]):hover { background: var(--basalt-state-hover); }
     .basalt-listbox-option:not([aria-selected="true"], [aria-disabled="true"]):hover :is(.basalt-listbox-trailing, .basalt-listbox-detail, .basalt-listbox-leading .basalt-event-time) { color: var(--basalt-text-secondary); }
   }
-  /* A press (m1, P8): the hover band steps to the selected wash, the name to primary, and the slots to secondary, so hover and press are one
-     shape. A selected or disabled option takes none. After the hover rule,
-     which it ties: a mouse press is hovered too, and the press must win. */
-  .basalt-listbox-option:active:not([aria-selected="true"], [aria-disabled="true"]) { color: var(--basalt-text-primary); }
-  .basalt-listbox-option:active:not([aria-selected="true"], [aria-disabled="true"])::before { background: var(--basalt-state-selected); }
+  /* A press (m1, P8): the option's own box steps from the hover wash to the selected one, the name to primary and the slots to secondary, so hover,
+     press and the chosen option are one shape. A selected or disabled option takes none. After the hover rule, which it ties (both (0,3,0), the same
+     property on the same element): a mouse press is hovered too, and the press must win. */
+  .basalt-listbox-option:active:not([aria-selected="true"], [aria-disabled="true"]) { color: var(--basalt-text-primary); background: var(--basalt-state-selected); }
   .basalt-listbox-option:active:not([aria-selected="true"], [aria-disabled="true"]) :is(.basalt-listbox-trailing, .basalt-listbox-detail, .basalt-listbox-leading .basalt-event-time) { color: var(--basalt-text-secondary); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) { .basalt-listbox-option { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
@@ -9870,7 +9871,7 @@
     width: 100%; min-height: var(--basalt-size-control-xs); margin: 0; padding: var(--basalt-space-0-5) var(--basalt-space-2); border: 0; border-radius: var(--basalt-radius-sm);
     background: none; color: inherit; font: inherit; text-align: start; text-decoration: none; cursor: pointer;
   }
-  /* V3: the hover wash runs full bleed, as the listbox's does: a ::before that reaches the list's own edge (the list's inset, space-1-5), not the line's own box. */
+  /* V3: the hover wash runs full bleed: a ::before that reaches the list's own edge (the list's inset, space-1-5), not the line's own box. */
   .basalt-event-line { position: relative; isolation: isolate; }
   .basalt-event-line::before { content: ""; position: absolute; z-index: -1; inset-block: 0; inset-inline: calc(-1 * var(--basalt-space-1-5)); }
   @media (hover: hover) { .basalt-event-line:hover::before { background: var(--basalt-state-hover); } .basalt-event-line:hover .basalt-event-time, .basalt-event-line:hover .basalt-event-detail { color: var(--basalt-text-secondary); } }

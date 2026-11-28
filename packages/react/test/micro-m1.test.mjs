@@ -290,14 +290,38 @@ for (const theme of ["dark", "light"]) {
       }
     });
 
-    test("an in-flow listbox option steps its band to the selected wash with its slots at secondary, over its hover (a mouse press is hovered too); a selected one does not change", async () => {
+    test("an in-flow listbox option presses on its own box (the chosen option's plate), over its hover (a mouse press is hovered too); a selected one does not change", async () => {
       const { page } = await open(render(`<div style={{ width: 320 }}><B.Listbox label="Packets" defaultValue="a"><B.ListboxOption value="a" id="chosen">Runner bean</B.ListboxOption><B.ListboxOption value="b" id="opt" trailing="12 g">Sweet pea</B.ListboxOption></B.Listbox></div>`), FINE, theme);
       // The chosen option first, while it is still the chosen one: a press on #opt chooses #opt on release.
       const chosenRest = await style(page, "#chosen", ["background-color", "color"]);
       assert.deepEqual(await pressed(page, "#chosen", () => style(page, "#chosen", ["background-color", "color"])), chosenRest);
       // A real mouse press: the pointer is over #opt, so :hover and :active both match, and the press must win (it comes after the hover rule).
-      const s = await pressed(page, "#opt", () => style(page, "#opt", ["background-color"], "::before"));
-      assert.equal(await resolve(page, s["background-color"]), await resolve(page, await token(page, "--basalt-state-selected")));
+      const s = await pressed(page, "#opt", () => style(page, "#opt", ["background-color"]));
+      assert.equal(await resolve(page, s["background-color"]), await resolve(page, await token(page, "--basalt-state-selected")), "the option's own box takes the press");
+      await page.close();
+    });
+
+    test("the listbox's hover and press fill the option's own box (the ruling): ::before never fills, the box matches the chosen plate, and the edge still answers", async () => {
+      const { page } = await open(render(`<div style={{ width: 320 }}><B.Listbox label="Sailings" defaultValue="a"><B.ListboxOption value="a" id="chosen">07:40 from the north pier</B.ListboxOption><B.ListboxOption value="b" id="opt">09:15 from the south pier</B.ListboxOption></B.Listbox></div>`), FINE, theme);
+      const transparent = await resolve(page, "transparent");
+      const before = async () => resolve(page, (await style(page, "#opt", ["background-color"], "::before"))["background-color"]);
+      assert.equal(await before(), transparent, "at rest");
+      const at = await centre(page, "#opt");
+      await page.mouse.move(at.x, at.y);
+      await settle(page);
+      assert.equal(await before(), transparent, "hovered");
+      assert.equal(await resolve(page, (await style(page, "#opt", ["background-color"]))["background-color"]), await resolve(page, await token(page, "--basalt-state-hover")), "the hover wash is on the option's own box");
+      const box = (sel) => page.locator(sel).evaluate((el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return { start: r.left, width: r.width, radius: cs.borderTopLeftRadius }; });
+      const hovered = await box("#opt");
+      await page.mouse.down();
+      assert.equal(await before(), transparent, "pressed");
+      const held = await box("#opt");
+      await page.mouse.up();
+      const chosen = await box("#chosen");
+      for (const b of [hovered, held]) assert.deepEqual(b, chosen, "inline start, width and radius are the chosen plate's (0px)");
+      // A point 3px inside the list's edge, at the option's height, still hits the option (the ::before is the hit area).
+      const hit = await page.evaluate(() => { const list = document.querySelector(".basalt-listbox"); const o = document.getElementById("opt").getBoundingClientRect(); const l = list.getBoundingClientRect(); return document.elementFromPoint(l.left + 3, o.top + o.height / 2)?.closest(".basalt-listbox-option")?.id ?? null; });
+      assert.equal(hit, "opt");
       await page.close();
     });
 
