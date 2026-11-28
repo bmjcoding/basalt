@@ -1224,9 +1224,9 @@
       "requires": [
         "diagram"
       ],
-      "budget": 11100,
+      "budget": 11300,
       "usage": 600,
-      "budgetReason": "DECISIONS 359: a new module, 10283 bytes at its first build; cap 10400. The ruling on the gap (state-gap/ruling.md): 10283 to 10969 bytes, for a composite's start mark above its initial state, its row's room, and the mark that never lies on a line, a label or another mark (else the figure is stacked). Cap 10400 to 11100."
+      "budgetReason": "DECISIONS 359: a new module, 10283 bytes at its first build; cap 10400. The ruling on the gap (state-gap/ruling.md): 10283 to 10969 bytes, for a composite's start mark above its initial state, its row's room, and the mark that never lies on a line, a label or another mark (else the figure is stacked). Cap 10400 to 11100. G18 (DECISIONS 392, #156) grew it to 11208 bytes without a recorded raise; found while fixing the mark corner (28 Nov). Cap 11100 to 11300."
     },
     "diagram-deployment": {
       "classes": [
