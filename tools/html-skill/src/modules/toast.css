@@ -56,7 +56,10 @@
   /* Leaving runs at 0.75 of its entry, easing in. */
   .toast[data-ending-style] { transition-duration: calc(var(--basalt-duration-slow) * 0.75), calc(var(--basalt-duration-slow) * 0.75), calc(var(--basalt-duration-base) * 0.75); transition-timing-function: var(--basalt-ease-in); }
   .toast[data-limited] { opacity: 0; }
-  .toast[data-ending-style][data-swipe-direction="right"] { transform: translateX(calc(var(--toast-swipe-movement-x, var(--basalt-space-0)) + 120%)) translateY(var(--_offset-y)); }
+  /* A swipe leaves in its direction from where it was let go; under reduced motion it stays there and only fades (the rest of the stack's rule). The swipe has written its movement by then. */
+  @media (prefers-reduced-motion: no-preference) {
+    .toast[data-ending-style][data-swipe-direction="right"] { transform: translateX(calc(var(--toast-swipe-movement-x) + 120%)) translateY(var(--_offset-y)); }
+  }
   .toast[data-swiping] { transition-property: opacity, height; }
   .toast::after { content: ""; position: absolute; top: 100%; left: 0; width: 100%; height: calc(var(--_gap) + var(--basalt-size-hairline)); }
 
@@ -97,11 +100,16 @@
 
   /* Under 720 the stack hangs from the bar, space-2 below its line (space-4 from the top edge with no bar), so a form's last action, the tab bar
      and the page's foot are never under it. The front toast is at the top and the ones behind peek below it; a toast enters from the top edge
-     and leaves to it. */
+     and leaves to it; a swipe up or to the side dismisses it. */
   @media (width < %bp-md%) {
     .toast-viewport { top: max(var(--basalt-space-4), env(safe-area-inset-top, var(--basalt-space-0))); bottom: auto; }
     :root:has(.topbar, .app-header) .toast-viewport { top: calc(var(--basalt-sticky-offset) + var(--basalt-space-2)); }
     .toast { --_dir: 1; top: 0; bottom: auto; transform-origin: top center; }
+  }
+  /* A swipe up leaves upward from where the drag let go, as React's does (the swipe has written both movements by then); under reduced motion it
+     stays where it was let go and only fades. */
+  @media (width < %bp-md%) and (prefers-reduced-motion: no-preference) {
+    .toast[data-ending-style][data-swipe-direction="up"] { transform: translateX(var(--toast-swipe-movement-x)) translateY(calc(var(--toast-swipe-movement-y) - 120%)); }
   }
 
   @media (prefers-reduced-motion: reduce) {

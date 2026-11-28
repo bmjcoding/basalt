@@ -87,8 +87,15 @@ export interface MenuTriggerProps extends PartProps<"button"> {
   closeDelay?: number;
 }
 
-export function MenuTrigger({ className, ...props }: MenuTriggerProps) {
+/**
+ * The button that opens a `Menu`. With no `render` it is a bare button, which keeps its own look and is given the shared target floor as hit
+ * area alone (24px, 44 on touch and under 720; `data-bare`), with no change to layout. Its words are a label raised over every neighbour's
+ * hit box, as a stacked `Link`'s are, so a press on a trigger's own words is always that trigger's. A `render` element (a `Button`, an
+ * `IconButton`) keeps its own sizes and children.
+ */
+export function MenuTrigger({ className, children, ...props }: MenuTriggerProps) {
   const waiting = (React.useContext(MenuWaitContext)?.waiting ?? 0) > 0;
+  const bare = props.render === undefined;
   // The trigger is where focus returns when the menu closes, so the wait of an item is shown and held here: a `Button` it renders takes it as its own.
   return (
     <WaitContext.Provider value={waiting}>
@@ -98,7 +105,10 @@ export function MenuTrigger({ className, ...props }: MenuTriggerProps) {
         aria-busy={waiting ? true : props["aria-busy"]}
         aria-disabled={waiting ? true : props["aria-disabled"] || undefined}
         className={withClass("basalt-menu-trigger", className)}
-      />
+        data-bare={bare ? "" : undefined}
+      >
+        {bare && children != null ? <span className="basalt-menu-trigger-label">{children}</span> : children}
+      </BaseMenu.Trigger>
     </WaitContext.Provider>
   );
 }
