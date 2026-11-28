@@ -3,7 +3,7 @@
   /* ---- Code: a well, one level deeper in dark and the same sunken grey in light ---- */
 
   /* A code block's radius is 8, as React's (the council, DECISIONS 69), not the panel's 12. */
-  .code { border-radius: var(--basalt-radius-md); background-color: var(--panel-well); font: var(--basalt-font-weight-regular) var(--bh-sm-mono); }
+  .code { border-radius: var(--basalt-radius-md); background-color: var(--panel-well); font: var(--basalt-font-weight-regular) var(--bh-sm-mono); font-variant-ligatures: none; }
   pre.code, .code-body { margin: 0; padding: var(--basalt-space-3) var(--basalt-space-4); overflow: auto; tab-size: 2; }
   .code code { font: inherit; }
   .code-head { display: flex; align-items: center; gap: var(--basalt-space-2); min-height: var(--basalt-size-control-lg); padding-block: var(--basalt-space-1); padding-inline: var(--basalt-space-4); --basalt-edge-room: var(--basalt-space-4); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; font: var(--basalt-font-weight-medium) var(--bh-xs); color: var(--basalt-text-secondary); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); }

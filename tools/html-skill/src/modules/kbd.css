@@ -16,6 +16,7 @@
     background: var(--basalt-surface-kbd);
     color: var(--basalt-text-secondary);
     font: var(--basalt-font-weight-regular) var(--bh-xs-mono);
+    font-variant-ligatures: none;
     white-space: nowrap;
     flex: none;
   }

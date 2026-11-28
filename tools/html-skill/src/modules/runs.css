@@ -52,7 +52,7 @@
   /* stylelint-disable-next-line unit-disallowed-list -- the 1px clip box of the visually-hidden pattern; it must be exactly 1px */
   .run-stages > .run-stage[data-state="success"] > .run-stage-word, .run-rail > .run-stage:is([data-state="idle"], [data-state="queued"], [data-state="running"], [data-state="success"]) > .run-stage-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .run-stage-meta { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); white-space: nowrap; }
-  :is(.run-stage-time, .run-step-time) { min-inline-size: var(--basalt-space-12); text-align: end; font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); font-variant-numeric: tabular-nums; color: var(--basalt-text-tertiary); white-space: nowrap; }
+  :is(.run-stage-time, .run-step-time) { min-inline-size: var(--basalt-space-12); text-align: end; font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); font-variant-ligatures: none; font-variant-numeric: tabular-nums; color: var(--basalt-text-tertiary); white-space: nowrap; }
   .run-stage-detail { grid-column: 2 / -1; padding-block: var(--basalt-space-2) var(--basalt-space-1); color: var(--basalt-text-secondary); }
   .run-stage-detail :is(p, small) { display: block; margin: 0; }
   .run-stage-detail small { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); line-height: var(--basalt-text-xs-line-height); }
@@ -60,7 +60,7 @@
   .run-stage[data-state="failed"] .run-stage-detail strong { color: var(--basalt-status-danger); }
   .run-stage-detail .btn { margin-block-start: var(--basalt-space-2); }
   /* Code in a row is Geist Mono at the row's own size, not the core's chip; a step's detail gives it a well one level deeper than its panel. */
-  :is(.run-stage, .run-step) code { padding: 0; border-radius: 0; background: none; font-family: var(--basalt-font-family-mono); font-size: inherit; line-height: 1; }
+  :is(.run-stage, .run-step) code { padding: 0; border-radius: 0; background: none; font-family: var(--basalt-font-family-mono); font-variant-ligatures: none; font-size: inherit; line-height: 1; }
   .run-step-detail code { padding: var(--basalt-space-1) var(--basalt-space-2); border-radius: var(--basalt-radius-sm); background: var(--basalt-surface-sunken); color: var(--basalt-text-primary); line-height: var(--basalt-text-sm-line-height); overflow-wrap: anywhere; }
   %panel% .run-step-detail code { background: var(--basalt-surface-well-2); }
   @container (width < %bp-container%) {

@@ -11,14 +11,14 @@
   .callout[data-status="warning"] { --_s: var(--basalt-status-warning); }
   .callout[data-status="danger"] { --_s: var(--basalt-status-danger); }
   .callout:is([data-status="success"], [data-status="warning"], [data-status="danger"]) { border-color: color-mix(in srgb, var(--_s) 45%, var(--panel-bg)); }
-  .callout-title { font-weight: var(--basalt-font-weight-medium); }
+  .callout-title { font-weight: var(--basalt-font-weight-medium); text-wrap: balance; }
   /* A fact beside the title (React's Callout meta): .callout-head holds .callout-title and .callout-meta on one baseline, space-2 apart; the meta goes whole to
      a line of its own before it shrinks. Plain words in it are 13/18 at 400 in secondary; a .status in it is a presence. */
   .callout-head { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--basalt-space-2); min-width: 0; }
   .callout-head > .callout-title { min-width: 0; }
   .callout-meta { min-width: 0; max-width: 100%; color: var(--basalt-text-secondary); font-weight: var(--basalt-font-weight-regular); }
   .callout-head + .callout-body, .callout-head + p { margin-top: var(--basalt-space-0-5); }
-  .callout-body { flex: 1; min-width: 0; color: var(--basalt-text-secondary); }
+  .callout-body { flex: 1; min-width: 0; color: var(--basalt-text-secondary); text-wrap: pretty; }
   .callout-title + .callout-body, .callout-title + p { margin-top: var(--basalt-space-0-5); }
   @media (forced-colors: active) {
     /* The status colours are author colours: the icon and the rim go back to the system foreground, and the status is the icon's shape and the words. */
