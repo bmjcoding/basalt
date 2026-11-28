@@ -75,12 +75,23 @@ export interface ListBandProps extends Omit<React.ComponentProps<"div">, "childr
   pageSize: number;
   /** The page sizes the reader can choose from. Default 10, 25, 50 and 100. */
   pageSizes?: readonly number[];
+  /** The button form's callback, in the band and the foot. With `hrefForPage` the pages are links and this is not called for them (`onNavigate` is). */
   onPageChange?: (page: number) => void;
   /**
-   * Called with the size the reader chose. The band then calls `onPageChange` with the page that holds the reader's first row (page 3 of 25 becomes page 6 of 10), so
-   * set the size and take the page it gives; do not reset to page 1.
+   * Called with the size the reader chose, and the page that holds the reader's first row at the new size (page 3 of 25 becomes page 6 of 10), so an app that writes the
+   * address does both in one replace. The band then calls `onPageChange` with that page too, as before: set the size and take the page it gives; do not reset to page 1.
    */
-  onPageSizeChange?: (pageSize: number) => void;
+  onPageSizeChange?: (pageSize: number, page: number) => void;
+  /**
+   * The pages as real links, in the band and in the foot (`Pagination`'s `hrefForPage`). Without `onNavigate` the browser follows them; give the band an `id` too, and
+   * the foot's links carry the band arrow's id as their fragment (`id-pager-previous`, `id-pager-next`), so the next document opens at the band with that arrow focused.
+   */
+  hrefForPage?: (page: number) => string;
+  /**
+   * `Pagination`'s `onNavigate`, for both pagers: a plain press goes to the app's router (a modified press stays the browser's), and the band returns to rest and moves
+   * focus as it does for a press in the button form. The hrefs are the app's own: no fragment is added.
+   */
+  onNavigate?: (href: string, page: number) => void;
   /** What the rows are, plural and capitalised, in the app's words ("Orders", "Builds"). It names the page-size select ("Orders per page") and is said in the announcement. */
   noun: string;
   /** The words after the page-size select. Default "per page". The select's name is `noun` then these. */
@@ -120,6 +131,12 @@ export interface ListBandProps extends Omit<React.ComponentProps<"div">, "childr
 
 declare const process: { env: { NODE_ENV?: string } };
 let warnedSeat = false;
+let warnedId = false;
+
+/** A followed link from the list's foot names the band's arrow as its fragment, unless the app's own href has one (the app's fragment wins). */
+function toBand(href: string, arrow: string): string {
+  return href.includes("#") ? href : `${href}#${encodeURIComponent(arrow)}`;
+}
 
 const eights = (n: number) => String(Math.max(0, Math.floor(n))).replace(/\d/g, "8");
 
@@ -144,7 +161,7 @@ function returnToRest(sentinel: HTMLElement, owner: HTMLElement | null) {
  * `keepFootRoom`, or while `total` is `null`, the pager keeps its seat there unseen, so the band is already the height it has with more pages. Back to top sits in a dock of zero height after the band.
  * The scroller is the window unless `scroller` names a pane.
  */
-export function ListBand({ total, maxTotal, seatTotal, rangeTotal = true, keepFootRoom = false, onePage = "band", page, pageSize, pageSizes = DEFAULT_SIZES, onPageChange, onPageSizeChange, noun, sizeLabel = "per page", pagerLabel, delay, heading, backToTop = true, footLabel = "Pagination, end of list", filterKey, scroller, children, className, ...props }: ListBandProps) {
+export function ListBand({ total, maxTotal, seatTotal, rangeTotal = true, keepFootRoom = false, onePage = "band", page, pageSize, pageSizes = DEFAULT_SIZES, onPageChange, onPageSizeChange, hrefForPage, onNavigate, noun, sizeLabel = "per page", pagerLabel, delay, heading, backToTop = true, footLabel = "Pagination, end of list", filterKey, scroller, id, children, className, ...props }: ListBandProps) {
   const count = Math.max(0, Math.floor(total ?? 0) || 0);
   // The narrow band holds its pager's seat at one page or none (G144): while the total is not known, and always with `keepFootRoom`.
   const hold = keepFootRoom || total === null;
@@ -172,6 +189,15 @@ export function ListBand({ total, maxTotal, seatTotal, rangeTotal = true, keepFo
   const ask = (what: Asked["what"], page: number, pageSize: number) => { asked.current = { what, page, size: pageSize, from: { page: own, size } }; };
   const owner = useScrollElement(scroller);
   useMarkScrollOwner(owner);
+  // The band's own pager is named from its `id`, so its arrows are `id-pager-previous` and `id-pager-next`, in the server's HTML: a followed link in the foot names one.
+  const pagerId = id ? `${id}-pager` : undefined;
+  if (process.env.NODE_ENV !== "production" && hrefForPage && !onNavigate && !id && !warnedId) {
+    warnedId = true;
+    console.warn("Basalt ListBand: give the band an `id` with `hrefForPage`, or a press in the list's foot opens the next page at its top and not at the band");
+  }
+  const footHref = hrefForPage && !onNavigate && pagerId
+    ? (next: number) => toBand(hrefForPage(next), `${pagerId}-${next < current ? "previous" : "next"}`)
+    : hrefForPage;
 
   // From 720 the band is `position: sticky`: a sentinel just above it says when it is stuck. A hidden sentinel, or a band that does not stick (under 720), is never stuck.
   React.useEffect(() => {
@@ -220,7 +246,7 @@ export function ListBand({ total, maxTotal, seatTotal, rangeTotal = true, keepFo
     asked.current = null;
     if (stuck || press.what !== true) returnToRest(sentinel.current, owner);
     if (press.what !== true) {
-      const arrows = band.current?.querySelectorAll<HTMLElement>(".basalt-pagination > .basalt-button");
+      const arrows = band.current?.querySelectorAll<HTMLElement>(".basalt-pagination > :is(.basalt-button, .basalt-page-link)");
       arrows?.[press.what === "previous" ? 0 : arrows.length - 1]?.focus({ preventScroll: true });
     }
   }, [count, current, own, size, pages, noun, from, to, stuck, filterKey, owner]);
@@ -237,10 +263,11 @@ export function ListBand({ total, maxTotal, seatTotal, rangeTotal = true, keepFo
   return (
     <div className="basalt-list-band-wrap" data-scroller={scroller ? "" : undefined}>
       <div ref={sentinel} className="basalt-list-band-sentinel" aria-hidden="true" />
-      <div {...props} ref={band} data-stuck={stuck ? "" : undefined} data-whole={pages <= 1 ? "" : undefined} data-hold={hold ? "" : undefined} data-one-page={onePage === "size" ? "size" : undefined} data-pinned-edge="top" className={join("basalt-list-band", className)}>
+      <div {...props} id={id} ref={band} data-stuck={stuck ? "" : undefined} data-whole={pages <= 1 ? "" : undefined} data-hold={hold ? "" : undefined} data-one-page={onePage === "size" ? "size" : undefined} data-pinned-edge="top" className={join("basalt-list-band", className)}>
         <div className="basalt-list-band-row">
           <p className="basalt-list-band-range">{range}</p>
           <Pagination
+            id={pagerId}
             aria-label={pagerLabel}
             page={current}
             pageCount={count ? pages : 0}
@@ -250,6 +277,8 @@ export function ListBand({ total, maxTotal, seatTotal, rangeTotal = true, keepFo
             // A held seat at one page or none is unseen (the stylesheet) and inert: no tab stop, nothing spoken, nothing a click reaches.
             inert={hold && pages <= 1 ? true : undefined}
             onPageChange={(next) => { ask(true, next, size); onPageChange?.(next); }}
+            hrefForPage={hrefForPage}
+            onNavigate={onNavigate ? (href, next) => { ask(true, next, size); onNavigate(href, next); } : undefined}
           />
           <div className="basalt-list-band-size">
             <Select
@@ -266,7 +295,7 @@ export function ListBand({ total, maxTotal, seatTotal, rangeTotal = true, keepFo
                 const first = (current - 1) * size;
                 const target = Math.floor(first / next) + 1;
                 ask(true, target, next);
-                onPageSizeChange?.(next);
+                onPageSizeChange?.(next, target);
                 onPageChange?.(target);
               }}
             />
@@ -287,6 +316,8 @@ export function ListBand({ total, maxTotal, seatTotal, rangeTotal = true, keepFo
           maxPages={maxPages}
           summary={range}
           onPageChange={(next) => { ask(next < current ? "previous" : "next", next, size); onPageChange?.(next); }}
+          hrefForPage={footHref}
+          onNavigate={onNavigate ? (href, next) => { ask(next < current ? "previous" : "next", next, size); onNavigate(href, next); } : undefined}
         />
       </div>
     </div>

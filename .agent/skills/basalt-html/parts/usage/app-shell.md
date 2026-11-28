@@ -30,3 +30,4 @@ An app's frame (React's `AppShell` and `AppHeader`): a sidebar at 1024 and up, t
 - A lockup with a second line: `<span class="app-lockup"><span class="app-lockup-mark" aria-hidden="true">…svg…</span><span class="app-lockup-lines"><span>Name</span><span>Team</span></span></span>` in `.brand-full`; the rail shows the mark alone.
 - A shared note under the account items: `div.app-footnote` > a `div` of lines (`p`, then `p.faint`) and a ghost sm `.btn` with `data-edge="end"`. Not drawn in the rail.
 - In a window under 480 tall nothing is pinned: the header, the tab bar and the bars of your own scroll with the page.
+- Don't set `history.scrollRestoration` and don't scroll to the top on load: the browser restores the reader's place on Back, Forward and reload.

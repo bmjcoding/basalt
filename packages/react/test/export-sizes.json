@@ -101,7 +101,7 @@
   "DotLine": 702,
   "DotSep": 326,
   "DownloadGlyph": 2853,
-  "Drawer": 19157,
+  "Drawer": 19835,
   "DrawerSection": 8395,
   "DrawerTrigger": 18765,
   "ENTRANCE_LATE_MS": 26,
@@ -153,7 +153,7 @@
   "LinkTab": 3764,
   "LinkTabs": 149877,
   "LinkTile": 4473,
-  "ListBand": 168417,
+  "ListBand": 169400,
   "Listbox": 10030,
   "ListboxGroup": 377,
   "ListboxOption": 4052,
@@ -209,7 +209,7 @@
   "PageSection": 227,
   "PageSections": 246,
   "PageWait": 2453,
-  "Pagination": 22737,
+  "Pagination": 23337,
   "PairedArt": 510,
   "PaneLayout": 7599,
   "PanelList": 773,
@@ -362,7 +362,7 @@
   "TableRow": 1622,
   "TableRowHead": 225,
   "TableScrollHint": 938,
-  "Tabs": 37233,
+  "Tabs": 37259,
   "TabsList": 46694,
   "TabsPanel": 36621,
   "TabsPanels": 331,
@@ -458,9 +458,10 @@
   "usePinnedEdges": 2090,
   "useReducedMotion": 307,
   "useRefreshing": 272,
-  "useRouteFocus": 2102,
+  "useRouteFocus": 2534,
   "useScreenKeyboard": 2481,
   "useScreenKeyboardLayout": 2383,
+  "useScrollRestore": 2586,
   "useShapePhase": 1231,
   "useShortcuts": 2471,
   "useShortcutsVisible": 1041,
@@ -479,11 +480,11 @@
   }
  },
  "package": {
-  "bytes": 1160186,
-  "gzip": 385180
+  "bytes": 1164844,
+  "gzip": 386945
  },
  "styles": {
-  "bytes": 645655,
-  "gzip": 81030
+  "bytes": 645947,
+  "gzip": 81069
  }
 }

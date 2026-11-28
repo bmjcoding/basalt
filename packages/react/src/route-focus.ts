@@ -8,8 +8,15 @@ export type FocusPlace = React.RefObject<HTMLElement | null> | (() => HTMLElemen
 
 const resolve = (place: FocusPlace): HTMLElement | null => (typeof place === "function" ? place() ?? null : place.current);
 
+/** How the app reached this page: a new entry, a replaced entry, or Back and Forward. Basalt's own type; map your router's action to it. */
+export type RouteNavigation = "push" | "replace" | "pop";
+
 export interface UseRouteFocusOptions {
-  /** Changes when the page changes (a path, a route id). The first value is the page the app opened on: nothing moves for it. */
+  /**
+   * Changes when the page changes (a path, a route id). The first value is the page the app opened on: nothing moves for it. The key is the page, not the
+   * address: a change of query on one page (a filter, a page number, a sort, a mirrored tab) and a record opened over the page in a sheet or a dialog keep
+   * the key, so nothing moves for them and focus stays on the control the reader used (WCAG 3.2.2).
+   */
   key: string | number;
   /**
    * The new page's title: `document.title` becomes it. It is read when focus lands, not when the key changed, and a later change while the page is the same
@@ -28,14 +35,35 @@ export interface UseRouteFocusOptions {
    */
   fromControl?: boolean;
   /**
-   * Scroll to the top. Default true. `false` for a page that keeps its own place: one that opens at its end (a stream), or one reached by Back that restores
-   * where the reader was.
+   * How the page was reached. Default "push". "replace" with a new key is a new page too, and behaves as a push. "pop" is Back or Forward: the hook never
+   * scrolls (the browser, or `useScrollRestore`, puts the reader back), and takes focus only when nothing has it once any popup has gone, never from an
+   * element that has it.
+   */
+  navigation?: RouteNavigation;
+  /**
+   * Scroll on a page change: to the element the address's fragment names when there is one, else to the top, at once in every mode. Default true. `false`:
+   * the hook never scrolls (a page that keeps its own place, a stream that opens at its end). A "pop" never scrolls, whatever this says.
    */
   scroll?: boolean;
 }
 
+/** The element the address's fragment names, if it is there now. A malformed escape reads as no target. */
+function hashTarget(): HTMLElement | null {
+  const hash = window.location.hash;
+  if (hash.length < 2) return null;
+  let id: string;
+  try {
+    id = decodeURIComponent(hash.slice(1));
+  } catch {
+    return null;
+  }
+  return document.getElementById(id);
+}
+
 /**
- * After a client-side page change: scroll to the top, set `document.title`, and move focus to the page's title (X10, DECISIONS 162, B1).
+ * After a client-side page change: scroll to the top (or to the fragment's target), set `document.title`, and move focus to the page's title (X10,
+ * DECISIONS 162, B1). Back and Forward (`navigation="pop"`) never scroll and keep the focus the app gave back; with none, focus lands on the title (m7).
+ * Basalt never sets `history.scrollRestoration`.
  * It takes no router and names no element by id: the app gives it a key that changes with the page and a ref to the title. Say the change
  * aloud through one `StatusLine`; this moves focus and the title only, and closes the toasts whose only home was the page that left. It skips the
  * first render.
@@ -46,7 +74,7 @@ export interface UseRouteFocusOptions {
  * stands. Waiting (for a popup to go, for a landing place that arrives with the page's data) ends when focus lands, when the reader presses a key or the
  * pointer, or when the page changes again; never by a deadline.
  */
-export function useRouteFocus({ key, title, target, fromControl = false, scroll = true }: UseRouteFocusOptions): void {
+export function useRouteFocus({ key, title, target, fromControl = false, navigation = "push", scroll = true }: UseRouteFocusOptions): void {
   // The key the page was last settled on. Only a different key is a page change: a target ref that is a new object on every render is not.
   const seen = React.useRef(key);
   const aim = React.useRef(target);
@@ -55,6 +83,8 @@ export function useRouteFocus({ key, title, target, fromControl = false, scroll 
   control.current = fromControl;
   const toTop = React.useRef(scroll);
   toTop.current = scroll;
+  const how = React.useRef(navigation);
+  how.current = navigation;
   const heading = React.useRef(title);
   heading.current = title;
   // Whether a page change has been handled: from then on the hook keeps `document.title` in step with `title`.
@@ -69,10 +99,16 @@ export function useRouteFocus({ key, title, target, fromControl = false, scroll 
     owns.current = true;
     // What only echoed the page that left goes with it (a toast whose home is the page).
     pageChanged();
-    if (toTop.current) window.scrollTo(0, 0);
+    const pop = how.current === "pop";
+    if (toTop.current && !pop) {
+      // A fragment's target beats the top (the root's scroll padding keeps it clear of the bar); one not there now is the top. Never smooth.
+      const anchor = hashTarget();
+      if (anchor) anchor.scrollIntoView({ behavior: "instant" });
+      else window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
     document.title = heading.current;
     if (control.current) return undefined;
-    return land(() => resolve(aim.current), () => { document.title = heading.current; }, popup.current || isOverlayOpen(document));
+    return land(() => resolve(aim.current), () => { document.title = heading.current; }, popup.current || isOverlayOpen(document), pop);
   }, [key]);
   React.useEffect(() => {
     if (owns.current) document.title = title;
@@ -81,10 +117,11 @@ export function useRouteFocus({ key, title, target, fromControl = false, scroll 
 
 /**
  * Lands focus on `find()`'s element once no popup is drawn and the element is there, watching the document for either to change. With `hold` (a popup was
- * open as the page changed), a focus handed back to the page in the two frames after landing is put back. Ends on landing (after the hold), on the reader's
- * key or press, or on the returned cancel; never by a deadline.
+ * open as the page changed), a focus handed back to the page in the two frames after landing is put back. With `fallback` (Back or Forward), an element
+ * that has focus once no popup is drawn keeps it and nothing moves. Ends on landing (after the hold), on the reader's key or press, or on the returned
+ * cancel; never by a deadline.
  */
-function land(find: () => HTMLElement | null, named: () => void, hold: boolean): () => void {
+function land(find: () => HTMLElement | null, named: () => void, hold: boolean, fallback = false): () => void {
   const doc = document;
   let frame = 0;
   let done = false;
@@ -113,9 +150,18 @@ function land(find: () => HTMLElement | null, named: () => void, hold: boolean):
   };
   function attempt() {
     if (done) return;
+    // A popup open or closing is waited for whatever has focus: focus inside a dialog that leaves with its page is not a place the reader keeps.
     if (isOverlayOpen(doc)) {
       hold = true;
       return;
+    }
+    // Back or Forward: focus the app gave back (the row the reader came from) stays; only nothing focused is landed.
+    if (fallback) {
+      const active = doc.activeElement;
+      if (active && active.isConnected && active !== doc.body && active !== doc.documentElement) {
+        stop();
+        return;
+      }
     }
     const element = find();
     if (!element) return;

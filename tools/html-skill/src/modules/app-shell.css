@@ -27,6 +27,15 @@
   @media (width >= %bp-md%) and (width < %bp-lg%) {
     :root:has(.app-shell) .skip-link { inset-inline-start: calc((var(--basalt-size-rail-width) - var(--basalt-size-tap-min)) / 2); }
   }
+  /* An app shell's document does not bounce past its ends under a mouse or trackpad (m7, S3; React's AppShell). The block axis only: the inline axis
+     is the browser's swipe between pages. Any touch screen keeps the browser's own boundary gestures (pull to refresh). Two rules, the second winning
+     where both match. A page's own unlayered `overscroll-behavior-y` on its root wins. */
+  @media (pointer: fine) {
+    :root:has(.app-shell) { overscroll-behavior-y: none; }
+  }
+  @media (any-pointer: coarse) {
+    :root:has(.app-shell) { overscroll-behavior-y: auto; }
+  }
   .app-column { min-width: 0; }
   .app-sidebar {
     position: sticky;
