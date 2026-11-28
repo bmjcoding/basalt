@@ -262,9 +262,9 @@
     },
     "fade": {
       "classes": [],
-      "budget": 10637,
+      "budget": 10670,
       "usage": 438,
-      "budgetReason": "cimip-gaps-3 t7 (DECISIONS 399; the skill's budgets are soft): 9000 to 10637 bytes, measured, for the fade module itself: React's scroll-fade.ts bundled (the band, the strips, the protected item, the two-axis reveal) with the port and keyboard-stop helpers, and the mask stylesheet with its mode queries.",
+      "budgetReason": "cimip-gaps-3 t7 (DECISIONS 399; the skill's budgets are soft): 9000 to 10637 bytes, measured, for the fade module itself: React's scroll-fade.ts bundled (the band, the strips, the protected item, the two-axis reveal) with the port and keyboard-stop helpers, and the mask stylesheet with its mode queries. T7 fix pass 1 (Astra): 10637 to 10670 bytes, measured, for both axes in the keyboard stop.",
       "attrs": [
         "data-fades"
       ]
@@ -439,7 +439,7 @@
         "plus",
         "check"
       ],
-      "budget": 18751,
+      "budget": 18811,
       "usage": 1790,
       "builds": [
         "popover",
@@ -447,7 +447,7 @@
         "glyph",
         "choice"
       ],
-      "budgetReason": "cimip-gaps-3 t7 (DECISIONS 399; the skill's budgets are soft): 18150 to 18751 bytes, measured, for the checklist's fade and clearance, and a port for a popup with no checklist."
+      "budgetReason": "cimip-gaps-3 t7 (DECISIONS 399; the skill's budgets are soft): 18150 to 18751 bytes, measured, for the checklist's fade and clearance, and a port for a popup with no checklist. T7 fix pass 1 (Astra): 18751 to 18811 bytes, measured, for the glide host chosen where the plate lives and the port's plate rule."
     },
     "option-chips": {
       "classes": [
@@ -1433,12 +1433,12 @@
       "attrs": [
         "popovertarget"
       ],
-      "budget": 6683,
+      "budget": 6807,
       "usage": 1100,
       "requires": [
         "fade"
       ],
-      "budgetReason": "cimip-gaps-3 t7 (DECISIONS 399; the skill's budgets are soft): 5900 to 6683 bytes, measured, for the popover's port, its stop and its -2 ring."
+      "budgetReason": "cimip-gaps-3 t7 (DECISIONS 399; the skill's budgets are soft): 5900 to 6683 bytes, measured, for the popover's port, its stop and its -2 ring. T7 fix pass 1 (Astra): 6683 to 6807 bytes, measured, for the port named by its opener when it has no title."
     },
     "menu": {
       "classes": [
@@ -1457,8 +1457,8 @@
         "glide",
         "fade"
       ],
-      "budget": 10215,
-      "budgetReason": "cimip-gaps-3 t6 (DECISIONS 385; the skill's budgets are soft): MenuText (.menu-text: its CSS, its top room when it is first in a menu, and the script that ties it to its group or the menu): 9150 to 9785 bytes (+635); cap 9150 to 9785. Usage 1998 to 2233. cimip-gaps-3 t7 (DECISIONS 399; the skill's budgets are soft): 9785 to 10215 bytes, measured, for the menu's port and the glide following it there.",
+      "budget": 10335,
+      "budgetReason": "cimip-gaps-3 t6 (DECISIONS 385; the skill's budgets are soft): MenuText (.menu-text: its CSS, its top room when it is first in a menu, and the script that ties it to its group or the menu): 9150 to 9785 bytes (+635); cap 9150 to 9785. Usage 1998 to 2233. cimip-gaps-3 t7 (DECISIONS 399; the skill's budgets are soft): 9785 to 10215 bytes, measured, for the menu's port and the glide following it there. T7 fix pass 1 (Astra): 10215 to 10335 bytes, measured, for the plate rule keyed on the port and a pointer that never reveals.",
       "usage": 2233,
       "builds": [
         "glide"
@@ -1490,13 +1490,13 @@
       "icons": [
         "CaretUpDown"
       ],
-      "budget": 11762,
+      "budget": 11799,
       "usage": 2150,
       "builds": [
         "popover",
         "glide"
       ],
-      "budgetReason": "cimip-gaps-3 t7 (DECISIONS 399; the skill's budgets are soft): 11350 to 11762 bytes, measured, for the popup's port and the kept lit row."
+      "budgetReason": "cimip-gaps-3 t7 (DECISIONS 399; the skill's budgets are soft): 11350 to 11762 bytes, measured, for the popup's port and the kept lit row. T7 fix pass 1 (Astra): 11762 to 11799 bytes, measured, for the plate rule keyed on the port and a pointer that never reveals."
     },
     "dialog": {
       "classes": [
