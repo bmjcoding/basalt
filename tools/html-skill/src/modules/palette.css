@@ -13,7 +13,8 @@
   /* A modal resets its depth even while its top-layer scrim is logically inside another modal. */
   .palette.float.modal { --panel-bg: var(--basalt-surface-1); --panel-next: var(--basalt-surface-2); --panel-well: var(--basalt-surface-sunken); }
   /* Padded 2 block and 4 inline as the command list is: each row carries 2px above and below its plate, so a plate sits 4px from the rim and the next plate. */
-  .palette-list { position: relative; overflow-y: auto; min-height: 0; padding: var(--basalt-space-0-5) var(--basalt-space-1); scroll-padding-block: var(--basalt-space-0-5); }
+  /* The list fades at each edge that hides rows (cimip-gaps-3 t7); a row brought into view keeps the fade and space-0-5 clear. */
+  .palette-list { position: relative; overflow-y: auto; min-height: 0; padding: var(--basalt-space-0-5) var(--basalt-space-1); scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-0-5)); }
 
   /* No row shown: one centred sentence (and a control), outside the listbox, so a button or a link is valid there. Shared with the command list. */
   .command-none { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--basalt-space-3); padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; font: var(--basalt-font-weight-regular) var(--bh-sm); color: var(--basalt-text-secondary); }

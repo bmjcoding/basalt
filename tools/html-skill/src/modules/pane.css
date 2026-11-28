@@ -11,22 +11,26 @@
   :is(.pane-page, .pane) { min-width: 0; }
   /* The page column says its room to release notes directly inside it (the pixel review's finding 2): the page's gutter, and beside the pane the gap to it. */
   .page .pane-page > .release-notes { --basalt-edge-room: var(--basalt-gutter); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; }
-  .pane:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* The script gives the pane a host (cimip-gaps-3 t7), as React's: the host (.pane-host) takes the grid cell, the stickiness, the height and the ring at +2;
+     the pane stays the port, with its padding, and fades at each edge that hides more. Under 920 the host is a plain block. */
+  .pane-host { min-width: 0; }
+  .pane { outline: none; scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5)); }
+  .pane-host:has(> .pane:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* stylelint-disable-next-line basalt/container-length -- size-sidebar-width (256px) + size-gutter (24px) + size-breakpoint-container-lg (640px), where the pane sits beside the page; a container query cannot read a custom property */
   @container (width >= 920px) {
     .pane-grid { grid-template-columns: minmax(0, 1fr) var(--basalt-size-sidebar-width); column-gap: var(--basalt-size-gutter); align-items: start; }
     .page .pane-page > .release-notes { --basalt-edge-room: initial; --basalt-edge-room-start: var(--basalt-gutter); --basalt-edge-room-end: var(--basalt-size-gutter); }
-    .pane {
+    /* Before the script gives the pane its host, the pane is laid out as it ships. */
+    :is(.pane-host, .pane:not(.pane-host > *)) {
       position: sticky;
       top: calc(var(--basalt-sticky-offset, var(--basalt-space-0)) + var(--basalt-space-6) - var(--basalt-space-1-5));
       box-sizing: border-box;
       /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
       max-height: calc(100dvh - var(--basalt-sticky-offset, var(--basalt-space-0)) - (var(--basalt-space-6) - var(--basalt-space-1-5)) - (var(--basalt-space-16) - var(--basalt-space-1-5)) - var(--basalt-bottom-offset, var(--basalt-space-0)));
       margin: calc(-1 * var(--basalt-space-1-5));
-      padding: var(--basalt-space-1-5);
-      overflow-y: auto;
-      overscroll-behavior: contain;
     }
+    .pane-host { display: flex; flex-direction: column; }
+    :is(.pane-host > .pane, .pane:not(.pane-host > *)) { box-sizing: border-box; flex: 1 1 auto; min-height: 0; padding: var(--basalt-space-1-5); overflow-y: auto; overscroll-behavior: contain; }
   }
-  @media print { .pane { position: static; max-height: none; overflow: visible; } }
+  @media print { .pane, .pane-host { position: static; max-height: none; overflow: visible; } }
 }

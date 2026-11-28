@@ -27,6 +27,12 @@
 
   /* stylelint-disable-next-line unit-disallowed-list -- the fallback when the popup's available room is not known: the window itself (a viewport unit) */
   .popover { width: max-content; max-width: min(var(--basalt-size-popover-max), var(--available-width, 100vw)); padding: var(--basalt-space-4); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  /* The script moves a popover's content into a port (cimip-gaps-3 t7), as React's: the popover keeps its rim, radius, fill and shadow and clips; the port holds
+     the padding, scrolls when the popover is taller than its room and fades at each edge that hides more. A popup that is its own list (a menu, a combobox, a
+     filter, the notification centre) has its own. While the port is a keyboard stop its ring is the popover's, at -2. */
+  .popover:popover-open:has(> .popover-scroll) { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  .popover-scroll { box-sizing: border-box; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--basalt-space-4); scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5)); outline: none; }
+  .popover:has(> .popover-scroll:focus-visible)::after { content: ""; position: absolute; inset: 0; border-radius: inherit; outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); pointer-events: none; }
   .popover-title { margin: 0; font-size: var(--basalt-text-base-size); line-height: inherit; letter-spacing: inherit; font-weight: var(--basalt-font-weight-semibold); }
   .popover-description { margin: var(--basalt-space-1) 0 0; color: var(--basalt-text-secondary); }
 

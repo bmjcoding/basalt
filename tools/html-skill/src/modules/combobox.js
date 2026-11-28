@@ -90,6 +90,8 @@
     function announceChange() {
       root.dispatchEvent(new CustomEvent('comboboxchange', { bubbles: true, detail: { value: selected ? selected.value : '', label: selected ? selected.label : '' } }));
     }
+    // The popup's port: its rows and the plate, scrolling and fading (cimip-gaps-3 t7). Made the first time it is asked for.
+    function portOf() { return _.port(pop, 'combobox-scroll', { axis: 'block' }); }
     function visible() { return opts.filter(function (o) { return !o.node.hidden; }); }
     function light(opt) {
       if (lit) lit.node.removeAttribute('data-highlighted');
@@ -97,8 +99,9 @@
       if (lit) {
         lit.node.setAttribute('data-highlighted', '');
         input.setAttribute('aria-activedescendant', lit.node.id);
-        lit.node.scrollIntoView({ block: 'nearest' });
-      } else input.removeAttribute('aria-activedescendant');
+        // Focus stays in the field: the lit row is brought clear of the fade and kept there (cimip-gaps-3 t7).
+        portOf().__bhFade.keep(lit.node);
+      } else { input.removeAttribute('aria-activedescendant'); portOf().__bhFade.keep(null); }
     }
     // The rows that match what is typed. The text that is the chosen label (a choice just made, or the field as it was loaded) shows every row.
     function filter() {
@@ -132,7 +135,7 @@
       trigger.setAttribute('aria-expanded', 'true');
       nameList();
       place();
-      unglide = _.glide(pop, plate, { active: '[data-highlighted]', attr: 'data-highlighted' });
+      unglide = _.glide(portOf(), plate, { active: '[data-highlighted]', attr: 'data-highlighted' });
       window.addEventListener('resize', place);
       document.addEventListener('scroll', scrolled, true);
       var rows = visible();

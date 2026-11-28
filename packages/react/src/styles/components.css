@@ -964,7 +964,7 @@
      host's, at -2 (the host's ::after, above the port). A form has its body for a port, and a composed dialog (search) its own. */
   .basalt-dialog:has(> .basalt-dialog-scroll) { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
   .basalt-dialog-scroll { box-sizing: border-box; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--basalt-space-6); scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5)); outline: none; }
-  :is(.basalt-dialog, .basalt-sheet, .basalt-popover):has(> :is(.basalt-dialog-scroll, .basalt-sheet-scroll, .basalt-popover-scroll):focus-visible)::after { content: ""; position: absolute; inset: 0; border-radius: inherit; outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); pointer-events: none; }
+  :is(.basalt-dialog, .basalt-sheet, .basalt-popover):has(> :is(.basalt-dialog-scroll, .basalt-sheet-scroll, .basalt-popover-scroll, .basalt-count-names-list):focus-visible)::after { content: ""; position: absolute; inset: 0; border-radius: inherit; outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); pointer-events: none; }
   /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
   .basalt-dialog:is([data-form], .basalt-search)[data-held] { top: var(--_dialog-top); max-height: calc(100dvh - var(--_dialog-top) - var(--basalt-space-4)); transform: translateX(-50%); }
   .basalt-dialog:is([data-form], .basalt-search)[data-held][data-starting-style],
@@ -4038,7 +4038,8 @@
      children, scrolls when the popover is taller than its room and fades at each edge that hides more. CountNames and the notification centre draw their own. */
   .basalt-popover:has(> .basalt-popover-scroll) { position: relative; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
   .basalt-popover-scroll { box-sizing: border-box; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--basalt-space-4); scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5)); outline: none; }
-  .basalt-popover.basalt-count-names-panel { display: flex; flex-direction: column; min-width: var(--basalt-size-menu-min); padding: 0; overflow: hidden; }
+  .basalt-count-names-list:focus-visible { outline: none; }
+  .basalt-popover.basalt-count-names-panel { position: relative; display: flex; flex-direction: column; min-width: var(--basalt-size-menu-min); padding: 0; overflow: hidden; }
   .basalt-count-names-title { flex: none; padding: var(--basalt-space-3) var(--basalt-space-4); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); outline: none; }
   .basalt-popover.basalt-count-names-panel .basalt-count-names-band { flex: none; margin: 0; }
   /* The list fades at each edge that hides names (cimip-gaps-3 t7); a row brought into view keeps the fade and its ring's room clear. */

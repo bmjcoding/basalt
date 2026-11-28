@@ -7,6 +7,9 @@
   _.step(56, 'wirePanes', function () {
     if (typeof ResizeObserver === 'undefined') return;
     document.querySelectorAll('.pane').forEach(function (pane) {
+      // The host (cimip-gaps-3 t7): it takes the pane's place in the grid and its stickiness and ring; the pane stays the port and fades.
+      if (!pane.parentElement.classList.contains('pane-host')) { var host = document.createElement('div'); host.className = 'pane-host'; pane.parentNode.insertBefore(host, pane); host.appendChild(pane); }
+      _.scrollFade(pane, { axis: 'block', ring: 4 });
       var check = function () { var own = getComputedStyle(pane).overflowY !== 'visible'; pane.toggleAttribute('data-scroller', own); if (own && pane.scrollHeight > pane.clientHeight + 1) pane.tabIndex = 0; else pane.removeAttribute('tabindex'); };
       var watch = new ResizeObserver(check);
       // The pane and each child are watched for size; a child added or removed later (content that arrives after the page) is watched

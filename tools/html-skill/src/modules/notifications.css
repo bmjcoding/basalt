@@ -16,7 +16,8 @@
   .notifications-clear { margin-inline-end: auto; }
   .notifications-empty { margin: 0; padding: var(--basalt-space-6) var(--basalt-space-4); text-align: center; color: var(--basalt-text-secondary); }
   /* The list keeps space-1-5 (6px) from its clipping edges, so a focusable row's ring (2px offset, 2px wide) is never cut. */
-  .notifications-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; }
+  /* It fades at each edge that hides entries (cimip-gaps-3 t7); an entry brought into view keeps the fade and its ring's room clear. */
+  .notifications-scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5)); }
   .notifications-list { margin: 0; padding: var(--basalt-space-1-5); list-style: none; }
 
   /* An entry is a link or a button, not an option. It has popup-row geometry: a plate inset 2px above and below, radius 8, 12px from the rim to the

@@ -258,6 +258,9 @@
       var f = pop.__bhFilter;
       if (!f || !pop.matches || !pop.matches('.filter-popup')) return;
       if (e.newState === 'open') {
+        // The checklist is the popup's port; a popup with none gets one (cimip-gaps-3 t7).
+        var rows = pop.querySelector('.filter-rows');
+        if (rows) { if (!rows.__bhFade) rows.__bhFade = _.scrollFade(rows, { axis: 'block' }); } else _.port(pop, 'filter-popup-scroll', { axis: 'block' });
         pop.__unglide = _.glide(pop, f.plate, { active: '[data-highlighted]', attr: 'data-highlighted' });
         // The search band takes focus on opening, except on touch, where it would raise the keyboard over the list.
         if (f.band && modality === 'touch') pop.focus({ preventScroll: true });

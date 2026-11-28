@@ -3,6 +3,8 @@
    inside count, a final newline adds none. Each number is a span whose digits are drawn by CSS (attr), aria-hidden, so a copy (the element's text) and a
    selection never take them; the newlines stay in the text, so the copy is the code as written. Every block shows "Scroll sideways to see the long
    lines" under its code while the code is wider than its box: aria-hidden (the pre is a focusable region), never changed while it scrolls, absent in print.
+   Each side that hides code fades (cimip-gaps-3 t7, core's scrollFade): the pre is the port and the .code round it the host that draws the ring (a bare
+   pre.code is given one).
    Source: tools/html-skill/src/modules/code.js (do not edit the copy in the skill folder). */
 (function (B) {
   'use strict';
@@ -81,11 +83,35 @@
     if (pre.firstElementChild) watch.observe(pre.firstElementChild);
   }
 
+  /**
+   * A bare pre.code gets a host (cimip-gaps-3 t7): a div.code takes the well's fill, the radius and the ring, and the pre (now .code-body) keeps its padding
+   * and scrolls, so it can be masked while the host draws. Its numbering attributes move to the host, and the foot line goes inside it.
+   */
+  function host(pre) {
+    if (pre.__bhHost) return pre.parentElement;
+    pre.__bhHost = true;
+    var box = document.createElement('div');
+    box.className = 'code';
+    ['data-line-numbers', 'data-start-line'].forEach(function (name) {
+      if (pre.hasAttribute(name)) { box.setAttribute(name, pre.getAttribute(name)); pre.removeAttribute(name); }
+    });
+    pre.parentNode.insertBefore(box, pre);
+    box.appendChild(pre);
+    pre.classList.remove('code');
+    pre.classList.add('code-body');
+    return box;
+  }
+
   _.step(50, 'wireCode', function () {
+    document.querySelectorAll('pre.code').forEach(host);
     document.querySelectorAll('.code[data-line-numbers]').forEach(number);
     document.querySelectorAll('.code').forEach(function (block) {
-      // A .code that is a pre's container, or a bare pre.code; never a .code nested in another's head.
-      if (block.matches('pre') || block.querySelector(':scope > pre')) hint(block);
+      // A .code that is a pre's container; never a .code nested in another's head.
+      var pre = block.querySelector(':scope > pre');
+      if (!pre) return;
+      hint(block);
+      // Each side that hides code fades (cimip-gaps-3 t7); the line of words stays. A terminal fades its own (it scrolls down too while lines arrive).
+      if (!block.classList.contains('terminal') && !pre.__bhFade) pre.__bhFade = _.scrollFade(pre, { axis: 'inline' });
     });
   });
 })(window.Basalt);

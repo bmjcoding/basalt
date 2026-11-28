@@ -16,8 +16,12 @@
     margin: 0;
     height: auto;
     max-height: none;
-    padding-block: max(var(--_pad), var(--_safe-top)) max(var(--_pad), env(safe-area-inset-bottom, var(--basalt-space-0)));
-    padding-inline: max(var(--_pad), var(--bh-inset-start)) max(var(--_pad), var(--bh-inset-end));
+    --_sp-top: max(var(--_pad), var(--_safe-top));
+    --_sp-bottom: max(var(--_pad), env(safe-area-inset-bottom, var(--basalt-space-0)));
+    --_sp-start: max(var(--_pad), var(--bh-inset-start));
+    --_sp-end: max(var(--_pad), var(--bh-inset-end));
+    padding-block: var(--_sp-top) var(--_sp-bottom);
+    padding-inline: var(--_sp-start) var(--_sp-end);
     border: 0;
     border-radius: 0;
     opacity: 1;
@@ -43,6 +47,10 @@
     max-height: 100dvh;
     padding: 0;
     padding-top: var(--_safe-top);
+    --_sp-top: var(--_safe-top);
+    --_sp-bottom: var(--basalt-space-0);
+    --_sp-start: var(--basalt-space-0);
+    --_sp-end: var(--basalt-space-0);
     overscroll-behavior: contain;
     border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-rim);
     border-radius: 0 0 var(--basalt-radius-xl) var(--basalt-radius-xl);
@@ -58,7 +66,10 @@
   /* Actions stay at the foot of the sheet, on a divider, however long the content scrolls. As React's (B5): the box reaches space-1-5 above the band it
      draws, and that strip is clipped away, so a focused field right before the actions shows its whole ring at the end of the scroll; the band itself
      (the divider, then space-4) is where it was. */
-  .sheet > .dialog-actions {
+  /* A sheet with no head, body or foot scrolls in its port (cimip-gaps-3 t7), with the sheet's padding; the sheet keeps its rim and shadow and clips. */
+  dialog.sheet:has(> .sheet-scroll) { padding: 0; overflow: hidden; }
+  .sheet-scroll { box-sizing: border-box; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-block: var(--_sp-top) var(--_sp-bottom); padding-inline: var(--_sp-start) var(--_sp-end); scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5)); outline: none; }
+  :is(.sheet, .sheet-scroll) > .dialog-actions {
     position: sticky;
     bottom: calc(-1 * max(var(--_pad), env(safe-area-inset-bottom, var(--basalt-space-0))));
     margin: auto calc(-1 * var(--_pad)) calc(-1 * max(var(--_pad), env(safe-area-inset-bottom, var(--basalt-space-0))));
@@ -71,7 +82,12 @@
   /* A sheet with a head, a body and a foot (React's SheetHeader, SheetBody and SheetFooter; DECISIONS 155, D10b): edge to edge, no padding of its own, the
      head and the foot keeping the safe areas. The head is the title, a count and a 44px close on a divider; the body scrolls; the foot is fixed under it. */
   .sheet-head { --_control-44: var(--basalt-size-control-2xl); }
-  dialog.sheet:has(> .sheet-head, > .sheet-body, > .sheet-foot) { padding: 0; overflow: hidden; }
+  dialog.sheet:has(> .sheet-head, > .sheet-body, > .sheet-body-host, > .sheet-foot) { padding: 0; overflow: hidden; }
+  /* The body's host (cimip-gaps-3 t7) takes the body's place in the column; the body stays the port and fades. Its ring is the host's, at -2, drawn by its
+     ::after above the port. */
+  .sheet-body-host { position: relative; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+  .sheet-body-host > .sheet-body { scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5)); outline: none; }
+  .sheet-body-host:has(> .sheet-body:focus-visible)::after { content: ""; position: absolute; inset: 0; outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); pointer-events: none; }
   .sheet-head {
     box-sizing: border-box;
     flex: none;

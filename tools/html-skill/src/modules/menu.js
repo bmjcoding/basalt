@@ -96,7 +96,9 @@
     plate.className = 'plate';
     plate.setAttribute('aria-hidden', 'true');
     menu.insertBefore(plate, menu.firstChild);
-    menu.__glide = function () { return _.glide(menu, plate, { active: '[data-highlighted]', attr: 'data-highlighted' }); };
+    // The rows and the plate move into the menu's port, which scrolls and fades (cimip-gaps-3 t7); the glide follows the rows there.
+    var list = _.port(menu, 'menu-scroll', { axis: 'block' });
+    menu.__glide = function () { return _.glide(list, plate, { active: '[data-highlighted]', attr: 'data-highlighted' }); };
   }
 
   function wire() {

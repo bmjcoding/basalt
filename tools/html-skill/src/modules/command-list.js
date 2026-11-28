@@ -93,6 +93,10 @@
     var savedScroll = 0;
     var paneFor = NaN;
     var paneBody = pane && pane.querySelector('.command-pane-body');
+    // The results fade at each edge that hides rows; the pane's body scrolls on both axes and fades, and while it overflows and holds nothing focusable it
+    // is a keyboard stop named by the pane (cimip-gaps-3 t7).
+    results.__bhFade = _.scrollFade(results, { axis: 'block' });
+    if (paneBody) { _.scrollFade(paneBody, { axis: 'both', ring: 4 }); _.scrollStop(paneBody, function () { return pane.getAttribute('aria-labelledby'); }); }
     var spoken = shownText.textContent = spokenText.textContent = P.countLine(total, total, noun, false, count);
     var timer;
 
@@ -167,7 +171,8 @@
         row.setAttribute('aria-selected', 'true');
         row.setAttribute('data-active', '');
         input.setAttribute('aria-activedescendant', row.id);
-        if (scroll !== false) row.scrollIntoView({ block: 'nearest' });
+        // Focus stays in the field: the row the keys are on is brought clear of the fade and kept there (cimip-gaps-3 t7).
+        if (scroll !== false) results.__bhFade.keep(row);
       }
       if (detail) renderPane();
     }

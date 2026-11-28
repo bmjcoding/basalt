@@ -148,6 +148,11 @@
     document.addEventListener('toggle', function (e) {
       var pop = e.target;
       if (!pop.matches || !pop.matches(POPUP)) return;
+      // A plain popover's content moves into its port the first time it opens (cimip-gaps-3 t7); a popup that is its own list keeps its own.
+      if (e.newState === 'open' && pop.matches('.popover') && !pop.matches('.menu, .combobox-popup, .filter-popup, .notifications')) {
+        var box = _.port(pop, 'popover-scroll', { axis: 'block', ring: 4 });
+        _.scrollStop(box, function () { var t = pop.querySelector('.popover-title'); if (t) { t.id = t.id || (pop.id || 'popover') + '-title'; return t.id; } return null; });
+      }
       if (e.newState === 'open') opened(pop, e); else closed(pop);
     }, true);
   });

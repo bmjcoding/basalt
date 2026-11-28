@@ -98,7 +98,10 @@ const LINK_ROWS_TOKEN = /^--basalt-size-row\b/;
 const DIAGRAM_TOKEN = /^--basalt-(?:diagram-|size-diagram-)/;
 /** A diagram's durations and speeds (DECISIONS 292): the `diagram-motion` module's, out of the core and out of the still diagram's. */
 const DIAGRAM_MOTION_TOKEN = /^--basalt-(?:duration-diagram-|speed-)/;
-const inCore = Object.assign((name) => !MODULE_TOKEN.test(name) && !TYPE_LAYOUT_TOKEN.test(name) && !LINK_ROWS_TOKEN.test(name) && !DIAGRAM_TOKEN.test(name) && !DIAGRAM_MOTION_TOKEN.test(name), { keepsOther: true });
+/** The cut-content fade's two lengths (cimip-gaps-3 t7): only the fade module and the modules that require it read them. */
+const FADE_TOKEN = /^--basalt-size-scroll-fade\b/;
+const inFade = Object.assign((name) => FADE_TOKEN.test(name), { keepsOther: false });
+const inCore = Object.assign((name) => !MODULE_TOKEN.test(name) && !TYPE_LAYOUT_TOKEN.test(name) && !LINK_ROWS_TOKEN.test(name) && !DIAGRAM_TOKEN.test(name) && !DIAGRAM_MOTION_TOKEN.test(name) && !FADE_TOKEN.test(name), { keepsOther: true });
 const inDiagramMotion = Object.assign((name) => DIAGRAM_MOTION_TOKEN.test(name), { keepsOther: false });
 const inDiagram = Object.assign((name) => DIAGRAM_TOKEN.test(name), { keepsOther: false });
 const inLinkRows = Object.assign((name) => LINK_ROWS_TOKEN.test(name), { keepsOther: false });
@@ -338,7 +341,7 @@ export function build() {
     // The art module is the token groups taken out of the core (see MODULE_TOKEN); it has no source file either.
     if (name === "art") files["parts/art.css"] = minifyCss(dedupeSystemDark(filterTokens(tokensCss(), inArt)));
     // The type-layout module's tokens come before its own rules, as the tokens come before the core's.
-    const tokens = name === "type-layout" ? `${filterTokens(tokensCss(), inTypeLayout)}\n` : name === "link-rows" ? `${filterTokens(tokensCss(), inLinkRows)}\n` : "";
+    const tokens = name === "type-layout" ? `${filterTokens(tokensCss(), inTypeLayout)}\n` : name === "link-rows" ? `${filterTokens(tokensCss(), inLinkRows)}\n` : name === "fade" ? `${filterTokens(tokensCss(), inFade)}\n` : "";
     // The diagram module's stylesheet is React's own section, renamed (diagramCss), so the two cannot drift; its script bundles React's engine.
     if (name === "diagram") files["parts/diagram.css"] = minifyCss(`${dedupeSystemDark(filterTokens(tokensCss(), inDiagram))}\n${diagramCss()}`);
     // The motion section, with the motion tokens (the diagram durations and speeds) that only an animated diagram reads.
@@ -348,7 +351,8 @@ export function build() {
     for (const ext of ["css", "js"]) {
       const file = path.join(srcDir, "modules", `${name}.${ext}`);
       if (!fs.existsSync(file)) continue;
-      if (ext === "js" && DIAGRAM_SCRIPTS.has(name)) files[`parts/${name}.js`] = minifyJs(bundleModule(file, name === "diagram-gantt" || name === "diagram-timeline"));
+      // The fade module bundles React's scroll-fade.ts (cimip-gaps-3 t7), as the diagram modules bundle React's engine.
+      if (ext === "js" && (DIAGRAM_SCRIPTS.has(name) || name === "fade")) files[`parts/${name}.js`] = minifyJs(bundleModule(file, name === "diagram-gantt" || name === "diagram-timeline"));
       else files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(tokens + fs.readFileSync(file, "utf8")) : minifyJs(fs.readFileSync(file, "utf8"));
     }
   }

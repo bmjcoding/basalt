@@ -77,7 +77,10 @@ describe("the skill files", () => {
     assert.match(css, /prefers-color-scheme:\s*dark/);
     for (const name of Object.keys(files).filter((f) => /^parts\/.*\.css$/.test(f) && !f.endsWith("geist.css"))) {
       const primitives = name === "parts/core.css" ? css.slice(css.indexOf("@layer basalt{")) : files[name];
-      assert.doesNotMatch(primitives, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|gradient\(/i, `${name}: no raw colour or gradient in the primitives`);
+      // The cut-content fade's mask layers (DECISIONS 395 to 399, cimip-gaps-3 t7) are gradients of alpha that paint no colour: the fade's own custom
+      // properties, and nothing else, may hold one.
+      const painted = primitives.replace(/--_(?:mask-[xy]|strip):linear-gradient\([^;}]*\)(?=[;}])/g, "");
+      assert.doesNotMatch(painted, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|gradient\(/i, `${name}: no raw colour or gradient in the primitives`);
     }
   });
 

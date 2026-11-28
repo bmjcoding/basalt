@@ -9,6 +9,10 @@
 
   /* stylelint-disable-next-line unit-disallowed-list -- the fallback when the popup's available room is not known: the window itself (a viewport unit) */
   .menu { min-width: var(--basalt-size-menu-min); max-height: var(--available-height, 100vh); overflow-y: auto; padding: var(--basalt-space-0-5) var(--basalt-space-1); }
+  /* The script wraps the rows in a port (cimip-gaps-3 t7), as React's: the menu keeps its rim, fill and shadow and clips; the port holds the padding, the rows
+     and the glide plate, scrolls and fades at each edge that hides more. A row brought into view keeps the fade and space-0-5 clear. */
+  .menu:popover-open:has(> .menu-scroll) { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  .menu-scroll { position: relative; box-sizing: border-box; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--basalt-space-0-5) var(--basalt-space-1); scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-0-5)); }
   .menu-item {
     --_h: var(--basalt-size-menu-row);
     --_inset: var(--basalt-space-0-5);
@@ -89,7 +93,7 @@
   .menu-group-label { padding: var(--basalt-space-2) var(--basalt-space-3) var(--basalt-space-0-5); font: var(--basalt-font-weight-medium) var(--bh-xs); color: var(--basalt-text-tertiary); }
   /* A line of words that is not a row (React's MenuText): 13/18 at 400 in tertiary, the label's edge, space-1 below, wrapping inside the menu's 320. Never lit, no plate,
      no stop; the script ties it to its group (or the menu) with aria-describedby. */
-  .menu > :is(.plate:first-child + .menu-text, .menu-text:first-child) { padding-top: var(--basalt-space-2); }
+  :is(.menu, .menu-scroll) > :is(.plate:first-child + .menu-text, .menu-text:first-child) { padding-top: var(--basalt-space-2); }
   .menu-text { margin: 0; padding: 0 var(--basalt-space-3) var(--basalt-space-1); font: var(--basalt-font-weight-regular) var(--bh-sm); color: var(--basalt-text-tertiary); overflow-wrap: break-word; text-wrap: pretty; }
 
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {

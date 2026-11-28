@@ -70,6 +70,8 @@
     empty.textContent = o.empty || 'Nothing yet.';
     var head = pop.querySelector('.notifications-head');
     var scroll = pop.querySelector('.notifications-scroll');
+    // The list fades at each edge that hides entries (cimip-gaps-3 t7); an entry's ring sits at 0 outside its plate.
+    _.scrollFade(scroll, { axis: 'block', ring: 2 });
     var list = pop.querySelector('.notifications-list');
     var foot = pop.querySelector('.notifications-foot');
     foot.innerHTML = (o.onClearAll ? '<button type="button" class="btn notifications-clear" data-variant="ghost" data-size="sm" data-edge="start">Clear all</button>' : '') + (viewAllHref

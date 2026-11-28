@@ -276,7 +276,8 @@
       rows[i].setAttribute('aria-selected', 'true');
       rows[i].setAttribute('data-active', '');
       input.setAttribute('aria-activedescendant', rows[i].id);
-      if (scroll !== false) rows[i].scrollIntoView({ block: 'nearest' });
+      // Focus stays in the field: the row the keys are on is brought clear of the fade and kept there (cimip-gaps-3 t7).
+      if (scroll !== false) { if (!list.__bhFade) list.__bhFade = _.scrollFade(list, { axis: 'block' }); list.__bhFade.keep(rows[i]); }
     }
 
     function choose(i) {
@@ -383,6 +384,7 @@
       }
       document.documentElement.style.overflow = 'hidden';
       // The glide listens before the palette's own key handler does, so a key has set its modality before the highlight moves (and moves the plate at once).
+      if (!list.__bhFade) list.__bhFade = _.scrollFade(list, { axis: 'block' });
       unglide = _.glide(list, plate, { active: '.row[data-active]', attr: 'data-active' });
       document.addEventListener('keydown', onKey, true);
       activePalette = api;

@@ -96,6 +96,8 @@
     var frame = 0;
     var atEnd = true;
     pre.addEventListener('scroll', function () { atEnd = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 2; });
+    // Each side that hides lines fades (cimip-gaps-3 t7): inline on a static transcript, and down too while lines arrive; following the end, the bottom band is 0.
+    _.scrollFade(pre, { axis: 'both', skip: { get end() { return root.hasAttribute('data-live') && atEnd; } } });
 
     function show(swapEl, key, forms) {
       Array.prototype.forEach.call(swapEl.children, function (child, i) { child.toggleAttribute('data-on', forms[i] === key); });
