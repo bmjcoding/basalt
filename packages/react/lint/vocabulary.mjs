@@ -192,6 +192,8 @@ export function suggest(tokens, property, raw) {
   const v = (name) => `var(--basalt-${name})`;
   if (tokens.missing) return "use a --basalt-* token (the token package was not found, so none is named)";
   if (raw.kind === "colour") {
+    // A mask reads only alpha, so its colour is no role: Basalt's own masks write the opaque stop as the black primitive.
+    if (/^(-webkit-)?mask/.test(property) && tokens.names.has("neutral-0")) return `a mask reads only alpha: write its opaque stop as ${v("neutral-0")}, as Basalt's own masks do`;
     const roles = colourRoles(property);
     const hex = raw.text.startsWith("#") ? normaliseHex(raw.text) : null;
     if (hex) {

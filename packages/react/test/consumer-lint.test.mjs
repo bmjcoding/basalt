@@ -102,6 +102,9 @@ test("the shareable config is Basalt's own stylesheet policy plus basalt/no-rest
   const lint = async (code) => (await stylelint.lint({ code, config, codeFilename: path.join(fixtures, "probe.css") })).results[0].warnings.map((w) => w.rule);
   assert.deepEqual(await lint(".jump .basalt-button { background: var(--basalt-surface-chrome); }"), ["basalt/no-restyle"]);
   assert.deepEqual(await lint(".jump .basalt-button { margin-inline-start: auto; }"), []);
+  const text = (await stylelint.lint({ code: ":is(.a, .b) .basalt-button { color: var(--basalt-text-primary); }", config, codeFilename: path.join(fixtures, "probe.css") })).results[0].warnings[0].text;
+  assert.match(text, /":is\(\.a, \.b\) \.basalt-button" sets color/, "a selector list inside :is() is one selector");
+  assert.deepEqual(await lint(".mask { mask-image: linear-gradient(#000, transparent); }"), ["color-no-hex"]);
   assert.deepEqual(await lint(".a { padding: 16px; }"), ["unit-disallowed-list"]);
   assert.deepEqual(await lint("/* stylelint-disable-next-line basalt/no-restyle -- the recorded exception */\n.jump .basalt-button { background: var(--basalt-surface-chrome); }"), []);
   assert.ok((await lint("/* stylelint-disable-next-line basalt/no-restyle */\n.jump .basalt-button { background: var(--basalt-surface-chrome); }")).length > 0, "a disable with no reason passes");

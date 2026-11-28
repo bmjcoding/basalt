@@ -85,6 +85,9 @@ export function subjectClasses(selector) {
   });
 }
 
+/** The selectors of a selector list (`a, :is(b, c)` is two). */
+export const selectorList = (selector) => splitTop(selector, ",").map((s) => s.trim());
+
 /** Splits at a character outside brackets, parentheses and strings. */
 function splitTop(text, char) {
   const out = [];

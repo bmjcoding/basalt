@@ -6,7 +6,7 @@
 //   basalt/no-restyle        an app's stylesheet setting appearance on Basalt's classes (`.basalt-*` as the subject of a selector), or setting a
 //                            `--basalt-*` token. Layout (margin, placement, width, `display: none`) is allowed; so are the documented hooks. Only in an
 //                            app's stylesheet: Basalt's own CSS draws these classes and does not use it.
-import { classify, HOOKS, subjectClasses } from "./appearance.mjs";
+import { classify, HOOKS, selectorList, subjectClasses } from "./appearance.mjs";
 import { restyleHint, sizeProp } from "./hints.mjs";
 import { componentOfClass } from "./vocabulary.mjs";
 
@@ -61,7 +61,7 @@ export function basaltRules(stylelint, context = {}) {
         const component = vocabulary ? componentOfClass(vocabulary, basalt) : null;
         const sized = Boolean(component && sizeProp(vocabulary.components.get(component)));
         if (classify(property, decl.value, { sized, hooks }) !== "appearance") continue;
-        const selector = rule.selector.split(",")[i]?.trim() ?? rule.selector;
+        const selector = selectorList(rule.selector)[i] ?? rule.selector;
         const hint = restyleHint(vocabulary, component, property, { className: basalt, exception });
         utils.report({ ruleName: restyleName, result, node: decl, word: property, message: restyleMessages.rejected(selector, property, hint) });
         break;
