@@ -21,7 +21,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { brandSvg, compose } from "../.agent/skills/basalt-html/compose.mjs";
+import { brandSvg, compose, runsScript } from "../.agent/skills/basalt-html/compose.mjs";
 import { finishHeaders } from "./header-markup.mjs";
 
 export const sitesDir = path.dirname(fileURLToPath(import.meta.url));
@@ -79,6 +79,29 @@ export function resolveIncludes(body, context) {
 }
 
 /**
+ * The script includes a page may hold and still tell compose that its scripts draw no Geist Mono (`scriptsDrawMono: false`, micro-details m8, X8), so a page
+ * that draws no mono leaves the face out. A script goes on this list only if it writes no mono text, class or style: no `<code>`, `<kbd>`, `<pre>`, `<samp>`,
+ * `mono` or font family (a test reads each one for those names). The list ends when the site header moves into the skill as a module.
+ */
+export const SCRIPTS_WITHOUT_MONO = ["shared/site-header.js"];
+
+/**
+ * Whether a page's own script could draw mono, which compose can't read before it runs: the page's source (as written, before its includes and the
+ * header's finishing) runs script, or it
+ * includes a .js or .mjs file not on SCRIPTS_WITHOUT_MONO, or an included .html or .svg file runs script. A source the tokenizer refuses counts as running it.
+ */
+export function pageScriptsDrawMono(source, includes) {
+  const runs = (text) => { try { return runsScript(text); } catch { return true; } };
+  if (runs(source)) return true;
+  return includes.some(({ kind, name, file }) => {
+    if (kind !== "include") return false;
+    const ext = path.extname(file).toLowerCase();
+    if (ext === ".js" || ext === ".mjs") return !SCRIPTS_WITHOUT_MONO.includes(name);
+    return (ext === ".html" || ext === ".svg") && runs(fs.readFileSync(file, "utf8"));
+  });
+}
+
+/**
  * Builds one page. `bodyFile` is a SITE/PAGE.body.html path; the page is written to `outFile` (and returned). Options: `siteDir` (the
  * site's folder: default the body's folder), `sharedDir`, `brandDir`, and `fonts` (default true: Geist inlined; a test that sets a page beside
  * React's, which loads no font, turns it off).
@@ -86,11 +109,15 @@ export function resolveIncludes(body, context) {
 export function buildPage(bodyFile, { outFile, siteDir = path.dirname(bodyFile), sharedDir = path.join(sitesDir, "shared"), brandDir = path.join(repoRoot, "brand"), fonts = true } = {}) {
   const source = fs.readFileSync(bodyFile, "utf8");
   // The header is finished on the page's own text, before the includes go in, so nothing an include holds can be taken for it.
-  const { body, includes } = resolveIncludes(finishHeaders(source, bodyFile), { bodyFile, siteDir, sharedDir, brandDir });
+  const finished = finishHeaders(source, bodyFile);
+  const { body, includes } = resolveIncludes(finished, { bodyFile, siteDir, sharedDir, brandDir });
   let composed;
   try {
+    // Geist Mono stays out of a page that draws none: compose is told the page's scripts draw no mono only when SCRIPTS_WITHOUT_MONO vouches for every one.
+    // The page's own source is read as written: the first-paint script finishHeaders adds is the site header's, which sets two attributes and draws no mono.
+    const scripts = pageScriptsDrawMono(source, includes) ? {} : { scriptsDrawMono: false };
     // A diagram's own mark is read from beside the body, wherever the build was started.
-    composed = compose(body, { fonts, baseDir: path.dirname(path.resolve(bodyFile)) });
+    composed = compose(body, { fonts, baseDir: path.dirname(path.resolve(bodyFile)), ...scripts });
   } catch (error) {
     throw new Error(`${bodyFile}: ${error.message}`);
   }
@@ -98,7 +125,7 @@ export function buildPage(bodyFile, { outFile, siteDir = path.dirname(bodyFile),
     fs.mkdirSync(path.dirname(outFile), { recursive: true });
     fs.writeFileSync(outFile, composed.html);
   }
-  return { bodyFile, outFile, html: composed.html, includes, modules: composed.modules, icons: composed.icons, external: composed.external, bytes: composed.bytes };
+  return { bodyFile, outFile, html: composed.html, includes, modules: composed.modules, icons: composed.icons, external: composed.external, mono: composed.mono, bytes: composed.bytes };
 }
 
 /** Every SITE/PAGE.body.html under `root` (a site is a folder of root that is not shared/, test/ or dist/), as { site, page, bodyFile }. */
@@ -130,7 +157,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (args.length > 1 || args[0]?.startsWith("-")) { console.error("usage: node sites/build.mjs [SITE]"); process.exit(2); }
   try {
     const built = buildSites({ site: args[0] });
-    for (const page of built) console.log(`${path.relative(repoRoot, page.outFile)}: ${(page.bytes / 1024).toFixed(1)} KB, core + ${page.modules.join(", ") || "no modules"}`);
+    for (const page of built) console.log(`${path.relative(repoRoot, page.outFile)}: ${(page.bytes / 1024).toFixed(1)} KB, core + ${page.modules.join(", ") || "no modules"}; Geist Mono: ${page.mono ? "included" : "left out (nothing on the page draws it)"}`);
     if (!built.length) console.log("no pages: a page is sites/SITE/PAGE.body.html");
   } catch (error) {
     console.error(`sites/build.mjs: ${error.message}`);

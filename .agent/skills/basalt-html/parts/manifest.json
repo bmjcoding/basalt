@@ -1864,5 +1864,33 @@
       "budget": 7450,
       "usage": 1250
     }
+  },
+  "mono": {
+    "modules": [
+      "kbd",
+      "code",
+      "rich-text",
+      "terminal",
+      "runs",
+      "diagram",
+      "diagram-export",
+      "diagram-timeline",
+      "diagram-schedule",
+      "diagram-state",
+      "diagram-deployment",
+      "release"
+    ],
+    "tags": [
+      "code",
+      "kbd",
+      "pre",
+      "samp"
+    ],
+    "classes": [
+      "mono"
+    ],
+    "attributes": [
+      "data-mono"
+    ]
   }
 }

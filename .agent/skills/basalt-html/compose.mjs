@@ -12,7 +12,7 @@
 //   <!-- basalt:use palette tabs -->          names of modules to add by hand (a class built only at run time)
 //   <script type="application/json" data-palette>{ "groups": [...] }</script>   palette items with no code
 //   <script>… Basalt.init({ palette: … }) …</script>   your own init call, for items that run code
-// compose.mjs wraps it in the doctype, meta and theme bootstrap, adds Geist (inlined, unless --no-fonts), the core CSS and
+// compose.mjs wraps it in the doctype, meta and theme bootstrap, adds Geist (inlined, unless --no-fonts; Geist Mono only when something on the page can draw it), the core CSS and
 // script and only the modules the body uses, the icons it names, and `Basalt.init()` unless the body already calls it.
 // A comment, script, style, svg or template that is never closed is refused. A style, title, meta or link inside an svg or a template is left where it is.
 // The output is the same for the same input. It reads only the files beside it (parts/ and SKILL.md), and a diagram's own service-mark files where a
@@ -148,7 +148,7 @@ const JS_TYPE = /^(?:|module|application\/(?:x-)?(?:ecma|java)script|text\/(?:x-
  * of `script`, `style`, `title`, `textarea` and the like, at every depth. Every comment, script, style, title, textarea, noscript, svg, math and template at the top of
  * the body, and each top-level `meta` and `link`, is replaced by a placeholder, so no later pass looks inside it. restore() puts them back (with `bare`, without the
  * comments, which is what detection reads); saved[i] is { kind, text, inner, attrs, comments }. `whole` says the body holds a doctype or an html, head or body tag.
- * `h1` is the text of the first top-level h1 (null when there is none or it never closes). Throws for anything that is never closed or that the end of the text cuts
+ * `tags` is every start tag at any depth, as { name, attrs }. `h1` is the text of the first top-level h1 (null when there is none or it never closes). Throws for anything that is never closed or that the end of the text cuts
  * off, since it would swallow the rest of the page, the composer's own script and closing tags included, and for what it will not model: foreign-content breakout, an
  * `annotation-xml` encoding containing an ampersand, `mglyph` and `malignmark` in a MathML text point, `plaintext`. `stats.frameVisits` counts the stack frames looked at.
  */
@@ -156,6 +156,7 @@ export function readBody(body, stats = {}) {
   const mark = unusedMark(body);
   const saved = [];
   const scripts = []; // executable HTML locations, including integration points, excluding inert templates
+  const tags = []; // every start tag at any depth (in svg, math and templates too), as { name, attrs }: what the mono face's detection reads
   const n = body.length;
   const stack = []; // open svg, math and template elements, and what is inside them: { name, kind: "template" | "foreign" | "html", ns, text }
   let templates = 0;
@@ -184,6 +185,7 @@ export function readBody(body, stats = {}) {
     if (!tag.close) for (const [name, value] of tag.attrs) {
       if (/^on/.test(name) && /\bBasalt\s*\??\.\s*init\s*\(/.test(stripJsComments(value, true))) throw new Error(`\`<${tag.name}>\` calls Basalt.init() in \`${name}\`: write the init call in an inline HTML script, not an event handler`);
     }
+    if (!tag.close) tags.push({ name: tag.name, attrs: tag.attrs });
     return tag;
   };
   let i = 0;
@@ -311,7 +313,7 @@ export function readBody(body, stats = {}) {
   const placeholder = new RegExp(`${mark}(\\d+)${mark}(\\s*)`, "g");
   const blank = (item) => { let text = item.text; for (const [a, b] of [...item.comments].reverse()) text = text.slice(0, a) + " " + text.slice(b); return text; };
   return {
-    text: out, saved, scripts, placeholder, mark, whole, h1: h1 && !h1.open ? h1.text.trim() : null,
+    text: out, saved, scripts, tags, placeholder, mark, whole, h1: h1 && !h1.open ? h1.text.trim() : null,
     // The text put back; with `bare`, as detection reads it: no comment (an HTML one, or one in a nested element, or in a script).
     restore: (s, bare = false) => s.replace(placeholder, (_, k, ws) => {
       const item = saved[Number(k)];
@@ -540,11 +542,53 @@ export function brandSvg(text) {
   return `${root[1]}<svg${attributes} aria-hidden="true" focusable="false" data-brand${selfClosed ? "/" : ""}>${text.slice(root[0].length).replace(BRAND_TITLE, "")}`;
 }
 
+/** A script element a browser runs: no type, an empty one, a JavaScript type or `module` (the test callsInit uses). */
+const executable = (item) => JS_TYPE.test((item.attrs.find((a) => a[0] === "type")?.[1] ?? "").trim().toLowerCase());
+/** Text in a style that names the mono family: the token, a mono type role, or the face itself. */
+const MONO_STYLE = /font-family-mono|-mono\)|--bh-xs-mono|--bh-sm-mono|Geist Mono/;
+
 /**
- * The page for a body fragment. Options: fonts (default true), lang ("en"), all (every module), parts (the folder of parts).
- * Returns { html, modules, icons, glyphs, built, external, bytes } (external: what the body references that leaves the file; built: { module: the module whose script builds it } for a module the body never triggers). Throws an Error with a plain message for input it can't use.
+ * Whether a body runs author script (micro-details m8, X8): an executable `<script>` outside a template, an event handler attribute (`on…`, in any case) on any
+ * element, or a `javascript:` URL. Markup, classes or styles a script sets at run time can't be read before it runs. `body` is a body's text, or what readBody
+ * made of one.
  */
-export function compose(body, { fonts = true, lang = "en", all = false, parts = path.join(here, "parts"), baseDir = process.cwd() } = {}) {
+export function runsScript(body) {
+  const held = typeof body === "string" ? readBody(body) : body;
+  return held.scripts.some(executable) || held.tags.some((tag) => tag.attrs.some(([name, value]) => /^on[a-z]/.test(name) || /^[\s\0-\x1f]*javascript:/i.test(value)));
+}
+
+/**
+ * Whether a page can draw Geist Mono, so its face goes in (micro-details m8, X8). It leans towards keeping the face: any of these is enough.
+ *   1. `all`;  2. a module in `manifest.mono.modules` is on the page;  3. any element, at any depth, has a tag, class or attribute in `manifest.mono` (read
+ *   from the tokenizer, quoted or not, comments ignored);  4. an author `<style>`, a `style` attribute, or an svg, math or template holds a mono name;
+ *   5. the page runs author script (runsScript), unless `scriptsDrawMono` is false: a build that knows its scripts draw no mono says so.
+ * A manifest with no `mono` (a skill folder built before it) keeps the face.
+ */
+function drawsMono(held, styles, modules, manifest, { all, scriptsDrawMono }) {
+  const mono = manifest.mono;
+  if (all || !mono) return true;
+  if (modules.some((name) => mono.modules.includes(name))) return true;
+  for (const tag of held.tags) {
+    if (mono.tags.includes(tag.name)) return true;
+    for (const [name, value] of tag.attrs) {
+      if (mono.attributes.includes(name)) return true;
+      if (name === "class" && value.split(/[\t\n\f\r ]+/).some((c) => mono.classes.includes(c))) return true;
+      if (name === "style" && MONO_STYLE.test(stripCssComments(value))) return true;
+    }
+  }
+  if (styles.some((style) => MONO_STYLE.test(stripCssComments(style.css)))) return true;
+  // A style or a font-family inside an svg, math or template is held whole by the tokenizer: its text, without comments, is read as it is.
+  if (held.saved.some((item, k) => (item.kind === "svg" || item.kind === "math" || item.kind === "template") && MONO_STYLE.test(stripCssComments(held.restore(`${held.mark}${k}${held.mark}`, true))))) return true;
+  return scriptsDrawMono !== false && runsScript(held);
+}
+
+/**
+ * The page for a body fragment. Options: fonts (default true), lang ("en"), all (every module), parts (the folder of parts), scriptsDrawMono (default true:
+ * a page with author script keeps Geist Mono, since what a script draws can't be read; false says the page's scripts and handlers draw no mono, and turns
+ * off that one rule, never the static ones. For a build that knows its scripts, not for an agent writing a page).
+ * Returns { html, modules, icons, glyphs, built, external, mono, bytes } (mono: whether the Geist Mono face is inlined) (external: what the body references that leaves the file; built: { module: the module whose script builds it } for a module the body never triggers). Throws an Error with a plain message for input it can't use.
+ */
+export function compose(body, { fonts = true, lang = "en", all = false, parts = path.join(here, "parts"), baseDir = process.cwd(), scriptsDrawMono = true } = {}) {
   if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(lang)) throw new Error(`"${lang}" is not a language code`);
   const manifest = JSON.parse(read(parts, "manifest.json"));
   const iconFile = JSON.parse(read(parts, "icons.json"));
@@ -606,7 +650,9 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
   ].join("");
   // The body may make the init call itself (to pass palette items that run code); otherwise it is made at the end.
   // Only the page's own executable scripts (the tokenizer says which they are) can call it: text, an attribute or a script of another type that mentions the call does not.
-  const callsInit = held.scripts.some((item) => JS_TYPE.test((item.attrs.find((a) => a[0] === "type")?.[1] ?? "").trim().toLowerCase()) && !item.attrs.some((a) => a[0] === "src") && /\bBasalt\s*\??\.\s*init\s*\(/.test(stripJsComments(item.inner, true)));
+  const callsInit = held.scripts.some((item) => executable(item) && !item.attrs.some((a) => a[0] === "src") && /\bBasalt\s*\??\.\s*init\s*\(/.test(stripJsComments(item.inner, true)));
+  // Geist Mono only on a page that can draw it (micro-details m8, X8); the sans face, with the licence, on every page with fonts.
+  const mono = fonts && drawsMono(held, styles, chosen.modules, manifest, { all, scriptsDrawMono });
 
   const html = [
     "<!doctype html>",
@@ -621,7 +667,7 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     `<script>${THEME_INIT}</script>`,
     // Any page that draws a loop keeps a hold the reader stored on another page of the origin, not only a page with the toggle.
     ...(chosen.modules.some((n) => LOOPING.has(n)) ? [`<script>${LOOPS_INIT}</script>`] : []),
-    ...(fonts ? ["<style data-basalt-fonts>", read(parts, "geist.css").trim(), "</style>"] : []),
+    ...(fonts ? ["<style data-basalt-fonts>", read(parts, "geist-sans.css").trim(), ...(mono ? [read(parts, "geist-mono.css").trim()] : []), "</style>"] : []),
     `<style>${css}</style>`,
     ...styles.map((style) => `<style${style.media === undefined ? "" : ` media="${style.media.replaceAll('"', "&quot;")}"`}>${style.css}</style>`),
     `<script>${inlineScript(script)}</script>`,
@@ -633,7 +679,7 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     "</html>",
     "",
   ].join("\n");
-  return { html, modules: chosen.modules, icons: chosen.icons, glyphs: chosen.glyphs, built, external: externalReferences(held, markup), diagrams: diagramNotes, bytes: Buffer.byteLength(html) };
+  return { html, modules: chosen.modules, icons: chosen.icons, glyphs: chosen.glyphs, built, external: externalReferences(held, markup), diagrams: diagramNotes, mono, bytes: Buffer.byteLength(html) };
 }
 
 /**
@@ -994,7 +1040,7 @@ if (isMain) {
       if (path.resolve(out) === path.resolve(input)) throw new Error("--out is the input file; name another file");
       const result = compose(fs.readFileSync(input, "utf8"), { ...options, baseDir: path.dirname(path.resolve(input)) });
       fs.writeFileSync(out, result.html);
-      console.log(`${out}: ${(result.bytes / 1024).toFixed(1)} KB, core + ${result.modules.join(", ") || "no modules"}; icons: ${result.icons.join(", ") || "none"}`);
+      console.log(`${out}: ${(result.bytes / 1024).toFixed(1)} KB, core + ${result.modules.join(", ") || "no modules"}; icons: ${result.icons.join(", ") || "none"}${options.fonts ? `; Geist Mono: ${result.mono ? "included" : "left out (nothing on the page draws it)"}` : ""}`);
       // One line of warning for each module added: the mistake an agent makes with it. The full text is `--usage NAME`.
       if (result.modules.length && fs.existsSync(skill)) {
         const lines = indexLines(fs.readFileSync(skill, "utf8"));
