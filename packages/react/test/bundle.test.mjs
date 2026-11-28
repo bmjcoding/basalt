@@ -125,7 +125,7 @@ async function lazyGraph(names, extra = "") {
 // micro-details m7 (DECISIONS 405, 409), measured with this file's own graph() on origin/main d67696d1 and on the m7 head; the limit rises by the increase alone:
 // Drawer's finalFocus (the record of where focus came from, read from focusin and focusout, and the close that returns it), 19,259 to 20,148 (+889; 19,275 to 20,164).
 // m7 fix pass 1 (Astra): the section's own onFocus and onBlur in place of a listener effect, and finalFocus read from the closing render: 19,936 (+677 on
-// main's 19,259), so the limit is 19,275 + 677 = 19,952.
+// main's 19,259), so the limit is 19,275 + 677 = 19,952. Re-measured at the merge with origin/main f754e174: main 19,271, the head 19,948 (+677), so it stands.
 for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_736], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_703], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 10_215], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_952]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
@@ -459,7 +459,13 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // cimip-gaps-3 E6 (G161, IconButton's `icon` as an element, told apart by React.isValidElement (a runtime React import in button.js, +25 in every graph that holds a
 // Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
 // NotificationCentre 164,955 on main, 165,086 with E6 (+131), so 164,995 to 165,126.
-for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 165_126]]) {
+// Micro-details m5 (DECISIONS 405, 409, L3 and L4; this file's graph() on origin/main 79453efb and on the m5 head): the toast's action is a Basalt Button, so
+// it waits on a promise as every Button does (the decision's own choice, over a second copy of the wait's markup), and toast.promise keeps the wait's two
+// timings: ToastProvider 94,466 on main, 101,643 with m5 (+7,177, nearly all of it Button's own graph, which an app with any Button already loads), so
+// 94,500 to 101,650; useToast 3,436 on main, 4,152 with m5 (+716: promise's timers, the shared result builder, the queued seat), so 4,000 to 4,200.
+// m5 fix 1, measured again on the merged tree (origin/main d67696d1, which measures as 79453efb did): ToastProvider 101,741 (the press's eviction guard,
+// the disposed flag, the shared focus handoff; +98), so 101,650 to 101,750; useToast 4,220 (+68), so 4,200 to 4,250.
+for (const [name, limit] of [["ToastProvider", 101_750], ["useToast", 4_250], ["NotificationCentre", 165_126]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);

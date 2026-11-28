@@ -47,8 +47,8 @@ const THEME_COLOR = [
 ];
 
 // A page with the loops module sets a stored hold before first paint (React's loopsBootstrap), beside the theme's line.
-// The modules that draw a loop (their own held rules travel with them), and the toggle's.
-const LOOPING = new Set(["loops", "spinner", "braille", "sparkline", "ambient"]);
+// The modules that draw a loop (their own held rules travel with them), and the toggle's. `wait` draws the core's busy ring (its held rule is in the core).
+const LOOPING = new Set(["loops", "spinner", "braille", "sparkline", "ambient", "wait"]);
 const LOOPS_INIT = `(function(){try{if(localStorage.getItem("basalt-loops")==="held")document.documentElement.setAttribute("data-loops","held")}catch(e){}})();`;
 
 const read = (dir, name) => fs.readFileSync(path.join(dir, name), "utf8");

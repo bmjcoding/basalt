@@ -4204,9 +4204,10 @@
     animation: basalt-drain linear forwards;
   }
   /* The line pauses exactly when every toast's own clock does: the stack hovered or focused (it is then expanded), the
-     window out of focus, or the tab hidden (data-away). One toast's hover pauses them all. */
+     window out of focus, or the tab hidden (data-away). One toast's hover pauses them all. Its own action waiting for its answer pauses that toast alone. */
   .basalt-toast[data-expanded] .basalt-toast-drain,
-  .basalt-toast-viewport[data-away] .basalt-toast-drain { animation-play-state: paused; }
+  .basalt-toast-viewport[data-away] .basalt-toast-drain,
+  .basalt-toast[data-action-busy] .basalt-toast-drain { animation-play-state: paused; }
   
   /* ---- Textarea ---- */
 
