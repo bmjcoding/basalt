@@ -112,7 +112,12 @@ async function lazyGraph(names, extra = "") {
 // The stream's merge (cimip-gaps-3 T1, T2, T3, T4 and T6 in one tree, DECISIONS 394), measured with this file's graph() on origin/main 6a78d57c and on the combined head:
 // Button 18,544 to 18,672 (+128: T4's Reserve block and the stream's other shared bytes; main's 18,550 to 18,678). Drawer was over its limit on main before
 // this stream (19,106 against 19,100); it measures 19,234 on the combined head, so its limit is that figure and a small margin, 19,250.
-for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_100], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_678], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 3_400], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_250]]) {
+// cimip-gaps-3 t7 (cut content fades, DECISIONS 399), measured with this file's graph() and bundle() on origin/main 4e438ecb and on the t7 head; each limit rises by
+// the increase alone: scroll-fade.ts (the band, the strips, the protected item, the two-axis reveal, about 5.8 KB) and the ports' helpers (fade-port.tsx, the
+// keyboard stop). Listbox 3,358 to 10,099 (+6,741: 3,400 to 10,141); SearchDialog 90,327 to 98,715 (+8,388: 90,350 to 98,738, its dialog's and results'
+// fade); NotificationCentre 156,110 to 164,583 (+8,473: 156,150 to 164,623); Text 17,568 to 23,466 (+5,898: 17,600 to 23,498, the lazy peek plate's status
+// port inlined by bundle(); built on its own so no root import's graph carries the fade); Terminal 43,980 to 50,042 (+6,062: 43,991 to 50,053).
+for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_100], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_678], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 10_141], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_250]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -129,7 +134,7 @@ for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_100], ["Skeleto
 // SearchDialog 89,550 (main's) to 89,950 in DECISIONS 336: its top is held where a full result has it (DialogContent's held top for a dialog that is not a form), and Close is hung.
 // The stream's merge: SearchDialog was over its limit on main before this stream (89,981 against 89,950); with T4's FilterResult and Reserve it measures
 // 90,327 on the combined head (origin/main 6a78d57c: 89,981), so its limit is that figure and a small margin, 90,350.
-for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 90_350]]) {
+for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 98_738]]) {
   test(`${name} alone, with splitting, loads Base UI's dialog and the close button and no command panel (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes (limit ${limit})`);
@@ -241,7 +246,7 @@ test("Text loads the cut-text plate only on demand: none in its static graph, on
 // on main) and a Text without `lines` runs no hook and loads nothing. The limit rises by the increase, 4,000 to 17,400. T3 fix 1 (item 4: the cut text's ref
 // keeps a callback ref's cleanup, through useMergedRef): 17,568 measured, the limit 17,400 to 17,600. Re-measured at the merge with origin/main c67926bf: main 922,
 // the head 17,568.
-for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 17_600], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 8_950]]) {
+for (const [name, limit] of [["Spinner", 4_000], ["Skeleton", 2_000], ["Badge", 2_000], ["Text", 23_498], ["Icon", 2_000], ["NumberTicker", 6_000], ["MorphIcon", 8_000], ["TextMorph", 8_000], ["Sparkline", 8_950]]) {
   test(`${name} alone is small and loads no Base UI`, async () => {
     const { bytes, inputs } = await bundle(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -429,7 +434,7 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // c67926bf: main 153,260, the head 155,936; then 155,982 once the first load's fallback is busy (a held first paint waits for the shape's code), the limit
 // 155,950 to 156,000.
 // The stream's merge (T3 and T4 both raised it): NotificationCentre 153,260 on origin/main 6a78d57c, 156,110 on the combined head (+2,850), so main's 153,300 to 156,150.
-for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 156_150]]) {
+for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 164_623]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);
@@ -546,7 +551,8 @@ test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async
   // cimip-gaps-3 t6: CodeLine draws a line number's column (CodeBlock lineNumbers), which Terminal shares: measured with this file's graph() at 42,889 on
   // origin/main ac962cec, again at 42,889 on origin/main c67926bf (merge prep), and 43,007 on the t6 head (+118), so the limit rises by the increase, 42,900 to 43,018.
   // The stream's merge (T1, T2 and T6 each raised it): 43,007 on origin/main 6a78d57c, 43,980 on the combined head (+973), so main's 43,018 to 43,991.
-  assert.ok(bytes < 43_991, `Terminal bundle is ${bytes} bytes`);
+  // cimip-gaps-3 t7: the transcript fades (scroll-fade.ts): 43,980 on origin/main 4e438ecb, 50,042 on the t7 head (+6,062), so 43,991 to 50,053.
+  assert.ok(bytes < 50_053, `Terminal bundle is ${bytes} bytes`);
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
 });
