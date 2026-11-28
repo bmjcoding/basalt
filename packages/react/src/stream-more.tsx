@@ -1,5 +1,6 @@
 import { Popover as BasePopover } from "@base-ui/react/popover";
 import * as React from "react";
+import { usePortalScope } from "./palette-scope";
 
 // The popover a stream message's More control opens on touch (cimip-gaps-3 T5, item 10a), loaded the first time a reader reaches for More
 // (stream.tsx), so a stream does not load a popup, its positioning and Floating UI until someone asks. It is built on its own (build.mjs, as the release
@@ -24,10 +25,11 @@ export interface QuietPopupProps {
 const KEEP_AXIS = { fallbackAxisSide: "none" } as const;
 
 export function QuietPopup({ open, onOpenChange, trigger, level, layer, label, children }: QuietPopupProps) {
+  const portalScope = usePortalScope();
   return (
     <BasePopover.Root open={open} onOpenChange={(next) => onOpenChange(next)}>
       <BasePopover.Trigger render={trigger} />
-      <BasePopover.Portal>
+      <BasePopover.Portal {...portalScope}>
         <BasePopover.Positioner side="bottom" align="end" sideOffset={6} collisionPadding={16} collisionAvoidance={KEEP_AXIS} style={layer} className="basalt-positioner">
           <BasePopover.Popup aria-label={label} data-level={level} className="basalt-popover basalt-stream-more-popup">{children}</BasePopover.Popup>
         </BasePopover.Positioner>

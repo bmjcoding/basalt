@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { GRACE, LEAVE, WAIT } from "./cell-peek";
 import { inLevel, useFloatingLayer, usePopupLevel } from "./layers";
 import { join } from "./utils";
+import { usePortalScope } from "./palette-scope";
 
 // A column explainer (DECISIONS 257 and 261): a small popover that says what a column means, opened from the header itself. It is
 // not a Tooltip, because it may hold a link, and it is not a Base UI Popover: on a sortable header its opener is the sort button, whose press
@@ -115,6 +116,7 @@ export interface TableHeadExplainerProps extends Omit<React.ComponentProps<"div"
  * and its words are the header's description. On a sortable header a press still sorts; a header that does not sort becomes a focus stop.
  */
 export function TableHeadExplainer({ title, className, style, children, id, ...props }: TableHeadExplainerProps) {
+  const portalScope = usePortalScope();
   const level = usePopupLevel();
   const layer = useFloatingLayer();
   const own = React.useId();
@@ -387,6 +389,7 @@ export function TableHeadExplainer({ title, className, style, children, id, ...p
       {container
         ? createPortal(
             <div
+              {...portalScope}
               {...props}
               ref={card}
               id={cardId}

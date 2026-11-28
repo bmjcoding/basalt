@@ -21,6 +21,8 @@ import { useMirrorRef } from "./mirror";
 import { join, withClass } from "./utils";
 import { useFloatingLayer, usePopupLevel } from "./layers";
 import { formWaitChanged, isThenable, useJoinedRef, waitFor } from "./wait";
+import { usePortalScope } from "./palette-scope";
+import { useIcon } from "./icon-set";
 
 export type FormProps<Values extends Record<string, unknown> = Record<string, unknown>> = PartProps<"form"> & {
   /** When fields first show their errors. */
@@ -161,6 +163,9 @@ export interface ComboboxProps {
 
 /** A searchable Select. The chosen value must come from the supplied options. Label it with Field; in a required field it carries `required`. */
 export function Combobox({ options, placeholder = "Search…", emptyMessage = "No options match.", controlSize = "md", className, inputProps, modal = false, inputRef, "aria-label": label, ...props }: ComboboxProps) {
+  // The caret is a system mark an icon set may replace (cimip-gaps-3 T9).
+  const caret = useIcon(CaretUpDownIcon, "select-caret");
+  const portalScope = usePortalScope();
   const mirror = useMirrorRef(inputRef);
   const layer = useFloatingLayer();
   const level = usePopupLevel();
@@ -178,9 +183,9 @@ export function Combobox({ options, placeholder = "Search…", emptyMessage = "N
     <BaseCombobox.Root {...(described && props.filter === undefined ? { filter: describedFilter } : null)} {...props} required={props.required ?? (inRequiredField || undefined)} inputRef={mirror} modal={modal} items={options.map((option) => option.value)} itemToStringLabel={(value) => byValue.get(value)?.label ?? value}>
       <BaseCombobox.InputGroup className={join("basalt-combobox", className)}>
         <BaseCombobox.Input {...inputProps} aria-label={label ?? inputProps?.["aria-label"]} placeholder={placeholder} data-size={controlSize} className="basalt-input basalt-combobox-input" />
-        <BaseCombobox.Trigger render={<IconButton icon={CaretUpDownIcon} label="Show options" size={controlSize} />} className="basalt-combobox-trigger" />
+        <BaseCombobox.Trigger render={<IconButton icon={caret} label="Show options" size={controlSize} />} className="basalt-combobox-trigger" />
       </BaseCombobox.InputGroup>
-      <BaseCombobox.Portal>
+      <BaseCombobox.Portal {...portalScope}>
         <BaseCombobox.Positioner sideOffset={6} style={layer} className="basalt-positioner">
           <BaseCombobox.Popup data-level={level} className="basalt-menu basalt-combobox-popup">
             <MenuPort field>

@@ -18,6 +18,9 @@
     --_basalt-control-font: var(--basalt-text-sm-size);
     --_basalt-control-line: var(--basalt-text-sm-line-height);
     --_basalt-control-lg-radius: var(--basalt-radius-sm);
+    /* A flag a large Button or field reads to pick its palette's first corner here and its second elsewhere (cimip-gaps-3 T9): the hook is resolved on
+       the control, never here, so a palette scope inside a compact region still gets its own corner. */
+    --_basalt-compact: 1;
     --_basalt-menu-row: var(--basalt-size-control-md);
     --_basalt-nav-row: var(--basalt-size-control-xl);
     --_basalt-desc-font: var(--basalt-text-xs-size);
@@ -38,6 +41,7 @@
     --_basalt-control-font: initial;
     --_basalt-control-line: initial;
     --_basalt-control-lg-radius: initial;
+    --_basalt-compact: initial;
     --_basalt-menu-row: initial;
     --_basalt-nav-row: initial;
     --_basalt-desc-font: initial;
@@ -207,7 +211,13 @@
   .basalt-button {
     --_h: var(--_basalt-control-md, var(--basalt-size-control-md));
     --_px: var(--basalt-space-3);
-    --_radius: var(--basalt-radius-sm);
+    /* The two corner steps (cimip-gaps-3 T9): a palette's, else radius-sm where a Button is 6 and radius-md where it is 8. A Button that is part of a field
+       takes its field's two (below). Every size, density, touch and special case keeps choosing between the two exactly as before. */
+    --_corner: var(--basalt-button-radius, var(--basalt-radius-sm));
+    --_corner-lg: var(--basalt-button-radius-lg, var(--basalt-radius-md));
+    /* A large control's step: the first under compact density (its flag), the second elsewhere. */
+    --_corner-large: calc(var(--_corner) * var(--_basalt-compact, 0) + var(--_corner-lg) * (1 - var(--_basalt-compact, 0)));
+    --_radius: var(--_corner);
     --_font: var(--_basalt-control-font, var(--basalt-text-base-size));
 
     box-sizing: border-box;
@@ -235,15 +245,20 @@
 
   .basalt-button[data-size="xs"] { --_h: var(--_basalt-control-xs, var(--basalt-size-control-xs)); --_px: var(--basalt-space-2); --_font: var(--basalt-text-sm-size); }
   .basalt-button[data-size="sm"] { --_h: var(--_basalt-control-sm, var(--basalt-size-control-sm)); --_px: var(--basalt-space-2-5); --_font: var(--basalt-text-sm-size); }
-  .basalt-button[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); --_px: var(--basalt-space-3-5); --_radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
-  .basalt-button[data-size="xl"] { --_h: var(--_basalt-control-xl, var(--basalt-size-control-xl)); --_px: var(--basalt-space-4); --_radius: var(--basalt-radius-md); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-button[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); --_px: var(--basalt-space-3-5); --_radius: var(--_corner-large); }
+  .basalt-button[data-size="xl"] { --_h: var(--_basalt-control-xl, var(--basalt-size-control-xl)); --_px: var(--basalt-space-4); --_radius: var(--_corner-lg); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); }
   /* The large sizes (DECISIONS 154, D11a): 44, 48, 52 and 56, radius 8 at every one (the drawn-box rule), 16px text at 600 where a button has
      text, and 12px between a button's parts from 48 up. Compact steps each down a rung (56 to 52, 52 to 48, 48 to 44, 44 to 40). */
-  .basalt-button[data-size="2xl"] { --_h: var(--_basalt-control-2xl, var(--basalt-size-control-2xl)); --_px: var(--basalt-space-4); --_radius: var(--basalt-radius-md); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); --_weight: var(--basalt-font-weight-semibold); }
-  .basalt-button[data-size="3xl"] { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); --_px: var(--basalt-space-5); --_radius: var(--basalt-radius-md); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); --_weight: var(--basalt-font-weight-semibold); gap: var(--basalt-space-3); }
-  .basalt-button[data-size="4xl"] { --_h: var(--_basalt-control-4xl, var(--basalt-size-control-4xl)); --_px: var(--basalt-space-5); --_radius: var(--basalt-radius-md); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); --_weight: var(--basalt-font-weight-semibold); gap: var(--basalt-space-3); }
-  .basalt-button[data-size="5xl"] { --_h: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); --_px: var(--basalt-space-5); --_radius: var(--basalt-radius-md); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); --_weight: var(--basalt-font-weight-semibold); gap: var(--basalt-space-3); }
+  .basalt-button[data-size="2xl"] { --_h: var(--_basalt-control-2xl, var(--basalt-size-control-2xl)); --_px: var(--basalt-space-4); --_radius: var(--_corner-lg); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); --_weight: var(--basalt-font-weight-semibold); }
+  .basalt-button[data-size="3xl"] { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); --_px: var(--basalt-space-5); --_radius: var(--_corner-lg); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); --_weight: var(--basalt-font-weight-semibold); gap: var(--basalt-space-3); }
+  .basalt-button[data-size="4xl"] { --_h: var(--_basalt-control-4xl, var(--basalt-size-control-4xl)); --_px: var(--basalt-space-5); --_radius: var(--_corner-lg); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); --_weight: var(--basalt-font-weight-semibold); gap: var(--basalt-space-3); }
+  .basalt-button[data-size="5xl"] { --_h: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); --_px: var(--basalt-space-5); --_radius: var(--_corner-lg); --_font: var(--_basalt-control-font, var(--basalt-text-md-size)); --_weight: var(--basalt-font-weight-semibold); gap: var(--basalt-space-3); }
   .basalt-button[data-icon-only] { width: var(--_h); padding: 0; }
+  /* A Button that is part of a field (a NumberField stepper, the Combobox trigger, a field's Clear) follows its field's corners (cimip-gaps-3 T9). */
+  :is(.basalt-number-group, .basalt-combobox, .basalt-search-box, .basalt-file-input) .basalt-button {
+    --_corner: var(--basalt-field-radius, var(--basalt-radius-sm));
+    --_corner-lg: var(--basalt-field-radius-lg, var(--basalt-radius-md));
+  }
   .basalt-button[data-full-width] { display: flex; width: 100%; }
 
   /* A ghost control at an edge (DECISIONS 336): `edge="start"` or `"end"` puts what it shows (its glyph, or its words) on the head's content
@@ -279,23 +294,35 @@
       var(--basalt-size-focus-offset));
   }
 
+  /* Each variant's own paints read a palette's hook first (cimip-gaps-3 T9); with none, the declaration is today's. A primary's edge is drawn only
+     under a palette that names it, while the button is enabled, and never in forced colours (below). */
   /* An inverse fill carries its own selected-text pair (DECISIONS 420), for every fill the variant steps to (hover, press, loading). */
   .basalt-button[data-variant="primary"] {
-    background: var(--basalt-action-primary);
-    color: var(--basalt-action-primary-text);
+    background: var(--basalt-button-primary-fill, var(--basalt-action-primary));
+    color: var(--basalt-button-primary-ink, var(--basalt-action-primary-text));
     --basalt-selection-fill: var(--basalt-selection-fill-inverse);
     --basalt-selection-ink: var(--basalt-action-primary-text);
   }
+  @media (forced-colors: none) {
+    :where([data-palette]:not([data-palette="basalt"])) .basalt-button[data-variant="primary"]:not([data-disabled]) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-button-primary-edge, transparent); }
+    /* What a primary Button holds beside its label is drawn in the button's ink: a positive count's number and its pill's edge in the ink, the note and a
+       zero count's number and edge at opacity-amount. Through private properties that are invalid while the hook is unset, so the readers below keep
+       today's declarations then. Disabled and loading keep today's rules. */
+    :where([data-palette]:not([data-palette="basalt"])) .basalt-button[data-variant="primary"]:not([data-disabled], [data-loading]) {
+      --_on-ink: var(--basalt-button-primary-ink);
+      --_on-ink-quiet: color-mix(in srgb, var(--basalt-button-primary-ink) calc(var(--basalt-opacity-amount) * 100%), transparent);
+    }
+  }
 
   .basalt-button[data-variant="secondary"] {
-    background: var(--basalt-surface-raised);
-    color: var(--basalt-text-primary);
-    box-shadow: var(--basalt-shadow-hairline);
+    background: var(--basalt-button-secondary-fill, var(--basalt-surface-raised));
+    color: var(--basalt-button-secondary-ink, var(--basalt-text-primary));
+    box-shadow: 0 0 0 var(--basalt-size-hairline) var(--basalt-button-secondary-edge, transparent), var(--basalt-shadow-hairline);
   }
 
   .basalt-button[data-variant="ghost"] {
     background: transparent;
-    color: var(--basalt-text-secondary);
+    color: var(--basalt-button-ghost-ink, var(--basalt-text-secondary));
   }
 
   /* Danger is red text on a red hairline. No filled red button: Basalt is monochrome, and the
@@ -311,33 +338,34 @@
      second primary ("Back to cart", "Shop by brand"). It never toggles. */
   .basalt-button[data-variant="outline"] {
     background: transparent;
-    color: var(--basalt-text-primary);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
+    color: var(--basalt-button-outline-ink, var(--basalt-text-primary));
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-button-outline-edge, var(--basalt-border-input));
   }
 
   /* Hover brightens: text up a step, the hairline up a step, a wash on transparent buttons.
      Never a scale. Only on devices that really hover, so touch doesn't stick. */
   @media (hover: hover) {
-    .basalt-button[data-variant="primary"]:hover:not([data-disabled]) { background: var(--basalt-action-primary-hover); }
+    .basalt-button[data-variant="primary"]:hover:not([data-disabled]) { background: var(--basalt-button-primary-fill-hover, var(--basalt-action-primary-hover)); }
     .basalt-button[data-variant="secondary"]:hover:not([data-disabled]) {
-      box-shadow: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hover), 0 0 0 var(--basalt-size-hairline) var(--basalt-surface-page);
+      box-shadow: 0 0 0 var(--basalt-size-hairline) var(--basalt-button-secondary-edge-hover, transparent), 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hover), 0 0 0 var(--basalt-size-hairline) var(--basalt-surface-page);
     }
-    .basalt-button[data-variant="ghost"]:hover:not([data-disabled]) { background: var(--basalt-state-hover); color: var(--basalt-text-primary); }
+    .basalt-button[data-variant="ghost"]:hover:not([data-disabled]) { background: var(--basalt-state-hover); color: var(--basalt-button-ghost-ink-hover, var(--basalt-text-primary)); }
     .basalt-button[data-variant="danger"]:hover:not([data-disabled]) { background: var(--basalt-state-hover); box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 70%, transparent); }
-    .basalt-button[data-variant="outline"]:hover:not([data-disabled]) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-text-primary); }
+    .basalt-button[data-variant="outline"]:hover:not([data-disabled]) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-button-outline-edge-hover, var(--basalt-text-primary)); }
   }
 
   /* A press is a colour step, and Button and IconButton (which are this class) also scale to .98 over
      duration-fast on ease-out. Primary steps to action-primary-press; the rest to the selected wash.
      Never on a disabled or loading button, and never on a row, card, menu item, command row or the parts of a field. */
-  .basalt-button[data-variant="primary"]:active:not([data-disabled]):not([data-busy]) { background: var(--basalt-action-primary-press); }
-  .basalt-button[data-variant="secondary"]:active:not([data-disabled]):not([data-busy]),
+  .basalt-button[data-variant="primary"]:active:not([data-disabled]):not([data-busy]) { background: var(--basalt-button-primary-fill-press, var(--basalt-action-primary-press)); }
+  .basalt-button[data-variant="secondary"]:active:not([data-disabled]):not([data-busy]) { background: var(--basalt-button-secondary-fill-press, var(--basalt-state-selected)); }
   .basalt-button[data-variant="ghost"]:active:not([data-disabled]):not([data-busy]),
   .basalt-button[data-variant="danger"]:active:not([data-disabled]):not([data-busy]),
   .basalt-button[data-variant="outline"]:active:not([data-disabled]):not([data-busy]) {
     background: var(--basalt-state-selected);
   }
-  .basalt-button:active:not([data-disabled]):not([data-busy]) { transform: scale(0.98); }
+  /* A palette says .98 or 1 (no press); nothing below .98 and nothing above 1. */
+  .basalt-button:active:not([data-disabled]):not([data-busy]) { transform: scale(clamp(0.98, var(--basalt-button-press-scale, 0.98), 1)); }
   /* The scale shrinks the hit box under a held pointer, so a press at a wide button's edge would lose its click and a 44px
      touch target would fall to 43.12px. This invisible extension, 1.03% a side (1 / .98 is 1.0204), keeps the pressed
      target at least its rest size. It is a percentage of the button, so it scales with it. */
@@ -389,15 +417,17 @@
     min-width: var(--basalt-size-control-xs);
     padding: 0 var(--basalt-space-1-5);
     border-radius: var(--basalt-radius-full);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
-    color: var(--basalt-text-primary);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--_on-ink, var(--basalt-border-input));
+    color: var(--_on-ink, var(--basalt-text-primary));
   }
-  .basalt-button-count[data-zero] > span { color: var(--basalt-text-secondary); }
+  .basalt-button-count[data-zero] > span { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--_on-ink-quiet, var(--basalt-border-input)); color: var(--_on-ink-quiet, var(--basalt-text-secondary)); }
 
   /* Two lines (DECISIONS 154, D11b): the label over a note, start-aligned, at least 64 tall; in a container 340 to 480 wide the two share one line,
      the label first and the note at the end, baseline-aligned and 12px apart, at 48. The label's own line is 14/20 (a <code> in it is mono). */
   .basalt-button[data-lines] {
-    --_radius: var(--basalt-radius-md);
+    --_radius: var(--_corner-lg);
+    /* A two-line Button's corner caps at radius-lg, so a capsule palette never rounds a 64px box into a pill. */
+    border-radius: min(var(--_radius), var(--basalt-radius-lg));
     height: auto;
     min-width: 0;
     min-height: var(--_basalt-control-6xl, var(--basalt-size-control-6xl));
@@ -408,7 +438,7 @@
   .basalt-button-lines { display: grid; gap: var(--basalt-space-0-5); justify-items: start; min-width: 0; }
   .basalt-button[data-lines] .basalt-button-label { font-size: var(--basalt-text-base-size); line-height: var(--basalt-text-base-line-height); min-width: 0; }
   .basalt-button[data-lines] .basalt-button-label code { font-family: var(--basalt-font-family-mono); font-variant-ligatures: none; font-size: inherit; line-height: inherit; }
-  .basalt-button-note { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); min-width: 0; }
+  .basalt-button-note { color: var(--_on-ink-quiet, var(--basalt-text-secondary)); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); min-width: 0; }
   .basalt-button[data-lines][data-disabled] .basalt-button-note { color: inherit; }
   /* size-breakpoint-container-sm (340px) and size-breakpoint-container (480px): a container query cannot read a token */
   /* stylelint-disable-next-line basalt/container-length -- size-breakpoint-container-sm (340px) and size-breakpoint-container (480px); a container query cannot read a custom property */
@@ -465,20 +495,21 @@
   .basalt-button.basalt-button[aria-pressed="true"][data-variant="secondary"] { box-shadow: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hover); }
 
   /* Disabled keeps its variant's shape, so it reads as the same control, unavailable. */
-  .basalt-button[data-disabled] { cursor: not-allowed; color: var(--basalt-text-disabled); }
+  /* A primary's disabled ink is its palette's (--_ink-disabled, set below); read here, at this rule's specificity, so forced colours' GrayText still wins. */
+  .basalt-button[data-disabled] { cursor: not-allowed; color: var(--_ink-disabled, var(--basalt-text-disabled)); }
   /* Disabled takes the inverse fill away, so it gives the parent's selected-text pair back. */
-  .basalt-button[data-variant="primary"][data-disabled] { background: var(--basalt-state-selected); --basalt-selection-fill: inherit; --basalt-selection-ink: inherit; }
+  .basalt-button[data-variant="primary"][data-disabled] { background: var(--basalt-button-primary-fill-disabled, var(--basalt-state-selected)); --_ink-disabled: var(--basalt-button-primary-ink-disabled, var(--basalt-text-disabled)); --basalt-selection-fill: inherit; --basalt-selection-ink: inherit; }
   .basalt-button[data-variant="secondary"][data-disabled] { box-shadow: 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
   .basalt-button[data-variant="danger"][data-disabled],
   .basalt-button[data-variant="outline"][data-disabled] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
 
   /* Loading is busy, not disabled: the variant colour stays and a spinner sits on the label. */
   .basalt-button:is([data-busy], [data-loading]) { cursor: progress; }
-  .basalt-button[data-variant="primary"][data-loading] { background: var(--basalt-action-primary); color: var(--basalt-action-primary-text); }
-  .basalt-button[data-variant="secondary"][data-loading] { background: var(--basalt-surface-raised); color: var(--basalt-text-primary); box-shadow: var(--basalt-shadow-hairline); }
-  .basalt-button[data-variant="ghost"][data-loading] { background: transparent; color: var(--basalt-text-secondary); }
+  .basalt-button[data-variant="primary"][data-loading] { background: var(--basalt-button-primary-fill, var(--basalt-action-primary)); color: var(--basalt-button-primary-ink, var(--basalt-action-primary-text)); }
+  .basalt-button[data-variant="secondary"][data-loading] { background: var(--basalt-button-secondary-fill, var(--basalt-surface-raised)); color: var(--basalt-button-secondary-ink, var(--basalt-text-primary)); box-shadow: 0 0 0 var(--basalt-size-hairline) var(--basalt-button-secondary-edge, transparent), var(--basalt-shadow-hairline); }
+  .basalt-button[data-variant="ghost"][data-loading] { background: transparent; color: var(--basalt-button-ghost-ink, var(--basalt-text-secondary)); }
   .basalt-button[data-variant="danger"][data-loading] { background: transparent; color: var(--basalt-status-danger); box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 45%, transparent); }
-  .basalt-button[data-variant="outline"][data-loading] { background: transparent; color: var(--basalt-text-primary); box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input); }
+  .basalt-button[data-variant="outline"][data-loading] { background: transparent; color: var(--basalt-button-outline-ink, var(--basalt-text-primary)); box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-button-outline-edge, var(--basalt-border-input)); }
 
   /* ---- TextButton (DECISIONS 154, D5d) ----
      A button that reads as running text: no box and no height, the text's own font, primary ink and a 1px underline in the input boundary that
@@ -495,7 +526,7 @@
     border: 0;
     border-radius: var(--basalt-radius-xs);
     background: none;
-    color: var(--basalt-text-primary);
+    color: var(--basalt-link-ink, var(--basalt-text-primary));
     font: inherit;
     letter-spacing: inherit;
     text-align: start;
@@ -511,6 +542,8 @@
     text-decoration-thickness: var(--basalt-size-hairline);
     transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
+  /* A palette's link underline, at rest, on the TextButton that is not quiet (cimip-gaps-3 T9); hover, disabled and busy keep their own. */
+  .basalt-text-button:not([data-quiet]) .basalt-text-button-label { text-decoration-color: var(--basalt-link-underline, var(--basalt-border-input)); }
   .basalt-text-button > .basalt-icon { align-self: center; flex: none; color: var(--basalt-text-secondary); }
   .basalt-text-button:hover:not([data-disabled], [data-loading]) .basalt-text-button-label { text-decoration-color: currentColor; }
   .basalt-text-button[data-quiet]:hover:not([data-disabled], [data-loading]) { color: var(--basalt-text-primary); }
@@ -612,6 +645,14 @@
     animation: basalt-fade-in var(--basalt-duration-fast) var(--basalt-ease-out);
   }
 
+  /* A field's corners (cimip-gaps-3 T9): a palette's two steps, else radius-sm where a field is 6 and radius-md where it is 8; a large field takes the first
+     under compact density and the second elsewhere, as a large Button does. Resolved on the field, never on the density element. */
+  :is(.basalt-input, .basalt-select-trigger, .basalt-number-group, .basalt-search-box, .basalt-search-trigger) {
+    --_field-corner: var(--basalt-field-radius, var(--basalt-radius-sm));
+    --_field-corner-lg: var(--basalt-field-radius-lg, var(--basalt-radius-md));
+    --_field-corner-large: calc(var(--_field-corner) * var(--_basalt-compact, 0) + var(--_field-corner-lg) * (1 - var(--_basalt-compact, 0)));
+  }
+
   .basalt-input {
     --_h: var(--_basalt-control-md, var(--basalt-size-control-md));
 
@@ -621,9 +662,9 @@
     padding: 0 var(--basalt-space-2-5);
     margin: 0;
     border: 0;
-    border-radius: var(--basalt-radius-sm);
+    border-radius: var(--_field-corner);
     background: var(--basalt-surface-raised);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-field-edge, var(--basalt-border-field));
     color: var(--basalt-text-primary);
     font-size: var(--_basalt-control-font, var(--basalt-text-base-size));
     transition: box-shadow var(--basalt-duration-fast) var(--basalt-ease-out);
@@ -631,12 +672,12 @@
 
   .basalt-input[data-size="xs"] { --_h: var(--_basalt-control-xs, var(--basalt-size-control-xs)); font-size: var(--basalt-text-sm-size); }
   .basalt-input[data-size="sm"] { --_h: var(--_basalt-control-sm, var(--basalt-size-control-sm)); font-size: var(--basalt-text-sm-size); }
-  .basalt-input[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); border-radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
-  .basalt-input[data-size="xl"] { --_h: var(--_basalt-control-xl, var(--basalt-size-control-xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
-  .basalt-input[data-size="2xl"] { --_h: var(--_basalt-control-2xl, var(--basalt-size-control-2xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
-  .basalt-input[data-size="3xl"] { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
-  .basalt-input[data-size="4xl"] { --_h: var(--_basalt-control-4xl, var(--basalt-size-control-4xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
-  .basalt-input[data-size="5xl"] { --_h: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-input[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); border-radius: var(--_field-corner-large); }
+  .basalt-input[data-size="xl"] { --_h: var(--_basalt-control-xl, var(--basalt-size-control-xl)); border-radius: var(--_field-corner-lg); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-input[data-size="2xl"] { --_h: var(--_basalt-control-2xl, var(--basalt-size-control-2xl)); border-radius: var(--_field-corner-lg); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-input[data-size="3xl"] { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); border-radius: var(--_field-corner-lg); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-input[data-size="4xl"] { --_h: var(--_basalt-control-4xl, var(--basalt-size-control-4xl)); border-radius: var(--_field-corner-lg); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-input[data-size="5xl"] { --_h: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); border-radius: var(--_field-corner-lg); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
 
   .basalt-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
   .basalt-input[data-invalid] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
@@ -658,7 +699,7 @@
      nothing is laid out again; a focused field keeps its solid boundary under the focus ring. */
   .basalt-input[data-writing]:not(:focus-visible) {
     box-shadow: none;
-    outline: var(--basalt-size-hairline) dashed var(--basalt-border-field);
+    outline: var(--basalt-size-hairline) dashed var(--basalt-field-edge, var(--basalt-border-field));
     outline-offset: calc(-1 * var(--basalt-size-hairline));
   }
   /* The skeleton's own pulse (opacity 1 to 0.7 over the field's fill), drawn on the fill so the words do not pulse. */
@@ -1028,7 +1069,7 @@
     }
     .basalt-dialog[data-form][data-starting-style], .basalt-dialog[data-form][data-ending-style] { opacity: 1; transform: translateY(100%); }
     .basalt-dialog[data-form][data-ending-style] { transition-duration: calc(var(--basalt-duration-slower) * 0.75); }
-    .basalt-dialog[data-form] .basalt-sheet-foot .basalt-dialog-actions > * { flex: 1 1 0; --_h: var(--basalt-size-control-2xl); --_radius: var(--basalt-radius-md); min-height: var(--basalt-size-control-2xl); }
+    .basalt-dialog[data-form] .basalt-sheet-foot .basalt-dialog-actions > * { flex: 1 1 0; --_h: var(--basalt-size-control-2xl); --_radius: var(--_corner-lg); min-height: var(--basalt-size-control-2xl); }
   }
 
   /* ---- Tabs ---- */
@@ -1116,7 +1157,7 @@
     left: calc(var(--active-tab-left) + var(--_line-left, var(--_px)));
     width: calc(var(--active-tab-width) - var(--_line-left, var(--_px)) - var(--_line-right, var(--_px)));
     height: var(--basalt-size-indicator);
-    background: var(--basalt-text-primary);
+    background: var(--basalt-chosen-line, var(--basalt-text-primary));
     transition-property: left, width;
     transition-duration: var(--basalt-duration-slow);
     transition-timing-function: var(--basalt-ease-out);
@@ -1166,8 +1207,13 @@
     transition-timing-function: var(--basalt-ease-out);
   }
   .basalt-tabs-list[data-orientation="vertical"] .basalt-tab[data-active] {
-    background: var(--_pill);
+    background: var(--basalt-chosen-fill, var(--_pill));
+    color: var(--basalt-chosen-ink, var(--basalt-text-primary));
     box-shadow: var(--_pill-edge);
+  }
+  /* The ink above outranks a disabled tab's; a chosen tab that is also disabled keeps the disabled ink (forced colours keep their own). */
+  @media (forced-colors: none) {
+    .basalt-tabs-list[data-orientation="vertical"] .basalt-tab[data-active][data-disabled] { color: var(--basalt-text-disabled); }
   }
 
   /* Tabs at 48 or 56 (DECISIONS 154, D12): 16px text, 10px of padding either side (24px between two labels, 4px of gap), radius 8 on the top
@@ -1255,7 +1301,7 @@
   @container (width < 640px) {
     .basalt-link-tabs[data-size="5xl"] .basalt-link-tab { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); }
   }
-  .basalt-link-tab-line { position: absolute; inset-inline: var(--_px); bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-text-primary); opacity: 0; pointer-events: none; }
+  .basalt-link-tab-line { position: absolute; inset-inline: var(--_px); bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-chosen-line, var(--basalt-text-primary)); opacity: 0; pointer-events: none; }
   .basalt-link-tab[aria-current] { color: var(--basalt-text-primary); }
   .basalt-link-tab[aria-current] > .basalt-link-tab-line { opacity: 1; }
   @media (hover: hover) {
@@ -1285,7 +1331,7 @@
   /* The pill's edge is its hairline and nothing else: it sits in the flow, so it casts no shadow (a shadow is for what floats). The hairline is
      the line token, so it steps to the input boundary under more contrast. */
   .basalt-segmented,
-  .basalt-tabs-list { --_pill-edge: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline); }
+  .basalt-tabs-list { --_pill-edge: 0 0 0 var(--basalt-size-hairline) var(--basalt-chosen-edge, var(--basalt-border-hairline)); }
   /* Without light-dark(): the mix of the two, by --_dkp (see the depth section). */
   @supports not (color: light-dark(white, black)) {
     .basalt-segmented,
@@ -1325,8 +1371,8 @@
   /* Chosen is the label at 600 in primary ink (decisions 138 and 139), against 400 in secondary at rest: the weight is the cue, which does
      not rest on colour (WCAG 1.4.1, technique G182). The raised pill with its hairline and the ink step support it. */
   .basalt-segment[data-pressed] {
-    background: var(--_pill);
-    color: var(--basalt-text-primary);
+    background: var(--basalt-chosen-fill, var(--_pill));
+    color: var(--basalt-chosen-ink, var(--basalt-text-primary));
     box-shadow: var(--_pill-edge);
   }
 
@@ -1362,7 +1408,7 @@
     height: var(--_pill-h);
     transform: translate(var(--_pill-x), var(--_pill-y));
     border-radius: var(--basalt-radius-sm);
-    background: var(--_pill);
+    background: var(--basalt-chosen-fill, var(--_pill));
     box-shadow: var(--_pill-edge);
     pointer-events: none;
     transition-property: transform, width, height;
@@ -1397,13 +1443,13 @@
   /* ---- The theme choice (DECISIONS 146 B): System, Light and Dark, three words in the segmented control's drawing, with radio semantics ----
      The chosen word is drawn from the root's `data-theme-choice` (the head script writes it, `useTheme` keeps it), so the right word is chosen in the first frame, before any
      script and before hydration; with no attribute, System is the chosen one (nothing stored). It is 600 in primary on the pill, its 600 width reserved so nothing moves. */
-  .basalt-theme-choice { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-1) var(--basalt-space-3); max-width: 100%; font-family: var(--basalt-font-family-sans); }
-  .basalt-theme-choice-label { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-sm-tracking); }
+  :is(.basalt-theme-choice, .basalt-palette-choice) { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-1) var(--basalt-space-3); max-width: 100%; font-family: var(--basalt-font-family-sans); }
+  :is(.basalt-theme-choice-label, .basalt-palette-choice-label) { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-sm-tracking); }
   /* The words may be larger than the 28px they are drawn in (200% text): the segment grows and the group wraps, and nothing overflows. */
-  .basalt-theme-choice .basalt-segmented { flex-wrap: wrap; max-width: 100%; }
-  .basalt-theme-choice .basalt-segment { display: inline-flex; align-items: center; justify-content: center; height: auto; min-height: var(--basalt-size-control-sm); font-weight: var(--basalt-font-weight-regular); }
+  :is(.basalt-theme-choice, .basalt-palette-choice) .basalt-segmented { flex-wrap: wrap; max-width: 100%; }
+  :is(.basalt-theme-choice, .basalt-palette-choice) .basalt-segment { display: inline-flex; align-items: center; justify-content: center; height: auto; min-height: var(--basalt-size-control-sm); font-weight: var(--basalt-font-weight-regular); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
-  @media (pointer: coarse), (width < 720px) { .basalt-theme-choice .basalt-segment { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); } }
+  @media (pointer: coarse), (width < 720px) { :is(.basalt-theme-choice, .basalt-palette-choice) .basalt-segment { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); } }
   /* The word's start edge and its reserved 600 width come from the segmented control's own rules (the data-label span, DECISIONS 138 and 139); the chosen word's 600 is also set
      on the button below, because with no script and no data-pressed the right word is chosen from data-theme-choice alone. */
   .basalt-theme-choice .basalt-segment[data-pressed],
@@ -1411,8 +1457,8 @@
   :root[data-theme-choice="light"] .basalt-theme-choice [data-value="light"],
   :root[data-theme-choice="dark"] .basalt-theme-choice [data-value="dark"],
   :root:not([data-theme-choice]) .basalt-theme-choice [data-value="system"] {
-    background: var(--_pill);
-    color: var(--basalt-text-primary);
+    background: var(--basalt-chosen-fill, var(--_pill));
+    color: var(--basalt-chosen-ink, var(--basalt-text-primary));
     font-weight: var(--basalt-font-weight-semibold);
     box-shadow: var(--_pill-edge);
   }
@@ -1426,6 +1472,26 @@
     :root[data-theme-choice="dark"] .basalt-theme-choice [data-value="dark"],
     :root:not([data-theme-choice]) .basalt-theme-choice [data-value="system"] { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
   }
+
+  /* ---- The palette choice (cimip-gaps-3 T9): the theme choice's contract word for word, for two to four palettes ----
+     The chosen word is drawn from the root's `data-palette` (the head script writes it), by the theme choice's own three rules per id: the chosen paint,
+     its clear while the shared pill slides (one attribute more specific) and the forced-colours form. Basalt's and a root with no attribute are in
+     palette-base.css (appended below); every other id's come with its palette's CSS (paletteCss), so the result never depends on which sheet loads last.
+     While the palette came from a link, one tertiary line under the control says so. */
+  .basalt-palette-choice .basalt-segment[data-pressed] {
+    background: var(--basalt-chosen-fill, var(--_pill));
+    color: var(--basalt-chosen-ink, var(--basalt-text-primary));
+    font-weight: var(--basalt-font-weight-semibold);
+    box-shadow: var(--_pill-edge);
+  }
+  @media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+    .basalt-palette-choice .basalt-segmented[data-slide] .basalt-segment { background: transparent; box-shadow: none; }
+  }
+  @media (forced-colors: active) {
+    .basalt-palette-choice .basalt-segment[data-pressed] { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
+  }
+  .basalt-palette-choice-note { flex-basis: 100%; margin: 0; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-sm-tracking); }
+  .basalt-palette-choice > .basalt-select-root, .basalt-palette-choice > .basalt-field { min-width: 0; }
 
   /* ---- Navigation: a sidebar and its collapsed rail ---- */
 
@@ -1790,6 +1856,9 @@
   .basalt-lockup-2x { display: none; }
   /* A brand file drawn inline with `BrandSvg`: hidden from assistive technology, no title, and no pointer, so the link round it is the only thing that is hovered or named. */
   .basalt-brand-svg { pointer-events: none; }
+  /* A brand mark in the palette's colour (cimip-gaps-3 T9): opt-in, on a BrandSvg with tone="brand" or an app's own SVG with this class. Never a wordmark,
+     an image or a fixed-colour file. With no palette it is the text colour, and in forced colours it is the text colour, as before. */
+  .basalt-brand-svg[data-tone="brand"], .basalt-brand-mark { color: var(--basalt-brand-mark, currentColor); }
   @media (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2) {
     .basalt-lockup-1x { display: none; }
     .basalt-lockup-2x { display: block; }
@@ -1905,7 +1974,7 @@
     .basalt-site-bar .basalt-bar-actions:has(> .basalt-site-menu-trigger) > :not(.basalt-site-menu-trigger) { --basalt-edge-room-end: initial; }
     :is(.basalt-site-header, .basalt-app-header, .basalt-site-menu-band) .basalt-button {
       --_h: var(--basalt-size-tap-min);
-      --_radius: var(--basalt-radius-md);
+      --_radius: var(--_corner-lg);
       min-width: var(--basalt-size-tap-min);
     }
   }
@@ -1951,7 +2020,7 @@
   }
   .basalt-site-menu-loops .basalt-button {
     --_h: var(--basalt-size-tap-min);
-    --_radius: var(--basalt-radius-md);
+    --_radius: var(--_corner-lg);
   }
   .basalt-site-menu-nav {
     padding-block: var(--basalt-space-2);
@@ -1970,11 +2039,11 @@
     padding-inline: var(--_pad-start) var(--_pad-end);
     border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider);
   }
-  .basalt-site-menu-account .basalt-button { --_h: var(--basalt-size-tap-min); --_radius: var(--basalt-radius-md); }
+  .basalt-site-menu-account .basalt-button { --_h: var(--basalt-size-tap-min); --_radius: var(--_corner-lg); }
   .basalt-site-menu-account:last-child { padding-bottom: var(--_inset-bottom); }
   .basalt-site-menu-foot .basalt-button {
     --_h: var(--basalt-size-tap-min);
-    --_radius: var(--basalt-radius-md);
+    --_radius: var(--_corner-lg);
     width: 100%;
   }
   @media (prefers-reduced-motion: reduce) {
@@ -2766,7 +2835,7 @@
     margin-block: calc((var(--basalt-text-base-line-height) - var(--basalt-size-choice)) / 2);
     background: var(--basalt-surface-raised);
     box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
-    color: var(--basalt-action-primary-text);
+    color: var(--basalt-checked-ink, var(--basalt-action-primary-text));
     transition-property: background-color, box-shadow;
     transition-duration: var(--basalt-duration-fast);
     transition-timing-function: var(--basalt-ease-out);
@@ -2774,8 +2843,11 @@
   .basalt-choice-card[data-type="checkbox"] .basalt-choice-card-box { border-radius: var(--basalt-radius-xs); }
   .basalt-choice-card[data-type="radio"] .basalt-choice-card-box { border-radius: var(--basalt-radius-full); }
   .basalt-choice-card-mark { width: var(--basalt-size-choice-mark); height: var(--basalt-size-choice-mark); opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
-  .basalt-choice-card-dot { width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: var(--basalt-action-primary-text); opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
-  .basalt-choice-card:has(> .basalt-choice-card-input:checked) .basalt-choice-card-box { background: var(--basalt-action-primary); box-shadow: none; }
+  .basalt-choice-card-dot { width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: var(--basalt-checked-ink, var(--basalt-action-primary-text)); opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-choice-card:has(> .basalt-choice-card-input:checked) .basalt-choice-card-box { background: var(--basalt-checked-fill, var(--basalt-action-primary)); box-shadow: none; }
+  @media (forced-colors: none) {
+    :where([data-palette]:not([data-palette="basalt"])) .basalt-choice-card:has(> .basalt-choice-card-input:checked:not(:disabled)) .basalt-choice-card-box { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-checked-edge, transparent); }
+  }
   .basalt-choice-card:has(> .basalt-choice-card-input:checked) :is(.basalt-choice-card-mark, .basalt-choice-card-dot) { opacity: 1; }
   .basalt-choice-card:has(> .basalt-choice-card-input:disabled) .basalt-choice-card-box { opacity: 0.5; }
   /* The grid keeps space-4 between cards, which holds each +2 focus ring clear of its neighbours; the app keeps at least space-1-5 to any clipping edge. */
@@ -3386,14 +3458,17 @@
     height: var(--basalt-size-choice);
     border-radius: var(--basalt-radius-full);
     box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
-    color: var(--basalt-action-primary-text);
+    color: var(--basalt-checked-ink, var(--basalt-action-primary-text));
     transition-property: background-color, box-shadow;
     transition-duration: var(--basalt-duration-fast);
     transition-timing-function: var(--basalt-ease-out);
   }
   .basalt-option-chip-seat > .basalt-icon { width: var(--basalt-size-choice-mark); height: var(--basalt-size-choice-mark); opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
   .basalt-option-chip[data-checked] { background: var(--basalt-state-selected); color: var(--basalt-text-primary); }
-  .basalt-option-chip[data-checked] .basalt-option-chip-seat { background: var(--basalt-action-primary); box-shadow: none; }
+  .basalt-option-chip[data-checked] .basalt-option-chip-seat { background: var(--basalt-checked-fill, var(--basalt-action-primary)); box-shadow: none; }
+  @media (forced-colors: none) {
+    :where([data-palette]:not([data-palette="basalt"])) .basalt-option-chip[data-checked]:not([data-disabled], [data-unavailable]) .basalt-option-chip-seat { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-checked-edge, transparent); }
+  }
   .basalt-option-chip[data-checked] .basalt-option-chip-seat > .basalt-icon { opacity: 1; }
   .basalt-option-chip-note { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
   @media (hover: hover) {
@@ -3517,7 +3592,7 @@
     border: 0;
     background: var(--basalt-surface-raised);
     box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
-    color: var(--basalt-action-primary-text);
+    color: var(--basalt-checked-ink, var(--basalt-action-primary-text));
     cursor: inherit;
     /* Layout containment gives the box a baseline of its own (its bottom edge) whether or not the indicator is drawn. Without it an empty box's baseline is its
        bottom edge and a ticked one's is the glyph's, so in a table cell the box moved 1px when it was ticked (the still table). */
@@ -3532,7 +3607,7 @@
 
   .basalt-checkbox[data-checked],
   .basalt-checkbox[data-indeterminate] {
-    background: var(--basalt-action-primary);
+    background: var(--basalt-checked-fill, var(--basalt-action-primary));
     box-shadow: none;
   }
 
@@ -3540,8 +3615,8 @@
   .basalt-checkbox-indicator[data-unchecked]:not([data-indeterminate]) { display: none; }
   .basalt-checkbox-indicator .basalt-icon { width: var(--basalt-size-choice-mark); height: var(--basalt-size-choice-mark); }
 
-  .basalt-radio[data-checked] { background: var(--basalt-action-primary); box-shadow: none; }
-  .basalt-radio-indicator[data-checked] { width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: var(--basalt-action-primary-text); }
+  .basalt-radio[data-checked] { background: var(--basalt-checked-fill, var(--basalt-action-primary)); box-shadow: none; }
+  .basalt-radio-indicator[data-checked] { width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: var(--basalt-checked-ink, var(--basalt-action-primary-text)); }
 
   .basalt-radio-group { display: flex; flex-direction: column; gap: var(--basalt-space-1); }
 
@@ -3578,8 +3653,12 @@
   }
 
   /* On is a full fill and the thumb moves: shape and position, not only colour. */
-  .basalt-switch[data-checked] { background: var(--basalt-action-primary); box-shadow: none; }
-  .basalt-switch-thumb[data-checked] { transform: translateX(calc(var(--basalt-size-switch-width) - var(--basalt-size-switch-thumb) - 2 * var(--basalt-space-0-5))); background: var(--basalt-action-primary-text); }
+  .basalt-switch[data-checked] { background: var(--basalt-checked-fill, var(--basalt-action-primary)); box-shadow: none; }
+  .basalt-switch-thumb[data-checked] { transform: translateX(calc(var(--basalt-size-switch-width) - var(--basalt-size-switch-thumb) - 2 * var(--basalt-space-0-5))); background: var(--basalt-checked-ink, var(--basalt-action-primary-text)); }
+  /* A palette's checked edge (cimip-gaps-3 T9): an inset hairline on the checked fill, never on a disabled control and never in forced colours. */
+  @media (forced-colors: none) {
+    :where([data-palette]:not([data-palette="basalt"])) :is(.basalt-checkbox[data-checked], .basalt-checkbox[data-indeterminate], .basalt-radio[data-checked], .basalt-switch[data-checked]):not([data-disabled]) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-checked-edge, transparent); }
+  }
   /* The track fills from the inline start: in a right-to-left page the thumb travels left. */
   .basalt-switch-thumb[data-checked]:dir(rtl) { transform: translateX(calc(-1 * (var(--basalt-size-switch-width) - var(--basalt-size-switch-thumb) - 2 * var(--basalt-space-0-5)))); }
 
@@ -3612,9 +3691,9 @@
     padding-inline: var(--basalt-space-2-5) var(--basalt-space-2);
     margin: 0;
     border: 0;
-    border-radius: var(--basalt-radius-sm);
+    border-radius: var(--_field-corner);
     background: var(--basalt-surface-raised);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-field-edge, var(--basalt-border-field));
     color: var(--basalt-text-primary);
     font: var(--basalt-font-weight-regular) var(--_basalt-control-font, var(--basalt-text-base-size)) / 1 var(--basalt-font-family-sans);
     text-align: left;
@@ -3623,12 +3702,12 @@
 
   .basalt-select-trigger[data-size="sm"] { --_h: var(--_basalt-control-sm, var(--basalt-size-control-sm)); font-size: var(--basalt-text-sm-size); }
   .basalt-select-trigger[data-size="xs"] { --_h: var(--_basalt-control-xs, var(--basalt-size-control-xs)); font-size: var(--basalt-text-sm-size); }
-  .basalt-select-trigger[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); border-radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
-  .basalt-select-trigger[data-size="xl"] { --_h: var(--_basalt-control-xl, var(--basalt-size-control-xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
-  .basalt-select-trigger[data-size="2xl"] { --_h: var(--_basalt-control-2xl, var(--basalt-size-control-2xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
-  .basalt-select-trigger[data-size="3xl"] { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
-  .basalt-select-trigger[data-size="4xl"] { --_h: var(--_basalt-control-4xl, var(--basalt-size-control-4xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
-  .basalt-select-trigger[data-size="5xl"] { --_h: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); border-radius: var(--basalt-radius-md); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-select-trigger[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); border-radius: var(--_field-corner-large); }
+  .basalt-select-trigger[data-size="xl"] { --_h: var(--_basalt-control-xl, var(--basalt-size-control-xl)); border-radius: var(--_field-corner-lg); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-select-trigger[data-size="2xl"] { --_h: var(--_basalt-control-2xl, var(--basalt-size-control-2xl)); border-radius: var(--_field-corner-lg); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-select-trigger[data-size="3xl"] { --_h: var(--_basalt-control-3xl, var(--basalt-size-control-3xl)); border-radius: var(--_field-corner-lg); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-select-trigger[data-size="4xl"] { --_h: var(--_basalt-control-4xl, var(--basalt-size-control-4xl)); border-radius: var(--_field-corner-lg); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
+  .basalt-select-trigger[data-size="5xl"] { --_h: var(--_basalt-control-5xl, var(--basalt-size-control-5xl)); border-radius: var(--_field-corner-lg); font-size: var(--_basalt-control-font, var(--basalt-text-md-size)); }
   /* A label before the value inside the trigger (valuePrefix): the multi-select trigger's form, a label then its value, on the trigger's one line (the height does
      not change). The label is secondary ink and the value keeps the trigger's own; both stay on one line and the value is cut by an ellipsis before the caret. */
   .basalt-select-lead { display: inline-flex; align-items: baseline; gap: var(--basalt-space-1-5); min-width: 0; }
@@ -3766,7 +3845,7 @@
      press's .98 never takes it under 44; a short action's missing width is on its start side, over the words and away from Dismiss. */
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) {
-    .basalt-toast .basalt-button:is(.basalt-toast-close, .basalt-toast-action) { min-width: 0; min-height: 0; --_radius: var(--basalt-radius-sm); }
+    .basalt-toast .basalt-button:is(.basalt-toast-close, .basalt-toast-action) { min-width: 0; min-height: 0; --_radius: var(--_corner); }
     .basalt-toast .basalt-toast-close::before { content: ""; position: absolute; inset: calc((var(--basalt-size-control-xs) - var(--basalt-size-tap-min)) / 2 - var(--basalt-size-hairline)); }
     .basalt-toast .basalt-toast-action::before { content: ""; position: absolute; inset-block: calc((100% - var(--basalt-size-tap-min)) / 2 - var(--basalt-size-hairline)); inset-inline: min(var(--basalt-space-0), calc(100% - var(--basalt-size-tap-min) - 2 * var(--basalt-size-hairline))) 0; }
   }
@@ -7505,7 +7584,7 @@
     /* Radius follows the box as it is drawn (decision 138, E1): these are 44 here whatever size they were set at, so they are 8, as the narrow
        bar's 44px buttons are. A segment keeps its 6: it is nested in a track that is 8 with 2 of padding. */
     .basalt-button,
-    .basalt-button[data-size] { --_radius: var(--basalt-radius-md); }
+    .basalt-button[data-size] { --_radius: var(--_corner-lg); }
     /* The size in force here (DECISIONS 336): a hung icon-only button drawn at 44 hangs 14 on a 16px glyph. */
     .basalt-button { --_drawn: max(var(--_h), var(--basalt-size-tap-min)); }
     /* A hung control with words is as wide as its words, so its inset is its padding; what it lacks of 44 is hit area on ::before (46: the
@@ -7536,7 +7615,7 @@
     .basalt-input,
     .basalt-input[data-size],
     .basalt-select-trigger,
-    .basalt-select-trigger[data-size] { border-radius: var(--basalt-radius-md); }
+    .basalt-select-trigger[data-size] { border-radius: var(--_field-corner-lg); }
     /* A horizontal tab is drawn at 44 here (its top corners, as the 48 and 56 tabs have). The vertical tab is 8 already, and a taller tab keeps its own. */
     .basalt-tab { border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0; }
   }
@@ -7627,13 +7706,13 @@
     display: inline-flex;
     align-items: stretch;
     max-width: 100%;
-    border-radius: var(--basalt-radius-sm);
+    border-radius: var(--_field-corner);
     background: var(--basalt-surface-raised);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-field-edge, var(--basalt-border-field));
   }
   /* A group drawn at 36 or 40 is radius 8, as a control of that size is (decision 138, E1); its buttons already are. */
-  .basalt-number-group[data-size="lg"] { border-radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
-  .basalt-number-group[data-size="xl"] { border-radius: var(--basalt-radius-md); }
+  .basalt-number-group[data-size="lg"] { border-radius: var(--_field-corner-large); }
+  .basalt-number-group[data-size="xl"] { border-radius: var(--_field-corner-lg); }
   .basalt-number-group:has(.basalt-number-input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-number-group[data-invalid] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
   .basalt-number-group[data-disabled] { background: var(--basalt-surface-sunken); }
@@ -7750,7 +7829,7 @@
     /* Two classes, as the 40px rule it replaces: a single class is outranked by it and never applied, leaving text under the 44px caret. */
     .basalt-input.basalt-combobox-input { padding-inline-end: var(--basalt-size-tap-min); }
     .basalt-number-group .basalt-button { min-width: var(--basalt-size-tap-min); }
-    .basalt-number-group { border-radius: var(--basalt-radius-md); }
+    .basalt-number-group { border-radius: var(--_field-corner-lg); }
     .basalt-slider-control { min-height: var(--basalt-size-tap-min); }
   }
 
@@ -7788,7 +7867,7 @@
      and the form dialog keep 20/28. */
   .basalt-sheet[data-size="wide"] .basalt-sheet-head .basalt-dialog-title { font-size: var(--basalt-text-lg-size); line-height: var(--basalt-text-lg-line-height); letter-spacing: var(--basalt-text-lg-tracking); }
   .basalt-sheet-head .basalt-dialog-description { margin: 0; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); }
-  .basalt-sheet-close { --_h: var(--_control-44); --_radius: var(--basalt-radius-md); flex: none; }
+  .basalt-sheet-close { --_h: var(--_control-44); --_radius: var(--_corner-lg); flex: none; }
   .basalt-sheet-body {
     flex: 1 1 auto;
     min-height: 0;
@@ -7861,7 +7940,7 @@
     margin: 0;
     padding: 0;
     border: 0;
-    border-radius: var(--basalt-radius-md);
+    border-radius: var(--_field-corner-lg);
     background: transparent;
     color: var(--basalt-text-primary);
     font: var(--basalt-font-weight-regular) var(--basalt-text-md-size) / 1 var(--basalt-font-family-sans);
@@ -7872,7 +7951,7 @@
   @media (hover: hover) { .basalt-search-trigger:hover { background: var(--basalt-state-hover); } }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; from it the trigger is a field-shaped button with the word */
   @media (width >= 720px) {
-    .basalt-search-trigger { width: var(--basalt-size-search-trigger); justify-content: flex-start; padding-inline: var(--basalt-space-3-5); border: var(--basalt-size-hairline) solid var(--basalt-border-field); color: var(--basalt-text-secondary); }
+    .basalt-search-trigger { width: var(--basalt-size-search-trigger); justify-content: flex-start; padding-inline: var(--basalt-space-3-5); border: var(--basalt-size-hairline) solid var(--basalt-field-edge, var(--basalt-border-field)); color: var(--basalt-text-secondary); }
     .basalt-search-trigger-word { display: inline; }
     @media (hover: hover) { .basalt-search-trigger:hover { background: transparent; color: var(--basalt-text-primary); } }
   }
@@ -7930,7 +8009,7 @@
   .basalt-search-input::-webkit-search-decoration,
   .basalt-search-input::-webkit-search-results-button { -webkit-appearance: none; appearance: none; display: none; }
   .basalt-search-input::-ms-clear { display: none; }
-  .basalt-search-close { --_h: var(--_control-44); --_radius: var(--basalt-radius-md); flex: none; }
+  .basalt-search-close { --_h: var(--_control-44); --_radius: var(--_corner-lg); flex: none; }
   .basalt-search-count {
     box-sizing: border-box;
     flex: none;
@@ -8013,13 +8092,13 @@
     height: var(--_h);
     margin: 0;
     padding: 0;
-    border-radius: var(--basalt-radius-sm);
+    border-radius: var(--_field-corner);
     background: var(--basalt-surface-raised);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-field-edge, var(--basalt-border-field));
     transition: box-shadow var(--basalt-duration-fast) var(--basalt-ease-out);
   }
   .basalt-search-box[data-size="sm"] { --_h: var(--_basalt-control-sm, var(--basalt-size-control-sm)); }
-  .basalt-search-box[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); border-radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
+  .basalt-search-box[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); border-radius: var(--_field-corner-large); }
   .basalt-search-box-field {
     box-sizing: border-box;
     flex: 1 1 auto;
@@ -8081,10 +8160,31 @@
   }
   .basalt-search-box:has(.basalt-search-box-input[data-writing]):not(:has(.basalt-search-box-input:focus-visible)) {
     box-shadow: none;
-    outline: var(--basalt-size-hairline) dashed var(--basalt-border-field);
+    outline: var(--basalt-size-hairline) dashed var(--basalt-field-edge, var(--basalt-border-field));
     outline-offset: calc(-1 * var(--basalt-size-hairline));
   }
   :root[data-loops="held"] .basalt-search-box:has(.basalt-search-box-input[data-writing]) { animation: none; }
+  /* A palette's field edge on hover and while active (cimip-gaps-3 T9, rule 4): only under a palette, never in forced colours, never on a disabled field,
+     and below every state Basalt paints on the edge today (invalid, a FileInput's drag, writing), which keep theirs. Active (focus inside, or the popup
+     open) outranks hover. Each falls back to the resting edge, so a scope that sets neither paints today's. Select and the NumberField group take
+     Input's box-shadow transition at the palette's private duration (instant unless the palette sets one of these edges). The 2px ring is separate. */
+  @media (forced-colors: none) {
+    :where([data-palette]:not([data-palette="basalt"])) :is(.basalt-select-trigger, .basalt-number-group) { transition: box-shadow var(--_basalt-palette-edge-duration, var(--basalt-duration-instant)) var(--basalt-ease-out); }
+    @media (hover: hover) {
+      :where([data-palette]:not([data-palette="basalt"])) .basalt-input:not(.basalt-search-box-input, .basalt-number-input, .basalt-file-input):hover:not(:disabled, [data-disabled], [data-invalid], [data-writing]),
+      :where([data-palette]:not([data-palette="basalt"])) .basalt-file-input:hover:not([data-disabled], [data-drag], :has(> .basalt-file-input-native:is([data-disabled], [data-invalid]))),
+      :where([data-palette]:not([data-palette="basalt"])) :is(.basalt-select-trigger, .basalt-number-group):hover:not([data-disabled], [data-invalid]),
+      :where([data-palette]:not([data-palette="basalt"])) .basalt-search-box:hover:not(:has(.basalt-search-box-input:is(:disabled, [data-disabled], [data-invalid], [data-writing]))) {
+        box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-field-edge-hover, var(--basalt-field-edge, var(--basalt-border-field)));
+      }
+    }
+    :where([data-palette]:not([data-palette="basalt"])) .basalt-input:not(.basalt-search-box-input, .basalt-number-input, .basalt-file-input):is(:focus, [data-popup-open]):not(:disabled, [data-disabled], [data-invalid], [data-writing]),
+    :where([data-palette]:not([data-palette="basalt"])) .basalt-file-input:focus-within:not([data-disabled], [data-drag], :has(> .basalt-file-input-native:is([data-disabled], [data-invalid]))),
+    :where([data-palette]:not([data-palette="basalt"])) :is(.basalt-select-trigger, .basalt-number-group):is(:focus-within, [data-popup-open]):not([data-disabled], [data-invalid]),
+    :where([data-palette]:not([data-palette="basalt"])) .basalt-search-box:has(.basalt-search-box-input:focus):not(:has(.basalt-search-box-input:is(:disabled, [data-disabled], [data-invalid], [data-writing]))) {
+      box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-field-edge-active, var(--basalt-field-edge, var(--basalt-border-field)));
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
     .basalt-search-box:has(.basalt-search-box-input[data-writing]) { animation: none; }
   }
@@ -8099,9 +8199,9 @@
   @media (pointer: coarse), (width < 720px) {
     .basalt-search-box { --_seat: calc(2 * var(--basalt-space-2-5) + var(--basalt-size-control-xs)); min-height: var(--basalt-size-tap-min); }
     .basalt-search-box,
-    .basalt-search-box[data-size] { border-radius: var(--basalt-radius-md); }
+    .basalt-search-box[data-size] { border-radius: var(--_field-corner-lg); }
     /* The port's min-width and min-height of 0 are the base rule's, at (0,4,0): they outrank the touch minimums here too. */
-    .basalt-search-box > .basalt-button.basalt-search-box-clear { --_radius: var(--basalt-radius-sm); min-width: 0; min-height: 0; inset-inline-end: var(--basalt-space-2-5); }
+    .basalt-search-box > .basalt-button.basalt-search-box-clear { --_radius: var(--_corner); min-width: 0; min-height: 0; inset-inline-end: var(--basalt-space-2-5); }
     .basalt-search-box > .basalt-button.basalt-search-box-clear::before { content: ""; position: absolute; inset: calc((var(--basalt-size-control-xs) - var(--basalt-size-tap-min)) / 2); }
   }
   @media (forced-colors: active) {
@@ -8298,7 +8398,7 @@
   /* ---- Navigation, typography and composition ---- */
 
   /* The underline is the link cue: input-boundary colour (3:1), brightening to the text on hover. */
-  .basalt-link, .basalt-rich-text a[href] { color: var(--basalt-text-primary); text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-underline-offset: var(--basalt-size-underline-offset); text-decoration-thickness: var(--basalt-size-hairline); font-family: inherit; transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .basalt-link, .basalt-rich-text a[href] { color: var(--basalt-link-ink, var(--basalt-text-primary)); text-decoration: underline; text-decoration-color: var(--basalt-link-underline, var(--basalt-border-input)); text-underline-offset: var(--basalt-size-underline-offset); text-decoration-thickness: var(--basalt-size-hairline); font-family: inherit; transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out); }
   .basalt-link:hover, .basalt-rich-text a[href]:hover { text-decoration-color: currentColor; }
   .basalt-link:focus-visible, .basalt-page-link:focus-visible, .basalt-rich-text a[href]:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); border-radius: var(--basalt-radius-xs); }
   /* The new-tab cue (target="_blank"): the core external glyph after the label, never underlined (an inline-block is not
@@ -8684,10 +8784,19 @@
   /* The nav is its own container, so it needs no ancestor to answer to: it fills its parent as a block does, and its numbers go under 640px of that width. In a flex row give it `flex: 1`. */
   .basalt-pagination { display: flex; align-items: center; gap: var(--basalt-space-1); container-type: inline-size; }
   .basalt-pagination .basalt-button { min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); font-variant-numeric: tabular-nums; }
-  .basalt-page-link { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: var(--_basalt-control-sm, var(--basalt-size-control-sm)); min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); padding-inline: var(--basalt-space-2-5); border-radius: var(--basalt-radius-sm); color: var(--basalt-text-secondary); text-decoration: none; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
+  .basalt-page-link { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: var(--_basalt-control-sm, var(--basalt-size-control-sm)); min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); padding-inline: var(--basalt-space-2-5); border-radius: var(--basalt-button-radius, var(--basalt-radius-sm)); color: var(--basalt-text-secondary); text-decoration: none; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
   /* The current page is its number at 600 in primary ink on a plate (decisions 138 and 139), whether the pages are links or buttons; a page that is not current is 400 in secondary. Each number reserves its 600 width (ChosenLabel). The plate and the ink step support the weight. */
-  .basalt-page-link[aria-current="page"], .basalt-pagination .basalt-button[aria-current="page"] { color: var(--basalt-text-primary); background: var(--basalt-surface-raised); box-shadow: var(--basalt-shadow-hairline); }
+  .basalt-page-link[aria-current="page"], .basalt-pagination .basalt-button[aria-current="page"] { color: var(--basalt-chosen-ink, var(--basalt-text-primary)); background: var(--basalt-chosen-fill, var(--basalt-surface-raised)); box-shadow: 0 0 0 var(--basalt-size-hairline) var(--basalt-chosen-edge, transparent), var(--basalt-shadow-hairline); }
   .basalt-page-link:hover:not([aria-disabled="true"]) { color: var(--basalt-text-primary); background: var(--basalt-state-hover); }
+  /* The current page keeps its chosen look under the pointer (cimip-gaps-3 T9): under a palette it has its own hover and press, above the ghost Button's
+     and the page link's. A palette that sets a fill keeps that fill and ink in all three states; one that sets only an ink gets it over today's washes. */
+  @media (forced-colors: none) {
+    :where([data-palette]:not([data-palette="basalt"])) .basalt-page-link[aria-current="page"]:hover:not([aria-disabled="true"]) { background: var(--basalt-chosen-fill, var(--basalt-state-hover)); color: var(--basalt-chosen-ink, var(--basalt-text-primary)); }
+    @media (hover: hover) {
+      :where([data-palette]:not([data-palette="basalt"])) .basalt-pagination .basalt-button[aria-current="page"]:hover:not([data-disabled]) { background: var(--basalt-chosen-fill, var(--basalt-state-hover)); color: var(--basalt-chosen-ink, var(--basalt-text-primary)); }
+    }
+    :where([data-palette]:not([data-palette="basalt"])) .basalt-pagination .basalt-button[aria-current="page"]:active:not([data-disabled]):not([data-busy]) { background: var(--basalt-chosen-fill, var(--basalt-state-selected)); color: var(--basalt-chosen-ink, var(--basalt-text-primary)); }
+  }
   .basalt-page-link[aria-disabled="true"] { color: var(--basalt-text-disabled); cursor: not-allowed; }
   /* A page button's number is 400 at rest: the Button's own weight is 500. */
   .basalt-pagination .basalt-button { font-weight: var(--basalt-font-weight-regular); }
@@ -9009,7 +9118,7 @@
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) {
     .basalt-page-link, .basalt-breadcrumbs .basalt-link { min-width: var(--basalt-size-tap-min); min-height: var(--basalt-size-tap-min); display: inline-flex; align-items: center; }
-    .basalt-page-link { border-radius: var(--basalt-radius-md); }
+    .basalt-page-link { border-radius: var(--basalt-button-radius-lg, var(--basalt-radius-md)); }
     .basalt-pagination .basalt-button, .basalt-pagination-gap { min-width: var(--basalt-size-tap-min); }
   }
   /* A link on a line of its own is a touch target (44px) with no change to layout and no change to its look: inline-flex so the box can be
@@ -9912,8 +10021,8 @@
      measure) the host clips to its radius and the port scrolls with no scrollbar drawn; a segment brought into view keeps the fade and space-1 clear, and a
      segment's ring is drawn inside at -2, since at +2 the track would cut it. Each side of the port that hides segments fades (t7); the track is never masked.
      The theme choice keeps its shipped wrap. Before script, the control is as it ships. */
-  .basalt-segmented:not(.basalt-theme-choice .basalt-segmented) { box-sizing: border-box; max-width: 100%; }
-  .basalt-segmented:not([data-orientation="vertical"], .basalt-theme-choice .basalt-segmented) .basalt-segment { flex: none; }
+  .basalt-segmented:not(.basalt-theme-choice .basalt-segmented, .basalt-palette-choice .basalt-segmented) { box-sizing: border-box; max-width: 100%; }
+  .basalt-segmented:not([data-orientation="vertical"], .basalt-theme-choice .basalt-segmented, .basalt-palette-choice .basalt-segmented) .basalt-segment { flex: none; }
   .basalt-segmented[data-overflow] { overflow: hidden; }
   .basalt-segmented[data-overflow] > .basalt-segmented-scroll { flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; overscroll-behavior-inline: contain; scroll-behavior: auto; }
   .basalt-segmented[data-overflow] > .basalt-segmented-scroll::-webkit-scrollbar { display: none; }
@@ -9939,7 +10048,7 @@
     /* Equal by columns, not by flex-basis: a wrapper with no padding of its own would otherwise be narrower than the Cancel button by its padding. */
     .basalt-dialog[data-form] .basalt-sheet-foot .basalt-dialog-actions:has(> .basalt-action-shortcut) { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
     .basalt-dialog[data-form] .basalt-sheet-foot .basalt-dialog-actions > .basalt-action-shortcut { display: flex; align-items: stretch; min-width: 0; }
-    .basalt-dialog[data-form] .basalt-sheet-foot .basalt-dialog-actions > .basalt-action-shortcut > .basalt-button { flex: 1 1 0; min-width: 0; --_h: var(--basalt-size-control-2xl); --_radius: var(--basalt-radius-md); min-height: var(--basalt-size-control-2xl); }
+    .basalt-dialog[data-form] .basalt-sheet-foot .basalt-dialog-actions > .basalt-action-shortcut > .basalt-button { flex: 1 1 0; min-width: 0; --_h: var(--basalt-size-control-2xl); --_radius: var(--_corner-lg); min-height: var(--basalt-size-control-2xl); }
   }
 
   /* ---- FormPreview (cimip-gaps-3 t4, item 5): a form beside what it writes ----
@@ -10177,7 +10286,7 @@
   [data-arrived] .basalt-stream-time-link { color: var(--basalt-text-secondary); }
   /* The popover the More control opens: its opener plus one, the rim, shadow-overlay; the same controls in a Cluster, each at 44, padding space-1. */
   .basalt-stream-more-popup { padding: var(--basalt-space-1); }
-  .basalt-stream-more-popup .basalt-button { --_h: var(--basalt-size-tap-min); --_radius: var(--basalt-radius-md); }
+  .basalt-stream-more-popup .basalt-button { --_h: var(--basalt-size-tap-min); --_radius: var(--_corner-lg); }
   /* The pointer form. */
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; from it, with a fine pointer that hovers, the quiet actions are revealed in place */
   @media (width >= 720px) and (hover: hover) and (pointer: fine) {
@@ -10265,7 +10374,7 @@
   .basalt-tabbar-before { display: flex; flex-direction: column; gap: var(--basalt-space-1); margin-bottom: var(--basalt-space-2); padding-bottom: var(--basalt-space-2); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
   .basalt-tabbar-before > * { box-sizing: border-box; width: 100%; min-height: var(--basalt-size-tap-min); }
   /* Its words start on the nav glyphs' edge, as the footnote's and the version's rows do. */
-  .basalt-tabbar-before .basalt-button { --_h: var(--basalt-size-tap-min); --_radius: var(--basalt-radius-md); --_px: calc(var(--basalt-space-1-5) + var(--basalt-space-3)); justify-content: flex-start; }
+  .basalt-tabbar-before .basalt-button { --_h: var(--basalt-size-tap-min); --_radius: var(--_corner-lg); --_px: calc(var(--basalt-space-1-5) + var(--basalt-space-3)); justify-content: flex-start; }
   /* The footnote as a row of More's sheet, above the version row: the same lines, at least 44 tall, the action at the end. */
   .basalt-tabbar-footnote { box-sizing: border-box; margin-top: var(--basalt-space-2); padding-inline: calc(var(--basalt-space-1-5) + var(--basalt-space-3)); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); --basalt-edge-room-end: calc(var(--basalt-space-1-5) + var(--basalt-space-3)); --basalt-edge-room: initial; --basalt-edge-room-start: initial; }
   .basalt-tabbar-footnote > .basalt-app-footnote { margin: 0; padding: 0; border: 0; }

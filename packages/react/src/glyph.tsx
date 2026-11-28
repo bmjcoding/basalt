@@ -38,6 +38,8 @@ export interface GlyphData {
   readonly group?: string;
   /** Degrees clockwise about the tile's centre from the group's canonical drawing. */
   readonly rotate?: number;
+  /** Set by `defineGlyph`: an app's drawing, which morphs only between its own rest and selected and turns only within a group of its own (cimip-gaps-3 T9). */
+  readonly defined?: boolean;
 }
 
 /** An icon component that also carries its drawing. Pass it to `Icon`, `Button`'s `icon`, or any `IconComponent` prop. */
@@ -209,4 +211,13 @@ export function glyph(data: GlyphData): GlyphIcon {
   Glyph.displayName = `Glyph(${data.name})`;
   Glyph.glyph = data;
   return Glyph;
+}
+
+/**
+ * An app's own glyph, drawn by Basalt's renderer (cimip-gaps-3 T9): eight cubic slots on the 24 grid, 2.25 stroke, an opening at rest that selected
+ * closes. Put it in an `IconSet` to replace a core glyph. It morphs between its own rest and selected, and turns only within a rotation group its own
+ * data declares (shared with other defined glyphs, never with the core set's); a change to or from it in one of the core set's drawn pairs swaps.
+ */
+export function defineGlyph(data: GlyphData): GlyphIcon {
+  return glyph({ ...data, defined: true });
 }

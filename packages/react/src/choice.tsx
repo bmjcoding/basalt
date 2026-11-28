@@ -18,6 +18,7 @@ import { GlidePlate } from "./plate";
 import { MenuPort } from "./fade-port";
 import { join, withClass } from "./utils";
 import { useFloatingLayer, usePopupLevel } from "./layers";
+import { usePortalScope } from "./palette-scope";
 
 // ---- Checkbox ----
 
@@ -232,6 +233,7 @@ export interface SelectProps {
  * The list opens below the trigger, like a menu.
  */
 export function Select({ options, placeholder = "Select…", controlSize = "md", className, "aria-label": ariaLabel, valuePrefix, numeric, toolbar, inputRef, ...props }: SelectProps) {
+  const portalScope = usePortalScope();
   const mirror = useMirrorRef(inputRef);
   const ids = { prefix: React.useId(), value: React.useId() };
   const layer = useFloatingLayer();
@@ -261,10 +263,10 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
           <BaseSelect.Value data-widest={numeric && options.length ? "8".repeat(Math.max(...options.map((o) => String(o.label).length))) : undefined} className="basalt-select-value" placeholder={placeholder} />
         )}
         <BaseSelect.Icon className="basalt-select-icon">
-          <Icon icon={CaretUpDownIcon} size={16} />
+          <Icon icon={CaretUpDownIcon} slot="select-caret" size={16} />
         </BaseSelect.Icon>
       </BaseSelect.Trigger>
-      <BaseSelect.Portal>
+      <BaseSelect.Portal {...portalScope}>
         <BaseSelect.Positioner className="basalt-positioner" style={layer} sideOffset={6} alignItemWithTrigger={false}>
           <BaseSelect.Popup data-level={level} className="basalt-menu basalt-select-popup">
             <MenuPort>

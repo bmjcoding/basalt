@@ -2,6 +2,7 @@
 // (glyph-flight.tsx). Types and pure helpers: nothing here runs when the module loads.
 
 import type { GlyphData } from "./glyph";
+import type { SystemIconSlot } from "./icon-set";
 import type { IconComponent } from "./types";
 
 /** What a control's seat shows: the glyph and whether it is drawn selected. */
@@ -17,6 +18,8 @@ export interface ControlIconProps {
   fillSafe?: boolean;
   /** The glyph is one that will change (a toggle's selected form, a current item): load the engine at mount. */
   eager?: boolean;
+  /** The system mark's role, for a long-tail mark an icon set may replace (cimip-gaps-3 T9). */
+  slot?: SystemIconSlot;
   /** A pressed toggle's seat: a change that ends without a flight (reduced motion, a pair the engine refuses, an interruption) crossfades over `duration-fast` (DECISIONS 361). */
   crossfade?: boolean;
 }

@@ -1,5 +1,6 @@
 import { Popover as BasePopover } from "@base-ui/react/popover";
 import * as React from "react";
+import { usePortalScope } from "./palette-scope";
 
 // A popover opened by a button the part draws itself (cimip-gaps-3 T2): `Stat`'s hint and a rail stage's detail. Loaded the first time one opens (lazy-popover.ts),
 // so a `Stat` or a `StageRail` that never opens one does not load Base UI's popover. It is built on its own (build.mjs) and imports nothing of Basalt's: the popup's
@@ -29,6 +30,7 @@ export interface AnchoredPopoverProps {
 const KEEP_AXIS = { fallbackAxisSide: "none" } as const;
 
 export default function AnchoredPopover({ open, onOpenChange, anchor, title, align = "start", level, layer, wrap, id, className, state, children }: AnchoredPopoverProps) {
+  const portalScope = usePortalScope();
   return (
     <BasePopover.Root
       open={open}
@@ -38,7 +40,7 @@ export default function AnchoredPopover({ open, onOpenChange, anchor, title, ali
         if (next !== open) onOpenChange(next);
       }}
     >
-      <BasePopover.Portal>
+      <BasePopover.Portal {...portalScope}>
         <BasePopover.Positioner anchor={anchor} side="bottom" align={align} sideOffset={6} collisionAvoidance={KEEP_AXIS} style={layer} className="basalt-positioner">
           <BasePopover.Popup id={id} finalFocus={anchor} data-level={level} data-state={state} className={className ? `basalt-popover ${className}` : "basalt-popover"}>
             <BasePopover.Title className="basalt-popover-title">{title}</BasePopover.Title>

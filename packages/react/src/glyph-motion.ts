@@ -25,12 +25,15 @@ export interface Endpoint extends Drawing {
   readonly group: string | null;
 }
 
+// An app's glyph (`defineGlyph`) is named and grouped apart from the core set's, so it never takes a core drawn pair and turns only with its own group.
+const own = (data: GlyphData, name: string) => (data.defined ? `defined:${name}` : name);
+
 export function endpointOf(data: GlyphData, selected: boolean): Endpoint {
-  return { ...settle(data, selected), name: data.name, group: data.group ?? null };
+  return { ...settle(data, selected), name: own(data, data.name), group: data.group ? own(data, data.group) : null };
 }
 
 /** The identity of a settled state: the glyph and whether it is selected. */
-export const keyOf = (data: GlyphData, selected: boolean) => `${data.name}${selected ? ":selected" : ""}`;
+export const keyOf = (data: GlyphData, selected: boolean) => `${own(data, data.name)}${selected ? ":selected" : ""}`;
 
 export type MorphKind = "same" | "group" | "pair";
 

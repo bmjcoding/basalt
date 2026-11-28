@@ -41,16 +41,16 @@ function Breath({ children }: { children: React.ReactNode }) {
 
 function Glyph({ state, size }: { state: StageState; size: 16 | 20 | 24 }) {
   switch (state) {
-    case "idle": return <Icon icon={CircleDashedIcon} size={size} />;
-    case "queued": return <Breath><Icon icon={CircleIcon} size={size} /></Breath>;
+    case "idle": return <Icon icon={CircleDashedIcon} slot="status-idle" size={size} />;
+    case "queued": return <Breath><Icon icon={CircleIcon} slot="status-pending" size={size} /></Breath>;
     case "running":
     case "retrying": return <Spinner size={size} />;
-    case "success": return <Icon icon={CheckCircleIcon} size={size} />;
-    case "failed": return <Icon icon={XCircleIcon} size={size} />;
-    case "skipped": return <Icon icon={MinusCircleIcon} size={size} />;
-    case "canceled": return <Icon icon={ProhibitIcon} size={size} />;
+    case "success": return <Icon icon={CheckCircleIcon} slot="status-success" size={size} />;
+    case "failed": return <Icon icon={XCircleIcon} slot="status-danger" size={size} />;
+    case "skipped": return <Icon icon={MinusCircleIcon} slot="status-skipped" size={size} />;
+    case "canceled": return <Icon icon={ProhibitIcon} slot="status-canceled" size={size} />;
     // An ending with a warning (cimip-gaps-3 T2): the outline triangle in status-warning.
-    case "warning": return <Icon icon={WarningIcon} size={size} />;
+    case "warning": return <Icon icon={WarningIcon} slot="status-warning" size={size} />;
   }
 }
 

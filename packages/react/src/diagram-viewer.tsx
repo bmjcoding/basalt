@@ -11,6 +11,7 @@ import { createPortal } from "react-dom";
 import { CloseGlyph } from "./glyphs/close";
 import { MinusGlyph } from "./glyphs/minus";
 import { PlusGlyph } from "./glyphs/plus";
+import { usePortalScope } from "./palette-scope";
 
 // The diagram viewer (DECISIONS 301, part 9, as DECISIONS 310): "Expand" opens the figure's drawn layout in a dialog, where the reader zooms and pans it.
 // The figure is drawn again from the same data, laid out once at 100% in real CSS pixels, and zoomed with one transform (diagram-zoom-core.ts). This module
@@ -66,6 +67,7 @@ const EMPTY: ZoomState = { zoom: 1, level: 100, fit: 1, min: 1, max: 4, atMin: f
 const probeWidth = (stage: HTMLElement | null, which: string) => stage?.querySelector<HTMLElement>(`.${P}-probe[data-probe="${which}"]`)?.offsetWidth ?? 0;
 
 export function DiagramViewer({ kit, actions, Actions, spec, component, base, source, summary, opener, host, onClose }: DiagramViewerProps) {
+  const portalScope = usePortalScope();
   const { Figure: DiagramFigure, Kbd, buildModel, figureKey, figureList, hintEntries, toHtml, inLevel, measureFigure } = kit;
   // The viewer's figure is still (9.7): no entrance, flow, mover or run, so no motion code is loaded for it.
   // Its "Draw again" too (DECISIONS 405, G149): `replay` is left off, so the still figure is not warned about it.
@@ -223,7 +225,7 @@ export function DiagramViewer({ kit, actions, Actions, spec, component, base, so
   return createPortal(
     // In a modal, Esc closes the viewer alone (the browser's cancel): the key goes no further, so the modal's own dismissal, a React handler on its popup and
     // a listener on the document, never sees it. On the page it travels as it always has.
-    <dialog ref={dialogRef} className={`basalt-dialog ${P}-viewer`} data-form="" data-level={1} aria-labelledby={titleId} aria-describedby={descId} onKeyDown={into ? stopEscape : undefined}>
+    <dialog ref={dialogRef} {...portalScope} className={`basalt-dialog ${P}-viewer`} data-form="" data-level={1} aria-labelledby={titleId} aria-describedby={descId} onKeyDown={into ? stopEscape : undefined}>
       {inLevel(1, <>
         <header className="basalt-sheet-head">
           <div className="basalt-sheet-head-text">

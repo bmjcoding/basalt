@@ -430,7 +430,7 @@ function NotificationRow({ entry, onChoose, group }: { entry: NotificationEntry;
     <>
       {/* The dot's own seat: always there, filled only while unread, so reading a row moves nothing. */}
       <span className="basalt-notification-dot" aria-hidden="true" />
-      <span className="basalt-notification-mark" aria-hidden="true">{status === "neutral" ? null : <Icon icon={MARKS[status]} size={16} />}</span>
+      <span className="basalt-notification-mark" aria-hidden="true">{status === "neutral" ? null : <Icon icon={MARKS[status]} slot={`status-${status}`} size={16} />}</span>
       <span className="basalt-notification-text">
         {times !== undefined ? (
           // The title is cut first; the count (the toast's "×3") and a group's chevron always show.

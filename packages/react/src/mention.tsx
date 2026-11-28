@@ -6,6 +6,7 @@ import { useFloatingLayer, usePopupLevel } from "./layers";
 import { GlidePlate } from "./plate";
 import { useScrollFade } from "./fade-port";
 import { join } from "./utils";
+import { usePortalScope } from "./palette-scope";
 
 // A mention, and the picker that writes one (cimip-gaps-2, B3). A mention is a name in running text that calls on someone: the trigger
 // ("@") and the name, at 500 in primary ink, so it is marked by a glyph and a weight and never by colour alone. The picker is a popup of
@@ -164,6 +165,7 @@ const MARGIN = 8;
  * are Combobox's two-line rows, under `group` labels.
  */
 export function MentionPicker({ field, options, trigger = "@", filter, onQueryChange, onPick, label = "Suggestions" }: MentionPickerProps) {
+  const portalScope = usePortalScope();
   const [query, setQuery] = React.useState<Query | null>(null);
   const [active, setActive] = React.useState(0);
   const dismissed = React.useRef<number | null>(null);
@@ -436,7 +438,7 @@ export function MentionPicker({ field, options, trigger = "@", filter, onQueryCh
     </div>
   );
   return createPortal(
-    <div ref={positioner} className="basalt-positioner basalt-mention-positioner" style={layer}>
+    <div ref={positioner} {...portalScope} className="basalt-positioner basalt-mention-positioner" style={layer}>
       <div
         ref={popup}
         data-level={level}

@@ -17,6 +17,7 @@ import type { Side } from "./types";
 import { join } from "./utils";
 import { useMergedRef } from "./merged-ref";
 import { warnRun } from "./run-warn";
+import { usePortalScope } from "./palette-scope";
 
 declare const process: { env: { NODE_ENV?: string } };
 
@@ -481,7 +482,7 @@ export function TableHead({ numeric, sort, onSortChange, firstSort, explainer, c
         <span className="basalt-sort-label">{children}</span>
         {/* The seat is 16px on every sortable header, whatever it shows, so the indicator arriving moves no column. */}
         <span className="basalt-sort-seat" aria-hidden="true">
-          <Icon icon={CaretUpDownIcon} className="basalt-sort-caret" />
+          <Icon icon={CaretUpDownIcon} slot="sort-caret" className="basalt-sort-caret" />
           <Icon icon={ArrowUpGlyph} className="basalt-sort-up" />
           <Icon icon={ArrowDownGlyph} className="basalt-sort-down" />
         </span>
@@ -643,6 +644,7 @@ export function TooltipProvider(props: TooltipProviderProps) {
 }
 
 export function Tooltip({ content, children, side = "top", defaultOpen, shortcut }: TooltipProps) {
+  const portalScope = usePortalScope();
   const [open, setOpen] = React.useState(defaultOpen ?? false);
   const id = React.useId();
   const trigger = children as React.ReactElement<{ "aria-describedby"?: string }>;
@@ -653,7 +655,7 @@ export function Tooltip({ content, children, side = "top", defaultOpen, shortcut
   return (
     <BaseTooltip.Root open={open} onOpenChange={setOpen}>
       <BaseTooltip.Trigger render={React.cloneElement(trigger, { "aria-describedby": description, "aria-keyshortcuts": keys.length ? ariaShortcut(keys) : undefined } as object)} />
-      <BaseTooltip.Portal>
+      <BaseTooltip.Portal {...portalScope}>
         <BaseTooltip.Positioner side={side} sideOffset={6} className="basalt-positioner basalt-tooltip-positioner">
           {/* a tooltip is always level 3: it floats above whatever opened it */}
           <BaseTooltip.Popup id={id} role="tooltip" data-level={3} className="basalt-tooltip">

@@ -109,7 +109,7 @@ export function Stat({ label, value, note, source, time, timeZone, now, locale, 
         <span id={labelId}>{label}</span>
         {hint !== undefined ? (
           <button ref={hintRef} type="button" className="basalt-stat-hint" aria-label={hintName} aria-haspopup="dialog" aria-expanded={hintOpen} aria-controls={hintOpen ? hintId : undefined} onClick={() => setHintOpen((was) => !was)}>
-            <Icon icon={InfoIcon} size={16} />
+            <Icon icon={InfoIcon} slot="status-info" size={16} />
           </button>
         ) : null}
         {HintPopover ? (

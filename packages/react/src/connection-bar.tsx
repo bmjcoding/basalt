@@ -155,9 +155,9 @@ export function ConnectionBar({ status, words, detail, since, action, contained 
   const state = shown;
   const restored = state === "restored";
   const mark = state === "reconnecting" ? <Spinner variant="braille" size={16} />
-    : state === "offline" ? <Icon icon={WarningIcon} size={16} />
-    : state === "disconnected" ? <Icon icon={XCircleIcon} size={16} />
-    : state === "restored" ? <Icon icon={CheckCircleIcon} size={16} /> : null;
+    : state === "offline" ? <Icon icon={WarningIcon} slot="status-warning" size={16} />
+    : state === "disconnected" ? <Icon icon={XCircleIcon} slot="status-danger" size={16} />
+    : state === "restored" ? <Icon icon={CheckCircleIcon} slot="status-success" size={16} /> : null;
   return (
     <>
       {state !== null ? (

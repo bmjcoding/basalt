@@ -90,20 +90,20 @@ export interface TerminalProps {
 }
 
 const MARKS = {
-  done: { icon: CheckCircleIcon, name: "Done" },
-  warning: { icon: WarningIcon, name: "Warning" },
-  error: { icon: XCircleIcon, name: "Error" },
+  done: { icon: CheckCircleIcon, name: "Done", slot: "status-success" },
+  warning: { icon: WarningIcon, name: "Warning", slot: "status-warning" },
+  error: { icon: XCircleIcon, name: "Error", slot: "status-danger" },
 } as const;
 
 // A stage line's gutter: braille while running, the core check when done, the error's XCircle when failed, the core minus when skipped, Prohibit when
 // canceled, the Warning triangle in status-warning when it ended with a warning. Running, done and failed are said by the mark (a named image); skipped,
 // canceled and warning by the word drawn before the text.
 const STAGE_MARKS = {
-  done: { icon: CheckGlyph, name: "Done" },
-  failed: { icon: XCircleIcon, name: "Failed" },
-  skipped: { icon: MinusGlyph, name: undefined },
-  canceled: { icon: ProhibitIcon, name: undefined },
-  warning: { icon: WarningIcon, name: undefined },
+  done: { icon: CheckGlyph, name: "Done", slot: undefined },
+  failed: { icon: XCircleIcon, name: "Failed", slot: "status-danger" },
+  skipped: { icon: MinusGlyph, name: undefined, slot: undefined },
+  canceled: { icon: ProhibitIcon, name: undefined, slot: "status-canceled" },
+  warning: { icon: WarningIcon, name: undefined, slot: "status-warning" },
 } as const;
 const STAGE_WORDS_DRAWN: Partial<Record<TerminalStageState, string>> = { skipped: "Skipped", canceled: "Canceled", warning: "Warning" };
 
@@ -217,8 +217,8 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
       idle: "Not started",
       running: <><Spinner variant="braille" /><span>Running</span></>,
       paused: "Paused",
-      done: <><Icon icon={CheckCircleIcon} size={16} className="basalt-terminal-done" /><span>Done</span></>,
-      failed: <><Icon icon={XCircleIcon} size={16} className="basalt-terminal-failed" /><span data-error="">{failedWord}</span></>,
+      done: <><Icon icon={CheckCircleIcon} slot="status-success" size={16} className="basalt-terminal-done" /><span>Done</span></>,
+      failed: <><Icon icon={XCircleIcon} slot="status-danger" size={16} className="basalt-terminal-failed" /><span data-error="">{failedWord}</span></>,
     })
   );
 
@@ -262,7 +262,7 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
                 key={i}
                 kind={line.kind}
                 receded={recedes(i)}
-                gutter={line.kind === "command" ? <CodePrompt>{prompt}</CodePrompt> : mark ? <Icon icon={mark.icon} size={16} label={mark.name} className="basalt-terminal-mark" /> : null}
+                gutter={line.kind === "command" ? <CodePrompt>{prompt}</CodePrompt> : mark ? <Icon icon={mark.icon} slot={mark.slot} size={16} label={mark.name} className="basalt-terminal-mark" /> : null}
               >
                 {line.node ?? (line.fields ? <LogFields fields={line.fields} /> : line.text)}
               </CodeLine>
@@ -282,7 +282,7 @@ function StageLine({ line, receded }: { line: TerminalLine; receded: boolean }) 
   const named = word ? undefined : state === "running" ? "Running" : STAGE_MARKS[state as Exclude<TerminalStageState, "running">].name;
   const mark = state === "running"
     ? <span role={named ? "img" : undefined} aria-label={named} aria-hidden={named ? undefined : true} className="basalt-terminal-braille"><Spinner variant="braille" /></span>
-    : <Icon icon={STAGE_MARKS[state].icon} size={16} label={named} className="basalt-terminal-mark" />;
+    : <Icon icon={STAGE_MARKS[state].icon} slot={STAGE_MARKS[state].slot} size={16} label={named} className="basalt-terminal-mark" />;
   const running = line.start !== undefined && line.end === undefined;
   return (
     <span className="basalt-code-line" data-kind="stage" data-state={state} data-receded={receded ? "" : undefined}>

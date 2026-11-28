@@ -152,7 +152,7 @@ export function FileInput({
         onDrop={(event: React.DragEvent<HTMLInputElement>) => { props.onDrop?.(event); setDrag(false); }}
       />
       <span className="basalt-file-input-face" aria-hidden="true">
-        <Icon icon={PaperclipIcon} size={16} />
+        <Icon icon={PaperclipIcon} slot="attachment" size={16} />
         <span className="basalt-file-input-line" data-empty={files.length ? undefined : ""}>
           {files.length === 0 ? emptyLabel : one ? one.name : filesLabel(files.length)}
         </span>

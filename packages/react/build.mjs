@@ -449,12 +449,22 @@ const { loopsBootstrap } = await import(pathToFileURL(path.join(dist, "loops-boo
 fs.mkdirSync(path.join(dist, "head"), { recursive: true });
 fs.writeFileSync(path.join(dist, "head", "theme.js"), themeBootstrap);
 fs.writeFileSync(path.join(dist, "head", "loops.js"), loopsBootstrap);
+// The palette's head script as a file (cimip-gaps-3 T9): it reads its ids, default and URL policy from three metas placed before it (paletteMetas), with the
+// same logic and precedence as paletteBootstrap's inline script, so a page under `script-src 'self'` gets the same first frame.
+const { paletteHeadFile } = await import(pathToFileURL(path.join(dist, "palette-bootstrap.js")).href);
+fs.writeFileSync(path.join(dist, "head", "palette.js"), paletteHeadFile);
+// The shipped palettes' CSS, opt-in: `@srasyndicate/basalt/palettes/beryl.css`.
+fs.mkdirSync(path.join(dist, "palettes"), { recursive: true });
+fs.copyFileSync(require.resolve("@srasyndicate/basalt-tokens/palettes/beryl.css"), path.join(dist, "palettes", "beryl.css"));
 
 // The accent classes are generated with the tokens and ship with the components, whose Badge is the one reader of them.
 const accents = fs.readFileSync(require.resolve("@srasyndicate/basalt-tokens/accents.css"), "utf8");
 // `%glyph-mask:name%` in the stylesheet is a core glyph's drawing as a mask (glyph-mask.mjs).
 const { withGlyphMasks } = await import(pathToFileURL(path.join(here, "glyph-mask.mjs")).href);
-const components = `${withGlyphMasks(fs.readFileSync(path.join(here, "src/styles/components.css"), "utf8"))}\n${accents}`;
+// Basalt's own palette block and the palette choice's first-frame rules for basalt (cimip-gaps-3 T9) ship with the components too; a palette's own CSS is opt-in
+// (palettes/<id>.css, written by paletteCss in the tokens package).
+const paletteBase = fs.readFileSync(require.resolve("@srasyndicate/basalt-tokens/palette-base.css"), "utf8");
+const components = `${withGlyphMasks(fs.readFileSync(path.join(here, "src/styles/components.css"), "utf8"))}\n${accents}\n${paletteBase}`;
 
 // Geist Sans and Mono, variable (SIL OFL 1.1, licence shipped beside the files).
 const geist = path.join(packageDir("geist"), "dist", "fonts");

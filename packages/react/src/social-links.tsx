@@ -12,6 +12,7 @@ import { Icon } from "./icon";
 import { NewTabGlyph, NewTabWords, opensNewTab } from "./new-tab";
 import type { IconComponent } from "./types";
 import { join } from "./utils";
+import { useIcon } from "./icon-set";
 
 /**
  * The services that have a mark: Phosphor Bold's own logos (a service Phosphor doesn't draw has no mark and is the word alone, never
@@ -78,7 +79,9 @@ export interface SocialLinkProps extends Omit<React.ComponentProps<"a">, "childr
  */
 export function SocialLink({ service, children, target, rel, newTabLabel, className, ...props }: SocialLinkProps) {
   const row = React.useContext(RowContext);
-  const mark = service ? MARKS[service] : undefined;
+  // Email's envelope is a system slot an icon set may replace; a service's own logo never is (cimip-gaps-3 T9).
+  const envelope = useIcon(MARKS.email, "email");
+  const mark = service === "email" ? envelope : service ? MARKS[service] : undefined;
   const newTab = opensNewTab(target);
   if (row.iconOnly && mark) {
     return (
@@ -124,7 +127,8 @@ export interface ProfileLinkProps extends Omit<React.ComponentProps<"a">, "child
 }
 
 export function ProfileLink({ service, children, handle, target, rel, newTabLabel, className, ...props }: ProfileLinkProps) {
-  const mark = service ? MARKS[service] : undefined;
+  const envelope = useIcon(MARKS.email, "email");
+  const mark = service === "email" ? envelope : service ? MARKS[service] : undefined;
   const newTab = opensNewTab(target);
   const relationship = newTab ? [...new Set([...(rel?.split(/\s+/).filter(Boolean) ?? []), "noopener", "noreferrer"])].join(" ") : rel;
   return (

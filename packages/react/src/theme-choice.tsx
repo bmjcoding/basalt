@@ -8,6 +8,7 @@ import { Pill } from "./pill";
 import { useTheme } from "./theme";
 import type { ThemeChoice as ThemeChoiceName } from "./theme";
 import { join } from "./utils";
+import { useIcon } from "./icon-set";
 
 // The theme choice (DECISIONS 146 B): three states, System, Light and Dark, where System is nothing stored. On a site it is three words in the
 // segmented control's drawing in the footer, with radio semantics (one tab stop; arrows move and choose; Home and End); in an app with no footer
@@ -101,9 +102,12 @@ export interface ThemeMenuProps {
 export function ThemeMenu({ words, className }: ThemeMenuProps) {
   const text = wordsOf(words);
   const { theme, choice, setChoice } = useTheme();
+  // The two marks are system slots an icon set may replace (cimip-gaps-3 T9).
+  const sun = useIcon(SunIcon, "theme-light");
+  const moon = useIcon(MoonIcon, "theme-dark");
   return (
     <Menu>
-      <MenuTrigger render={<IconButton variant="ghost" icon={theme === "dark" ? MoonIcon : SunIcon} label={`${text.label}: ${text[choice]}`} className={className} />} />
+      <MenuTrigger render={<IconButton variant="ghost" icon={theme === "dark" ? moon : sun} label={`${text.label}: ${text[choice]}`} className={className} />} />
       <MenuContent align="end">
         <MenuRadioGroup aria-label={text.label} value={choice} onValueChange={(value) => setChoice(value as ThemeChoiceName)}>
           {ORDER.map((value) => <MenuRadioItem key={value} value={value} closeOnClick>{text[value]}</MenuRadioItem>)}

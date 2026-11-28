@@ -13,6 +13,7 @@ import { useScrollStop } from "./scroll-stop";
 import type { Sides } from "./scroll-fade";
 import type { PartProps } from "./types";
 import { join, withClass, withStyle } from "./utils";
+import { usePortalScope } from "./palette-scope";
 
 export interface AlertDialogProps extends Omit<DialogProps, "modal" | "disablePointerDismissal"> {}
 
@@ -36,6 +37,7 @@ export function AlertDialogCancel(props: DialogCloseProps) {
 }
 
 export function AlertDialogContent({ className, initialFocus, ref, style, children, ...props }: DialogContentProps) {
+  const portalScope = usePortalScope();
   const layer = useModalLayer();
   const popup = React.useRef<HTMLDivElement | null>(null);
   const keepRef = React.useCallback((node: HTMLDivElement | null) => {
@@ -47,7 +49,7 @@ export function AlertDialogContent({ className, initialFocus, ref, style, childr
   return (
     <ModalDepth.Provider value={layer.depth}>
     <ModalHost.Provider value={popup}>
-    <BaseAlertDialog.Portal>
+    <BaseAlertDialog.Portal {...portalScope}>
       <BaseAlertDialog.Backdrop className="basalt-dialog-backdrop" style={{ zIndex: layer.backdrop }} />
       <BaseAlertDialog.Popup {...props} data-level={MODAL_LEVEL} ref={mergedRef} style={withStyle({ zIndex: layer.popup }, style)} initialFocus={initialFocus ?? (() => popup.current?.querySelector<HTMLElement>("[data-basalt-cancel]") ?? true)} className={withClass("basalt-dialog", className)}><FadePort className="basalt-dialog-scroll" labelledBy={dialogTitle}>{inLevel(MODAL_LEVEL, children)}</FadePort></BaseAlertDialog.Popup>
     </BaseAlertDialog.Portal>
@@ -99,6 +101,7 @@ function heldActions(port: HTMLElement): Sides {
 
 /** A modal side panel for a task or detail, with native dialog focus and dismissal behaviour. */
 export function SheetContent({ side = "right", className, style, children, ref, step, size = "default", initialFocus, ...props }: SheetContentProps) {
+  const portalScope = usePortalScope();
   const wide = size === "wide" && (side === "left" || side === "right");
   const layer = useModalLayer();
   const popup = React.useRef<HTMLDivElement | null>(null);
@@ -120,7 +123,7 @@ export function SheetContent({ side = "right", className, style, children, ref, 
   return (
     <ModalDepth.Provider value={layer.depth}>
     <ModalHost.Provider value={popup}>
-    <BaseDialog.Portal>
+    <BaseDialog.Portal {...portalScope}>
       <BaseDialog.Backdrop data-side={side} className="basalt-dialog-backdrop basalt-sheet-backdrop" style={{ zIndex: layer.backdrop }} />
       <BaseDialog.Popup {...props} ref={popupRef} data-side={side} data-size={wide ? "wide" : undefined} initialFocus={initialFocus ?? (wide ? () => popup.current?.querySelector<HTMLElement>(".basalt-dialog-title") ?? true : undefined)} data-level={MODAL_LEVEL} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-sheet", className)}><FadePort className="basalt-sheet-scroll" pinned={heldActions} labelledBy={dialogTitle}>{inLevel(MODAL_LEVEL, children)}</FadePort></BaseDialog.Popup>
     </BaseDialog.Portal>

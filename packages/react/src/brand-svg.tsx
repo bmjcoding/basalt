@@ -14,6 +14,11 @@ import { readBrandSvg } from "./brand-svg-read";
 export interface BrandSvgProps extends Omit<React.ComponentProps<"svg">, "children" | "dangerouslySetInnerHTML" | "viewBox" | "aria-hidden" | "focusable"> {
   /** The text of a file from `brand/`, as it is (for example `import file from "../brand/blacksand/mark.svg?raw"`). Its title is not drawn. */
   source: string;
+  /**
+   * `ink` (the default) draws the mark in the text colour. `brand` draws it in the palette's brand-mark colour (`--basalt-brand-mark`), and in the text
+   * colour under no palette and in forced colours. Opt in only for a mark: a wordmark, an image or a fixed-colour file is never tinted.
+   */
+  tone?: "ink" | "brand";
 }
 
 /**
@@ -21,7 +26,7 @@ export interface BrandSvgProps extends Omit<React.ComponentProps<"svg">, "childr
  * or a heading that carries the name: `SiteBrand`'s children, `AppShell`'s `brand`, or your own `<a aria-label="Blacksand home">`. The source is a file of the repository's `brand/`, never user
  * input: it is drawn as markup.
  */
-export function BrandSvg({ source, className, ...props }: BrandSvgProps) {
+export function BrandSvg({ source, tone = "ink", className, ...props }: BrandSvgProps) {
   const drawing = React.useMemo(() => readBrandSvg(source), [source]);
   return (
     <svg
@@ -32,6 +37,7 @@ export function BrandSvg({ source, className, ...props }: BrandSvgProps) {
       width={props.width ?? drawing.width}
       height={props.height ?? drawing.height}
       className={join("basalt-brand-svg", className)}
+      data-tone={tone === "brand" ? "brand" : undefined}
       // sink: `source`, a brand file from the app's own repository (never user input, as the prop says); its title and script are dropped by readBrandSvg; test/words-fix-c12.test.mjs
       // oxlint-disable-next-line react/no-danger -- the brand file's inner markup, from the app's own repository (the sink: comment above)
       dangerouslySetInnerHTML={{ __html: drawing.inner }}

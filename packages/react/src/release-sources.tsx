@@ -1,5 +1,6 @@
 import { Popover as BasePopover } from "@base-ui/react/popover";
 import * as React from "react";
+import { usePortalScope } from "./palette-scope";
 
 // The Sources panel's popup (DECISIONS 320, 2.9), loaded the first time a reader reaches for a source line (release-notes.tsx), so a page of releases
 // does not load a popup, its positioning and Floating UI until someone asks. It is built on its own (build.mjs) and imports nothing of Basalt's: what it
@@ -24,10 +25,11 @@ export interface SourcesPopupProps {
 const KEEP_AXIS = { fallbackAxisSide: "none" } as const;
 
 export function SourcesPopup({ open, onOpenChange, trigger, level, layer, panelRef, title, children }: SourcesPopupProps) {
+  const portalScope = usePortalScope();
   return (
     <BasePopover.Root open={open} onOpenChange={(next) => onOpenChange(next)}>
       <BasePopover.Trigger render={trigger} />
-      <BasePopover.Portal>
+      <BasePopover.Portal {...portalScope}>
         <BasePopover.Positioner side="bottom" align="end" sideOffset={6} collisionPadding={16} collisionAvoidance={KEEP_AXIS} style={layer} className="basalt-positioner">
           <BasePopover.Popup ref={panelRef} initialFocus={panelRef} data-level={level} className="basalt-popover basalt-release-sources">
             <BasePopover.Title className="basalt-popover-title">{title}</BasePopover.Title>

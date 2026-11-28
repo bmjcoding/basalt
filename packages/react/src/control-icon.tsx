@@ -2,7 +2,8 @@ import * as React from "react";
 
 import { changes, glyphOf } from "./control-seat";
 import type { ControlIconProps, Shown } from "./control-seat";
-import { Icon } from "./icon";
+import { IconDrawing } from "./icon";
+import { useIcon } from "./icon-set";
 
 // How a control draws its glyph when the glyph can change (engineering that restores DECISIONS 38 and 55: the core glyphs morph where the
 // council allowed it). A long-tail icon is `Icon`, with no hook. A core glyph is `Icon` too, byte for byte, until its drawing changes: then, with
@@ -63,9 +64,12 @@ export function useGlyphSlot(now: Shown, preload: boolean) {
 /**
  * A control's glyph: `Icon`, byte for byte, until its drawing changes with the engine in hand. Nothing here changes the glyph's size or seat.
  */
-export function ControlIcon(props: ControlIconProps) {
-  const { icon, selected = false, eager } = props;
+export function ControlIcon({ slot, ...given }: ControlIconProps) {
+  // The icon set's entry for this glyph (or slot) is what the seat shows, and what a change is measured against (cimip-gaps-3 T9).
+  const icon = useIcon(given.icon, slot);
+  const props = { ...given, icon };
+  const { selected = false, eager } = props;
   const data = glyphOf(icon);
   const [Morph, from] = useGlyphSlot({ icon, selected }, Boolean(eager && data && changes(data)));
-  return Morph ? <Morph {...props} from={from} /> : <Icon icon={icon} size={props.size} selected={selected} fillSafe={props.fillSafe} />;
+  return Morph ? <Morph {...props} from={from} /> : <IconDrawing icon={icon} size={props.size} selected={selected} fillSafe={props.fillSafe} />;
 }

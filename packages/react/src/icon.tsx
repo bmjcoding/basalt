@@ -1,3 +1,5 @@
+import { useIcon } from "./icon-set";
+import type { SystemIconSlot } from "./icon-set";
 import type { IconComponent, IconGlyphProps } from "./types";
 import { join } from "./utils";
 
@@ -27,6 +29,11 @@ export interface IconProps {
    */
   label?: string;
   className?: string;
+  /**
+   * The system mark's role, for a part that draws a long-tail mark (a status, the select caret): an `IconProvider`'s entry for the slot replaces it. A core
+   * glyph is looked up by its own name and needs no slot.
+   */
+  slot?: SystemIconSlot;
 }
 
 /** A core glyph carries its drawing; a long-tail icon does not. */
@@ -37,7 +44,12 @@ const isCore = (icon: IconComponent) => (icon as { glyph?: unknown }).glyph !== 
  * 16, 20 and 24, which draws the same stroke (24 of 256). Fill only where the council allowed it. Colour comes from the
  * text colour.
  */
-export function Icon({ icon: Glyph, size = 16, selected = false, fillSafe = false, label, className }: IconProps) {
+export function Icon({ icon, slot, ...props }: IconProps) {
+  return <IconDrawing {...props} icon={useIcon(icon, slot)} />;
+}
+
+/** `Icon` without the icon set's lookup: the icon as given (a control that has already looked it up). */
+export function IconDrawing({ icon: Glyph, size = 16, selected = false, fillSafe = false, label, className }: Omit<IconProps, "slot">) {
   const weight: NonNullable<IconGlyphProps["weight"]> = selected && (fillSafe || isCore(Glyph)) ? "fill" : "bold";
   return (
     <Glyph

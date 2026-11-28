@@ -13,6 +13,7 @@ import type { Align, ChangeDetails, ChoiceValue, FocusTarget, HighlightDetails, 
 import { join, withClass } from "./utils";
 import { inLevel, useFloatingLayer, usePopupLevel } from "./layers";
 import { WaitContext, isThenable, takeClick, waitFor } from "./wait";
+import { usePortalScope } from "./palette-scope";
 
 export interface MenuProps {
   open?: boolean;
@@ -124,13 +125,14 @@ export interface MenuContentProps extends PartProps<"div">, PlacementProps {
 
 /** The floating panel: portalled, positioned against the trigger, and dismissed on Esc or outside click. */
 export function MenuContent({ side = "bottom", align = "start", sideOffset = 6, anchor, alignOffset, collisionAvoidance, collisionBoundary, collisionPadding, sticky, className, children, "aria-describedby": describedBy, ...props }: MenuContentProps) {
+  const portalScope = usePortalScope();
   const layer = useFloatingLayer();
   // One level above whatever opened it (floor 1, cap 3); its own submenus go one deeper.
   const level = usePopupLevel();
   // A `MenuText` outside any group describes the menu.
   const [texts, register] = useDescribedBy();
   return (
-    <BaseMenu.Portal>
+    <BaseMenu.Portal {...portalScope}>
       <BaseMenu.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} alignOffset={alignOffset} collisionAvoidance={collisionAvoidance} collisionBoundary={collisionBoundary} collisionPadding={collisionPadding} sticky={sticky} style={layer} className="basalt-positioner">
         <BaseMenu.Popup {...props} aria-describedby={join(describedBy, texts) || undefined} data-level={level} data-actions="" className={withClass("basalt-menu", className)}>
           <MenuPort>

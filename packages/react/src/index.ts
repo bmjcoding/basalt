@@ -5,6 +5,10 @@ export type { IconProps, IconSize } from "./icon";
 // The core set: one module per glyph, so an app bundles the ones it imports.
 export * from "./glyph-set";
 export type { GlyphData, GlyphIcon, GlyphSlot } from "./glyph";
+export { defineGlyph } from "./glyph";
+// Icon sets (cimip-gaps-3 T9): replace core glyphs and system marks for a subtree; the nearest provider is the whole set.
+export { IconProvider, useIconSet } from "./icon-set";
+export type { IconProviderProps, IconSet, SystemIconSlot } from "./icon-set";
 export type { GlyphName } from "./glyph-names";
 export { Field, Input } from "./field";
 export type { FieldProps, InputProps } from "./field";
@@ -312,6 +316,13 @@ export { SiteFooter, SitePage } from "./site-footer";
 export type { SiteFooterGroup, SiteFooterProps } from "./site-footer";
 export { ThemeChoiceControl, ThemeMenu } from "./theme-choice";
 export type { ThemeChoiceControlProps, ThemeChoiceWords, ThemeMenuProps } from "./theme-choice";
+// Palettes (cimip-gaps-3 T9, DECISIONS 403): a named set of values for a closed list of hooks, chosen beside the theme.
+export { definePalettes, paletteBootstrap, paletteMetas } from "./palette-bootstrap";
+export type { PaletteConfig, PaletteConfigInput, PaletteOption } from "./palette-bootstrap";
+export { PaletteProvider, PaletteScope, usePalette } from "./palette";
+export type { PaletteProviderProps, PaletteScopeProps, PaletteSource, PaletteState } from "./palette";
+export { PaletteChoiceControl, PaletteMenuGroup } from "./palette-choice";
+export type { PaletteChoiceControlProps, PaletteMenuGroupProps, PaletteWords } from "./palette-choice";
 export { useSitePhase } from "./use-site-phase";
 export type { SiteForm, SitePhase, SitePhaseOptions, SitePhaseState } from "./use-site-phase";
 export { AppBrand, AppFootnote, AppHeader, AppShell } from "./app-shell";

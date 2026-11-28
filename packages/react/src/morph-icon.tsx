@@ -4,6 +4,7 @@ import { DrawingSvg, settle } from "./glyph";
 import type { Drawing } from "./glyph";
 import type { GlyphIcon } from "./glyph";
 import { createMorph, endpointOf, keyOf } from "./glyph-motion";
+import { useIcon } from "./icon-set";
 import type { MorphController } from "./glyph-motion";
 import { useReducedMotion } from "./motion";
 import { glideTiming, bezier } from "./motion-timing";
@@ -31,8 +32,11 @@ export interface MorphIconProps {
  * does nothing, asking for where it came from runs it back, and asking for another member of its group turns on.
  * Reduced motion swaps at once. The stroke is 2.25 on the 24 grid at every size.
  */
-export function MorphIcon({ glyph, selected = false, size = 16, className }: MorphIconProps) {
+export function MorphIcon({ glyph: given, selected = false, size = 16, className }: MorphIconProps) {
   const reduced = useReducedMotion();
+  // An icon set's entry for this glyph (cimip-gaps-3 T9): a defined glyph is drawn and morphed by this renderer; any other component is drawn as given, and swaps.
+  const shown = useIcon(given);
+  const glyph = (shown as Partial<GlyphIcon>).glyph ? (shown as GlyphIcon) : given;
   const data = glyph.glyph;
   const [drawing, setDrawing] = React.useState<Drawing>(() => settle(data, selected));
   const morph = React.useRef<MorphController | null>(null);
@@ -49,6 +53,10 @@ export function MorphIcon({ glyph, selected = false, size = 16, className }: Mor
   }, [data, selected, reduced]);
   React.useEffect(() => () => morph.current?.stop(), []);
 
+  if (shown !== glyph) {
+    const Plain = shown;
+    return <Plain size={size} weight="bold" className={join("basalt-morph", className)} aria-hidden={true} focusable="false" />;
+  }
   return (
     <DrawingSvg
       drawing={drawing}

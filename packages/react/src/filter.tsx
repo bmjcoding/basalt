@@ -15,6 +15,7 @@ import { GlidePlate } from "./plate";
 import type { ChangeDetails, CollisionAvoidance } from "./types";
 import { markMirror } from "./mirror";
 import { join } from "./utils";
+import { usePortalScope } from "./palette-scope";
 
 // ---- MultiSelect: a filter that takes any number of its values ----
 //
@@ -190,6 +191,7 @@ interface ChecklistProps {
  * values a search band sits above the rows: 40px, the next level's fill, a divider below.
  */
 function ChecklistFilter({ label, options, ordered, set, disabled, className, count, clear, controlSize, toolbar }: ChecklistProps) {
+  const portalScope = usePortalScope();
   const layer = useFloatingLayer();
   // A popup is its opener plus one, with a floor of 1: from the page it is level 1.
   const level = usePopupLevel();
@@ -268,7 +270,7 @@ function ChecklistFilter({ label, options, ordered, set, disabled, className, co
           </span>
           <Icon icon={ChevronDownGlyph} />
         </BasePopover.Trigger>
-        <BasePopover.Portal>
+        <BasePopover.Portal {...portalScope}>
           <BasePopover.Positioner side="bottom" align="start" sideOffset={6} collisionAvoidance={KEEP_AXIS} style={layer} className="basalt-positioner">
             <BasePopover.Popup
               data-level={level}

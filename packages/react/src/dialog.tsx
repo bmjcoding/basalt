@@ -6,6 +6,7 @@ import { inLevel, MODAL_LEVEL, ModalDepth, ModalHost, useModalLayer } from "./la
 import { useModalOutside } from "./modal-outside";
 import type { FocusTarget, OpenChangeDetails, PartProps, PopupActions } from "./types";
 import { withClass, withStyle } from "./utils";
+import { usePortalScope } from "./palette-scope";
 
 export interface DialogProps {
   open?: boolean;
@@ -151,6 +152,7 @@ export interface DialogContentProps extends PartProps<"div"> {
 }
 
 export function DialogContent({ className, style, children, ref, size = "default", initialFocus, form = false, dirty, ...props }: DialogContentProps) {
+  const portalScope = usePortalScope();
   const layer = useModalLayer();
   const popup = React.useRef<HTMLDivElement | null>(null);
   const [node, setNode] = React.useState<HTMLDivElement | null>(null);
@@ -186,7 +188,7 @@ export function DialogContent({ className, style, children, ref, size = "default
   return (
     <ModalDepth.Provider value={layer.depth}>
     <ModalHost.Provider value={popup}>
-    <BaseDialog.Portal>
+    <BaseDialog.Portal {...portalScope}>
       <BaseDialog.Backdrop className="basalt-dialog-backdrop" style={{ zIndex: layer.backdrop }} />
       <BaseDialog.Popup {...props} ref={popupRef} data-level={MODAL_LEVEL} data-size={size === "default" ? undefined : size} data-form={form ? "" : undefined} data-held={top === null ? undefined : ""} initialFocus={first} style={withStyle(top === null ? { zIndex: layer.popup } : { zIndex: layer.popup, "--_dialog-top": `${top}px` } as React.CSSProperties, style)} className={withClass("basalt-dialog", className)}>{form || portless ? inLevel(MODAL_LEVEL, children) : <FadePort className="basalt-dialog-scroll" labelledBy={titleOf}>{inLevel(MODAL_LEVEL, children)}</FadePort>}</BaseDialog.Popup>
     </BaseDialog.Portal>

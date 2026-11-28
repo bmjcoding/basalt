@@ -25,6 +25,7 @@ import { join, withClass } from "./utils";
 import { useInRequiredField } from "./field-group";
 import { useJoinedRef, useWriting } from "./wait";
 import type { WritingEmpty } from "./wait";
+import { usePortalScope } from "./palette-scope";
 
 // ---- Textarea ----
 
@@ -179,13 +180,14 @@ export interface PopoverContentProps extends PartProps<"div">, PlacementProps {
 const KEEP_AXIS: CollisionAvoidance = { fallbackAxisSide: "none" };
 
 export function PopoverContent({ side = "bottom", align = "start", sideOffset = 6, anchor, alignOffset, collisionAvoidance, collisionBoundary, collisionPadding, sticky, className, children, ...props }: PopoverContentProps) {
+  const portalScope = usePortalScope();
   const layer = useFloatingLayer();
   // CountNames and the notification centre hold their own port, so they draw no second one (cimip-gaps-3 t7).
   const portless = React.useContext(Portless);
   // One level above its opener (floor 1, cap 3).
   const level = usePopupLevel();
   return (
-    <BasePopover.Portal>
+    <BasePopover.Portal {...portalScope}>
       <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} alignOffset={alignOffset} collisionAvoidance={collisionAvoidance ?? KEEP_AXIS} collisionBoundary={collisionBoundary} collisionPadding={collisionPadding} sticky={sticky} style={layer} className="basalt-positioner">
         <BasePopover.Popup {...props} data-level={level} className={withClass("basalt-popover", className)}>{portless ? inLevel(level, children) : <FadePort className="basalt-popover-scroll" labelledBy={popupName}>{inLevel(level, children)}</FadePort>}</BasePopover.Popup>
       </BasePopover.Positioner>
@@ -257,7 +259,7 @@ export function Callout({ status = "info", title, heading, meta, children, actio
       data-level={level}
       className={join("basalt-callout", className)}
     >
-      <Icon icon={CALLOUT_ICON[status]} size={16} className="basalt-callout-icon" />
+      <Icon icon={CALLOUT_ICON[status]} slot={`status-${status}`} size={16} className="basalt-callout-icon" />
       <div className="basalt-callout-body">
         {meta != null ? (
           <div className="basalt-callout-head">

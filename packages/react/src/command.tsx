@@ -13,6 +13,7 @@ import type { MatchRange } from "./search-match";
 import { Spinner } from "./spinner";
 import type { IconComponent } from "./types";
 import { join } from "./utils";
+import { usePortalScope } from "./palette-scope";
 
 export interface CommandItem {
   id: string;
@@ -198,6 +199,7 @@ export function CommandMenu(props: CommandMenuProps) {
  * @internal
  */
 export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Search commands", label, listLabel = "Commands", filter, hints = false, noun = "command", count, empty, search: controlled, onSearchChange, state, retry }: CommandMenuProps & { state: PanelState; retry: () => void }) {
+  const portalScope = usePortalScope();
   const layer = useModalLayer();
   const popup = React.useRef<HTMLDivElement>(null);
   const popupRef = useModalOutside<HTMLDivElement>(popup);
@@ -258,7 +260,7 @@ export function CommandMenuShell({ open, onOpenChange, groups, placeholder = "Se
     <ModalDepth.Provider value={layer.depth}>
     <ModalHost.Provider value={popup}>
       <BaseDialog.Root open={open} onOpenChange={onOpenChange} onOpenChangeComplete={closed}>
-        <BaseDialog.Portal>
+        <BaseDialog.Portal {...portalScope}>
           <BaseDialog.Backdrop className="basalt-dialog-backdrop basalt-command-backdrop" style={{ zIndex: layer.backdrop }} />
           <BaseDialog.Popup ref={popupRef} className="basalt-dialog basalt-command" data-level={MODAL_LEVEL} style={{ zIndex: layer.popup }} aria-label={label ?? "Command menu"}>
             {inLevel(

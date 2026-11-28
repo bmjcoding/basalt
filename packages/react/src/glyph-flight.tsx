@@ -6,7 +6,7 @@ import { CrossfadeSvg, DrawingSvg, settle } from "./glyph";
 import type { Drawing } from "./glyph";
 import { createMorph, endpointOf, keyOf } from "./glyph-motion";
 import type { MorphController } from "./glyph-motion";
-import { Icon } from "./icon";
+import { IconDrawing } from "./icon";
 import { glideTiming, bezier } from "./motion-timing";
 
 // The engine a control's glyph change runs on, loaded on demand by control-icon.tsx (`loadFlight`): the council's morphs (glyph-motion.ts, the one
@@ -148,5 +148,5 @@ export function Morphing({ icon, selected = false, size, fillSafe, from, overlay
     };
     return <CrossfadeSvg key={fade.n} from={fade.from} to={fade.to} size={size} className="basalt-icon" focusable="false" aria-hidden="true" data-glyph={data?.name ?? ""} onAnimationEnd={end} />;
   }
-  return <Icon icon={icon} size={size} selected={selected} fillSafe={fillSafe} />;
+  return <IconDrawing icon={icon} size={size} selected={selected} fillSafe={fillSafe} />;
 }

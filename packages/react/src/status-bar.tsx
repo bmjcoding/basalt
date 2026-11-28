@@ -164,7 +164,7 @@ export function StatusBar({ label = "Status", start, sources, message, onMessage
         data-status={message?.status}
         data-empty={message ? undefined : ""}
       >
-        {error ? <span className="basalt-status-bar-seat" aria-hidden={cut ? "true" : undefined}><Icon icon={XCircleIcon} size={16} /></span> : null}
+        {error ? <span className="basalt-status-bar-seat" aria-hidden={cut ? "true" : undefined}><Icon icon={XCircleIcon} slot="status-danger" size={16} /></span> : null}
         <span className="basalt-status-bar-text" aria-hidden={cut ? "true" : undefined}>{message?.text}</span>
       </p>
       {end ? <div className="basalt-status-bar-end">{hang(end, "end")}</div> : null}

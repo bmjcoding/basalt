@@ -13,6 +13,7 @@ import { useScreenKeyboardLayout } from "./screen-keyboard";
 import { Spinner } from "./spinner";
 import { useMediaQuery } from "./use-media";
 import type { IconComponent } from "./types";
+import { usePortalScope } from "./palette-scope";
 
 export type ToastStatus = "neutral" | "success" | "warning" | "danger";
 
@@ -329,6 +330,7 @@ export interface ToastProviderProps {
  * The stack itself stays a named region (F6 reaches it).
  */
 export function ToastProvider({ children, limit = 3, actionWords = defaultActionWords, column }: ToastProviderProps) {
+  const portalScope = usePortalScope();
   const controller = React.useRef<Controller | null>(null);
   if (!controller.current) controller.current = createController();
   controller.current.limit = limit;
@@ -341,7 +343,7 @@ export function ToastProvider({ children, limit = 3, actionWords = defaultAction
         <ToastBridge controller={controller.current} />
         {children}
         <ToastAnnouncer controller={controller.current} />
-        <BaseToast.Portal>
+        <BaseToast.Portal {...portalScope}>
           <ToastStack column={column} />
         </BaseToast.Portal>
       </BaseToast.Provider>
@@ -567,7 +569,7 @@ function ToastItem({ toast, front, swipe }: { toast: ReturnType<typeof BaseToast
         {/* The mark seat: 16px, kept from running to the result so the title never moves. Neutral has none unless it ran. */}
         {data.seat ? (
           <span className="basalt-toast-seat" aria-hidden="true">
-            {running ? <Spinner variant="braille" size={16} /> : Mark ? <Icon icon={Mark} size={16} /> : null}
+            {running ? <Spinner variant="braille" size={16} /> : Mark ? <Icon icon={Mark} slot={`status-${status as Exclude<ToastStatus, "neutral">}`} size={16} /> : null}
           </span>
         ) : null}
         <div className="basalt-toast-text">
