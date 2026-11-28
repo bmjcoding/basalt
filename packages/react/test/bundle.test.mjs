@@ -135,7 +135,9 @@ for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_100], ["Skeleto
 // SearchDialog 89,550 (main's) to 89,950 in DECISIONS 336: its top is held where a full result has it (DialogContent's held top for a dialog that is not a form), and Close is hung.
 // The stream's merge: SearchDialog was over its limit on main before this stream (89,981 against 89,950); with T4's FilterResult and Reserve it measures
 // 90,327 on the combined head (origin/main 6a78d57c: 89,981), so its limit is that figure and a small margin, 90,350.
-for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 98_771]]) {
+// cimip-gaps-3 t8 (DECISIONS 407), measured with this file's graph() on origin/main 1b4749df and on the t8 head: SearchDialog 98,748 to 99,313 (+565: the query's
+// fade at rest, the watcher started only while there are words and its refreshes on value, focus, blur and the fonts), so its limit rises by that alone, 98,771 to 99,336.
+for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 99_336]]) {
   test(`${name} alone, with splitting, loads Base UI's dialog and the close button and no command panel (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes (limit ${limit})`);

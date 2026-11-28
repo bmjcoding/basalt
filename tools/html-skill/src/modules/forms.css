@@ -25,6 +25,8 @@
   /* A textarea is two lines plus 16px (56px), as React's. */
   textarea.input { height: auto; min-height: calc(var(--basalt-text-base-line-height) * 2 + var(--basalt-space-4)); padding-block: var(--basalt-space-2); line-height: var(--basalt-text-base-line-height); resize: vertical; }
   .input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
+  /* A search field's placeholder wider than its room ends in an ellipsis (cimip-gaps-3 t8); its words keep their plain cut (one box that draws its own boundary). */
+  .input[type="search"]:placeholder-shown { text-overflow: ellipsis; }
   .input[aria-invalid="true"] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
   .input:disabled { color: var(--basalt-text-disabled); background: var(--basalt-surface-sunken); cursor: not-allowed; }
   /* Text entry is 16px on touch, so iOS does not zoom when the keyboard opens; a mouse under 720 keeps the field's own size. */

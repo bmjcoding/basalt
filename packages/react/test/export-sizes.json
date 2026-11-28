@@ -258,14 +258,14 @@
   "SandboxesGlyph": 2963,
   "ScheduleDiagram": 122673,
   "SchemaDiagram": 113684,
-  "SearchDialog": 98338,
-  "SearchField": 18590,
+  "SearchDialog": 98903,
+  "SearchField": 25105,
   "SearchGlyph": 3181,
   "SearchMatch": 288,
   "SearchPassage": 784,
-  "SearchPassages": 6490,
+  "SearchPassages": 6491,
   "SearchResult": 722,
-  "SearchResults": 6477,
+  "SearchResults": 6478,
   "SearchTrigger": 3907,
   "SectionActions": 226,
   "SectionIntro": 224,
@@ -475,11 +475,11 @@
   }
  },
  "package": {
-  "bytes": 1151811,
-  "gzip": 382188
+  "bytes": 1152479,
+  "gzip": 382398
  },
  "styles": {
-  "bytes": 615367,
-  "gzip": 77718
+  "bytes": 620556,
+  "gzip": 78310
  }
 }
