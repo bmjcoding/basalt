@@ -12,13 +12,18 @@
 //                         480 of the short window's height query)
 //   dist/js/durations.js   the duration numbers alone, in milliseconds (a confirmation's hold)
 //   dist/json/tokens.json resolved values with sRGB hex and OKLCH, for native generators
+//   dist/js/palettes.js   the palette definer, verifier and emitter (src/palettes.mjs), with dist/js/palette-base.js: Basalt's resolved
+//                         surfaces, washes, plates, inks and status colours as sRGB floats, so it needs no colour library at run time
+//   dist/js/beryl.js, dist/css/palettes/beryl.css  the shipped palette (palettes/beryl.mjs), verified, as data and as CSS
+//   dist/css/palette-base.css  Basalt's own block ([data-palette="basalt"], every hook initial) and the palette choice's first-frame rules for
+//                         basalt and for no attribute; the React package appends it to components.css
 //
 // Style Dictionary parses the DTCG files and resolves references; the transforms and the
 // file layout are ours, because Basalt writes colours as OKLCH and themes by selector.
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { formatHex, formatHex8, rgb } from "culori";
 import StyleDictionary from "style-dictionary";
@@ -311,6 +316,52 @@ write(
   "js/tokens.d.ts",
   `${header}export interface ColorToken { type: "color"; oklch: string; hex: string }\nexport interface ValueToken<Type extends string = string> { type: Type; css: string }\nexport type AccentClass = ${accentClasses.map((c) => JSON.stringify(c.name)).join(" | ")};\nexport interface AccentColors { light: ColorToken; dark: ColorToken }\nexport declare const accents: Record<AccentClass, AccentColors>;\nexport declare const breakpoint: { ${Object.entries(breakpointPx).map(([n, px]) => `readonly ${n}: ${px}`).join("; ")} };\nexport declare const duration: { ${Object.entries(durationMs).map(([n, ms]) => `readonly ${n}: ${ms}`).join("; ")} };\nexport declare const tokens: {\n${Object.entries(json).map(([scope, entries]) => `  ${scope}: {\n${Object.entries(entries).map(([name, value]) => `    ${JSON.stringify(name)}: ${value.type === "color" ? "ColorToken" : `ValueToken<${JSON.stringify(value.type)}>`};`).join("\n")}\n  };`).join("\n")}\n};\nexport default tokens;\n`,
 );
+// ---- Palettes (cimip-gaps-3 T9, DECISIONS 403). The verifier measures on Basalt's own resolved colours, written here as sRGB floats so the
+// module needs no colour library at run time (culori stays a dev dependency). The pill is surface-top in light and, in dark, the selected wash's 9%
+// of neutral-100 over it, mixed in sRGB (components.css's --_pill).
+const PALETTE_BASE_NAMES = [
+  "surface-0", "surface-1", "surface-2", "surface-3", "surface-page", "surface-raised", "surface-overlay", "surface-top", "surface-sunken", "surface-sunken-strong",
+  "surface-well-2", "surface-well-3", "surface-chrome", "state-hover", "state-selected", "plate-0", "plate-1", "plate-2", "plate-3",
+  "text-primary", "text-secondary", "text-tertiary", "text-disabled", "border-input", "border-focus", "border-field", "border-hairline",
+  "action-primary", "action-primary-hover", "action-primary-press", "action-primary-text", "status-danger", "status-warning", "status-success",
+];
+const floats = (value) => {
+  const c = rgb(toColor(value));
+  return [c.r, c.g, c.b, c.alpha ?? 1].map((n) => Math.round(n * 1e9) / 1e9);
+};
+const paletteBase = { amount: Number(primitives.find((t) => t.path.join(".") === "opacity.amount").$value) };
+for (const theme of THEMES) {
+  const all = themedAll(theme);
+  const colors = {};
+  for (const name of PALETTE_BASE_NAMES) {
+    const token = all.find((t) => varName(t.path) === `--${PREFIX}-${name}`);
+    if (!token) throw new Error(`palette base: no token ${name}`);
+    colors[name] = floats(token.$value);
+  }
+  // The status colours as they are serialized (8-bit hex), as the accent classes' status distance measures them.
+  for (const name of ["status-danger", "status-warning", "status-success"]) colors[name] = colors[name].map((v, i) => (i === 3 ? v : Math.round(v * 255) / 255));
+  const top = colors["surface-top"];
+  colors.pill = theme === "light" ? top : top.map((v, i) => (i === 3 ? 1 : Math.round((0.09 * 1 + 0.91 * v) * 1e9) / 1e9));
+  paletteBase[theme] = colors;
+}
+write("js/palette-base.js", `${header}/** Basalt's resolved colours, as sRGB floats [r, g, b, alpha], for the palette verifier. */\nexport const base = ${JSON.stringify(paletteBase)};\n`);
+write("js/palettes.js", `${header.replace("tokens/*.tokens.json", "src/palettes.mjs")}${fs.readFileSync(path.join(here, "src", "palettes.mjs"), "utf8")}`);
+write("js/palettes.d.ts", fs.readFileSync(path.join(here, "src", "palettes.d.ts"), "utf8"));
+const palettesKit = await import(pathToFileURL(path.join(dist, "js", "palettes.js")).href);
+// The shipped palettes: each is Basalt's own, so the status distance is a failure, not an advisory.
+const SHIPPED = ["beryl"];
+const shipped = [];
+for (const id of SHIPPED) {
+  const def = (await import(pathToFileURL(path.join(here, "palettes", `${id}.mjs`)).href)).default;
+  if (def.id !== id) throw new Error(`palettes/${id}.mjs defines "${def.id}"`);
+  palettesKit.assertPalette(def, { own: true });
+  shipped.push(def);
+  write(`js/${id}.js`, `${header.replace("tokens/*.tokens.json", `palettes/${id}.mjs`)}/** The ${id} palette's definition, verified at build. */\nconst ${id} = ${JSON.stringify(def, null, 2)};\nexport default ${id};\n`);
+  write(`js/${id}.d.ts`, `${header}import type { PaletteDefinition } from "./palettes.js";\ndeclare const ${id}: PaletteDefinition;\nexport default ${id};\n`);
+  write(`css/palettes/${id}.css`, `${header.replace("tokens/*.tokens.json", `palettes/${id}.mjs`)}${palettesKit.paletteCss([def], { own: true })}`);
+}
+write("css/palette-base.css", `${header.replace("tokens/*.tokens.json", "src/palettes.mjs")}/* Basalt's own palette block (every hook initial, so basalt inside any palette is Basalt) and the palette choice's chosen word in the first frame for basalt and for a root with no attribute. */\n${palettesKit.basaltPaletteCss()}@layer basalt {\n${palettesKit.chosenWordCss("basalt")}\n}\n`);
+
 // ---- Swift: the tokens for the Apple apps, committed so SwiftPM can consume the repository.
 
 const camel = (s) => s.replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase());
@@ -380,6 +431,50 @@ ${accentClasses.map((c) => `${c.description ? `    /// ${c.description}\n` : ""}
 ${accentClasses.map((c) => `      case .${c.name}:\n        return ThemedColor(\n          light: ${swiftRGBA(c.light)},\n          dark: ${swiftRGBA(c.dark)}\n        )`).join("\n")}
       }
     }
+  }
+
+  /// A palette (cimip-gaps-3 T9, DECISIONS 403): values for the closed list of hooks, chosen beside the theme. Each colour is optional; an unset one
+  /// is Basalt's own token, which \`Palette.resolve\` returns. The corners are where Basalt draws \`Radius.sm\` (the first) and \`Radius.md\` (the second);
+  /// \`pressScale\` is 0.98, or 1 for no press. A value type, so an app can make its own. Status colours, the focus ring and type are never a palette's.
+  public struct Palette: Sendable, Equatable, Identifiable {
+    public let id: String
+${palettesKit.SWIFT_COLOR_NAMES.map((n) => `    public let ${n}: ThemedColor?`).join("\n")}
+    public let buttonRadius: Double?
+    public let buttonRadiusLarge: Double?
+    public let fieldRadius: Double?
+    public let fieldRadiusLarge: Double?
+    public let pressScale: Double
+
+    public init(
+      id: String,
+${palettesKit.SWIFT_COLOR_NAMES.map((n) => `      ${n}: ThemedColor? = nil,`).join("\n")}
+      buttonRadius: Double? = nil,
+      buttonRadiusLarge: Double? = nil,
+      fieldRadius: Double? = nil,
+      fieldRadiusLarge: Double? = nil,
+      pressScale: Double = 0.98
+    ) {
+      self.id = id
+${palettesKit.SWIFT_COLOR_NAMES.map((n) => `      self.${n} = ${n}`).join("\n")}
+      self.buttonRadius = buttonRadius
+      self.buttonRadiusLarge = buttonRadiusLarge
+      self.fieldRadius = fieldRadius
+      self.fieldRadiusLarge = fieldRadiusLarge
+      // Nothing below .98 and nothing above 1, as on the web.
+      self.pressScale = min(max(pressScale, 0.98), 1)
+    }
+  }
+
+  /// The palettes Basalt ships. \`basalt\` is Basalt's own look (every hook unset); \`beryl\` proves the hooks in Basalt's own voice.
+  public enum Palettes {
+    public static let basalt = Palette(id: "basalt")
+    public static let ${shipped.map((d) => d.id).join(" = ")} = ${shipped.map((d) => palettesKit.paletteSwift(d).replace(/^Basalt\./, "").replace(/\n/g, "\n    ")).join("")}
+    /// Every shipped palette, Basalt's first.
+    public static let all: [Palette] = [basalt, ${shipped.map((d) => d.id).join(", ")}]
+    /// The stored key, as on the web.
+    public static let storageKey = "basalt-palette"
+    /// The palette with this id, or \`basalt\` for an id Basalt does not ship (or none).
+    public static func named(_ id: String?) -> Palette { all.first { $0.id == id } ?? basalt }
   }
 
   /// Spacing on a 4pt base: \`s4\` is 16.

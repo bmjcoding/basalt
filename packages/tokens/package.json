@@ -11,6 +11,8 @@
     "./shadcn.css": "./dist/css/shadcn.css",
     "./breakpoints.css": "./dist/css/breakpoints.css",
     "./base.css": "./dist/css/base.css",
+    "./palette-base.css": "./dist/css/palette-base.css",
+    "./palettes/beryl.css": "./dist/css/palettes/beryl.css",
     "./tokens.json": "./dist/json/tokens.json",
     "./breakpoints": {
       "types": "./dist/js/breakpoints.d.ts",
@@ -20,6 +22,14 @@
       "types": "./dist/js/durations.d.ts",
       "default": "./dist/js/durations.js"
     },
+    "./palettes": {
+      "types": "./dist/js/palettes.d.ts",
+      "default": "./dist/js/palettes.js"
+    },
+    "./palettes/beryl": {
+      "types": "./dist/js/beryl.d.ts",
+      "default": "./dist/js/beryl.js"
+    },
     ".": {
       "types": "./dist/js/tokens.d.ts",
       "default": "./dist/js/tokens.js"
@@ -27,7 +37,9 @@
   },
   "files": [
     "dist",
-    "tokens"
+    "tokens",
+    "bin",
+    "palettes"
   ],
   "scripts": {
     "build": "node build.mjs",
@@ -39,5 +51,8 @@
   "devDependencies": {
     "culori": "4.0.2",
     "style-dictionary": "5.7.0"
+  },
+  "bin": {
+    "basalt-palette": "./bin/basalt-palette.mjs"
   }
 }

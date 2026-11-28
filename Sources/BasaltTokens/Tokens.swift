@@ -546,6 +546,156 @@ extension Basalt {
     }
   }
 
+  /// A palette (cimip-gaps-3 T9, DECISIONS 403): values for the closed list of hooks, chosen beside the theme. Each colour is optional; an unset one
+  /// is Basalt's own token, which `Palette.resolve` returns. The corners are where Basalt draws `Radius.sm` (the first) and `Radius.md` (the second);
+  /// `pressScale` is 0.98, or 1 for no press. A value type, so an app can make its own. Status colours, the focus ring and type are never a palette's.
+  public struct Palette: Sendable, Equatable, Identifiable {
+    public let id: String
+    public let linkInk: ThemedColor?
+    public let linkUnderline: ThemedColor?
+    public let chosenLine: ThemedColor?
+    public let chosenFill: ThemedColor?
+    public let chosenInk: ThemedColor?
+    public let chosenEdge: ThemedColor?
+    public let checkedFill: ThemedColor?
+    public let checkedInk: ThemedColor?
+    public let checkedEdge: ThemedColor?
+    public let brandMark: ThemedColor?
+    public let buttonPrimaryFill: ThemedColor?
+    public let buttonPrimaryFillHover: ThemedColor?
+    public let buttonPrimaryFillPress: ThemedColor?
+    public let buttonPrimaryInk: ThemedColor?
+    public let buttonPrimaryEdge: ThemedColor?
+    public let buttonPrimaryFillDisabled: ThemedColor?
+    public let buttonPrimaryInkDisabled: ThemedColor?
+    public let buttonSecondaryFill: ThemedColor?
+    public let buttonSecondaryFillPress: ThemedColor?
+    public let buttonSecondaryInk: ThemedColor?
+    public let buttonSecondaryEdge: ThemedColor?
+    public let buttonSecondaryEdgeHover: ThemedColor?
+    public let buttonOutlineInk: ThemedColor?
+    public let buttonOutlineEdge: ThemedColor?
+    public let buttonOutlineEdgeHover: ThemedColor?
+    public let buttonGhostInk: ThemedColor?
+    public let buttonGhostInkHover: ThemedColor?
+    public let fieldEdge: ThemedColor?
+    public let fieldEdgeHover: ThemedColor?
+    public let fieldEdgeActive: ThemedColor?
+    public let buttonRadius: Double?
+    public let buttonRadiusLarge: Double?
+    public let fieldRadius: Double?
+    public let fieldRadiusLarge: Double?
+    public let pressScale: Double
+
+    public init(
+      id: String,
+      linkInk: ThemedColor? = nil,
+      linkUnderline: ThemedColor? = nil,
+      chosenLine: ThemedColor? = nil,
+      chosenFill: ThemedColor? = nil,
+      chosenInk: ThemedColor? = nil,
+      chosenEdge: ThemedColor? = nil,
+      checkedFill: ThemedColor? = nil,
+      checkedInk: ThemedColor? = nil,
+      checkedEdge: ThemedColor? = nil,
+      brandMark: ThemedColor? = nil,
+      buttonPrimaryFill: ThemedColor? = nil,
+      buttonPrimaryFillHover: ThemedColor? = nil,
+      buttonPrimaryFillPress: ThemedColor? = nil,
+      buttonPrimaryInk: ThemedColor? = nil,
+      buttonPrimaryEdge: ThemedColor? = nil,
+      buttonPrimaryFillDisabled: ThemedColor? = nil,
+      buttonPrimaryInkDisabled: ThemedColor? = nil,
+      buttonSecondaryFill: ThemedColor? = nil,
+      buttonSecondaryFillPress: ThemedColor? = nil,
+      buttonSecondaryInk: ThemedColor? = nil,
+      buttonSecondaryEdge: ThemedColor? = nil,
+      buttonSecondaryEdgeHover: ThemedColor? = nil,
+      buttonOutlineInk: ThemedColor? = nil,
+      buttonOutlineEdge: ThemedColor? = nil,
+      buttonOutlineEdgeHover: ThemedColor? = nil,
+      buttonGhostInk: ThemedColor? = nil,
+      buttonGhostInkHover: ThemedColor? = nil,
+      fieldEdge: ThemedColor? = nil,
+      fieldEdgeHover: ThemedColor? = nil,
+      fieldEdgeActive: ThemedColor? = nil,
+      buttonRadius: Double? = nil,
+      buttonRadiusLarge: Double? = nil,
+      fieldRadius: Double? = nil,
+      fieldRadiusLarge: Double? = nil,
+      pressScale: Double = 0.98
+    ) {
+      self.id = id
+      self.linkInk = linkInk
+      self.linkUnderline = linkUnderline
+      self.chosenLine = chosenLine
+      self.chosenFill = chosenFill
+      self.chosenInk = chosenInk
+      self.chosenEdge = chosenEdge
+      self.checkedFill = checkedFill
+      self.checkedInk = checkedInk
+      self.checkedEdge = checkedEdge
+      self.brandMark = brandMark
+      self.buttonPrimaryFill = buttonPrimaryFill
+      self.buttonPrimaryFillHover = buttonPrimaryFillHover
+      self.buttonPrimaryFillPress = buttonPrimaryFillPress
+      self.buttonPrimaryInk = buttonPrimaryInk
+      self.buttonPrimaryEdge = buttonPrimaryEdge
+      self.buttonPrimaryFillDisabled = buttonPrimaryFillDisabled
+      self.buttonPrimaryInkDisabled = buttonPrimaryInkDisabled
+      self.buttonSecondaryFill = buttonSecondaryFill
+      self.buttonSecondaryFillPress = buttonSecondaryFillPress
+      self.buttonSecondaryInk = buttonSecondaryInk
+      self.buttonSecondaryEdge = buttonSecondaryEdge
+      self.buttonSecondaryEdgeHover = buttonSecondaryEdgeHover
+      self.buttonOutlineInk = buttonOutlineInk
+      self.buttonOutlineEdge = buttonOutlineEdge
+      self.buttonOutlineEdgeHover = buttonOutlineEdgeHover
+      self.buttonGhostInk = buttonGhostInk
+      self.buttonGhostInkHover = buttonGhostInkHover
+      self.fieldEdge = fieldEdge
+      self.fieldEdgeHover = fieldEdgeHover
+      self.fieldEdgeActive = fieldEdgeActive
+      self.buttonRadius = buttonRadius
+      self.buttonRadiusLarge = buttonRadiusLarge
+      self.fieldRadius = fieldRadius
+      self.fieldRadiusLarge = fieldRadiusLarge
+      // Nothing below .98 and nothing above 1, as on the web.
+      self.pressScale = min(max(pressScale, 0.98), 1)
+    }
+  }
+
+  /// The palettes Basalt ships. `basalt` is Basalt's own look (every hook unset); `beryl` proves the hooks in Basalt's own voice.
+  public enum Palettes {
+    public static let basalt = Palette(id: "basalt")
+    public static let beryl = Palette(
+      id: "beryl",
+      linkInk: ThemedColor(light: RGBA(red: 0.035294, green: 0.309804, blue: 0.360784, alpha: 1), dark: RGBA(red: 0.360784, green: 0.811765, blue: 0.866667, alpha: 1)),
+      linkUnderline: ThemedColor(light: RGBA(red: 0.219608, green: 0.419608, blue: 0.482353, alpha: 1), dark: RGBA(red: 0.247059, green: 0.556863, blue: 0.596078, alpha: 1)),
+      chosenLine: ThemedColor(light: RGBA(red: 0.054902, green: 0.356863, blue: 0.411765, alpha: 1), dark: RGBA(red: 0.278431, green: 0.772549, blue: 0.827451, alpha: 1)),
+      chosenInk: ThemedColor(light: RGBA(red: 0.035294, green: 0.309804, blue: 0.360784, alpha: 1), dark: RGBA(red: 0.360784, green: 0.811765, blue: 0.866667, alpha: 1)),
+      checkedFill: ThemedColor(light: RGBA(red: 0.027451, green: 0.294118, blue: 0.341176, alpha: 1), dark: RGBA(red: 0.278431, green: 0.772549, blue: 0.827451, alpha: 1)),
+      checkedInk: ThemedColor(light: RGBA(red: 1, green: 1, blue: 1, alpha: 1), dark: RGBA(red: 0.003922, green: 0.019608, blue: 0.031373, alpha: 1)),
+      brandMark: ThemedColor(light: RGBA(red: 0.054902, green: 0.380392, blue: 0.439216, alpha: 1), dark: RGBA(red: 0.290196, green: 0.792157, blue: 0.85098, alpha: 1)),
+      buttonPrimaryFill: ThemedColor(light: RGBA(red: 0.027451, green: 0.294118, blue: 0.341176, alpha: 1), dark: RGBA(red: 0.278431, green: 0.772549, blue: 0.827451, alpha: 1)),
+      buttonPrimaryFillHover: ThemedColor(light: RGBA(red: 0.015686, green: 0.235294, blue: 0.278431, alpha: 1), dark: RGBA(red: 0.423529, green: 0.843137, blue: 0.894118, alpha: 1)),
+      buttonPrimaryFillPress: ThemedColor(light: RGBA(red: 0.011765, green: 0.188235, blue: 0.223529, alpha: 1), dark: RGBA(red: 0.184314, green: 0.690196, blue: 0.745098, alpha: 1)),
+      buttonPrimaryInk: ThemedColor(light: RGBA(red: 1, green: 1, blue: 1, alpha: 1), dark: RGBA(red: 0.003922, green: 0.019608, blue: 0.031373, alpha: 1)),
+      fieldEdgeHover: ThemedColor(light: RGBA(red: 0.219608, green: 0.419608, blue: 0.482353, alpha: 1), dark: RGBA(red: 0.247059, green: 0.556863, blue: 0.596078, alpha: 1)),
+      fieldEdgeActive: ThemedColor(light: RGBA(red: 0.027451, green: 0.294118, blue: 0.341176, alpha: 1), dark: RGBA(red: 0.278431, green: 0.772549, blue: 0.827451, alpha: 1)),
+      buttonRadius: 4,
+      buttonRadiusLarge: 6,
+      fieldRadius: 4,
+      fieldRadiusLarge: 6
+    )
+    /// Every shipped palette, Basalt's first.
+    public static let all: [Palette] = [basalt, beryl]
+    /// The stored key, as on the web.
+    public static let storageKey = "basalt-palette"
+    /// The palette with this id, or `basalt` for an id Basalt does not ship (or none).
+    public static func named(_ id: String?) -> Palette { all.first { $0.id == id } ?? basalt }
+  }
+
   /// Spacing on a 4pt base: `s4` is 16.
   public enum Space {
     public static let s0: Double = 0
