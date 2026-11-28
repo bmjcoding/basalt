@@ -1,6 +1,7 @@
 // micro-e7 (DECISIONS 405, audit row P2): the default MenuTrigger meets the shared target floor as hit area alone. With no `render` it is a bare
 // button drawn at its text's height; its hit box is at least 24 by 24 at a fine pointer and 44 by 44 on touch and under 720, and the button, its
-// words and a glyph inside it keep their size and place. A `render` Button keeps its own sizes and gets no extra box. Engineering that restores
+// words and a glyph inside it keep their size and place. Stacked with no gap, each trigger's words are a label over every neighbour's box, so a tap
+// on a trigger's own words is its own and no point in either box is dead. A `render` Button keeps its own sizes and gets no extra box. Engineering that restores
 // documented behaviour (foundations, Controls); no panel. Driven in Chromium against the built package with the real stylesheet. Synthetic data only.
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -79,3 +80,56 @@ describe("the default MenuTrigger meets the target floor (P2)", () => {
     });
   }
 });
+
+const STACKED = `<div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0, padding: 48 }}>
+  <B.Menu modal={false}><B.MenuTrigger data-testid="upper">Shelf</B.MenuTrigger><B.MenuContent><B.MenuItem>Pantry</B.MenuItem></B.MenuContent></B.Menu>
+  <B.Menu modal={false}><B.MenuTrigger data-testid="lower">Queue</B.MenuTrigger><B.MenuContent><B.MenuItem>Nightly</B.MenuItem></B.MenuContent></B.Menu>
+</div>`;
+
+describe("bare triggers stacked with no gap (P2, fix pass 1)", () => {
+  const TOUCH = { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true };
+
+  test("on touch, a tap on each trigger's words opens that trigger's menu", async () => {
+    for (const id of ["upper", "lower"]) {
+      const { page, errors } = await open(STACKED, TOUCH);
+      const label = page.getByTestId(id).locator(".basalt-menu-trigger-label");
+      const r = await label.evaluate((el) => { const b = el.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, h: b.height }; });
+      // The words' middle, and their top and bottom rows (the rows a neighbour's 44 box reaches over).
+      for (const dy of [r.h / 2, 1, r.h - 1]) assert.equal(await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest("[data-testid]")?.getAttribute("data-testid"), [r.x + r.w / 2, r.y + dy]), id, `${id}'s words at ${dy}`);
+      await page.touchscreen.tap(r.x + r.w / 2, r.y + r.h / 2);
+      await settle(page);
+      assert.equal(await page.getByTestId(id).getAttribute("aria-expanded"), "true");
+      assert.equal(await page.getByTestId(id === "upper" ? "lower" : "upper").getAttribute("aria-expanded"), "false");
+      assert.deepEqual(errors, []);
+    }
+  });
+
+  test("on touch, no point in either 44 box is dead: every one is one of the two triggers", async () => {
+    const { page } = await open(STACKED, TOUCH);
+    const result = await page.evaluate(() => {
+      const ids = ["upper", "lower"];
+      const dead = [];
+      for (const id of ids) {
+        const el = document.querySelector(`[data-testid="${id}"]`);
+        const r = el.getBoundingClientRect();
+        const before = getComputedStyle(el, "::before");
+        const w = parseFloat(before.width), h = parseFloat(before.height);
+        const left = r.x + r.width / 2 - w / 2, top = r.y + r.height / 2 - h / 2;
+        for (let y = top + 0.5; y < top + h; y += 2) for (let x = left + 0.5; x < left + w; x += 2) {
+          const hit = document.elementFromPoint(x, y)?.closest("[data-testid]")?.getAttribute("data-testid");
+          if (!ids.includes(hit)) dead.push([id, Math.round(x), Math.round(y)]);
+        }
+      }
+      return dead;
+    });
+    assert.deepEqual(result, []);
+  });
+
+  test("raising the words moves nothing: the stacked triggers keep their boxes", async () => {
+    const { page } = await open(STACKED, TOUCH);
+    const [a, b] = await Promise.all(["upper", "lower"].map((id) => page.getByTestId(id).evaluate((el) => { const r = el.getBoundingClientRect(); return [r.y, r.height]; })));
+    assert.ok(a[1] < 24 && b[1] < 24, "each is drawn at its text's height");
+    assert.ok(Math.abs(b[0] - (a[0] + a[1])) < 0.5, "and the lower starts where the upper ends (no room reserved)");
+  });
+});
+

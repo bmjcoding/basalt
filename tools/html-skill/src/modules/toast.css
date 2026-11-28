@@ -56,7 +56,10 @@
   /* Leaving runs at 0.75 of its entry, easing in. */
   .toast[data-ending-style] { transition-duration: calc(var(--basalt-duration-slow) * 0.75), calc(var(--basalt-duration-slow) * 0.75), calc(var(--basalt-duration-base) * 0.75); transition-timing-function: var(--basalt-ease-in); }
   .toast[data-limited] { opacity: 0; }
-  .toast[data-ending-style][data-swipe-direction="right"] { transform: translateX(calc(var(--toast-swipe-movement-x, var(--basalt-space-0)) + 120%)) translateY(var(--_offset-y)); }
+  /* A swipe leaves in its direction from where it was let go; under reduced motion it stays there and only fades (the rest of the stack's rule). The swipe has written its movement by then. */
+  @media (prefers-reduced-motion: no-preference) {
+    .toast[data-ending-style][data-swipe-direction="right"] { transform: translateX(calc(var(--toast-swipe-movement-x) + 120%)) translateY(var(--_offset-y)); }
+  }
   .toast[data-swiping] { transition-property: opacity, height; }
   .toast::after { content: ""; position: absolute; top: 100%; left: 0; width: 100%; height: calc(var(--_gap) + var(--basalt-size-hairline)); }
 
@@ -102,7 +105,10 @@
     .toast-viewport { top: max(var(--basalt-space-4), env(safe-area-inset-top, var(--basalt-space-0))); bottom: auto; }
     :root:has(.topbar, .app-header) .toast-viewport { top: calc(var(--basalt-sticky-offset) + var(--basalt-space-2)); }
     .toast { --_dir: 1; top: 0; bottom: auto; transform-origin: top center; }
-    /* A swipe up leaves upward from where the drag let go, as React's does (the swipe has written both movements by then). */
+  }
+  /* A swipe up leaves upward from where the drag let go, as React's does (the swipe has written both movements by then); under reduced motion it
+     stays where it was let go and only fades. */
+  @media (width < %bp-md%) and (prefers-reduced-motion: no-preference) {
     .toast[data-ending-style][data-swipe-direction="up"] { transform: translateX(var(--toast-swipe-movement-x)) translateY(calc(var(--toast-swipe-movement-y) - 120%)); }
   }
 

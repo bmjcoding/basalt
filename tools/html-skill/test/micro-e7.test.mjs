@@ -1,8 +1,9 @@
 // micro-e7 in the HTML skill (DECISIONS 405, audit rows C2 and M4): engineering that restores what Basalt's docs already promise, held to React.
 // C2: a toast's swipe is React's (Base UI's): more than 40px dismisses it, by distance alone, down or right from 720 and up or right under 720; a
-// shorter drag, a change of mind or a cancelled pointer springs it back, and the gesture never moves focus off the toast it started on.
+// shorter drag, a change of mind or a cancelled pointer springs it back, and the gesture never moves focus off the toast it started on. Under
+// reduced motion a swiped toast stays where it was let go and only fades.
 // M4: a tooltip opened within the grace of another's close is there at once (a zero transition), while one opened after the wait keeps the normal
-// entrance and the hover bridge. Synthetic data in two unlike domains (a recipe box and a build server). Written while tests are paused (DECISIONS
+// entrance and the hover bridge, and its exit is the ordinary 0.75 ease-in. Synthetic data in two unlike domains (a recipe box and a build server). Written while tests are paused (DECISIONS
 // 359): not yet run.
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -156,6 +157,32 @@ describe("the skill's toast swipe is React's (C2)", () => {
     await context.close();
   });
 
+  for (const [name, options, delta, direction] of [
+    ["a phone at 390, by touch", { width: 390, touch: true }, [0, -60], "up"],
+    ["a window at 1440, by mouse", { width: 1440 }, [60, 0], "right"],
+  ]) {
+    test(`${name}, under reduced motion: a swipe ${direction} dismisses it where it was let go, and it only fades (fix pass 1)`, async () => {
+      const { page, context, clock, start } = await withToast({ ...options, reducedMotion: "reduce" });
+      const box = () => page.evaluate(() => { const r = document.querySelector(".toast").getBoundingClientRect(); return [r.left, r.top]; });
+      let cdp;
+      if (options.touch) { cdp = await context.newCDPSession(page); await touchDrag(page, cdp, start, delta, { release: null }); }
+      else { await page.mouse.move(start.x, start.y); await page.mouse.down(); await page.mouse.move(start.x + 1, start.y); await page.mouse.move(start.x + 1 + delta[0], start.y + delta[1], { steps: 6 }); }
+      const held = await box();
+      if (cdp) await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      else await page.mouse.up();
+      assert.equal(await dir(page), direction);
+      assert.equal(await page.evaluate(() => document.querySelector(".toast").hasAttribute("data-ending-style")), true);
+      const left = await box();
+      assert.ok(Math.abs(left[0] - held[0]) < 0.5 && Math.abs(left[1] - held[1]) < 0.5, `it stays where it was let go (${held} then ${left})`);
+      const c = await page.evaluate(() => { const s = getComputedStyle(document.querySelector(".toast")); return { property: s.transitionProperty, opacity: s.opacity }; });
+      assert.equal(c.property, "opacity", "only its opacity moves");
+      await clock.advance(400);
+      assert.equal(await toasts(page), 0);
+      await clock.thaw();
+      await context.close();
+    });
+  }
+
   test("a drag that starts on the toast's Dismiss is not a swipe", async () => {
     const { page, context, clock } = await withToast({ width: 1440 });
     const close = await rect(page, ".toast-close");
@@ -198,6 +225,20 @@ describe("the skill's tooltip grace reopen is instant (M4)", () => {
     await page.mouse.move(tip.left + tip.width / 2, tip.top + tip.height / 2);
     await clock.advance(100);
     assert.equal(await shown(page), true);
+    // Leaving it closes it with the ordinary exit, 0.75 of duration-base (112.5ms) on ease-in: data-instant stays on the closed tooltip, and
+    // the zero is the open state's alone (fix pass 1).
+    await page.mouse.move(5, 600);
+    await clock.advance(0);
+    assert.equal(await shown(page), false);
+    const exit = await page.evaluate(() => {
+      const t = document.getElementById("bh-tooltip"); const c = getComputedStyle(t);
+      const probe = document.createElement("div"); probe.style.transitionTimingFunction = "var(--basalt-ease-in)"; document.body.append(probe);
+      const easeIn = getComputedStyle(probe).transitionTimingFunction; probe.remove();
+      return { instant: t.hasAttribute("data-instant"), duration: c.transitionDuration, timing: c.transitionTimingFunction, easeIn };
+    });
+    assert.equal(exit.instant, true, "the attribute is still there, so the open-only rule is what keeps the exit");
+    assert.ok(exit.duration.split(",").every((d) => Math.abs(parseFloat(d) * 1000 - 112.5) < 0.01), `the exit is 112.5ms, not ${exit.duration}`);
+    assert.ok(exit.timing.split(/,(?![^(]*\))/).every((f) => f.trim() === exit.easeIn), `the exit eases in (${exit.timing})`);
     await clock.thaw();
     await context.close();
   });

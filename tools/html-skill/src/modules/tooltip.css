@@ -24,10 +24,11 @@
      8px from the padding box: the gap, the 1px rim and the entrance's .98 scale. */
   .tooltip::before { content: ""; position: absolute; inset: calc(-1 * var(--basalt-space-2)); z-index: -1; }
   /* Opened within the grace of another's close, it is there at once, as React's is: no wait and no entrance. The open state's duration is
-     popover.css's `.float[popover]:popover-open` (0,3,0), which outranked a bare `.tooltip[data-instant]` and ran the 150ms entrance anyway, so
-     the open form names [popover] too (0,4,0). A tooltip opened after the full wait keeps the normal entrance. */
+     popover.css's `.float[popover]:popover-open` (0,3,0), so this rule names [popover] and the open state too (0,4,0). Only the open state:
+     data-instant stays on the tooltip after it closes, and its exit is the shell's, 0.75 of duration-base on ease-in. A tooltip opened after
+     the full wait keeps the normal entrance. */
   /* stylelint-disable-next-line unit-disallowed-list -- a zero duration that duration-instant would write, in fewer bytes against the module's budget (modules.json) */
-  .tooltip[data-instant], .tooltip[data-instant][popover]:popover-open { transition-duration: 0ms; }
+  .tooltip[data-instant][popover]:popover-open { transition-duration: 0ms; }
   .tooltip .kbd-group { margin-inline-start: var(--basalt-space-2); }
   @media (forced-colors: active) { .tooltip { border-color: CanvasText; } }
 }

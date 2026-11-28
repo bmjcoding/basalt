@@ -889,8 +889,13 @@
   .basalt-menu-trigger { cursor: pointer; }
   /* The default trigger (no render) is a bare button drawn at its text's height (21px), under the shared floor. It meets the floor as hit area
      alone: a box with no content, centred and at least 24 by 24 (44 by 44 on touch and under 720), as TextButton's and Link's are; the
-     button, its words and any glyph inside keep their size and place. A render element (Button, IconButton) keeps its own sizes. */
+     button, its words and any glyph inside keep their size and place. A render element (Button, IconButton) keeps its own sizes.
+     Triggers stacked with no room between: each box reaches into the next trigger's line, and the later box is painted over the earlier
+     trigger's words. The words are a label raised over every box (z-index 1, within the page's own stacking context; a box is never raised),
+     so a press on a trigger's own words is always that trigger's and a box only takes the room no words are in, as stacked links do. Nothing
+     moves and nothing is drawn. */
   .basalt-menu-trigger[data-bare] { position: relative; }
+  .basalt-menu-trigger[data-bare] > .basalt-menu-trigger-label { position: relative; z-index: 1; }
   .basalt-menu-trigger[data-bare]::before {
     content: "";
     position: absolute;
