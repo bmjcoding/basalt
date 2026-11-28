@@ -410,7 +410,8 @@
         "arrow-down"
       ],
       "budget": 15150,
-      "usage": 2600,
+      "usage": 2643,
+      "usageReason": "micro-details m8, X9 (DECISIONS 405, 409; the skill's budgets are soft): 2600 to 2643 bytes, measured, for the one sentence on long lists (a page renders every row; keep it to a few hundred, or fold as release does).",
       "builds": [
         "glyph"
       ]
@@ -1344,7 +1345,8 @@
         "fade"
       ],
       "budget": 14827,
-      "usage": 2655,
+      "usage": 2809,
+      "usageReason": "micro-details m8, X9 (DECISIONS 405, 409; the skill's budgets are soft): 2655 to 2809 bytes, measured, for the one sentence on long lists (a page renders every row; keep it to a few hundred, or fold as release does).",
       "textWords": [
         "a call to Basalt.commandList"
       ],

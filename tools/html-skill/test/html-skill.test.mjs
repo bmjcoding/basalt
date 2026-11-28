@@ -48,7 +48,7 @@ describe("the skill files", () => {
 
   test("every part is the minified source: no comment but a legal one, and the module list is complete", () => {
     assert.deepEqual(moduleNames().sort(), Object.keys(JSON.parse(files["parts/manifest.json"]).modules).sort());
-    for (const name of Object.keys(files).filter((f) => /^parts\/.*\.(css|js)$/.test(f) && !f.endsWith("geist.css"))) {
+    for (const name of Object.keys(files).filter((f) => /^parts\/.*\.(css|js)$/.test(f) && !/geist-(?:sans|mono)\.css$/.test(f))) {
       const stripped = files[name].replace(/\/\*![\s\S]*?\*\//g, "");
       assert.doesNotMatch(stripped, /\/\*|^\s*\/\//m, `${name} carries a comment`);
       assert.ok(!/\n\s/.test(files[name].replace(/\/\*![\s\S]*?\*\//g, "")), `${name} is not minified`);
@@ -75,7 +75,7 @@ describe("the skill files", () => {
     const css = files["parts/core.css"];
     assert.match(css, /\[data-theme="?dark"?\]/);
     assert.match(css, /prefers-color-scheme:\s*dark/);
-    for (const name of Object.keys(files).filter((f) => /^parts\/.*\.css$/.test(f) && !f.endsWith("geist.css"))) {
+    for (const name of Object.keys(files).filter((f) => /^parts\/.*\.css$/.test(f) && !/geist-(?:sans|mono)\.css$/.test(f))) {
       const primitives = name === "parts/core.css" ? css.slice(css.indexOf("@layer basalt{")) : files[name];
       // The cut-content fade's three mask layers (DECISIONS 395 to 399, cimip-gaps-3 t7) are gradients of alpha that paint no colour. In the fade module's
       // stylesheet alone, and only as those three declarations, a gradient is allowed: each is removed by name, and the rest of that file, like every
@@ -559,7 +559,7 @@ describe("the layers", () => {
     const css = files["parts/core.css"];
     assert.match(css, /@layer reset,\s*basalt;/);
     assert.ok(css.indexOf("@layer reset,basalt;") < css.indexOf("@layer basalt{"));
-    for (const name of Object.keys(files).filter((f) => /^parts\/.*\.css$/.test(f) && !f.endsWith("geist.css"))) {
+    for (const name of Object.keys(files).filter((f) => /^parts\/.*\.css$/.test(f) && !/geist-(?:sans|mono)\.css$/.test(f))) {
       assert.doesNotMatch(files[name], /@layer basalt-html/, "no second layer name");
       if (name !== "parts/core.css") assert.doesNotMatch(files[name], /@layer [\w-]+,/, `${name} leaves the layer order to the core`);
     }
@@ -660,13 +660,15 @@ describe("tables at 390", () => {
 });
 
 describe("fonts", () => {
-  test("geist.css is the two @font-face rules as data URIs with the licence; compose.mjs inlines it by default and --no-fonts leaves it out", async () => {
-    const geist = files["parts/geist.css"];
+  test("geist-sans.css and geist-mono.css are the two @font-face rules as data URIs with the licence; compose.mjs inlines them by default and --no-fonts leaves them out", async () => {
+    // The two parts (micro-details m8, X8), read together as the one geist.css they were: the licence is in the sans part, which every page with fonts carries.
+    const geist = `${files["parts/geist-sans.css"].trim()}\n${files["parts/geist-mono.css"].trim()}`;
     assert.match(geist, /SIL Open Font License/);
     const ofl = fs.readFileSync(path.join(repoRoot, "node_modules", "geist", "LICENSE.txt"), "utf8").trim();
-    assert.ok(geist.includes(ofl), "the whole OFL 1.1 text, with its permission and conditions, is in geist.css");
-    assert.match(geist, /PERMISSION AND CONDITIONS/);
+    assert.ok(files["parts/geist-sans.css"].includes(ofl), "the whole OFL 1.1 text, with its permission and conditions, is in geist-sans.css");
+    assert.match(files["parts/geist-sans.css"], /PERMISSION AND CONDITIONS/);
     assert.equal((geist.match(/@font-face/g) ?? []).length, 2);
+    assert.equal((files["parts/geist-mono.css"].match(/@font-face/g) ?? []).length, 1, "the mono part is the Geist Mono face alone");
     assert.doesNotMatch(geist, /url\((?!"data:font\/woff2;base64,)/, "no font is fetched");
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "basalt-fonts-"));
     try {

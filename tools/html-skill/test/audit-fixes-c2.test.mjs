@@ -294,15 +294,22 @@ describe("a body can carry its page's description, icon and share card (A5-07)",
   });
 });
 
-// ---- A1-06 is out of this batch: the composer inlines both Geist faces on every page, as it did ----
+// ---- A1-06 was out of this batch; micro-details m8 (X8) since inlines Geist Mono only where a page can draw it ----
 
-describe("both Geist faces are inlined on every page, as on origin/main (A1-06 is not in this batch)", () => {
+describe("Geist is inlined on every page and Geist Mono where the page can draw it (micro-details m8, X8; A1-06 was not in this batch)", () => {
   const faces = (html) => (head(html).match(/@font-face/g) ?? []).length;
-  test("a page with no mono type, one with code, one with a script, and --no-fonts", () => {
-    for (const body of ["<h1>x</h1>", "<h1>x</h1><p>Run <code>npm test</code>.</p>", "<h1>x</h1><script>document.title = 'x';</script>", fixture("art.body.html"), fixture("tables.body.html")]) {
+  const sans = read(skillDir, "parts", "geist-sans.css").trim();
+  const mono = read(skillDir, "parts", "geist-mono.css").trim();
+  test("a page with code or a script has both faces, as on origin/main; one with no mono type has Geist alone; and --no-fonts", () => {
+    for (const body of ["<h1>x</h1><p>Run <code>npm test</code>.</p>", "<h1>x</h1><script>document.title = 'x';</script>"]) {
       const html = compose(body).html;
       assert.equal(faces(html), 2, "the sans and the mono face");
-      assert.ok(html.includes(read(skillDir, "parts", "geist.css").trim()), "geist.css as it is, whole");
+      assert.ok(html.includes(`${sans}\n${mono}`), "the two parts whole, joined as the one geist.css was");
+    }
+    for (const body of ["<h1>x</h1>", fixture("art.body.html"), fixture("tables.body.html")]) {
+      const html = compose(body).html;
+      assert.equal(faces(html), 1, "the sans face alone: nothing on the page draws mono");
+      assert.ok(html.includes(sans) && !html.includes(mono), "the sans part whole, with the licence, and no mono face");
     }
     assert.equal(faces(compose("<code>x</code>", { fonts: false }).html), 0);
   });

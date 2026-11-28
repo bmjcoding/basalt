@@ -239,6 +239,14 @@ Beside a word, braille's size follows the word's cap height (16 beside 12 to 16p
 
 Pass `label` when the spinner is the status (`role="status"`). Omit it when a word beside it already says so. There is no blinking caret: an input keeps the native caret, which follows the system's blink rate and its setting to stop blinking.
 
+## SVG transforms
+
+A transform that turns, flips or scales a whole glyph or spinner moves the outer `<svg>` (or an HTML box around it) with the one `transform`
+property; its pivot is the box's centre, which is the tile's centre the core glyphs are drawn on. A glyph's paths are never wrapped in a `<g>`
+to be turned. A mark inside a larger SVG that scales or turns about its own box (a chart's bar) sets `transform-box: fill-box` and an explicit
+`transform-origin` on that mark and clears both when it settles; a `<g>` only when one transform moves several shapes as one. A translation, a
+dash offset or an opacity needs neither.
+
 ## Components
 
 | Piece | What it does | Reduced motion |
