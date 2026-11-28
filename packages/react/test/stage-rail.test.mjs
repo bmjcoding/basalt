@@ -45,7 +45,7 @@ describe("the status seat", () => {
     for (const [i, s] of [[0, "success"], [1, "failed"], [2, "skipped"], [3, "canceled"]]) await page.evaluate(([i, s]) => window.set(i, s), [i, s]);
     await settle(page);
     let r = await seats(page);
-    assert.deepEqual(r.map((x) => [x.state, x.shown, x.word]), [["success", "2.1 s", false], ["failed", "Failed", true], ["skipped", "Skipped", true], ["canceled", "Canceled", true]]);
+    assert.deepEqual(r.map((x) => [x.state, x.shown, x.word]), [["success", "2.1\u00a0s", false], ["failed", "Failed", true], ["skipped", "Skipped", true], ["canceled", "Canceled", true]]);
     for (let i = 0; i < 4; i += 1) assert.deepEqual([r[i].w, r[i].h], [before[i].w, before[i].h], `node ${i}'s seat holds`);
     assert.equal(r[1].weight, "500");
     for (const [i, s] of [[1, "retrying"], [2, "running"], [3, "queued"]]) await page.evaluate(([i, s]) => window.set(i, s), [i, s]);
@@ -155,7 +155,7 @@ test("the hour scale is refused: it warns and the seats hold minutes (developmen
     html = renderToString(React.createElement(StageRail, { label: "Long", timeScale: "hours" }, React.createElement(RunStage, { name: "A", state: "success", start: 0, end: 9e6 }), React.createElement(RunStage, { name: "B", state: "queued" })));
   } finally { console.warn = warn; }
   assert.ok(said.some((m) => /a rail takes "seconds" or "minutes"/.test(m)));
-  assert.ok(html.includes("00 min 00 s") && !html.includes("00 hr 00 min"), "the seat is the minutes form");
+  assert.ok(html.includes("00\u00a0min 00\u00a0s") && !html.includes("00\u00a0hr 00\u00a0min"), "the seat is the minutes form");
 });
 
 test("0px through a whole run: the rail's nodes, seats and the sibling after it never move", async () => {

@@ -96,7 +96,7 @@ describe("messages, notes and quotes", () => {
   test("presence says its state and how long, with a duration for machines", async () => {
     const page = await open(render(`return ${THREAD};`));
     const p = await page.evaluate(() => ({ text: document.querySelector("#reply .basalt-presence").textContent, dt: document.querySelector("#reply .basalt-elapsed").getAttribute("datetime"), status: document.querySelector("#reply .basalt-presence").getAttribute("data-status") }));
-    assert.equal(p.text, "Away 6 min");
+    assert.equal(p.text, "Away 6\u00a0min");
     assert.equal(p.dt, "PT6M");
     assert.equal(p.status, "pending");
   });
@@ -144,7 +144,7 @@ describe("Elapsed and hydration", () => {
     const r = await page.evaluate(() => ({ recoverable: window.__recoverable, text: document.querySelector("#line").textContent, dt: document.querySelector("#line time")?.getAttribute("datetime"), hidden: document.querySelector("#line time")?.hidden }));
     assert.deepEqual(r.recoverable, []);
     assert.deepEqual(errors, []);
-    assert.equal(r.text, "Away 1 min");
+    assert.equal(r.text, "Away 1\u00a0min");
     assert.equal(r.dt, "PT1M");
     assert.equal(r.hidden, false);
     await page.close();
@@ -156,11 +156,11 @@ describe("formatElapsed", () => {
     const { formatElapsed } = await import(pathToFileURL(path.join(pkg, "dist", "index.js")).href);
     const now = Date.UTC(2026, 10, 18, 15, 0);
     assert.equal(formatElapsed(now - 59_000, now), null);
-    assert.deepEqual(formatElapsed(now - 6 * 60_000, now), { text: "6 min", dateTime: "PT6M" });
-    assert.deepEqual(formatElapsed(now - 60 * 60_000, now), { text: "1 hr", dateTime: "PT1H" });
-    assert.deepEqual(formatElapsed(now - 65 * 60_000, now), { text: "1 hr 5 min", dateTime: "PT1H5M" });
-    assert.deepEqual(formatElapsed(now - 3 * 86_400_000, now), { text: "3 days", dateTime: "P3D" });
-    assert.deepEqual(formatElapsed(now - 86_400_000, now), { text: "1 day", dateTime: "P1D" });
+    assert.deepEqual(formatElapsed(now - 6 * 60_000, now), { text: "6\u00a0min", dateTime: "PT6M" });
+    assert.deepEqual(formatElapsed(now - 60 * 60_000, now), { text: "1\u00a0hr", dateTime: "PT1H" });
+    assert.deepEqual(formatElapsed(now - 65 * 60_000, now), { text: "1\u00a0hr 5\u00a0min", dateTime: "PT1H5M" });
+    assert.deepEqual(formatElapsed(now - 3 * 86_400_000, now), { text: "3\u00a0days", dateTime: "P3D" });
+    assert.deepEqual(formatElapsed(now - 86_400_000, now), { text: "1\u00a0day", dateTime: "P1D" });
     assert.equal(formatElapsed(now + 60_000, now), null, "a start in the future is not negative");
     assert.equal(formatElapsed(Number.NaN, now), null, "an invalid start is no length");
     assert.equal(formatElapsed(new Date("not a date"), now), null);

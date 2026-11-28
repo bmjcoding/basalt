@@ -251,6 +251,24 @@ extension Basalt {
       dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.09)
     )
 
+    /// Selected text's wash, on every surface but an inverse fill. Web only: native text selection is the system's.
+    public static let selectionFill = ThemedColor(
+      light: RGBA(red: 0, green: 0, blue: 0, alpha: 0.24),
+      dark: RGBA(red: 1, green: 1, blue: 1, alpha: 0.24)
+    )
+
+    /// Selected text's ink: every text lifts to primary while selected, so secondary, tertiary, status and syntax text read at this pair's contrast. Web only: native text selection is the system's.
+    public static let selectionInk = ThemedColor(
+      light: RGBA(red: 0.090173, green: 0.090173, blue: 0.090173, alpha: 1),
+      dark: RGBA(red: 0.955355, green: 0.955355, blue: 0.955355, alpha: 1)
+    )
+
+    /// Selected text's wash on an inverse fill (a primary button, a focal diagram card), with that surface's own ink. Web only: native text selection is the system's.
+    public static let selectionFillInverse = ThemedColor(
+      light: RGBA(red: 1, green: 1, blue: 1, alpha: 0.24),
+      dark: RGBA(red: 0, green: 0, blue: 0, alpha: 0.24)
+    )
+
     /// The lit row's plate on the page (level 0), as one opaque colour: state-selected (black at 7%) over surface-0. For a part that replaces its own fill (a pressed toggle, a chosen card) or an app's own list row; --basalt-plate follows the level.
     public static let plate0 = ThemedColor(
       light: RGBA(red: 0.911749, green: 0.911749, blue: 0.911749, alpha: 1),

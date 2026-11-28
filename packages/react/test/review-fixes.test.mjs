@@ -82,7 +82,7 @@ describe("CommandMenu when its chunk fails", () => {
       const dialog = page.getByRole("dialog", { name: "Command menu" });
       const alert = dialog.getByRole("alert");
       await alert.waitFor();
-      assert.equal(await alert.textContent(), "Couldn't load commands.", "the alert is the sentence alone, without the buttons");
+      assert.equal(await alert.textContent(), "Couldn’t load commands.", "the alert is the sentence alone, without the buttons");
       assert.ok(await dialog.getByRole("button", { name: "Retry" }).isVisible());
       assert.deepEqual(await dialog.getByRole("button").allTextContents(), ["Retry", "Close"], "first failure: Retry, then Close");
       assert.equal(await alert.evaluate((el) => getComputedStyle(el).color), await page.evaluate(() => { const i = document.createElement("i"); i.style.color = "var(--basalt-text-primary)"; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; }), "the message is text-primary");
@@ -212,7 +212,7 @@ describe("CommandMenu when its chunk fails", () => {
       await dialog.getByRole("button", { name: "Reload page" }).waitFor();
       assert.ok(site.state.requests >= 1);
       assert.equal(await dialog.getByRole("alert").count(), 1);
-      assert.equal(await dialog.getByRole("alert").textContent(), "Still couldn't load commands. Reloading the page usually fixes this.");
+      assert.equal(await dialog.getByRole("alert").textContent(), "Still couldn’t load commands. Reloading the page usually fixes this.");
       assert.deepEqual(await dialog.getByRole("button").allTextContents(), ["Reload page", "Retry", "Close"], "Reload page first");
       assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Reload page", "and it has focus");
       await page.keyboard.press("Escape");
@@ -310,7 +310,7 @@ describe("CommandMenu when its chunk fails", () => {
       await page.locator("#trigger").click();
       await dialog.getByRole("alert").waitFor();
       assert.equal(await page.evaluate(() => window.calls), 1, "one request served both openings");
-      assert.equal(await dialog.getByRole("alert").textContent(), "Couldn't load commands.");
+      assert.equal(await dialog.getByRole("alert").textContent(), "Couldn’t load commands.");
       assert.deepEqual(await dialog.getByRole("button").allTextContents(), ["Retry", "Close"]);
       assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Retry");
     } finally {

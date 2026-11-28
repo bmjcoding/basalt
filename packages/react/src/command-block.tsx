@@ -36,14 +36,14 @@ export interface CommandBlockProps extends Omit<React.ComponentProps<"div">, "ch
  * `scroll-padding-bottom` on the scroller for a prompt the app docks; this part owns neither. It is a log of finished work, not a live
  * region: say a new block through a `StatusLine`. Each block is a named `group` (the command), not a landmark: a scrollback of fifty commands is not fifty regions.
  */
-export function CommandBlock({ command, status, refused = false, exit, at, timeZone, locale, className, children, ...props }: CommandBlockProps) {
+export function CommandBlock({ command, status, refused = false, exit, at, timeZone, locale, className, children, translate, ...props }: CommandBlockProps) {
   const id = React.useId();
   const stamp = at !== undefined ? formatStamp(at, { timeZone, locale }) : null;
   return (
-    <div {...props} role="group" aria-labelledby={id} className={join("basalt-command-block", className)}>
+    <div {...props} translate={translate} role="group" aria-labelledby={id} className={join("basalt-command-block", className)}>
       <div className="basalt-command-block-head">
         <Icon icon={ChevronRightGlyph} size={16} className="basalt-command-block-chevron" />
-        <span id={id} className="basalt-command-block-command">{breakable(command)}</span>
+        <span id={id} className="basalt-command-block-command" translate={translate ?? "no"}>{breakable(command)}</span>
         {/* Always drawn, even empty, so the narrow head's second row is there before a status word arrives. */}
         <span className="basalt-command-block-meta">
           {status ? <span className="basalt-command-block-status" data-refused={refused ? "" : undefined}>{status}</span> : null}

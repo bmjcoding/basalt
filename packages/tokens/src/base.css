@@ -14,4 +14,28 @@
     line-height: var(--basalt-text-base-line-height);
     font-weight: var(--basalt-font-weight-regular);
   }
+
+  /* Selected text (DECISIONS 420): a wash with its ink lifted to primary, on every surface. var() resolves on the originating element, so an inverse fill
+     that sets its own pair (a primary button, a focal diagram card) and a nested theme root get theirs. Here and in the skill's core only: a component never
+     repaints a page's selection. */
+  ::selection {
+    background: var(--basalt-selection-fill);
+    color: var(--basalt-selection-ink);
+  }
+
+  @media (forced-colors: active) {
+    ::selection {
+      background: Highlight;
+      color: HighlightText;
+    }
+  }
+
+  /* Smoothing by theme (micro-details m2 T6): grayscale in dark, where the system's subpixel rendering runs 400 towards 500 and 500 into 600, and the
+     system's own in light, where grayscale thins small secondary ink. macOS only; other systems ignore it. A nested theme follows its own theme. Set
+     here and nowhere in a component, so a component import never repaints a page Basalt does not own. */
+  :where([data-theme="dark"], .dark) { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  :where([data-theme="light"], .light) { -webkit-font-smoothing: auto; -moz-osx-font-smoothing: auto; }
+  @media (prefers-color-scheme: dark) {
+    body:where(:not([data-theme="light"], .light, [data-theme="light"] *, .light *)) { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  }
 }

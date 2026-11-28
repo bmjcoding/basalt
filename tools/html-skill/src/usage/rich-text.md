@@ -4,7 +4,7 @@ Type and rhythm for text a renderer made (Markdown, a forge's comment): `<div cl
 
 ```html
 <div class="rich-text">
-  <p>Retry the upload with <code>--resume</code>. See <a href="https://example.com/notes">the notes</a>.</p>
+  <p>Retry the upload with <code translate="no">--resume</code>. See <a href="https://example.com/notes">the notes</a>.</p>
   <ul><li>Two loaves</li><li>One jar</li></ul>
 </div>
 ```

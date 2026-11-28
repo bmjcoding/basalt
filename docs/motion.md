@@ -194,6 +194,7 @@ DECISIONS 146 D. A bar that arrives, or leaves and returns (`useSitePhase`; see 
 |---|---|---|
 | Arriving bar (`useSitePhase`) | Drops in from above its own top edge over `duration-slower` on `ease-out`; leaves at 0.75 on `ease-in`. The opening state, a jump past the line and a return to rest straight from pinned switch at once. A turn mid-exit travels back from where the bar has reached. | Opacity only, 100ms (75 out) |
 | The theme choice's pill | Slides to the chosen word over `duration-slow` on `ease-out`, as the segmented control's does. | Each word paints its own pill |
+| A theme switch (DECISIONS 420) | Instant. For the change that applies a theme or palette, every transition's duration and delay is zero and nothing else is touched (`data-theme-switching`), so loops keep their phase and a movement already running finishes on its own time. What the choice itself moves (the theme choice's pill, a closing menu) moves as usual. | The same. |
 | The footer's disclosure chevron | Turns over `duration-slow` on `ease-out`. | Colour only |
 | No `backdrop-filter` | Clear at the top as usual; scrolled, the fill fades to the opaque `surface-page` fallback and the line arrives, the same fade. |
 | Framed art arrives | The art fades in over `duration-base` on `ease-out`, once decoded, opacity only. Art already loaded when the component mounts shows at once. Under reduced motion it is 100ms. |

@@ -10,9 +10,14 @@ export function calendarDate(iso: string): { year: number; month: number; day: n
   return at.getUTCFullYear() === year && at.getUTCMonth() === month - 1 && at.getUTCDate() === day ? { year, month, day } : null;
 }
 
-/** "Nov 23, 2026" in `en-US`: the locale's short date with its year, read in UTC so the day never moves. A string that is not a date is returned as it is. */
+/**
+ * "Nov 23, 2026" in `en-US`: the locale's short date with its year, read in UTC so the day never moves, its month and day glued by a no-break space (m2 T8;
+ * a separator Intl writes itself is kept). A string that is not a date is returned as it is.
+ */
 export function formatReleaseDate(iso: string, locale: string | string[] = "en-US"): string {
   const date = calendarDate(iso);
   if (!date) return iso;
-  return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(date.year, date.month - 1, date.day)));
+  const list = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).formatToParts(new Date(Date.UTC(date.year, date.month - 1, date.day)));
+  const pair = (a?: string, b?: string) => (a === "month" && b === "day") || (a === "day" && b === "month");
+  return list.map((part, i) => (part.type === "literal" && pair(list[i - 1]?.type, list[i + 1]?.type) ? part.value.replace(/ /g, "\u00a0") : part.value)).join("");
 }

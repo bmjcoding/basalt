@@ -1,5 +1,8 @@
 import * as React from "react";
 
+import { checkThemeColorOwners, syncThemeColor } from "./theme-color";
+import { withoutTransitions } from "./theme-switch";
+
 // The theme's state for a React app, on the pattern of loops.ts: one attribute on the root (`<html data-theme="dark">`) that the
 // tokens' stylesheet reads, a key in `localStorage`, and a hook. The key and its values are the HTML skill's (tools/html-skill/src/core.js:
 // `basalt-theme`, `light` or `dark`), so a React app and a skill page on one origin agree: what one stores the other applies, and "no
@@ -40,19 +43,21 @@ function resolve(choice: ThemeChoice): ThemeName {
 /**
  * Writes the resolved theme to the root, as the skill's `initTheme` does; a `system` choice is written as what the system is now. It writes the
  * choice itself as `data-theme-choice` too: the theme choice draws its chosen word from that attribute. A write is ours, so the theme on the root is no
- * longer the app's own (`hand`).
+ * longer the app's own (`hand`). A change of theme is written inside the switch window, so colour changes at once and a movement already running keeps its time;
+ * the choice and the browser chrome's colour follow, outside it (DECISIONS 420).
  */
 function write() {
   const choice = readChoice();
   const theme = resolve(choice);
   const root = document.documentElement;
   if (root.getAttribute("data-theme") !== theme) {
-    root.setAttribute("data-theme", theme);
+    withoutTransitions(() => root.setAttribute("data-theme", theme));
     // Consume our own write, so the observer reports only what the app does.
     watch?.takeRecords();
   }
   hand = false;
   root.setAttribute("data-theme-choice", choice);
+  syncThemeColor();
 }
 
 // Who wrote `data-theme`. A theme the app set by hand (an attribute it wrote after this took over, or a `.dark` or `.light` class root) is the app's: a change of the system's
@@ -79,9 +84,11 @@ function onStorage(event: StorageEvent) {
 }
 
 function install() {
+  checkThemeColorOwners();
   write();
   window.addEventListener("storage", onStorage);
-  watch = new MutationObserver(() => { hand = document.documentElement.hasAttribute("data-theme"); });
+  // The app's own data-theme write moves the browser chrome too.
+  watch = new MutationObserver(() => { hand = document.documentElement.hasAttribute("data-theme"); syncThemeColor(); });
   watch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   if (typeof window.matchMedia === "function") {
     media = window.matchMedia(DARK_QUERY);

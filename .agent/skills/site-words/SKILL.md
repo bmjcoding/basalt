@@ -28,12 +28,18 @@ A changelog entry, a release's summary or release notes also follows `.agent/ski
 2. **No counts that can change** ("17 brands"): a number computed from data in a working place (a filter count, a cart) is fine.
 3. **Don't sell "AI".** "AI native" is overused; people are skeptical of AI coaching. Say what the AI does, and what the human does.
 4. **Written, not spoken.** No run-ons, no repeated sentence openers, no conversational asides.
+   Characters (DECISIONS 419): curly quotes “ ” ‘ ’ and the apostrophe `’`, never in a reader's input, code, identifiers or URLs; the
+   ellipsis is one `…`; a menu item or button that asks for more before it acts ends in `…` ("Rename…", "Move to…"), one that acts or opens
+   a view at once does not; no `…` on a status word, a busy button or an announcement.
 5. **Don't over-explain the basics** of the reader's own field; it reads as if AI did the work.
 6. **No process scaffolding in public text.** Present tense, what is; never "organized by review round", "to be confirmed",
    "placeholder", "preview", "draft", a build note or a file's internal title (brand SVGs carry `<title>` build notes: hide them).
 7. **Never a closed list where the product works with any** ("but what about gemini?"): name examples with "such as".
 8. **US spelling and US dates** ("color", "canceled", "Nov 4", "Sun, Nov 8, 6:42 PM", "Q1 2027" kept together). Basalt defaults to
-   `en-US`.
+   `en-US`. Glue with a no-break space (`&nbsp;`, U+00A0; DECISIONS 419) a value and its unit ("10&nbsp;MB"), a clock and its period or
+   zone ("6:42&nbsp;PM"), a short month and day ("Nov&nbsp;4"), a quarter and year ("Q1&nbsp;2027"), shortcut text outside a key chip
+   ("⌘&nbsp;K") and a two-word product name; never a phrase or a sentence, and never drop the space. A product's name or code in page
+   words is marked `translate="no"`, so a page translator leaves it.
 9. **Describe where a product is heading** (capability lines), and **re-check every claim against the shipped code before the site goes
    live** (BACKLOG). A line about **how something works** must be true now.
 10. **Keep off the sites:** his employer's name and internal work (a project is named only once it is public), his coach, the shop owner,

@@ -60,7 +60,7 @@ function build(spec: DiagramSpec, kit: ExtBuildKit): ExtBuilt {
   const given = (spec.labels ?? {}) as ScheduleLabels;
   const words: Required<ScheduleLabels> = {
     finishes: given.finishes ?? "Finishes at", criticalPath: given.criticalPath ?? { one: "critical path", other: "critical paths" },
-    assumptions: given.assumptions ?? "Finish to start, no lag, no calendar. A box's width is not its length.", critical: given.critical ?? "Critical", float: given.float ?? "Float",
+    assumptions: given.assumptions ?? "Finish to start, no lag, no calendar. A box’s width is not its length.", critical: given.critical ?? "Critical", float: given.float ?? "Float",
     keyMain: given.keyMain ?? "This finish sets that start, on a critical path", keyPlain: given.keyPlain ?? "Comes before, with time to spare",
     keyCritical: given.keyCritical ?? "Critical task", keyFloat: given.keyFloat ?? "Task with float", keyNumbers: given.keyNumbers ?? "ES, EF: earliest start and finish · LS, LF: latest start and finish",
     starts: given.starts ?? "Starts the schedule.",

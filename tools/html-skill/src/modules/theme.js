@@ -37,7 +37,7 @@
   function apply() {
     var c = choice();
     var t = c === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : c;
-    document.documentElement.setAttribute('data-theme', t);
+    _.writeTheme(t);
     document.documentElement.setAttribute('data-theme-choice', c);
     ours();
     syncChoices();
@@ -114,6 +114,7 @@
       // The attribute at load is the head script's unless it is not what the system says while nothing is stored: then the page set it.
       var now = document.documentElement.getAttribute('data-theme');
       hand = choice() === 'system' && now !== null && now !== (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      // (The page's own data-theme write moves the browser chrome through the core's own observer.)
       watch = new MutationObserver(function () { hand = document.documentElement.hasAttribute('data-theme'); });
       watch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
       // A theme the core writes (the toggle, print) is the script's too.

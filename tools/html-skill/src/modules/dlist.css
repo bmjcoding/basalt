@@ -14,7 +14,7 @@
   .dlist dd { min-width: 0; margin: 0; color: var(--basalt-text-primary); font: var(--basalt-font-weight-regular) var(--bh-base); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
   .dlist dd + dd { grid-column: 2; margin-top: var(--basalt-space-1); }
   /* Identifiers are mono at 13px on the value's 20px line, so a mono row is still 40px. */
-  .dlist dd[data-mono] { font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-sm-size); }
+  .dlist dd[data-mono] { font-family: var(--basalt-font-family-mono); font-variant-ligatures: none; font-size: var(--basalt-text-sm-size); }
   .dlist dd[data-missing] { color: var(--basalt-text-tertiary); }
   /* The stacked form (DECISIONS 162, R9 and R10): a title over its text, 20px between entries, no divider. React's DescriptionList form="stacked". */
   .dlist[data-form="stacked"] { display: grid; gap: var(--basalt-space-5); }

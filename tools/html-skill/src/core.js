@@ -70,20 +70,67 @@
     return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
 
-  function setTheme(theme, persist) {
+  /** One theme write inside a window where every transition's duration and delay is zero (data-theme-switching; the rule is in core.css): set, write, flush
+      style, remove, in this call. A colour the theme changes snaps; a movement already running finishes on its own time; no animation is touched (DECISIONS 420). */
+  function withoutTransitions(write) {
+    var r = document.documentElement;
+    r.setAttribute('data-theme-switching', '');
+    try { write(); void getComputedStyle(r).color; } finally { r.removeAttribute('data-theme-switching'); }
+  }
+
+  /** The browser chrome's colour (DECISIONS 420): the one tag the script owns, meta[data-basalt-theme-color="live"], kept first among the theme-color tags in the
+      head so it outranks compose's static pair (markup no script touches), its content the page colour of the theme the root shows (data-theme, else a .dark or
+      .light root, else the system's). Its data-light and data-dark, if a palette set them, are the colours, else Basalt's ground. A page's own theme-color wins:
+      then there is no live tag. */
+  function syncThemeColor() {
+    var h = document.head, r = document.documentElement, q = 'meta[name="theme-color"]', m, f, t, c;
+    if (!h) return;
+    m = h.querySelector('meta[data-basalt-theme-color="live"]');
+    if (h.querySelector(q + ':not([data-basalt-theme-color])')) { if (m) m.remove(); return; }
+    if (!m) { m = document.createElement('meta'); m.name = 'theme-color'; m.setAttribute('data-basalt-theme-color', 'live'); m.setAttribute('property', 'basalt-live'); }
+    f = h.querySelector(q);
+    if (f !== m) h.insertBefore(m, f && f.parentNode === h ? f : null);
+    t = r.getAttribute('data-theme');
+    if (t !== 'light' && t !== 'dark') t = r.classList.contains('dark') ? 'dark' : r.classList.contains('light') ? 'light' : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    c = t === 'dark' ? m.getAttribute('data-dark') || '#000000' : m.getAttribute('data-light') || '#fafafa';
+    if (m.content !== c) m.content = c;
+  }
+
+  /* A page's own write of data-theme (or of a .dark or .light root) moves the chrome too, on a page with no theme module: one observer, made at init. The
+     script's own writes are consumed in writeTheme, which syncs itself (or, printing, leaves the tag alone). */
+  var themeWatch = null;
+  function watchTheme() {
+    if (themeWatch) return;
+    themeWatch = new MutationObserver(syncThemeColor);
+    themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+  }
+
+  /** Every write of data-theme, the core's and the theme module's: a change in the switch window, then the chrome's colour. Print passes quiet: the page is not shown
+      in chrome while it prints, so the live tag is left alone. */
+  function writeTheme(t, quiet) {
+    var r = document.documentElement;
+    if (r.getAttribute('data-theme') !== t) withoutTransitions(function () { r.setAttribute('data-theme', t); });
+    if (themeWatch) themeWatch.takeRecords();
+    if (!quiet) syncThemeColor();
+  }
+
+  function put(theme, persist, quiet) {
     var t = theme === 'light' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', t);
+    writeTheme(t, quiet);
     if (persist !== false) { try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* storage blocked: the choice lasts for the page */ } }
     onTheme.forEach(function (f) { f(); });
     return t;
   }
+
+  function setTheme(theme, persist) { return put(theme, persist); }
 
   /** The stored choice, else the system's. Safe to call twice. (The head snippet compose.mjs writes does this before first paint.) */
   function initTheme() {
     var stored = null;
     try { stored = localStorage.getItem(THEME_KEY); } catch (e) { /* ignore */ }
     var t = stored === 'light' || stored === 'dark' ? stored : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    document.documentElement.setAttribute('data-theme', t);
+    writeTheme(t);
+    watchTheme();
     return t;
   }
 
@@ -116,9 +163,9 @@
     window.addEventListener('beforeprint', function () {
       if (before !== null) return;
       before = getTheme();
-      if (before !== 'light') setTheme('light', false);
+      if (before !== 'light') put('light', false, true);
     });
-    window.addEventListener('afterprint', function () { if (before) setTheme(before, false); before = null; });
+    window.addEventListener('afterprint', function () { if (before) put(before, false, true); before = null; });
   }
 
   /* ------------------------------------------------------------------- init */
@@ -130,11 +177,9 @@
    * One empty, passive touchstart listener on the document (m1, P8). WebKit on iOS has long painted :active under a finger only where a touch
    * listener exists (Apple's Safari web content guide), and every press in the skill but a popup's rows is :active alone. Not checked on a phone.
    */
-  function wireTouch() {
-    if (document.__bhTouch) return;
-    document.__bhTouch = true;
-    document.addEventListener('touchstart', function () {}, { passive: true });
-  }
+  function wireTouch() { document.addEventListener('touchstart', noop, { passive: true }); }
+  // One function, so a second init adds no second listener (the same listener is added once).
+  function noop() {}
 
   step(10, 'initTheme', initTheme);
   step(12, 'wireTouch', wireTouch);
@@ -204,6 +249,6 @@
     init: init, icon: icon, hydrateIcons: hydrateIcons, announce: announce, safeHref: safeHref,
     getTheme: getTheme, setTheme: setTheme, toggleTheme: toggleTheme,
     // For the modules and compose.mjs; not part of the page API.
-    _: { esc: esc, safeHref: safeHref, pick: pick, reserve: reserve, icon: icon, announce: announce, getTheme: getTheme, setTheme: setTheme, step: step, onTheme: onTheme, addIcons: function (data) { for (var k in data) ICONS[k] = data[k]; } }
+    _: { esc: esc, safeHref: safeHref, pick: pick, reserve: reserve, icon: icon, announce: announce, getTheme: getTheme, setTheme: setTheme, writeTheme: writeTheme, syncThemeColor: syncThemeColor, withoutTransitions: withoutTransitions, step: step, onTheme: onTheme, addIcons: function (data) { for (var k in data) ICONS[k] = data[k]; } }
   };
 })();

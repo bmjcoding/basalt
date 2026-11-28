@@ -37,7 +37,7 @@
       node.className = 'terminal-line';
       node.setAttribute('data-kind', 'stage');
       node.setAttribute('data-state', state);
-      node.innerHTML = '<span class="terminal-gutter">' + stageMark(state, Boolean(word)) + '</span><span class="terminal-text terminal-stage"><span>' + (word ? '<span class="terminal-word">' + esc(word) + ' </span>' : '') + esc(line.text) + '</span>' + (line.time ? '<span class="terminal-duration">' + esc(line.time) + '</span>' : '') + '</span>';
+      node.innerHTML = '<span class="terminal-gutter">' + stageMark(state, Boolean(word)) + '</span><span class="terminal-text terminal-stage"><span>' + (word ? '<span class="terminal-word" translate="yes">' + esc(word) + ' </span>' : '') + esc(line.text) + '</span>' + (line.time ? '<span class="terminal-duration">' + esc(line.time) + '</span>' : '') + '</span>';
       return node;
     }
     var mark = MARKS[line.kind];
@@ -65,6 +65,8 @@
     // A stage transcript is declared on the figure: its window is never a log, whatever plays (the run's own words say what happened).
     var stages = root.hasAttribute('data-stages');
     if (stages) pre.setAttribute('data-stages', '');
+    // The transcript is left as written by a page translator (m2 I3), unless the page says otherwise; the stage words and the hint still translate.
+    if (!pre.hasAttribute('translate')) pre.setAttribute('translate', 'no');
     var commands = lines.filter(function (l) { return l.kind === 'command'; }).map(function (l) { return l.text; }).join('\n');
     // A replay ends failed on an error, and on a stage line that failed.
     var last = lines[lines.length - 1];
@@ -121,7 +123,7 @@
       pre.setAttribute('role', replay && state === 'running' && !stages ? 'log' : replay && !shown ? 'group' : 'region');
       if (replay) {
         var hint = code.querySelector('.terminal-hint');
-        if (state === 'idle' && shown === 0) { if (!hint) { hint = document.createElement('span'); hint.className = 'terminal-hint'; hint.textContent = 'Press Play to start'; code.appendChild(hint); } } else if (hint) hint.remove();
+        if (state === 'idle' && shown === 0) { if (!hint) { hint = document.createElement('span'); hint.className = 'terminal-hint'; hint.setAttribute('translate', 'yes'); hint.textContent = 'Press Play to start'; code.appendChild(hint); } } else if (hint) hint.remove();
         root.toggleAttribute('data-live', true);
         root.querySelector('.terminal-state').setAttribute('data-state', state);
         show(stateEl, state, STATES);

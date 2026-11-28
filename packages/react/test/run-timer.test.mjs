@@ -16,41 +16,41 @@ after(async () => { await browser?.close(); });
 describe("formatRunTime", () => {
   test("every boundary, with its ISO duration", () => {
     const cases = [
-      [0, "0.0 s", "PT0.0S"],
-      [12_345, "12.3 s", "PT12.3S"],
-      [59_900, "59.9 s", "PT59.9S"],
-      [59_999, "59.9 s", "PT59.9S"],
-      [60_000, "1 min 0 s", "PT1M0S"],
-      [754_000, "12 min 34 s", "PT12M34S"],
-      [3_599_000, "59 min 59 s", "PT59M59S"],
-      [3_600_000, "1 hr 0 min", "PT1H0M"],
-      [45_240_000, "12 hr 34 min", "PT12H34M"],
-      [86_399_000, "23 hr 59 min", "PT23H59M"],
-      [86_400_000, "1 day", "P1D"],
-      [3 * 86_400_000 + 5_000, "3 days", "P3D"],
+      [0, "0.0\u00a0s", "PT0.0S"],
+      [12_345, "12.3\u00a0s", "PT12.3S"],
+      [59_900, "59.9\u00a0s", "PT59.9S"],
+      [59_999, "59.9\u00a0s", "PT59.9S"],
+      [60_000, "1\u00a0min 0\u00a0s", "PT1M0S"],
+      [754_000, "12\u00a0min 34\u00a0s", "PT12M34S"],
+      [3_599_000, "59\u00a0min 59\u00a0s", "PT59M59S"],
+      [3_600_000, "1\u00a0hr 0\u00a0min", "PT1H0M"],
+      [45_240_000, "12\u00a0hr 34\u00a0min", "PT12H34M"],
+      [86_399_000, "23\u00a0hr 59\u00a0min", "PT23H59M"],
+      [86_400_000, "1\u00a0day", "P1D"],
+      [3 * 86_400_000 + 5_000, "3\u00a0days", "P3D"],
     ];
     for (const [ms, text, dateTime] of cases) assert.deepEqual(formatRunTime(ms), { text, dateTime }, `${ms}ms`);
-    assert.deepEqual(formatRunTime(-5), { text: "0.0 s", dateTime: "PT0.0S" }, "never negative");
-    assert.deepEqual(formatRunTime(Number.NaN), { text: "0.0 s", dateTime: "PT0.0S" });
+    assert.deepEqual(formatRunTime(-5), { text: "0.0\u00a0s", dateTime: "PT0.0S" }, "never negative");
+    assert.deepEqual(formatRunTime(Number.NaN), { text: "0.0\u00a0s", dateTime: "PT0.0S" });
   });
 
   // cimip-gaps-3 T1: the minute grain, a running timer's under reduced motion. Node only.
   test("both grains at 0, 59.9 s, 60 s, 59 min 59 s, 60 min and 24 h: text, dateTime and spoken", () => {
     const cases = [
-      [0, { text: "0.0 s", dateTime: "PT0.0S" }, { text: "<1 min", dateTime: "PT0M", spoken: "less than 1 minute" }],
-      [59_900, { text: "59.9 s", dateTime: "PT59.9S" }, { text: "<1 min", dateTime: "PT0M", spoken: "less than 1 minute" }],
-      [60_000, { text: "1 min 0 s", dateTime: "PT1M0S" }, { text: "1 min", dateTime: "PT1M" }],
-      [3_599_000, { text: "59 min 59 s", dateTime: "PT59M59S" }, { text: "59 min", dateTime: "PT59M" }],
-      [3_600_000, { text: "1 hr 0 min", dateTime: "PT1H0M" }, { text: "1 hr 0 min", dateTime: "PT1H0M" }],
-      [86_400_000, { text: "1 day", dateTime: "P1D" }, { text: "1 day", dateTime: "P1D" }],
+      [0, { text: "0.0\u00a0s", dateTime: "PT0.0S" }, { text: "<1\u00a0min", dateTime: "PT0M", spoken: "less than 1 minute" }],
+      [59_900, { text: "59.9\u00a0s", dateTime: "PT59.9S" }, { text: "<1\u00a0min", dateTime: "PT0M", spoken: "less than 1 minute" }],
+      [60_000, { text: "1\u00a0min 0\u00a0s", dateTime: "PT1M0S" }, { text: "1\u00a0min", dateTime: "PT1M" }],
+      [3_599_000, { text: "59\u00a0min 59\u00a0s", dateTime: "PT59M59S" }, { text: "59\u00a0min", dateTime: "PT59M" }],
+      [3_600_000, { text: "1\u00a0hr 0\u00a0min", dateTime: "PT1H0M" }, { text: "1\u00a0hr 0\u00a0min", dateTime: "PT1H0M" }],
+      [86_400_000, { text: "1\u00a0day", dateTime: "P1D" }, { text: "1\u00a0day", dateTime: "P1D" }],
     ];
     for (const [ms, exact, minute] of cases) {
       assert.deepEqual(formatRunTime(ms), exact, `${ms}ms, the default grain`);
       assert.deepEqual(formatRunTime(ms, "exact"), exact, `${ms}ms, exact`);
       assert.deepEqual(formatRunTime(ms, "minute"), minute, `${ms}ms, minute`);
     }
-    assert.deepEqual(formatRunTime(4 * 60_000 + 59_999, "minute"), { text: "4 min", dateTime: "PT4M" }, "floored, never rounded up");
-    assert.deepEqual(formatRunTime(-5, "minute"), { text: "<1 min", dateTime: "PT0M", spoken: "less than 1 minute" }, "never negative");
+    assert.deepEqual(formatRunTime(4 * 60_000 + 59_999, "minute"), { text: "4\u00a0min", dateTime: "PT4M" }, "floored, never rounded up");
+    assert.deepEqual(formatRunTime(-5, "minute"), { text: "<1\u00a0min", dateTime: "PT0M", spoken: "less than 1 minute" }, "never negative");
   });
 });
 
@@ -98,12 +98,12 @@ describe("the tick", () => {
     const t1 = [await text(page, "#a"), await text(page, "#b"), await text(page, "#c")];
     assert.notEqual(t1[0], t0[0], `under a minute it changes every 100ms (${t0[0]} to ${t1[0]})`);
     await page.clock.runFor(1000);
-    assert.equal(await text(page, "#b"), "1 min 0 s", "a minute to an hour: by the second");
-    assert.match(await text(page, "#c"), /^59 min 59 s$|^1 hr 0 min$/);
+    assert.equal(await text(page, "#b"), "1\u00a0min 0\u00a0s", "a minute to an hour: by the second");
+    assert.match(await text(page, "#c"), /^59\u00a0min 59\u00a0s$|^1\u00a0hr 0\u00a0min$/);
     await page.clock.runFor(1000);
-    assert.equal(await text(page, "#c"), "1 hr 0 min", "an hour to a day: by the minute");
+    assert.equal(await text(page, "#c"), "1\u00a0hr 0\u00a0min", "an hour to a day: by the minute");
     await page.clock.runFor(30_000);
-    assert.equal(await text(page, "#c"), "1 hr 0 min");
+    assert.equal(await text(page, "#c"), "1\u00a0hr 0\u00a0min");
     await page.evaluate(() => window.setShown(false));
     await page.clock.runFor(200);
     assert.deepEqual(await page.evaluate(() => [window.__intervals.live.size, window.__intervals.made, window.__intervals.cleared]), [0, 1, 1], "cleared with its last reader");
@@ -111,9 +111,9 @@ describe("the tick", () => {
 
   test("frozen at end, with carried added; a hold set after mount stops the tick, and release writes the current figure", async () => {
     const page = await open(RUN(`<><span id="done"><B.RunTimer start={1_000} end={4_200} carried={1_500} /></span><span id="run"><B.RunTimer start={10_000} whenHeld="hidden" /></span></>`));
-    assert.equal(await text(page, "#done"), "4.7 s");
+    assert.equal(await text(page, "#done"), "4.7\u00a0s");
     await page.clock.runFor(2_000);
-    assert.equal(await text(page, "#done"), "4.7 s", "frozen");
+    assert.equal(await text(page, "#done"), "4.7\u00a0s", "frozen");
     await hold(page, true);
     await page.clock.runFor(50);
     const held = await text(page, "#run");
@@ -124,7 +124,7 @@ describe("the tick", () => {
     await hold(page, false);
     await page.clock.runFor(50);
     assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#run time")).visibility), "visible");
-    assert.equal(await text(page, "#run"), "5.1 s", "the current figure, written on release");
+    assert.equal(await text(page, "#run"), "5.1\u00a0s", "the current figure, written on release");
   });
 });
 
@@ -166,13 +166,13 @@ describe("since", () => {
     const page = await open(RUN(`<span id="head"><B.RunTimer {...props} /></span>`));
     await page.evaluate(() => window.setProps({ start: 10_000 - 90_000_000, end: 10_000 - 90_000_000 + 6_300 }));
     await page.clock.runFor(50);
-    assert.equal(await text(page, "#head"), "6.3 s", "frozen while failed");
+    assert.equal(await text(page, "#head"), "6.3\u00a0s", "frozen while failed");
     await page.clock.runFor(5_000);
-    assert.equal(await text(page, "#head"), "6.3 s", "still frozen through the wait");
+    assert.equal(await text(page, "#head"), "6.3\u00a0s", "still frozen through the wait");
     const now = await page.evaluate(() => Date.now());
     await page.evaluate(({ now }) => window.setProps({ start: now - 2_000, end: undefined, carried: 6_300, since: 10_000 - 90_000_000 }), { now });
     await page.clock.runFor(50);
-    assert.equal(await text(page, "#head"), "8.3 s", "a retry counts on from the frozen figure, not over the wait");
+    assert.equal(await text(page, "#head"), "8.3\u00a0s", "a retry counts on from the frozen figure, not over the wait");
     await hold(page, true);
     await page.clock.runFor(50);
     const expected = await page.evaluate(() => {
@@ -226,11 +226,11 @@ describe("tenths stay outside a minutes-scale rail", () => {
       <span id="alone"><B.RunTimer start={10_000 - 4_500} scale="minutes" /></span>
       <B.StageList label="Grown"><B.RunStage name="Short" state="success" start={0} end={1_500} /><B.RunStage name="Long" state="success" start={0} end={754_000} /></B.StageList>
     </>`));
-    assert.equal(await text(page, "#alone"), "4.5 s");
+    assert.equal(await text(page, "#alone"), "4.5\u00a0s");
     await page.clock.runFor(100);
-    assert.equal(await text(page, "#alone"), "4.6 s", "by the tenth");
+    assert.equal(await text(page, "#alone"), "4.6\u00a0s", "by the tenth");
     const short = await page.evaluate(() => { const t = document.querySelector(".basalt-run-stage time"); return [t.querySelector("[data-on]").textContent, t.getAttribute("datetime")]; });
-    assert.deepEqual(short, ["1.5 s", "PT1.5S"], "a sibling of a time that grew the list's scale is unchanged");
+    assert.deepEqual(short, ["1.5\u00a0s", "PT1.5S"], "a sibling of a time that grew the list's scale is unchanged");
   });
 });
 
@@ -306,7 +306,7 @@ describe("the minute grain under reduced motion", () => {
   for (const theme of ["dark", "light"]) {
     test(`${theme}: at 20 s it draws "<1 min", says "less than 1 minute" once, PT0M, and nothing changes for 1.5 s inside the minute`, async () => {
       const page = await open(RUN(`<span id="t"><B.RunTimer start={10_000 - 20_000} /></span>`), { ...REDUCED, theme });
-      assert.deepEqual(await said(page, "#t"), { drawn: "<1 min", hidden: "true", words: "less than 1 minute", iso: "PT0M" });
+      assert.deepEqual(await said(page, "#t"), { drawn: "<1\u00a0min", hidden: "true", words: "less than 1 minute", iso: "PT0M" });
       const tree = await page.locator("#t").ariaSnapshot();
       assert.equal((tree.match(/less than 1 minute/g) ?? []).length, 1, tree);
       assert.doesNotMatch(tree, /<1 min/, "the drawn form is not read beside it");
@@ -319,24 +319,24 @@ describe("the minute grain under reduced motion", () => {
 
   test("one change across a minute's boundary: drawn, said and dateTime agree, then once a minute", async () => {
     const page = await open(RUN(`<span id="t"><B.RunTimer start={10_000 - 59_000} /></span>`), REDUCED);
-    assert.equal((await said(page, "#t")).drawn, "<1 min");
+    assert.equal((await said(page, "#t")).drawn, "<1\u00a0min");
     await observe(page, "#t");
     await page.clock.runFor(1_100);
-    assert.deepEqual(await said(page, "#t"), { drawn: "1 min", hidden: null, words: null, iso: "PT1M" });
+    assert.deepEqual(await said(page, "#t"), { drawn: "1\u00a0min", hidden: null, words: null, iso: "PT1M" });
     const once = await page.evaluate(() => window.__changes);
     assert.ok(once > 0, "the boundary is written");
     await page.clock.runFor(58_000);
     assert.equal(await page.evaluate(() => window.__changes), once, "nothing more inside the minute");
     await page.clock.runFor(2_000);
-    assert.deepEqual(await said(page, "#t"), { drawn: "2 min", hidden: null, words: null, iso: "PT2M" });
+    assert.deepEqual(await said(page, "#t"), { drawn: "2\u00a0min", hidden: null, words: null, iso: "PT2M" });
   });
 
   test("at 4 min it is \"4 min\"; at end the exact figure is written once; carried is added before the floor", async () => {
     const page = await open(RUN(`<><span id="run"><B.RunTimer start={10_000 - 240_000} /></span><span id="carried"><B.RunTimer start={10_000 - 20_000} carried={50_000} since={0} /></span><span id="done"><B.RunTimer start={0} end={2_850_000} /></span></>`), REDUCED);
-    assert.equal((await said(page, "#run")).drawn, "4 min");
+    assert.equal((await said(page, "#run")).drawn, "4\u00a0min");
     assert.equal((await said(page, "#run")).iso, "PT4M");
-    assert.equal((await said(page, "#carried")).drawn, "1 min", "20 s and 50 s carried is 70 s: a retry counts on");
-    assert.deepEqual(await said(page, "#done"), { drawn: "47 min 30 s", hidden: null, words: null, iso: "PT47M30S" }, "a finished time is exact in every mode");
+    assert.equal((await said(page, "#carried")).drawn, "1\u00a0min", "20\u00a0s and 50\u00a0s carried is 70\u00a0s: a retry counts on");
+    assert.deepEqual(await said(page, "#done"), { drawn: "47\u00a0min 30\u00a0s", hidden: null, words: null, iso: "PT47M30S" }, "a finished time is exact in every mode");
   });
 
   test("held, the held form wins: Started, and the hidden form hides", async () => {
@@ -358,7 +358,7 @@ describe("the minute grain under reduced motion", () => {
 
   test("a rail at the minutes scale shows \"<1 min\" under reduced motion, where it showed whole seconds", async () => {
     const page = await open(RUN(`<B.StageRail label="Build stages" timeScale="minutes"><B.RunStage name="Fetch" state="running" start={10_000 - 45_000} /><B.RunStage name="Pack" state="idle" /></B.StageRail>`), REDUCED);
-    assert.equal(await page.evaluate(() => document.querySelector(".basalt-run-stage[data-state=running] time [data-on]").textContent), "<1 min");
+    assert.equal(await page.evaluate(() => document.querySelector(".basalt-run-stage[data-state=running] time [data-on]").textContent), "<1\u00a0min");
   });
 
   test("an app's format and spoken receive the floored length and \"minute\" while running under reduced motion; the true length and \"exact\" otherwise and at end", async () => {

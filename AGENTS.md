@@ -193,6 +193,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   at load on a first visit (`duration-figure` 600ms, `duration-stagger` 22ms, at rest on a second visit and under reduced motion); a
   traveller between two resting places on screen uses `ease-in-out` (a leg of 300ms up to 150px, 2ms a pixel above, 600ms from 300px); a
   filtered or sorted list or grid moves what stays by transform and never replaces an item (past 48 items that would move, it lands at once); a number beside a figure never counts up. The hold or printing settles a running entrance at once, and a page change without a reload counts as a load.
+  A theme switch changes colour at once (`data-theme-switching`: every transition's duration and delay zero for that one write, nothing else touched).
   Under reduced motion, opacity only, and no loop runs. See `docs/motion.md`.
 - **Versions and release notes:** a version is SemVer shown with its ship date ("Version 1.4.0 · Nov 23, 2026"), one link to the
   release notes (`VersionLink`): at the sidebar's foot under the account items, the number alone in the rail, the last row of More's
@@ -218,7 +219,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   (`usePinnedEdges`, `data-pinned-edge`). `AppShell`'s `foot` holds still; a `Tray` docks the rows that wait on the reader (a sheet under 720). A toast whose
   only home is the page closes when the page changes; under 720 the toast stack hangs from the bar, `space-2` below it (DECISIONS 274).
 - **Both themes, always.** Every visual change is previewed and contrast-tested in dark and
-  light.
+  light. Selected text is the selection wash with primary ink (the inverse pair on an inverse fill).
 - **Styling comes from tokens.** No raw colours in component CSS. Lengths come from
   `--basalt-*` tokens; a raw length needs a lint exception that says why (see Checks).
 - **Don't copy another system's values.** Vercel, Linear, GitHub Primer and the rest

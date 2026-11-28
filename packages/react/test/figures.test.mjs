@@ -551,7 +551,7 @@ describe("Stat", () => {
       stat('label="C" value="3" source="S" time={new Date("2025-11-07T08:02:00Z")}'),
     ), { theme: "dark" });
     const times = await page.locator(".basalt-stat-source time").evaluateAll((els) => els.map((el) => [el.textContent, el.getAttribute("datetime")]));
-    assert.deepEqual(times, [["4:41\u00a0AM", "2026-11-10T04:41"], ["Nov 7, 8:02\u00a0AM", "2026-11-07T08:02"], ["Nov 7, 2025, 8:02\u00a0AM", "2025-11-07T08:02"]]);
+    assert.deepEqual(times, [["4:41\u00a0AM", "2026-11-10T04:41"], ["Nov\u00a07, 8:02\u00a0AM", "2026-11-07T08:02"], ["Nov\u00a07, 2025, 8:02\u00a0AM", "2025-11-07T08:02"]]);
     await page.close();
   });
 

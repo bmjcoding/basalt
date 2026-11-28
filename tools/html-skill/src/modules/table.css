@@ -3,7 +3,7 @@
   th { height: var(--basalt-size-control-md); padding: 0 var(--basalt-space-4); background: var(--basalt-surface-sunken-strong); font-size: var(--basalt-text-xs-size); font-weight: var(--basalt-font-weight-medium); color: var(--basalt-text-secondary); text-align: start; white-space: nowrap; }
   td { height: var(--basalt-size-table-row); padding: 0 var(--basalt-space-4); vertical-align: middle; box-shadow: inset 0 var(--basalt-size-hairline) 0 var(--basalt-border-divider); }
   th[data-numeric], td[data-numeric] { text-align: end; font-variant-numeric: tabular-nums; }
-  td[data-mono] { font-family: var(--basalt-font-family-mono); font-size: var(--basalt-text-xs-size); color: var(--basalt-text-secondary); }
+  td[data-mono] { font-family: var(--basalt-font-family-mono); font-variant-ligatures: none; font-size: var(--basalt-text-xs-size); color: var(--basalt-text-secondary); }
   @media (hover: hover) { tbody tr:hover { background: var(--basalt-state-hover); } }
   /* A selected row is the wash as a band, edge to edge: no bar and no edge mark, in forced colours too (the wash drops there). The state is carried
      by the row's checked box and a count in words, which the page writes (the wash is about 1.2:1 and says nothing alone). */

@@ -6,7 +6,7 @@
 //   dist/css/accents.css  the accent classes: one [data-accent] rule per class, in @layer basalt
 //   dist/css/shadcn.css   the shadcn/ui variable names, mapped onto Basalt's
 //   dist/css/breakpoints.css  the breakpoints as @custom-media rules, for apps that build with PostCSS
-//   dist/css/base.css     the opt-in page base (src/base.css, copied as written): one body rule in @layer basalt
+//   dist/css/base.css     the opt-in page base (src/base.css, copied as written): the body rule, selected text and the three smoothing rules, in @layer basalt
 //   dist/js/tokens.js     resolved values per theme, and the accent classes, for TypeScript and charts
 //   dist/js/breakpoints.js the breakpoint numbers alone (the 720, 1024, 480, 340 and 640 of the media and container queries, and the
 //                         480 of the short window's height query)
