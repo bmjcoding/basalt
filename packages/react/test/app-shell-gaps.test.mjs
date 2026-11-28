@@ -162,7 +162,8 @@ describe("a page with a pane", () => {
     await settle(page);
     assert.ok(await page.locator(".basalt-pane").evaluate((el) => el.scrollTop) > 0, "the keys scroll the pane");
     assert.equal(await page.evaluate(() => scrollY), before, "and not the document");
-    const ring = await page.locator(".basalt-pane").evaluate((el) => { const s = getComputedStyle(el); return [s.outlineStyle, s.outlineWidth, s.outlineOffset]; });
+    // The ring is the pane's host's since cimip-gaps-3 t7 (the pane is masked while it hides more, and a mask erases its own outline).
+    const ring = await page.locator(".basalt-pane-host").evaluate((el) => { const s = getComputedStyle(el); return [s.outlineStyle, s.outlineWidth, s.outlineOffset]; });
     assert.deepEqual(ring, ["solid", "2px", "2px"]);
     await page.close();
   });

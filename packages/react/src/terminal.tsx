@@ -15,6 +15,7 @@ import { Icon } from "./icon";
 import { LogFields } from "./log-fields";
 import type { LogFieldsInput } from "./log-fields";
 import { usePanelLevel } from "./layers";
+import { watchScrollFade } from "./scroll-fade";
 import { Reserve } from "./reserve";
 import type { Moment } from "./run-format";
 import { RunTimer } from "./run-timer";
@@ -164,6 +165,16 @@ export function Terminal({ title, lines, prompt = "$", copyable = true, status, 
     const el = pre.current;
     if (live && el && atEnd.current) el.scrollTop = el.scrollHeight;
   }, [live, visible.length]);
+  // Each side that hides lines fades (cimip-gaps-3 t7: inline on a static transcript, both axes on a live one, whose window scrolls). Following the end, the
+  // bottom band is 0: a line arriving is never faded before the follow reaches it. The ring is the figure's.
+  const following = React.useRef(false);
+  following.current = live;
+  React.useLayoutEffect(() => {
+    const el = pre.current;
+    if (!el) return undefined;
+    const fade = watchScrollFade(el, { axis: live ? "both" : "inline", skip: { get end() { return following.current && atEnd.current; } } });
+    return () => fade.stop();
+  }, [live]);
 
   // ---- copy: the commands, one per line. A replay knows every line, so it copies them all wherever its playhead is; a stream the
   // app drives passes the lines that have arrived. With no command there is nothing to copy, and the button is off.

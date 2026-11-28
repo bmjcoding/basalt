@@ -36,6 +36,11 @@
   /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
   .dialog { width: min(var(--basalt-size-dialog-width), calc(100vw - 2 * var(--basalt-space-4))); max-height: calc(100dvh - 2 * var(--basalt-space-4)); padding: var(--basalt-space-6); transform: scale(0.98); }
   .dialog[open] { transform: none; }
+  /* A dialog's port (cimip-gaps-3 t7): the dialog keeps its rim, radius, fill and shadow and clips; the port holds the padding, scrolls when the dialog is taller
+     than the window and fades at each edge that hides more. While it (or a sheet's) is a keyboard stop of its own its ring is the box's, at -2. */
+  .dialog[open]:has(> .dialog-scroll) { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  .dialog-scroll { box-sizing: border-box; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--basalt-space-6); scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5)); outline: none; }
+  dialog.modal:has(> :is(.dialog-scroll, .sheet-scroll):focus-visible)::after { content: ""; position: absolute; inset: 0; border-radius: inherit; outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); pointer-events: none; }
   @starting-style { .dialog[open] { transform: scale(0.98); } }
 
   .dialog-title { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-lg-size) / var(--basalt-text-lg-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-lg-tracking); }

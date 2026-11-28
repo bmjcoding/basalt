@@ -1,4 +1,5 @@
 import { GRACE, LEAVE, WAIT } from "./cell-peek";
+import { watchScrollFade, type ScrollFade } from "./scroll-fade";
 
 // The plate that shows cut text whole on four parts (DECISIONS 168 and 170; cimip-gaps-3 T3, 3): a `Listbox` option, an `OpenList` row, the `StatusBar`'s
 // message and a `Text` with `lines` (the text's own box opened over it, its first line on the pixel the text starts on; inside a control, from the control's
@@ -123,6 +124,8 @@ interface Adapter {
   peekingOf?(target: HTMLElement): HTMLElement;
   /** Whether a long press on touch opens the plate. */
   holds?: boolean;
+  /** Lets go of what the adapter holds (the status plate's fade) when the controller stops. */
+  dispose?(): void;
 }
 
 // ---- rows: the listbox's options and the open list's rows ----
@@ -275,29 +278,43 @@ function openListAdapter(root: HTMLElement, cut: (el: Element | null) => boolean
 function statusAdapter(message: HTMLElement, cut: (el: Element | null) => boolean): Adapter {
   const doc = message.ownerDocument;
   const textOf = () => message.querySelector<HTMLElement>(".basalt-status-bar-text");
+  // A long message scrolls in the plate's port and fades at each edge that hides more; the rim and the ring stay the plate's (cimip-gaps-3 t7).
+  let fade: ScrollFade | null = null;
   return {
     targetOf: (node) => (node instanceof Node && message.contains(node) ? message : null),
     isCut: () => cut(textOf()),
     fill: (_target, plate) => {
       const view = doc.documentElement;
-      plate.replaceChildren();
-      plate.dataset.kind = "status";
-      plate.removeAttribute("data-chosen");
       const text = textOf();
-      const style = getComputedStyle(message);
-      plate.style.direction = style.direction;
-      for (const property of FONT) plate.style[property] = style[property];
-      const body = doc.createElement("div");
-      body.className = "basalt-peek-status";
-      // An error's XCircle keeps its seat before the words, in the danger ink it has in the bar.
-      const seat = message.querySelector<HTMLElement>(".basalt-status-bar-seat");
-      if (seat) body.append(seat.cloneNode(true));
-      const words = doc.createElement("span");
-      words.className = "basalt-peek-name";
-      words.textContent = wordsOf(text);
-      if (text) words.style.color = getComputedStyle(text).color;
-      body.append(words);
-      plate.append(body);
+      const said = wordsOf(text);
+      // The port lives as long as the plate shows these words: a refresh (a scroll of the page, a resize) only places the plate again, so a reader who
+      // scrolled a long message keeps their place (cimip-gaps-3 t7, fix 1). New words build it again.
+      const kept = plate.dataset.kind === "status" ? plate.querySelector<HTMLElement>(":scope > .basalt-peek-scroll") : null;
+      if (!kept || kept.dataset.words !== said) {
+        plate.replaceChildren();
+        plate.dataset.kind = "status";
+        plate.removeAttribute("data-chosen");
+        const style = getComputedStyle(message);
+        plate.style.direction = style.direction;
+        for (const property of FONT) plate.style[property] = style[property];
+        const body = doc.createElement("div");
+        body.className = "basalt-peek-status";
+        // An error's XCircle keeps its seat before the words, in the danger ink it has in the bar.
+        const seat = message.querySelector<HTMLElement>(".basalt-status-bar-seat");
+        if (seat) body.append(seat.cloneNode(true));
+        const words = doc.createElement("span");
+        words.className = "basalt-peek-name";
+        words.textContent = said;
+        if (text) words.style.color = getComputedStyle(text).color;
+        body.append(words);
+        const port = doc.createElement("div");
+        port.className = "basalt-peek-scroll";
+        port.dataset.words = said;
+        port.append(body);
+        plate.append(port);
+        fade?.stop();
+        fade = watchScrollFade(port, { axis: "block" });
+      }
       // The slot's own width and start, so the plate is the slot opened upward; never wider than the viewport less a gutter each side.
       const slot = message.getBoundingClientRect();
       const bar = message.closest<HTMLElement>(".basalt-status-bar") ?? message;
@@ -317,6 +334,7 @@ function statusAdapter(message: HTMLElement, cut: (el: Element | null) => boolea
       const active = doc.activeElement;
       return active === message && message.hasAttribute("data-cut") && message.matches(":focus-visible") ? message : null;
     },
+    dispose: () => { fade?.stop(); fade = null; },
   };
 }
 
@@ -603,7 +621,8 @@ export function attachPeek(root: HTMLElement, kind: PeekKind, zIndex: string | u
   const schedule = () => { if (!frame) frame = win.requestAnimationFrame(measure); };
 
   // ---- scroll and resize carry the plate with its row ----
-  const onScroll = () => { if (current && plate) refresh(); };
+  // The plate's own scroll (a long status message read in its port) is not the page moving under it: it places nothing (cimip-gaps-3 t7, fix 1).
+  const onScroll = (event: Event) => { if (current && plate && !(event.target instanceof Node && plate.contains(event.target))) refresh(); };
   const measured = kind === "status" || kind === "text";
   const onResize = () => { if (measured) schedule(); else refresh(); };
 
@@ -685,6 +704,7 @@ export function attachPeek(root: HTMLElement, kind: PeekKind, zIndex: string | u
     win.removeEventListener("resize", onResize);
     peeking?.removeAttribute("data-peeking");
     root.removeAttribute("data-pointer-focus");
+    adapter.dispose?.();
     plate?.remove();
   };
   return { stop, sync };

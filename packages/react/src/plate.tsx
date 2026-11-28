@@ -36,7 +36,8 @@ interface Kind {
 }
 
 const POPUP: Kind = {
-  host: ".basalt-menu, .basalt-command-list",
+  // The nearest wins: a popup's port (cimip-gaps-3 t7) before the popup.
+  host: ".basalt-menu-scroll, .basalt-menu, .basalt-command-list",
   active: ".basalt-menu-item[data-highlighted], .basalt-menu-item[data-selected='true']",
   attributes: ["data-highlighted", "data-selected", "data-idle"],
 };

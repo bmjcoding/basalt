@@ -74,7 +74,8 @@
     list-style: none;
     overflow-y: auto;
     overscroll-behavior: contain;
-    scroll-padding-block: var(--basalt-space-1-5);
+    /* A result brought into view keeps the fade and its ring's room clear (cimip-gaps-3 t7). */
+    scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5));
   }
   .search-results:not(:has(> li)) { padding-block: 0; }
   .search-results > li { margin: 0; padding: 0; list-style: none; }

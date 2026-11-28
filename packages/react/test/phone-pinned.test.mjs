@@ -303,7 +303,7 @@ describe("a tray of rows that wait on the reader", () => {
       const page = await open(TRAY, { width: 1024, height: 700, theme });
       assert.equal(await page.locator("section[aria-label='Waiting on you']").count(), 1);
       assert.equal(await page.locator(".basalt-tray[data-level='1']").count(), 1);
-      assert.equal(await page.locator(".basalt-tray > .basalt-tray-row:visible").count(), 4);
+      assert.equal(await page.locator(".basalt-tray-scroll > .basalt-tray-row:visible").count(), 4);
       assert.equal(await page.locator(".basalt-tray-band:visible").count(), 0);
       const row = await box(page, "#row-a");
       assert.ok(row.height >= 40, `a row is at least 40: ${row.height}`);
@@ -331,7 +331,7 @@ describe("a tray of rows that wait on the reader", () => {
     assert.equal(await band.textContent(), "3 waiting on youShow");
     assert.equal(await band.getAttribute("aria-haspopup"), "dialog");
     assert.ok((await band.boundingBox()).height >= 44);
-    assert.equal(await page.locator(".basalt-tray > .basalt-tray-row:visible").count(), 1);
+    assert.equal(await page.locator(".basalt-tray-scroll > .basalt-tray-row:visible").count(), 1);
     await band.click();
     await page.waitForSelector(".basalt-tray-sheet");
     await settle(page);

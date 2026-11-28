@@ -6,6 +6,7 @@ import { ChevronRightGlyph } from "./glyphs/chevron-right";
 import { Icon } from "./icon";
 import { Kbd } from "./kbd";
 import { GlidePlate } from "./plate";
+import { MenuPort } from "./fade-port";
 import { useApplePlatform } from "./keyboard";
 import { ariaShortcut, shortcutKeys, spokenShortcut } from "./shortcut";
 import type { Align, ChangeDetails, ChoiceValue, FocusTarget, HighlightDetails, IconComponent, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopupActions, Side } from "./types";
@@ -122,8 +123,10 @@ export function MenuContent({ side = "bottom", align = "start", sideOffset = 6, 
     <BaseMenu.Portal>
       <BaseMenu.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} alignOffset={alignOffset} collisionAvoidance={collisionAvoidance} collisionBoundary={collisionBoundary} collisionPadding={collisionPadding} sticky={sticky} style={layer} className="basalt-positioner">
         <BaseMenu.Popup {...props} aria-describedby={join(describedBy, texts) || undefined} data-level={level} data-actions="" className={withClass("basalt-menu", className)}>
-          <GlidePlate />
-          <MenuTextHost.Provider value={register}>{inLevel(level, children)}</MenuTextHost.Provider>
+          <MenuPort>
+            <GlidePlate />
+            <MenuTextHost.Provider value={register}>{inLevel(level, children)}</MenuTextHost.Provider>
+          </MenuPort>
         </BaseMenu.Popup>
       </BaseMenu.Positioner>
     </BaseMenu.Portal>

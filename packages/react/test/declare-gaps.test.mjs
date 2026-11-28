@@ -279,15 +279,17 @@ describe("SegmentedControl: fullWidth, a Field's control, one tab stop on the ch
     near(box.w, column, "the control fills the column");
     // Nothing chosen: no segment pressed and no pill drawn.
     assert.equal(await group.locator("[data-pressed]").count(), 0);
-    assert.equal(await group.evaluate((el) => el.hasAttribute("data-slide")), false, "no pill with nothing chosen");
+    // data-slide is the port's since cimip-gaps-3 t7 (the pill's own box).
+    assert.equal(await group.evaluate((el) => el.querySelector(".basalt-segmented-scroll").hasAttribute("data-slide")), false, "no pill with nothing chosen");
     await group.getByRole("button", { name: "SEV2" }).click();
     await settle(page);
-    assert.equal(await group.evaluate((el) => el.hasAttribute("data-slide")), true);
+    assert.equal(await group.evaluate((el) => el.querySelector(".basalt-segmented-scroll").hasAttribute("data-slide")), true);
     await group.getByRole("button", { name: "SEV4" }).click();
     await page.waitForTimeout(60);
     const mid = await group.locator(".basalt-pill").evaluate((el) => getComputedStyle(el).transform);
     await settle(page);
-    const end = await group.evaluate((el) => ({ pill: getComputedStyle(el.querySelector(".basalt-pill")).transform, seg: el.querySelector('[data-pressed]').getBoundingClientRect().left - el.getBoundingClientRect().left - el.clientLeft }));
+    const end = await group.locator(".basalt-segmented-scroll").evaluate((el) => ({  // the pill is placed in the port (cimip-gaps-3 t7)
+      pill: getComputedStyle(el.querySelector(".basalt-pill")).transform, seg: el.querySelector('[data-pressed]').getBoundingClientRect().left - el.getBoundingClientRect().left - el.clientLeft }));
     assert.notEqual(mid, end.pill, "the pill was on its way 60ms in: it slides");
     near(Number(end.pill.match(/matrix\([^)]*, ([\d.]+), [\d.]+\)$/)?.[1]), end.seg, "and ends under the chosen segment", 0.6);
     await page.close();

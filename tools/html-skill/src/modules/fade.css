@@ -1,0 +1,59 @@
+@layer basalt {
+
+  /* ---- Cut content fades (cimip-gaps-3 t7, DECISIONS 395 to 399) ----
+     Where a scrollport's edge hides more, its content fades to nothing at that edge and is never sliced. The port's watcher (Basalt._.scrollFade: React's scroll-fade.ts, bundled into this module) writes
+     data-fade (inline, block or both: the axes on which something is hidden; none while the content fits) and per physical side the band
+     (--_fade-t/-r/-b/-l), a clip inset (--_in-*), an opaque strip held at the edge (--_pin-*: a classic scrollbar, a sheet's held actions) and the band
+     before a protected item shortened it (--_reach-*). The mask paints no colour: the neutral supplies alpha only. Six stops from the edge inward (0% at 0,
+     18% at .15, 48% at .35, 78% at .6, 94% at .82, 100% at 1); alpha 0 from the edge to the line (the inset and the strip), the ramp inward from it. A pinned
+     strip is added back whole on top, so a scrollbar and a held bar keep full paint. Layers fold from the last up: each strip (add), the inline band
+     (intersect), the block band. The rules are :where(), so the mode rules below turn every one off; no clock is involved anywhere. */
+  :where([data-fade]) {
+    --_f0: var(--basalt-neutral-0);
+    --_f18: color-mix(in srgb, var(--basalt-neutral-0) 18%, transparent);
+    --_f48: color-mix(in srgb, var(--basalt-neutral-0) 48%, transparent);
+    --_f78: color-mix(in srgb, var(--basalt-neutral-0) 78%, transparent);
+    --_f94: color-mix(in srgb, var(--basalt-neutral-0) 94%, transparent);
+    --_lt: calc(var(--_in-t, var(--basalt-space-0)) + var(--_pin-t, var(--basalt-space-0)));
+    --_lr: calc(var(--_in-r, var(--basalt-space-0)) + var(--_pin-r, var(--basalt-space-0)));
+    --_lb: calc(var(--_in-b, var(--basalt-space-0)) + var(--_pin-b, var(--basalt-space-0)));
+    --_ll: calc(var(--_in-l, var(--basalt-space-0)) + var(--_pin-l, var(--basalt-space-0)));
+    --_ft: var(--_fade-t, var(--basalt-space-0));
+    --_fr: var(--_fade-r, var(--basalt-space-0));
+    --_fb: var(--_fade-b, var(--basalt-space-0));
+    --_fl: var(--_fade-l, var(--basalt-space-0));
+    --_mask-x: linear-gradient(to right,
+      transparent var(--_ll),
+      var(--_f18) calc(var(--_ll) + var(--_fl) * 0.15), var(--_f48) calc(var(--_ll) + var(--_fl) * 0.35), var(--_f78) calc(var(--_ll) + var(--_fl) * 0.6), var(--_f94) calc(var(--_ll) + var(--_fl) * 0.82),
+      var(--_f0) calc(var(--_ll) + var(--_fl)),
+      var(--_f0) calc(100% - var(--_lr) - var(--_fr)),
+      var(--_f94) calc(100% - var(--_lr) - var(--_fr) * 0.82), var(--_f78) calc(100% - var(--_lr) - var(--_fr) * 0.6), var(--_f48) calc(100% - var(--_lr) - var(--_fr) * 0.35), var(--_f18) calc(100% - var(--_lr) - var(--_fr) * 0.15),
+      transparent calc(100% - var(--_lr)));
+    --_mask-y: linear-gradient(to bottom,
+      transparent var(--_lt),
+      var(--_f18) calc(var(--_lt) + var(--_ft) * 0.15), var(--_f48) calc(var(--_lt) + var(--_ft) * 0.35), var(--_f78) calc(var(--_lt) + var(--_ft) * 0.6), var(--_f94) calc(var(--_lt) + var(--_ft) * 0.82),
+      var(--_f0) calc(var(--_lt) + var(--_ft)),
+      var(--_f0) calc(100% - var(--_lb) - var(--_fb)),
+      var(--_f94) calc(100% - var(--_lb) - var(--_fb) * 0.82), var(--_f78) calc(100% - var(--_lb) - var(--_fb) * 0.6), var(--_f48) calc(100% - var(--_lb) - var(--_fb) * 0.35), var(--_f18) calc(100% - var(--_lb) - var(--_fb) * 0.15),
+      transparent calc(100% - var(--_lb)));
+    --_strip: linear-gradient(var(--_f0), var(--_f0));
+    --_strips: var(--_strip), var(--_strip), var(--_strip), var(--_strip);
+    --_strip-size: 100% var(--_pin-t, var(--basalt-space-0)), var(--_pin-r, var(--basalt-space-0)) 100%, 100% var(--_pin-b, var(--basalt-space-0)), var(--_pin-l, var(--basalt-space-0)) 100%;
+    --_strip-at: 0 0, 100% 0, 0 100%, 0 0;
+    mask-repeat: no-repeat;
+  }
+  :where([data-fade="inline"]) { mask-image: var(--_mask-x); }
+  :where([data-fade="block"]) { mask-image: var(--_mask-y); }
+  :where([data-fade="both"]) { mask-image: var(--_mask-x), var(--_mask-y); mask-composite: intersect, add; }
+  :where([data-fade-pin][data-fade="inline"]) { mask-image: var(--_strips), var(--_mask-x); mask-size: var(--_strip-size), 100% 100%; mask-position: var(--_strip-at), 0 0; mask-composite: add; }
+  :where([data-fade-pin][data-fade="block"]) { mask-image: var(--_strips), var(--_mask-y); mask-size: var(--_strip-size), 100% 100%; mask-position: var(--_strip-at), 0 0; mask-composite: add; }
+  :where([data-fade-pin][data-fade="both"]) { mask-image: var(--_strips), var(--_mask-x), var(--_mask-y); mask-size: var(--_strip-size), 100% 100%, 100% 100%; mask-position: var(--_strip-at), 0 0, 0 0; mask-composite: add, add, add, add, intersect, add; }
+  /* The modes: under more contrast, in forced colours (a mask survives them otherwise), under reduced transparency where the browser reports it, in print
+     and with data-fades="off" on the root (an app's own control, for a strict 1.4.3 audit), the edge is a plain cut. Reduced motion and the hold change
+     nothing: the band follows the reader's scroll and never a clock. Each is its own query, so a browser that does not know one keeps the others. */
+  :root[data-fades="off"] [data-fade] { mask-image: none; }
+  @media (prefers-contrast: more) { [data-fade] { mask-image: none; } }
+  @media (forced-colors: active) { [data-fade] { mask-image: none; } }
+  @media (prefers-reduced-transparency: reduce) { [data-fade] { mask-image: none; } }
+  @media print { [data-fade] { mask-image: none; } }
+}

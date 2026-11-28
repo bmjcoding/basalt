@@ -12,6 +12,8 @@ import { ChevronLeftGlyph } from "./glyphs/chevron-left";
 import { Icon } from "./icon";
 import { BAND_LEVEL } from "./layers";
 import { GlidePlate } from "./plate";
+import { useRowsFade, useScrollFade } from "./fade-port";
+import { useScrollStop } from "./scroll-stop";
 import { isComposingKey, useApplePlatform, useShortcutsVisible } from "./keyboard";
 import { ariaShortcut, shortcutKeys } from "./shortcut";
 import { join } from "./utils";
@@ -337,6 +339,8 @@ export function CommandPanel({ groups, placeholder, label, listLabel, filter, hi
   const hintId = React.useId();
   const apple = useApplePlatform();
   const list = React.useRef<HTMLDivElement>(null);
+  // The list fades at each edge that hides rows; the row the keys are on is kept clear (cimip-gaps-3 t7).
+  useRowsFade(list);
   const input = React.useRef<HTMLInputElement>(null);
   useActiveDescendant(list, input);
   // the legend is described to a screen reader only while it is drawn: hidden on a touch device with no keyboard
@@ -453,8 +457,14 @@ export function CommandListPanel({ groups, label, placeholder, noun, count, empt
   const root = React.useRef<HTMLDivElement>(null);
   const body = React.useRef<HTMLDivElement>(null);
   const list = React.useRef<HTMLDivElement>(null);
+  // The list fades at each edge that hides rows; the row the keys are on is kept clear (cimip-gaps-3 t7).
+  useRowsFade(list);
   const pane = React.useRef<HTMLDivElement>(null);
   const paneBody = React.useRef<HTMLDivElement>(null);
+  // The pane keeps its rim, radius and fill and stops scrolling; its body scrolls on both axes and fades at each edge that hides more, and while it overflows
+  // and holds nothing focusable it is a keyboard stop named by the pane's heading, with its ring on the pane (cimip-gaps-3 t7).
+  const paneStop = useScrollStop<HTMLDivElement>({ labelledBy: (box) => box.closest(".basalt-command-pane")?.getAttribute("aria-labelledby") ?? undefined }, paneBody);
+  useScrollFade(paneBody, { axis: "both", ring: 4 });
   const input = React.useRef<HTMLInputElement>(null);
   const lastInput = React.useRef<InputKind>("key");
   const savedScroll = React.useRef(0);
@@ -721,7 +731,7 @@ export function CommandListPanel({ groups, label, placeholder, noun, count, empt
         <div className="basalt-command-back">
           <Button variant="ghost" size="sm" icon={ChevronLeftGlyph} aria-label={`Back to ${label}`} onClick={back}>{label}</Button>
         </div>
-        <div ref={paneBody} className="basalt-command-pane-body">
+        <div {...paneStop.attributes} ref={paneStop.ref} className="basalt-command-pane-body">
           {/* A row that cannot run has no pane: its reason is the pane's empty form, and ↵ has no button to press. */}
           {current?.unavailable !== undefined ? <p className="basalt-command-pane-empty">{current.unavailable}</p> : current ? detail(current) : <p className="basalt-command-pane-empty">Nothing to show.</p>}
         </div>

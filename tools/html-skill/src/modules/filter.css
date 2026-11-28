@@ -113,7 +113,11 @@
   @media (pointer: coarse), (width < %bp-md%) { .filter-row { height: max(calc(var(--_h) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); } }
   .filter-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-3); padding-block: var(--basalt-space-1-5); padding-inline: var(--basalt-space-4); --basalt-edge-room: var(--basalt-space-4); --basalt-edge-room-start: initial; --basalt-edge-room-end: initial; border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); margin: var(--basalt-space-0-5) calc(-1 * var(--basalt-space-1)) 0; }
   /* The rows scroll inside the popup cap (nine 40px rows show whole), with the search band and the foot outside them. */
-  .filter-rows { max-height: var(--basalt-size-popup-max-height); margin-inline: calc(-1 * var(--basalt-space-1)); padding-inline: var(--basalt-space-1); overflow-y: auto; overscroll-behavior: contain; }
+  /* The checklist fades at each edge that hides rows (cimip-gaps-3 t7); a row brought into view keeps the fade and space-0-5 clear. A popup that holds no
+     checklist gets a port of its own (the script), so its rim is never masked. */
+  .filter-rows { max-height: var(--basalt-size-popup-max-height); margin-inline: calc(-1 * var(--basalt-space-1)); padding-inline: var(--basalt-space-1); overflow-y: auto; overscroll-behavior: contain; scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-0-5)); }
+  .filter-popup:popover-open:has(> .filter-popup-scroll) { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  .filter-popup-scroll { position: relative; box-sizing: border-box; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--basalt-space-0-5) var(--basalt-space-1); scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-0-5)); }
   /* The search band, from ten values: the palette band's recipe at a popup row's size. 40px, the next level's fill, a divider below, the -2 inset ring
      (the popup has other stops), 14/20 text (16 on touch, so a phone doesn't zoom). */
   .filter-band {
@@ -145,7 +149,7 @@
 
   /* While the glide's shared plate is live, the lit row's own plate steps aside. */
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
-    .filter-popup[data-glide] .filter-row[data-highlighted]::before { background-color: transparent; }
+    :is(.filter-popup, .filter-popup-scroll)[data-glide] .filter-row[data-highlighted]::before { background-color: transparent; }
   }
   @media (forced-colors: active) {
     /* The chip: the line is a real border, so off keeps it in ButtonText. On is Highlight with every part (label, seat, both glyphs) named HighlightText,

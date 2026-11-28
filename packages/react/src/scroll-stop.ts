@@ -39,7 +39,8 @@ export function useScrollStop<T extends HTMLElement>(options: ScrollStopOptions,
     const box = node.current;
     if (!box) return undefined;
     const measure = () => {
-      const on = box.scrollHeight > box.clientHeight && !holdsFocusable(box);
+      // Either axis: a port that only scrolls sideways (a command pane's wide table) needs the stop as much (cimip-gaps-3 t7, fix 1).
+      const on = (box.scrollHeight > box.clientHeight || box.scrollWidth > box.clientWidth + 1) && !holdsFocusable(box);
       const labelledBy = typeof read.current === "function" ? read.current(box) : read.current;
       setStop((now) => (on ? (now && now.labelledBy === labelledBy ? now : { labelledBy }) : now ? null : now));
     };

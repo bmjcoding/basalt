@@ -356,8 +356,8 @@ describe("combobox: the shared plate", () => {
       await page.focus(INPUT);
       await press(page, "ArrowDown");
       await settle(page);
-      assert.equal(await page.evaluate(() => document.querySelector(".combobox-popup").hasAttribute("data-glide")), true, "the popup is a glide host where hover is real");
-      const plateOf = (n) => page.evaluate((i) => { const p = document.querySelector(".combobox-popup > .plate"); const row = document.querySelectorAll(".combobox-option")[i]; const s = getComputedStyle(row, "::before"); const pr = p.getBoundingClientRect(); const rr = row.getBoundingClientRect(); return { top: pr.top, rowTop: rr.top + Number.parseFloat(s.top), h: pr.height, rowH: Number.parseFloat(s.height), state: p.dataset.state }; }, n);
+      assert.equal(await page.evaluate(() => document.querySelector(".combobox-popup > .combobox-scroll").hasAttribute("data-glide")), true, "the popup's port is a glide host where hover is real");
+      const plateOf = (n) => page.evaluate((i) => { const p = document.querySelector(".combobox-popup > .combobox-scroll > .plate"); const row = document.querySelectorAll(".combobox-option")[i]; const s = getComputedStyle(row, "::before"); const pr = p.getBoundingClientRect(); const rr = row.getBoundingClientRect(); return { top: pr.top, rowTop: rr.top + Number.parseFloat(s.top), h: pr.height, rowH: Number.parseFloat(s.height), state: p.dataset.state }; }, n);
       let plate = await plateOf(0);
       assert.deepEqual([plate.state, plate.top, plate.h], ["on", plate.rowTop, plate.rowH], "the plate is on the lit row's plate");
       assert.equal(plate.h, 54, "the described row's plate is 54, in a 58px row");
@@ -369,7 +369,7 @@ describe("combobox: the shared plate", () => {
       await page.mouse.move(target.x + 60, target.y + 20);
       assert.equal((await state(page)).lit, "Singapore");
       const base = ms(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--basalt-duration-base")));
-      const read = () => page.evaluate(() => { const p = document.querySelector(".combobox-popup > .plate"); const s = getComputedStyle(p); return { y: p.getBoundingClientRect().top, props: s.transitionProperty, duration: s.transitionDuration, easing: s.transitionTimingFunction }; });
+      const read = () => page.evaluate(() => { const p = document.querySelector(".combobox-popup > .combobox-scroll > .plate"); const s = getComputedStyle(p); return { y: p.getBoundingClientRect().top, props: s.transitionProperty, duration: s.transitionDuration, easing: s.transitionTimingFunction }; });
       const start = await read();
       assert.equal(start.props, "transform, width, height");
       assert.equal(start.duration, `${base / 1000}s`);
@@ -391,7 +391,7 @@ describe("combobox: the shared plate", () => {
     await press(page, "ArrowDown");
     await settle(page);
     const out = await page.evaluate(() => {
-      const plate = getComputedStyle(document.querySelector(".combobox-popup > .plate")).display;
+      const plate = getComputedStyle(document.querySelector(".combobox-popup > .combobox-scroll > .plate")).display;
       const lit = document.querySelector(".combobox-option[data-highlighted]");
       return { plate, own: getComputedStyle(lit, "::before").backgroundColor, transform: getComputedStyle(document.querySelector(".combobox-popup")).transform, host: document.querySelector(".combobox-popup").hasAttribute("data-glide") };
     });

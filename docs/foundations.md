@@ -22,7 +22,11 @@ of Basalt's accent classes, in its named roles, and nowhere else.
   stays in the accessibility tree; under more contrast and in forced colours nothing recedes; and no other text in Basalt uses these
   tokens. The window's top edge fades the one tail row it cuts, from transparent at the edge to opaque at that row's bottom, only when the row is at the
   second step or deeper and the edge crosses its words; it never fades a whole row, a row holding focus, or a step that runs, waits or retries,
-  and under more contrast and in forced colours the edge is a plain cut. A test holds each to it.
+  and under more contrast and in forced colours the edge is a plain cut. A test holds each to it. **A second: the band of a scrolling cut.** Text inside a fade
+  band is below 4.5:1 on purpose (primary ink over about its outer two fifths, an ink near 4.5:1 over all of it), held by behaviour: the band exists only where
+  more is hidden, every word rests at full contrast a scroll away in the same port, focus and the active row are never under it, and under more contrast and
+  in forced colours there is none. `data-fades="off"` on the root turns every fade off; a page that must meet 1.4.3 to the letter offers a control that sets it
+  (G174).
 - **The page is the darkest layer, in both themes.** Anything closer to you is lighter.
   Light mode never puts a full white page in front of you.
 - **Borders build structure; shadows exist only for things that float.**
@@ -32,6 +36,20 @@ of Basalt's accent classes, in its named roles, and nowhere else.
   on controls or chips. One panel draws its rim in a colour: a status callout, in its status colour at 45%, still one
   solid colour on every side (see [Callouts](#lines-states-and-actions)); every other panel, a toast included, keeps the
   neutral rim. Under more contrast every side is the input boundary's value, one solid colour (see [More contrast](#more-contrast)). See [Elevation](#elevation).
+- **Cut content fades.** Where a scrollport's edge hides more content, the content fades to nothing at that edge and is never
+  sliced: over `size-scroll-fade` (20px) on an inline edge and `size-scroll-fade-block` (16px) on a block edge, never more than a
+  quarter of the port. Only a side that hides content fades, and by no more than the distance hidden, so the band grows from nothing as
+  the reader leaves an end and is gone when they reach one; a port whose content fits has no mask. The fade is a mask on the content:
+  it paints no colour and follows whatever is behind it, and it never sits on a box that draws a rim, a shadow, a fill or a focus
+  ring, which are drawn on the box around the port and stay solid; a classic scrollbar and a bar held at the port's edge stay solid
+  too. It follows the reader's scroll and never a clock, so reduced motion and the hold keep it. A focused item, the row the keys are
+  on and a newly chosen item are brought clear of the band with room for the ring, measured after the move; and a band never reaches a
+  focused item or the row the keys are on, shortening to the room left and to nothing where they meet the edge. Every faded port can
+  be scrolled by keyboard. Faded content stays in the accessibility tree and takes clicks. Under more contrast, in forced colours,
+  under reduced transparency where the browser reports it, in print, and with `data-fades="off"` on the root, the mask is off and the
+  edge is a plain cut; before script runs there is no fade. Not faded (the owner, DECISIONS 397): text that ends in an ellipsis or a
+  clamp, a table scrolled sideways, a field being typed in, a diagram's stage, and the window's own edge. The run timeline keeps its
+  own measured fade on its tail row and fades no other row.
 - **No ornament that signals "generated":** no gradient borders, no glow, no bounce, and no
   scale on press beyond the .98 of Button and IconButton. Colour never carries meaning alone.
 - **Default words follow the owner's rules for words.** A string a component ships (a label, a status, an empty state, an announcement, a key hint) is written in US English, in
@@ -3155,7 +3173,9 @@ app's forms, toolbars and filters. No new tokens.
   for a `Badge` as a segment's label (it is the wrong tool). The HTML skill: `data-status` on the button.
 - **Tabs and segments wider than their column.** **A horizontal tab row scrolls in its own port, as the HTML skill's does**: the ring at +2 (DECISIONS 358), no scrollbar drawn,
   so overflow starting never changes the row's height; a tab brought into view (on focus, on a change of the chosen tab, on first layout; at once, never smooth, the window never
-  moves) keeps `space-6` clear on each side, so the next one's start always shows, and a cut tab is the cue. A cut tab and the divider stop at the column's edge: while content is hidden past a side, the port is clipped there, never in the ring's room on a side with nothing past it. No fade, no edge buttons. **A segmented control scrolls in its track
+  moves) keeps `space-6` clear on each side, so the next one's start always shows, and a cut tab is the cue. A cut tab and the divider stop at the column's edge: while content is hidden past a side, the port is clipped there, never in the ring's room on a side with nothing past it. No edge buttons. Each side that hides tabs fades inside its clip line (see Cut content fades): the clip
+  stays the bound and the hit-test edge, a tab brought into view keeps the fade and the ring's room clear of the column's edge (24px), and a segmented control
+  is a host that keeps the track's fill and radius and a port that scrolls and fades, so the track is never masked. **A segmented control scrolls in its track
   and never wraps, narrows or cuts a label:** the track is held to its column (`max-width: 100%`) and its segments keep their width on one line. While it fits it is not a
   scrollport and the ring is at +2; while it overflows (`data-overflow`, measured before the first paint) it scrolls with no scrollbar drawn, the chosen or focused segment is
   brought whole into view `space-6` clear, and a segment's ring is drawn inside at −2. The pill travels with the content. A `fullWidth` control's segments are equal while every
@@ -3277,8 +3297,10 @@ domains. React's alone (see [What the HTML skill does not draw](#what-the-html-s
 - **The sideways line** (cimip-gaps-3 t6). Under the code, inside the well, a foot band says "Scroll sideways to see the long lines" at 12/16 in tertiary,
   `space-1-5` by `space-4`, a `border-divider` above (a real `CanvasText` border in forced colours). It is `aria-hidden` (the `pre` is already a named, focusable
   region), shown only while the `pre` is wider than its box, never changed while it scrolls, and absent in print; it is measured before the first paint, and on a
-  server-drawn page it arrives at hydration. This is `TableScrollHint`'s form. No edge fade: a fade takes readable code under 4.5:1. `Terminal` keeps its scrollbar
-  alone for now.
+  server-drawn page it arrives at hydration. This is `TableScrollHint`'s form. Each side that hides code fades (see Cut content fades); the line stays. `Terminal` takes the fade and no line.
+  The ring is the block's, at +2 round the whole well, since the `pre` is masked. An untitled block's Copy button hangs over the code's corner: on the whole rows
+  its box touches, the end band ends at the button's start edge, and the end padding is the button's inset, its drawn size and the fade (54px, 70 on touch),
+  so a line that fits is never under it. In print a long line wraps.
 - **Rich text** (`RichText`, cimip-gaps-3 t6; the skill's `.rich-text`). Type and rhythm for the elements an app's renderer emits, set on the elements inside it,
   with no measure; Basalt ships no parser (a subset that reads differently from the forge misleads the person checking what will be posted). The app parses with
   what its other end renders, cleans the result, passes link targets through `safeHref` and hands over elements: `<Prose><RichText>…</RichText></Prose>` in a card,

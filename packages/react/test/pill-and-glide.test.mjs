@@ -29,7 +29,8 @@ const vertical = `<B.Tabs orientation="vertical" defaultValue="a"><B.TabsList ar
 
 /** The one-of-many controls under test: how to find the control, its items, and which axis the pill travels. */
 const controls = {
-  segmented: { fixture: segmented, root: ".basalt-segmented", item: ".basalt-segment", chosen: ".basalt-segment[data-pressed]", axis: "x" },
+  // The pill, data-slide and the pill's variables are the port's since cimip-gaps-3 t7 (the host keeps the track's fill and radius).
+  segmented: { fixture: segmented, root: ".basalt-segmented-scroll", item: ".basalt-segment", chosen: ".basalt-segment[data-pressed]", axis: "x" },
   "vertical tabs": { fixture: vertical, root: ".basalt-tabs-list", item: ".basalt-tab", chosen: ".basalt-tab[data-active]", axis: "y" },
 };
 
@@ -338,7 +339,7 @@ const plateNow = (page, spec) => page.evaluate((host) => {
   const r = plate.getBoundingClientRect();
   const cs = getComputedStyle(plate);
   return {
-    top: r.top, height: r.height, left: r.left, width: r.width, opacity: Number(cs.opacity), display: cs.display, state: plate.dataset.state, glide: el.hasAttribute("data-glide"),
+    top: r.top, height: r.height, left: r.left, width: r.width, opacity: Number(cs.opacity), display: cs.display, state: plate.dataset.state, glide: el.hasAttribute("data-glide") || el.querySelector(":scope > .basalt-menu-scroll[data-glide]") !== null, // the popup's port is the glide's host (cimip-gaps-3 t7)
     running: plate.getAnimations().map((a) => ({ type: a.constructor.name, property: a.transitionProperty, duration: a.effect.getTiming().duration, easing: a.effect.getTiming().easing })),
   };
 }, spec.host);

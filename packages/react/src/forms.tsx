@@ -15,6 +15,7 @@ import { ReserveErrorsContext } from "./field-reserve";
 import { FieldsetDisabledProvider, useFieldsetDisabled } from "./fieldset-context";
 import { Icon } from "./icon";
 import { GlidePlate } from "./plate";
+import { MenuPort } from "./fade-port";
 import type { ChangeDetails, CommitDetails, HighlightDetails, OpenChangeDetails, PartProps, PopupActions, SubmitDetails, ValidateActions } from "./types";
 import { useMirrorRef } from "./mirror";
 import { join, withClass } from "./utils";
@@ -182,6 +183,7 @@ export function Combobox({ options, placeholder = "Search…", emptyMessage = "N
       <BaseCombobox.Portal>
         <BaseCombobox.Positioner sideOffset={6} style={layer} className="basalt-positioner">
           <BaseCombobox.Popup data-level={level} className="basalt-menu basalt-combobox-popup">
+            <MenuPort field>
             <GlidePlate />
             <BaseCombobox.Empty className="basalt-combobox-empty">{emptyMessage}</BaseCombobox.Empty>
             <BaseCombobox.List>
@@ -193,6 +195,7 @@ export function Combobox({ options, placeholder = "Search…", emptyMessage = "N
                 </BaseCombobox.Item>
               )}
             </BaseCombobox.List>
+            </MenuPort>
           </BaseCombobox.Popup>
         </BaseCombobox.Positioner>
       </BaseCombobox.Portal>

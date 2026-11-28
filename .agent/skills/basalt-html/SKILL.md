@@ -36,6 +36,7 @@ Markup your script builds (a `.row`) isn't seen: add `<!-- basalt:use rows -->` 
 - **toggle** `aria-pressed`: secondary or ghost `.btn` only; your script flips it; its glyph's `.btn-check` seat comes first.
 - **rows** `.rows`, `.row`: `.input-row` is a panel's first child; `data-active` is the lit row's fill, never a bar.
 - **glide** `.plate`: the palette's, a menu's and the centre's shared plate; never write one.
+- **fade** `data-fades`: a scrolling part fades at an edge that hides more; never draw a fade; `data-fades="off"` on `<html>` stops all.
 - **links** `.links`, `target="_blank"`: a glyph then the name, none for a service without a mark; never write the arrow.
 - **link-rows** `.dir`: a named `ul`; no wash.
 - **tabs** `data-tabs`, `role="tablist"`: every tab has `aria-controls`; the page sets the panel's top space (`--basalt-space-4`).

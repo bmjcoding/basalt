@@ -19,6 +19,8 @@ import { codeLanguageStatus, highlightCode, loadCodeLanguage } from "./syntax";
 import type { CodeToken } from "./syntax";
 import { inLevel, useFloatingLayer, usePanelLevel, usePopupLevel } from "./layers";
 import type { Align, ChangeDetails, CollisionAvoidance, FocusTarget, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopoverHandle, PopupActions, Side } from "./types";
+import { FadePort, popupName, Portless } from "./fade-port";
+import { watchScrollFade } from "./scroll-fade";
 import { join, withClass } from "./utils";
 import { useInRequiredField } from "./field-group";
 import { useJoinedRef, useWriting } from "./wait";
@@ -178,12 +180,14 @@ const KEEP_AXIS: CollisionAvoidance = { fallbackAxisSide: "none" };
 
 export function PopoverContent({ side = "bottom", align = "start", sideOffset = 6, anchor, alignOffset, collisionAvoidance, collisionBoundary, collisionPadding, sticky, className, children, ...props }: PopoverContentProps) {
   const layer = useFloatingLayer();
+  // CountNames and the notification centre hold their own port, so they draw no second one (cimip-gaps-3 t7).
+  const portless = React.useContext(Portless);
   // One level above its opener (floor 1, cap 3).
   const level = usePopupLevel();
   return (
     <BasePopover.Portal>
       <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} alignOffset={alignOffset} collisionAvoidance={collisionAvoidance ?? KEEP_AXIS} collisionBoundary={collisionBoundary} collisionPadding={collisionPadding} sticky={sticky} style={layer} className="basalt-positioner">
-        <BasePopover.Popup {...props} data-level={level} className={withClass("basalt-popover", className)}>{inLevel(level, children)}</BasePopover.Popup>
+        <BasePopover.Popup {...props} data-level={level} className={withClass("basalt-popover", className)}>{portless ? inLevel(level, children) : <FadePort className="basalt-popover-scroll" labelledBy={popupName}>{inLevel(level, children)}</FadePort>}</BasePopover.Popup>
       </BasePopover.Positioner>
     </BasePopover.Portal>
   );
@@ -437,6 +441,42 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, wrap
     return () => observer.disconnect();
     // The code changing changes what overflows without resizing the pre.
   }, [code, Boolean(lines), wrap, lineNumbers]);
+  // Each side that hides code fades (cimip-gaps-3 t7); the line of words stays. The ring is the figure's (the pre is masked, and a mask erases its own outline).
+  // An untitled block's Copy button hangs over the code's corner: on the whole rows its box touches, the end band ends at the button's start edge (alpha 0
+  // under the button, then the ramp inward over what is hidden at the end), mirrored from the button's real rect in right to left. The button has no backing.
+  const figure = React.useRef<HTMLElement>(null);
+  const untitledCopy = copyable && !title;
+  React.useLayoutEffect(() => {
+    const box = pre.current;
+    if (!box) return undefined;
+    const fade = watchScrollFade(box, { axis: "inline" });
+    const button = untitledCopy ? figure.current?.querySelector<HTMLElement>(":scope > .basalt-code-copy") : null;
+    if (!button) return () => fade.stop();
+    const rows = () => {
+      const at = button.getBoundingClientRect();
+      const port = box.getBoundingClientRect();
+      const style = getComputedStyle(box);
+      const top = parseFloat(style.paddingTop) || 0;
+      const line = parseFloat(style.lineHeight) || 20;
+      // Whole rows: a row is never divided by the layer's edge.
+      const height = top + Math.max(0, Math.ceil((at.bottom - port.top - top) / line)) * line;
+      const rtl = style.direction === "rtl";
+      box.style.setProperty("--_copy-h", `${height}px`);
+      box.style.setProperty("--_copy-in", `${Math.max(0, rtl ? at.right - port.left : port.right - at.left)}px`);
+      box.setAttribute("data-fade-copy", rtl ? "left" : "right");
+    };
+    rows();
+    const sizes = new ResizeObserver(rows);
+    sizes.observe(button);
+    sizes.observe(box);
+    return () => {
+      sizes.disconnect();
+      fade.stop();
+      box.removeAttribute("data-fade-copy");
+      box.style.removeProperty("--_copy-h");
+      box.style.removeProperty("--_copy-in");
+    };
+  }, [untitledCopy]);
   // What the last copy did, held for CONFIRM_MS: the check, or the close for a refused write (copy-result.ts; DECISIONS 336, the open items' ruling).
   const copyResult = useCopyResult();
   // The copy glyph is one that changes (Copy, then Check): the morph's engine is on its way before the first click.
@@ -451,7 +491,7 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, wrap
     </span>
   ) : null;
   return (
-    <figure className={join("basalt-code", className)} data-titled={title ? "" : undefined} data-wrap={wrap ? "" : undefined} data-level={level}>
+    <figure ref={figure} className={join("basalt-code", className)} data-titled={title ? "" : undefined} data-wrap={wrap ? "" : undefined} data-level={level}>
       {title ? (
         <figcaption className="basalt-code-title">
           <span>{title}</span>

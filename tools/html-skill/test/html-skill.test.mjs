@@ -77,7 +77,12 @@ describe("the skill files", () => {
     assert.match(css, /prefers-color-scheme:\s*dark/);
     for (const name of Object.keys(files).filter((f) => /^parts\/.*\.css$/.test(f) && !f.endsWith("geist.css"))) {
       const primitives = name === "parts/core.css" ? css.slice(css.indexOf("@layer basalt{")) : files[name];
-      assert.doesNotMatch(primitives, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|gradient\(/i, `${name}: no raw colour or gradient in the primitives`);
+      // The cut-content fade's three mask layers (DECISIONS 395 to 399, cimip-gaps-3 t7) are gradients of alpha that paint no colour. In the fade module's
+      // stylesheet alone, and only as those three declarations, a gradient is allowed: each is removed by name, and the rest of that file, like every
+      // other file, is held to the whole rule.
+      const checked = name === "parts/fade.css" ? primitives.replace(/--_(?:mask-x|mask-y|strip):linear-gradient\([^;}]*\)(?=[;}])/g, "") : primitives;
+      if (name === "parts/fade.css") assert.equal(primitives.match(/--_(?:mask-x|mask-y|strip):linear-gradient\(/g)?.length, 3, "the fade's three approved mask layers, and no other");
+      assert.doesNotMatch(checked, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|gradient\(/i, `${name}: no raw colour or gradient in the primitives`);
     }
   });
 

@@ -962,6 +962,16 @@
       },
       "$description": "Maximum height of a scrolling popup list, such as the command list."
     },
+    "scroll-fade": {
+      "$type": "dimension",
+      "$value": "{space.5}",
+      "$description": "The longest fade on an inline edge of a scrollport that hides more content (cimip-gaps-3 t7): the content fades to nothing at that edge over this, never more than a quarter of the port and never more than the distance hidden."
+    },
+    "scroll-fade-block": {
+      "$type": "dimension",
+      "$value": "{space.4}",
+      "$description": "The longest fade on a block edge of a scrollport that hides more content (cimip-gaps-3 t7): shorter than the inline fade, so a whole 32 to 40px row at a list's edge stays nearly opaque."
+    },
     "list-width": {
       "$type": "dimension",
       "$value": {

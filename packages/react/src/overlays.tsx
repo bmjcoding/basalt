@@ -8,7 +8,9 @@ import { Dialog, DialogActions, DialogClose, DialogContent, DialogDescription, D
 import type { DialogCloseProps, DialogContentProps, DialogProps, DialogTriggerProps } from "./dialog";
 import { inLevel, MODAL_LEVEL, ModalDepth, ModalHost, useModalLayer } from "./layers";
 import { useModalOutside } from "./modal-outside";
+import { FadePort, useScrollFade } from "./fade-port";
 import { useScrollStop } from "./scroll-stop";
+import type { Sides } from "./scroll-fade";
 import type { PartProps } from "./types";
 import { join, withClass, withStyle } from "./utils";
 
@@ -47,7 +49,7 @@ export function AlertDialogContent({ className, initialFocus, ref, style, childr
     <ModalHost.Provider value={popup}>
     <BaseAlertDialog.Portal>
       <BaseAlertDialog.Backdrop className="basalt-dialog-backdrop" style={{ zIndex: layer.backdrop }} />
-      <BaseAlertDialog.Popup {...props} data-level={MODAL_LEVEL} ref={mergedRef} style={withStyle({ zIndex: layer.popup }, style)} initialFocus={initialFocus ?? (() => popup.current?.querySelector<HTMLElement>("[data-basalt-cancel]") ?? true)} className={withClass("basalt-dialog", className)}>{inLevel(MODAL_LEVEL, children)}</BaseAlertDialog.Popup>
+      <BaseAlertDialog.Popup {...props} data-level={MODAL_LEVEL} ref={mergedRef} style={withStyle({ zIndex: layer.popup }, style)} initialFocus={initialFocus ?? (() => popup.current?.querySelector<HTMLElement>("[data-basalt-cancel]") ?? true)} className={withClass("basalt-dialog", className)}><FadePort className="basalt-dialog-scroll" labelledBy={dialogTitle}>{inLevel(MODAL_LEVEL, children)}</FadePort></BaseAlertDialog.Popup>
     </BaseAlertDialog.Portal>
     </ModalHost.Provider>
     </ModalDepth.Provider>
@@ -79,6 +81,22 @@ export interface SheetContentProps extends Omit<DialogContentProps, "size"> {
 
 export { Dialog as Sheet, DialogTrigger as SheetTrigger, DialogTitle as SheetTitle, DialogDescription as SheetDescription, DialogClose as SheetClose, DialogActions as SheetActions };
 
+/** The name of a port that is a keyboard stop of its own: its dialog's title. */
+const dialogTitle = (box: HTMLElement) => box.closest('[role="dialog"], [role="alertdialog"]')?.getAttribute("aria-labelledby") ?? undefined;
+
+/**
+ * The opaque strip a sheet with no `SheetBody` holds at its port's foot (cimip-gaps-3 t7): its sticky actions' drawn band, the box less the space-1-5 it
+ * clips from its own top, so the bottom fade ends on their divider and the actions keep full paint.
+ */
+function heldActions(port: HTMLElement): Sides {
+  const actions = port.querySelector<HTMLElement>(":scope > .basalt-dialog-actions, :scope > .basalt-form > .basalt-dialog-actions");
+  if (!actions) return {};
+  const clip = /inset\(\s*([\d.]+)px/.exec(getComputedStyle(actions).clipPath);
+  const top = actions.getBoundingClientRect().top + (clip ? parseFloat(clip[1]!) : 0);
+  const bottom = port.getBoundingClientRect().bottom;
+  return { bottom: Math.max(0, Math.min(bottom - top, actions.offsetHeight)) };
+}
+
 /** A modal side panel for a task or detail, with native dialog focus and dismissal behaviour. */
 export function SheetContent({ side = "right", className, style, children, ref, step, size = "default", initialFocus, ...props }: SheetContentProps) {
   const wide = size === "wide" && (side === "left" || side === "right");
@@ -104,7 +122,7 @@ export function SheetContent({ side = "right", className, style, children, ref, 
     <ModalHost.Provider value={popup}>
     <BaseDialog.Portal>
       <BaseDialog.Backdrop data-side={side} className="basalt-dialog-backdrop basalt-sheet-backdrop" style={{ zIndex: layer.backdrop }} />
-      <BaseDialog.Popup {...props} ref={popupRef} data-side={side} data-size={wide ? "wide" : undefined} initialFocus={initialFocus ?? (wide ? () => popup.current?.querySelector<HTMLElement>(".basalt-dialog-title") ?? true : undefined)} data-level={MODAL_LEVEL} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-sheet", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
+      <BaseDialog.Popup {...props} ref={popupRef} data-side={side} data-size={wide ? "wide" : undefined} initialFocus={initialFocus ?? (wide ? () => popup.current?.querySelector<HTMLElement>(".basalt-dialog-title") ?? true : undefined)} data-level={MODAL_LEVEL} style={withStyle({ zIndex: layer.popup }, style)} className={withClass("basalt-sheet", className)}><FadePort className="basalt-sheet-scroll" pinned={heldActions} labelledBy={dialogTitle}>{inLevel(MODAL_LEVEL, children)}</FadePort></BaseDialog.Popup>
     </BaseDialog.Portal>
     </ModalHost.Provider>
     </ModalDepth.Provider>
@@ -137,8 +155,21 @@ export function SheetHeader({ closeLabel, className, children, ...props }: Sheet
  */
 export function SheetBody({ className, ref, ...props }: React.ComponentProps<"div">) {
   const named = Boolean(props["aria-label"] || props["aria-labelledby"]);
-  const body = useScrollStop<HTMLDivElement>({ named, labelledBy: (box) => box.closest('[role="dialog"]')?.getAttribute("aria-labelledby") ?? undefined }, ref);
-  return <div {...body.attributes} {...props} ref={body.ref} className={join("basalt-sheet-body", className)} />;
+  // The body stays the port (its class, ref, props, stop and name) and fades at each edge that hides more (cimip-gaps-3 t7); a host round it takes its place
+  // in the column and draws its ring at -2, since a mask erases the port's own outline.
+  const port = React.useRef<HTMLDivElement | null>(null);
+  const keep = React.useCallback((node: HTMLDivElement | null) => {
+    port.current = node;
+    if (typeof ref === "function") ref(node);
+    else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+  }, [ref]);
+  const body = useScrollStop<HTMLDivElement>({ named, labelledBy: (box) => box.closest('[role="dialog"]')?.getAttribute("aria-labelledby") ?? undefined }, keep);
+  useScrollFade(port, { axis: "block", ring: 4 });
+  return (
+    <div className="basalt-sheet-body-host">
+      <div {...body.attributes} {...props} ref={body.ref} className={join("basalt-sheet-body", className)} />
+    </div>
+  );
 }
 
 /** The foot band, fixed under the body on a divider, whatever the body's length. It keeps the bottom safe area. */

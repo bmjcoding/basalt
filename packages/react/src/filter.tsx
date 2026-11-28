@@ -2,6 +2,7 @@ import { Checkbox as BaseCheckbox } from "@base-ui/react/checkbox";
 import { CheckboxGroup as BaseCheckboxGroup } from "@base-ui/react/checkbox-group";
 import { Popover as BasePopover } from "@base-ui/react/popover";
 import * as React from "react";
+import { useFadeRef } from "./fade-port";
 
 import { ChevronDownGlyph } from "./glyphs/chevron-down";
 import { SearchGlyph } from "./glyphs/search";
@@ -199,6 +200,8 @@ function ChecklistFilter({ label, options, ordered, set, disabled, className, co
   const names = options.filter((o) => chosen.has(o.value)).map((o) => o.label);
   const summary = names.length === 0 ? "Any" : names.length === 1 ? names[0] : `${names[0]} +${names.length - 1}`;
   const rows = React.useRef<HTMLDivElement>(null);
+  // The checklist fades at each edge that hides rows (cimip-gaps-3 t7); the lit row is a plate inside its row.
+  const rowsRef = useFadeRef<HTMLDivElement>({ axis: "block" }, rows);
   const band = React.useRef<HTMLInputElement>(null);
   const searchable = options.length >= SEARCH_FROM;
   const needle = query.trim().toLowerCase();
@@ -299,7 +302,7 @@ function ChecklistFilter({ label, options, ordered, set, disabled, className, co
                       />
                     </div>
                   ) : null}
-                  <BaseCheckboxGroup id={ids.rows} value={ordered} onValueChange={set} disabled={disabled} aria-labelledby={ids.label} aria-describedby={ids.count} onKeyDown={move} className="basalt-filter-rows" ref={rows}>
+                  <BaseCheckboxGroup id={ids.rows} value={ordered} onValueChange={set} disabled={disabled} aria-labelledby={ids.label} aria-describedby={ids.count} onKeyDown={move} className="basalt-filter-rows" ref={rowsRef}>
                     {shown.map((o) => (
                       <ChecklistRow key={o.value} option={o} checked={chosen.has(o.value)} lit={lit === o.value} setLit={setLit} />
                     ))}

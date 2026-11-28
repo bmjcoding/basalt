@@ -12,13 +12,17 @@
   function current(menu) { return menu.querySelector('[data-highlighted]'); }
 
   /** Lights one row (or none): the plate and the lift, with focus on it so a screen reader reads it. */
-  function light(menu, item) {
+  function light(menu, item, byPointer) {
     var now = current(menu);
     if (now && now !== item) now.removeAttribute('data-highlighted');
     if (!item) return;
     item.setAttribute('data-highlighted', '');
     item.focus({ preventScroll: true });
-    item.scrollIntoView({ block: 'nearest' });
+    // A row the keys reach is brought clear of the port's fade and kept there (cimip-gaps-3 t7); a row the pointer lights is where the pointer is, so
+    // nothing scrolls under it.
+    var port = menu.querySelector(':scope > .menu-scroll');
+    var fade = port && port.__bhFade;
+    if (byPointer) { if (fade) fade.keep(null); } else if (fade) fade.keep(item); else item.scrollIntoView({ block: 'nearest' });
   }
 
   function label(item) { var l = item.querySelector('.menu-item-label'); return (l || item).textContent.trim().toLowerCase(); }
@@ -76,7 +80,7 @@
     });
     menu.addEventListener('pointermove', function (e) {
       var it = e.target.closest(ITEM);
-      if (it && it !== current(menu)) light(menu, it);
+      if (it && it !== current(menu)) light(menu, it, true);
     });
     menu.addEventListener('pointerout', function (e) {
       var it = e.target.closest(ITEM);
@@ -96,7 +100,9 @@
     plate.className = 'plate';
     plate.setAttribute('aria-hidden', 'true');
     menu.insertBefore(plate, menu.firstChild);
-    menu.__glide = function () { return _.glide(menu, plate, { active: '[data-highlighted]', attr: 'data-highlighted' }); };
+    // The rows and the plate move into the menu's port, which scrolls and fades (cimip-gaps-3 t7); the glide follows the rows there.
+    var list = _.port(menu, 'menu-scroll', { axis: 'block' });
+    menu.__glide = function () { return _.glide(list, plate, { active: '[data-highlighted]', attr: 'data-highlighted' }); };
   }
 
   function wire() {
