@@ -12,4 +12,6 @@ Native inputs, styled bare: `input[type=checkbox]`, `input[type=radio]` and a sw
 
 - A checkbox is any number of independent options. A radio group is one of a few, all visible (for more than five use a select). A switch takes effect at once: name the setting ("Auto-deploy"), not the action.
 - A mixed box is the page's script setting `input.indeterminate = true`. A checkbox with no visible label needs `aria-label` (a table row's: "Select NAME").
+- A `label` that is the control needs its class (`choice`, `choice-card`, `chip`, `option-chip`): that is what keeps its words from being selected, makes a second tap press again and draws its press. A bare `label` gets none of it.
+- A label that wraps keeps its box or switch on its first line, at any line spacing. Write the words as they are: no `<br>`, no nudge.
 - `disabled` greys the label and the box. Selected is the filled box with its mark; a switch also moves its thumb.
