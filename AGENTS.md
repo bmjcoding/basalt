@@ -241,14 +241,16 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   record each. A flowchart's shapes have a 3:1 contour. Tracing changes ink, never weight. The words are in the HTML before script.
   Still by default; `motion="animated"` adds an entrance on view (each line draws once, every word at rest, inside five seconds) and,
   where the data names them, a flow line (cuts, only while they move), a pulse (a bead) or a packet (a dot): one mover a figure, loops
-  only in view, and "Pause animations" in the figure's foot. A reduced-motion or forced-colours figure is still. Measuring a figure again
+  only in view, and "Pause animations" in the figure's foot; `replay` adds "Draw again", and only a press in the figure's own foot plays the
+  entrance again (DECISIONS 405). A reduced-motion or forced-colours figure is still. Measuring a figure again
   (the faces arriving, a resize) never restarts, hides or cuts short an entrance. An architecture card may carry its service's own mark,
   16px in the top end corner: the owner's file, never recoloured, a form for each ground, decoration beside the name, recorded in
   `packages/react/marks/manifest.json`; a service without one is its name alone. In print a mark prints, and so does the fill of a
   focal node that carries one (`print-color-adjust: exact`). A schema may state how many (crow's foot in the line's ink, on every key or none) and
   draws far keys along a corridor. A sequence may show a participant working (a bar) and frame a run of messages
   (`opt`, `loop`, `alt`: structure, never a panel, every word plated), and may be written as text art, which never hides a line and has no caret.
-  Groups nest two deep; four end lanes at most. A deployment nests three, and an artifact is a row of its host that a line may land on.
+  Groups nest two deep; four end lanes at most. A deployment nests three, and an artifact is a row of its host that a line may land on. A card
+  for several of one kind (an architecture's or a deployment's, `replicas`) is one card with a written count, `× 3`, never a stacked shape.
   A state's label is the engine's (the event, then `[guard] / action`), guards on one event are numbered in the order tried, a start is a
   dot and a final state carries a ring. A timeline is one true scale: a card flies from a straight stem at its time, two lanes a side, or
   the figure is stacked with each gap in words; a break in the scale is the author's, with its length written. A dependency figure is an
@@ -262,7 +264,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   planning figure keeps every mark that fits, says the rest in words, and its key lists only what is drawn. A contour may say what a part
   is (critical, blocked), with its word; it is never a state. A card may be a link (the card is the stop; the arrow is the cue). A label breaks only where its
   author breaks it (a state's, after its event). Arrow keys are spatial, on tracks. A card is a stop only where its layout traces: a toggle button whose press holds its highlight (the underline marks it; a second press, the ground or Esc releases it) or a link; elsewhere it is a picture. On touch "Clear highlight" clears too. The foot's order is fixed ("View as list",
-  "Expand", the run button, "Pause animations", an app's `actions`, "Clear highlight") and it does not print; an app's actions are words-only secondary
+  "Expand", the run button, "Draw again", "Pause animations", an app's `actions`, "Clear highlight") and it does not print; an app's actions are words-only secondary
   buttons, never a menu, and follow the figure into the viewer. In print a figure is untraced and light.
   Right to left mirrors the figure, not the words. Automatic layout asks elkjs for a column and a row and nothing else; Basalt routes, and a figure
   is never scaled. elkjs loads on demand or not at all: place at build time. "Expand" opens the viewer: the drawn layout in a dialog (full screen under

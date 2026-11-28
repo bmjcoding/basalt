@@ -7,4 +7,5 @@ Added for you when a diagram's JSON says `"motion": "animated"` (with `loops`); 
 - **One mover a figure:** a pulse or a packet, never both. Flow is a state of a line and never runs on a line the mover travels.
 - **First visit:** `"entrance": "first-visit"` with an `id` on the figure plays the entrance once; later visits are at rest. A text sequence builds by ink instead, in view.
 - **Run:** "Play the run" sends one dot through a sequence's messages; it reads "Stop the run" while it runs. It works under the hold and under reduced motion (by colour alone).
-- `Basalt.diagram(figure, spec)` with a new `packet.send` value sends one message.
+- **Draw again:** `"replay": true` adds it: a press plays the entrance again, under the hold too. Only a press starts one: never click it from script.
+- `Basalt.diagram(figure, spec)` with a new `packet.send` value sends one message, and keeps a replay in progress.
