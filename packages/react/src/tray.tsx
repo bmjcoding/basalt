@@ -1,6 +1,8 @@
 import { breakpoint } from "@srasyndicate/basalt-tokens/breakpoints";
 import * as React from "react";
 
+import { useFadeRef } from "./fade-port";
+
 import { inLevel, usePanelLevel } from "./layers";
 import { Sheet, SheetBody, SheetContent, SheetHeader, SheetTitle } from "./overlays";
 import { useMediaQuery } from "./use-media";
@@ -159,10 +161,13 @@ export function Tray({ label, summary, showLabel = "Show", closeLabel = "Close",
     if (open && (count === 0 || (!phone && wasShown.current))) setOpen(false);
     wasShown.current = shown;
   }, [open, count, phone, shown, setOpen]);
+  const port = useFadeRef<HTMLDivElement>({ axis: "block", ring: 4 });
   if (rows.length === 0) return null;
   const finalFocus = () => (emptied.current ? resolve(returnFocus) : null) ?? (band.current?.isConnected ? band.current : true);
   return (
     <section {...props} ref={panel} aria-label={label} data-level={level} className={join("basalt-tray", className)}>
+      {/* The port (cimip-gaps-3 t7): docked in an app's foot at its cap, the rows scroll here and fade at each edge that hides more; the rim stays the tray's. */}
+      <div ref={port} className="basalt-tray-scroll">
       {inLevel(level, (
         <>
           {/* Under 720 the rows that wait are this band, which opens them in a sheet; from 720 it is not drawn. */}
@@ -176,6 +181,7 @@ export function Tray({ label, summary, showLabel = "Show", closeLabel = "Close",
           {phone ? all.filter((row) => row.props.stay) : all}
         </>
       ))}
+      </div>
       {phone ? (
         <Sheet open={shown} onOpenChange={setOpen}>
           <SheetContent side="bottom" ref={sheet} className="basalt-tray-sheet" finalFocus={finalFocus}>

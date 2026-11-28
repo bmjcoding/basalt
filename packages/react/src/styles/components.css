@@ -2124,27 +2124,38 @@
   /* The page column says its room to release notes and a drawer directly inside it (the open items' ruling, the pixel review's finding 2): stacked, the
      page's own, said by the page and passed on; beside the pane, the gap to it at the end. */
   .basalt-pane-page > :is(.basalt-release-notes, .basalt-drawer) { --basalt-edge-room: inherit; --basalt-edge-room-start: inherit; --basalt-edge-room-end: inherit; }
-  .basalt-pane { min-width: 0; }
-  .basalt-pane:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* The pane is a host and a port (cimip-gaps-3 t7): the host (.basalt-pane-host) takes the grid cell, the stickiness, the height and the ring at +2; the pane
+     (the section, its label, its stop and its scroller) stays the port, with its padding, and fades at each edge that hides more. Under 920 the host is a
+     plain block. */
+  .basalt-pane-host { min-width: 0; }
+  .basalt-pane { min-width: 0; outline: none; scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5)); }
+  .basalt-pane-host:has(> .basalt-pane:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* stylelint-disable-next-line basalt/container-length -- size-sidebar-width (256px) + size-gutter (24px) + size-breakpoint-container-lg (640px), where the pane sits beside the page; a container query cannot read a custom property */
   @container (width >= 920px) {
     .basalt-pane-grid { grid-template-columns: minmax(0, 1fr) var(--basalt-size-sidebar-width); column-gap: var(--basalt-size-gutter); align-items: start; }
     .basalt-pane-page > :is(.basalt-release-notes, .basalt-drawer) { --basalt-edge-room: inherit; --basalt-edge-room-start: inherit; --basalt-edge-room-end: var(--basalt-size-gutter); }
-    .basalt-pane {
+    .basalt-pane-host {
       position: sticky;
       /* The content's edge, not the box's, is space-6 under the bar and above the window's foot: the box reaches space-1-5 past it. */
       top: calc(var(--basalt-sticky-offset) + var(--basalt-space-6) - var(--basalt-space-1-5));
       box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
       /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
       max-height: calc(100dvh - var(--basalt-sticky-offset) - (var(--basalt-space-6) - var(--basalt-space-1-5)) - (var(--basalt-space-16) - var(--basalt-space-1-5)) - var(--basalt-bottom-offset));
       margin: calc(-1 * var(--basalt-space-1-5));
+    }
+    .basalt-pane {
+      box-sizing: border-box;
+      flex: 1 1 auto;
+      min-height: 0;
       padding: var(--basalt-space-1-5);
       overflow-y: auto;
       overscroll-behavior: contain;
     }
   }
   @media print {
-    .basalt-pane { position: static; max-height: none; overflow: visible; }
+    .basalt-pane, .basalt-pane-host { position: static; max-height: none; overflow: visible; }
   }
 
   /* The phone tab bar: solid surface-page for every product, a hairline on top, no shadow and no blur. 56 with the hairline
@@ -2730,7 +2741,10 @@
   .basalt-peek-seat { float: inline-end; }
   .basalt-peek-detail { display: block; clear: both; }
   /* The status plate: the slot lifted, in the bar's mono. Its padding is space-2 (the slot's neighbours are space-4 away); an error's mark keeps its 16px seat. */
-  .basalt-peek[data-kind="status"] { padding: calc(var(--basalt-space-2) - var(--basalt-size-hairline)) calc(var(--basalt-space-2-5) - var(--basalt-size-hairline)); overflow-y: auto; overscroll-behavior: contain; }
+  /* The status plate is a host and a port (cimip-gaps-3 t7): the plate keeps its rim, shadow and ring and clips; a long message scrolls in the port, with the
+     plate's padding, and fades at each edge that hides more. */
+  .basalt-peek[data-kind="status"] { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  .basalt-peek[data-kind="status"] > .basalt-peek-scroll { flex: 1 1 auto; min-height: 0; padding: calc(var(--basalt-space-2) - var(--basalt-size-hairline)) calc(var(--basalt-space-2-5) - var(--basalt-size-hairline)); overflow-y: auto; overscroll-behavior: contain; }
   .basalt-peek-status { display: flex; gap: var(--basalt-space-2); align-items: flex-start; }
   .basalt-peek-status > .basalt-status-bar-seat { margin-block-start: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-icon-sm)) / 2); }
   /* Under an open plate the row's (or the message's) own ring gives way to the plate's, so no second ring shows in the gap round it. */
@@ -5225,6 +5239,11 @@
         mask-repeat: no-repeat;
       }
     }
+    /* Under reduced transparency where the browser reports it the edge is a plain cut too (cimip-gaps-3 t7): its own query, so a browser that does not
+       know the feature keeps the fade. */
+    @media (prefers-reduced-transparency: reduce) {
+      .basalt-run-steps-box:not([data-open]) .basalt-run-steps-window:not([data-rolling]) > .basalt-run-steps > .basalt-run-step[data-tail]:not([data-depth="1"])[data-cut] { mask-image: none; }
+    }
     /* Past REFLOW_BOUND counted rows, under reduced motion and under the hold, a roll lands at once: no colour transition either. */
     .basalt-run-steps-window[data-landing] .basalt-run-step-line, :root[data-loops="held"] .basalt-run-step-line { transition: none; }
     @media (prefers-reduced-motion: reduce) { .basalt-run-step[data-tail] .basalt-run-step-line { transition: none; } }
@@ -7443,15 +7462,20 @@
   .basalt-drawer-head { display: flex; flex: none; align-items: center; justify-content: space-between; gap: var(--basalt-space-3); min-height: var(--basalt-size-control-sm); }
   .basalt-drawer-title { margin: 0; font: var(--basalt-font-weight-semibold) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-primary); }
   .basalt-drawer-actions { display: flex; align-items: center; gap: var(--basalt-space-2); }
-  .basalt-drawer-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
-  /* While a body scrolls and holds nothing focusable it is a keyboard stop (WCAG 2.1.1): the control ring, outside, as the table frame's. The sheet's body is edge to edge inside a box that clips, so its ring is the flush field's, inset. */
-  .basalt-drawer-body[tabindex]:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* The body's host (cimip-gaps-3 t7) takes the body's place in the column; the body stays the port and fades at each edge that hides more. */
+  .basalt-drawer-body-host { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+  .basalt-drawer-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5)); }
+  /* While a body scrolls and holds nothing focusable it is a keyboard stop (WCAG 2.1.1): the control ring, outside, as the table frame's, drawn by the host (a
+     mask erases the body's own outline). The sheet's body is edge to edge inside a box that clips, so its ring is the flush field's, inset. */
+  .basalt-drawer-body[tabindex]:focus-visible { outline: none; }
+  .basalt-drawer-body-host:has(> .basalt-drawer-body:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it the drawer is a page: its halves stack, with a divider between */
   @media (width < 720px) {
     .basalt-drawer { display: block; height: auto; border-top: 0; }
     .basalt-drawer-back { display: inline-flex; }
     .basalt-drawer-section { display: block; }
     .basalt-drawer-section + .basalt-drawer-section { margin-top: var(--basalt-space-4); border-top: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
+    .basalt-drawer-body-host { display: block; }
     .basalt-drawer-body { overflow: visible; }
   }
 
@@ -9780,7 +9804,7 @@
   /* stylelint-disable-next-line basalt/container-length -- size-sidebar-width (256px) + size-gutter (24px) + size-breakpoint-container-lg (640px), PaneLayout's own threshold; a container query cannot read a custom property */
   @container (width < 920px) {
     .basalt-pane-layout .basalt-release-index[data-form="fold"] { display: block; }
-    .basalt-pane:has(> .basalt-release-index[data-form="pane"]) { display: none; }
+    .basalt-pane-host:has(> .basalt-pane > .basalt-release-index[data-form="pane"]) { display: none; }
   }
 
   /* Print and no script: every fold is open (the parts draw them open until script runs); Copy buttons are not printed, and a source line prints as text. */
@@ -9946,7 +9970,9 @@
     font-family: var(--basalt-font-family-sans);
   }
   .basalt-app-foot > * { flex: none; box-sizing: border-box; width: 100%; max-width: calc(var(--basalt-size-page-width) - var(--_pad-start) - var(--_pad-end)); min-width: 0; }
-  .basalt-app-foot > .basalt-tray { flex: 0 1 auto; min-height: var(--basalt-size-tap-min); overflow-y: auto; overscroll-behavior: contain; }
+  /* Docked at its cap, the tray keeps its rim and clips; its port scrolls and fades at each edge that hides more (cimip-gaps-3 t7). */
+  .basalt-app-foot > .basalt-tray { display: flex; flex-direction: column; flex: 0 1 auto; min-height: var(--basalt-size-tap-min); overflow: hidden; }
+  .basalt-app-foot > .basalt-tray > .basalt-tray-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5)); }
   @media print { .basalt-app-foot { position: static; max-height: none; overflow: visible; } }
   @media (forced-colors: active) { .basalt-app-foot { border-top-color: CanvasText; } }
 
@@ -9965,6 +9991,8 @@
     color: var(--basalt-text-primary);
     font-family: var(--basalt-font-family-sans);
   }
+  /* The port: the rows in the tray's one column, the corners the tray's. */
+  .basalt-tray-scroll { box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; border-radius: inherit; }
   .basalt-tray-row {
     box-sizing: border-box;
     display: flex;
@@ -9990,7 +10018,7 @@
   }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the rows that wait are one band */
   @media (width < 720px) {
-    .basalt-tray > .basalt-tray-row:not([data-stay]) { display: none; }
+    .basalt-tray-scroll > .basalt-tray-row:not([data-stay]) { display: none; }
     .basalt-tray-band {
       box-sizing: border-box;
       display: flex;

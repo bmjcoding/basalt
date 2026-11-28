@@ -1,4 +1,5 @@
 import { GRACE, LEAVE, WAIT } from "./cell-peek";
+import { watchScrollFade, type ScrollFade } from "./scroll-fade";
 
 // The plate that shows cut text whole on four parts (DECISIONS 168 and 170; cimip-gaps-3 T3, 3): a `Listbox` option, an `OpenList` row, the `StatusBar`'s
 // message and a `Text` with `lines` (the text's own box opened over it, its first line on the pixel the text starts on; inside a control, from the control's
@@ -275,6 +276,8 @@ function openListAdapter(root: HTMLElement, cut: (el: Element | null) => boolean
 function statusAdapter(message: HTMLElement, cut: (el: Element | null) => boolean): Adapter {
   const doc = message.ownerDocument;
   const textOf = () => message.querySelector<HTMLElement>(".basalt-status-bar-text");
+  // A long message scrolls in the plate's port and fades at each edge that hides more; the rim and the ring stay the plate's (cimip-gaps-3 t7).
+  let fade: ScrollFade | null = null;
   return {
     targetOf: (node) => (node instanceof Node && message.contains(node) ? message : null),
     isCut: () => cut(textOf()),
@@ -297,7 +300,12 @@ function statusAdapter(message: HTMLElement, cut: (el: Element | null) => boolea
       words.textContent = wordsOf(text);
       if (text) words.style.color = getComputedStyle(text).color;
       body.append(words);
-      plate.append(body);
+      const port = doc.createElement("div");
+      port.className = "basalt-peek-scroll";
+      port.append(body);
+      plate.append(port);
+      fade?.stop();
+      fade = watchScrollFade(port, { axis: "block" });
       // The slot's own width and start, so the plate is the slot opened upward; never wider than the viewport less a gutter each side.
       const slot = message.getBoundingClientRect();
       const bar = message.closest<HTMLElement>(".basalt-status-bar") ?? message;

@@ -1,5 +1,7 @@
 import * as React from "react";
 
+import { useScrollFade } from "./fade-port";
+
 import { join } from "./utils";
 import { useJoinedRef } from "./wait";
 
@@ -45,6 +47,7 @@ export function PaneLayout({ pane, paneLabel, paneProps, className, children, ..
   const ref = React.useRef<HTMLElement>(null);
   const joined = useJoinedRef(paneProps?.ref, ref);
   const [overflows, setOverflows] = React.useState(false);
+  useScrollFade(ref, { axis: "block", ring: 4 });
   // The pane is its own scroller only beside the page (its container query gives it overflow); under the page the window scrolls it.
   const [scroller, setScroller] = React.useState<HTMLElement | null>(null);
   React.useLayoutEffect(() => {
@@ -72,6 +75,8 @@ export function PaneLayout({ pane, paneLabel, paneProps, className, children, ..
     <div {...props} className={join("basalt-pane-layout", className)}>
       <div className="basalt-pane-grid">
         <div className="basalt-pane-page">{children}</div>
+        {/* The host (cimip-gaps-3 t7) sticks and holds the pane's height and its ring; the pane stays the port, scrolls and fades at each edge that hides more. */}
+        <div className="basalt-pane-host">
         <section
           {...paneProps}
           ref={joined}
@@ -83,6 +88,7 @@ export function PaneLayout({ pane, paneLabel, paneProps, className, children, ..
         >
           <PaneScrollerContext.Provider value={scroller}>{pane}</PaneScrollerContext.Provider>
         </section>
+        </div>
       </div>
     </div>
   );
