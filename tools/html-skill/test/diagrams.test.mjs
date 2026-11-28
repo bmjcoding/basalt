@@ -179,6 +179,21 @@ describe("compose.mjs and the diagram's markup", () => {
     assert.ok(result.diagrams.some((n) => /not a level from 2 to 6/.test(n)) && result.diagrams.some((n) => /not a kind of line/.test(n)) && result.diagrams.some((n) => /not a whole number/.test(n)));
   });
 
+  // G146: a figure's own id is the base of the ids inside it, the same on every build wherever the figure is; the others are numbered by their place
+  // among the figures, so an id given to one moves no other's; a second figure with one id keeps its number, and the composer says so.
+  test("a figure with an id is written on that id; one without is numbered by its place; a second figure with one id is numbered and said (G146)", () => {
+    const labelled = (html) => [...bodyOf(html).matchAll(/<figure[^>]*\saria-labelledby="([^"]+)"/g)].map((m) => m[1]);
+    assert.deepEqual(labelled(compose(`<h1>x</h1>${figure('class="diagram" id="fig-a"')}${figure('class="diagram"')}${figure('class="diagram" id="a b"')}`).html), ["fig-a_dg-title", "dg2-title", "a_20_b_dg-title"]);
+    const moved = compose(`<h1>x</h1>${figure('class="diagram"')}${figure('class="diagram" id="fig-a"')}`).html;
+    assert.deepEqual(labelled(moved), ["dg1-title", "fig-a_dg-title"], "the same figure's ids, wherever it is");
+    assert.ok(bodyOf(moved).includes('<h3 id="fig-a_dg-title"'));
+    const twice = compose(`<h1>x</h1>${figure('class="diagram" id="same"')}${figure('class="diagram" id="same"')}`);
+    assert.deepEqual(labelled(twice.html), ["same_dg-title", "dg2-title"]);
+    assert.ok(twice.diagrams.some((n) => n.includes('two figures on this page have the id "same"')), "the composer says so");
+    const all = [...bodyOf(compose(`<h1>x</h1>${figure('class="diagram" id="x"')}${figure('class="diagram" id="x-title"')}${figure('class="diagram" id="x_dg"')}`).html).replace(/<figure[^>]*>/g, "").matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+    assert.equal(new Set(all).size, all.length, "no id inside one figure is another's");
+  });
+
   test("the usage example composes with no warning", () => {
     const usage = fs.readFileSync(path.join(path.dirname(require.resolve("../../../.agent/skills/basalt-html/compose.mjs")), "parts", "usage", "diagram.md"), "utf8").match(/```\n([\s\S]*?)```/)[1];
     assert.deepEqual(compose(`<h1>x</h1>${usage}`).diagrams, []);

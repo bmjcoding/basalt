@@ -4,7 +4,7 @@
    and draw the same pixels. compose.mjs runs `Basalt._.diagramMarkup` at build time and writes each figure's words into the page, so it
    reads before any script runs; this script then measures it, draws its lines and labels, and wires the keys, the trace and the list.
    Source: tools/html-skill/src/modules/diagram.js (do not edit the copy in the skill folder). */
-import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureList, figureTree, hasStops, hintEntries, keysSentence, keyTarget, measureFigure, moveStop, placeLabels, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
+import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureList, figureTree, hasStops, hintEntries, idBase, keysSentence, keyTarget, measureFigure, moveStop, placeLabels, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
 
 (function (B) {
   'use strict';
@@ -74,10 +74,20 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
     var placeOf = function (d) { for (var i = 0; i < placements.length; i++) if (placements[i].direction === d) return placements[i]; return undefined; };
     var model = buildModel(spec, { rtl: rtl, placement: auto ? placeOf(order[0]) : undefined });
     if (!attach || !base || !figure.querySelector(':scope > .diagram-drawing')) {
-      // Keep the figure's base when it has ours, so its ids stay; otherwise take the next free one.
+      // Keep the figure's base when it has ours, so its ids stay. Otherwise the viewer's (built on its page figure's), the figure's own id's (G146: the
+      // same on every load, wherever the figure is on the page, as compose.mjs writes it), or the next free number. An id another figure has is said.
       if (!base || !figure.querySelector('#' + CSS.escape(base + '-title'))) {
-        while (document.getElementById('dg' + (++serial) + '-title')) { /* the next free base */ }
-        base = 'dg' + serial;
+        var own = viewer ? viewer.base || '' : figure.id ? idBase(figure.id) : '';
+        var taken = own ? document.getElementById(own + '-title') : null;
+        if (taken && !figure.contains(taken)) {
+          if (!viewer) console.warn('Basalt diagram: two figures on this page have the id "' + figure.id + '", so this one\'s ids inside are numbered: give each figure its own id');
+          own = '';
+        }
+        if (own) base = own;
+        else {
+          while (document.getElementById('dg' + (++serial) + '-title')) { /* the next free base */ }
+          base = 'dg' + serial;
+        }
       }
       var made = markup(spec, base, viewer);
       var holder = document.createElement('div');
@@ -300,7 +310,7 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
     if (marks) forced.addEventListener('change', layout);
     if (animated) motion = _.diagramMotion(figure, { fig: figure, P: P, base: base, model: function () { return model; }, geo: function () { return measured && measured.geo; }, tokens: function () { return measured && measured.tokens; } }, spec);
     // "Expand" and the viewer (DECISIONS 310) are the diagram-zoom module's: compose.mjs adds it to a page unless every figure on it says "zoom": false.
-    var zoom = !viewer && spec.zoom !== false && typeof _.diagramZoom === 'function' ? _.diagramZoom(figure, spec, { model: model, settle: settle, animated: animated }) : null;
+    var zoom = !viewer && spec.zoom !== false && typeof _.diagramZoom === 'function' ? _.diagramZoom(figure, spec, { model: model, settle: settle, animated: animated, base: base }) : null;
     // "Download SVG" and "Download PNG" (DECISIONS 306, 1.7) are the diagram-export module's, for a figure that says "export": true.
     var exportFoot = figure.querySelector(':scope > .diagram-foot');
     var exports = !viewer && spec.export === true && exportFoot && typeof _.diagramExport === 'function' ? _.diagramExport(exportFoot, figure) : [];
@@ -340,6 +350,8 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
   }
 
   _.diagramMarkup = markup;
+  // compose.mjs names a figure that has an id with the same base this script would (G146).
+  _.diagramIdBase = idBase;
   // What the viewer (the diagram-zoom module) draws with: this module's engine, so that module holds no second copy of it.
   _.diagramKit = { draw: draw, buildModel: buildModel, figureKey: figureKey, figureList: figureList, hintEntries: hintEntries, toHtml: toHtml, escapeHtml: escapeHtml, settleEntrance: settleEntrance, measureFigure: measureFigure };
   B.diagram = function (figure, spec) {

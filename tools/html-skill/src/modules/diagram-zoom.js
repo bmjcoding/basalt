@@ -9,7 +9,6 @@ import { attachZoom, drawnSize, measureViewerFigure, revealIn, VIEWER_KEYS, view
 (function (B) {
   'use strict';
   var _ = B._;
-  var serial = 0;
 
   function esc(s) { return _.diagramKit.escapeHtml(String(s == null ? '' : s)); }
   function kbd(k) { return '<kbd class="kbd">' + esc(k) + '</kbd>'; }
@@ -22,7 +21,8 @@ import { attachZoom, drawnSize, measureViewerFigure, revealIn, VIEWER_KEYS, view
     // An automatic figure's key hint is read from a placed model, as React's (unplaced, every card is in one cell).
     // Its list sits under the dialog's h2, whatever the page's heading: h3 sub-headings and h4 group lines, as React's. The model's alone.
     var model = kit.buildModel(Object.assign({}, still, { heading: 2 }), { placement: Array.isArray(still.placement) ? still.placement[0] : still.placement });
-    var id = 'dgv' + (++serial);
+    // The dialog's ids and its drawing's are built on the page figure's base (G146), so they are as stable as its own; `-v` and `-viewer` meet none of them.
+    var id = ctx.base + '-viewer';
     var key = kit.figureKey('diagram', model);
     var hint = viewerHint(kit.hintEntries(model, true)).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + esc(e.words) + '</span>'; }).join('');
     var d = document.createElement('dialog');
@@ -65,7 +65,7 @@ import { attachZoom, drawnSize, measureViewerFigure, revealIn, VIEWER_KEYS, view
     });
     var memo = {};
     var view = {
-      layer: layer, avail: 0, row: 1104, contain: 480, memo: memo, measureFigure: kit.measureFigure, keys: VIEWER_KEYS,
+      layer: layer, avail: 0, row: 1104, contain: 480, memo: memo, measureFigure: kit.measureFigure, keys: VIEWER_KEYS, base: ctx.base + '-v',
       room: function () { var pad = parseFloat(getComputedStyle(sizer).paddingTop) || 0; return { w: stage.clientWidth - 2 * pad, h: stage.clientHeight - 2 * pad }; },
       measure: function (f, m, p, base, current, apply, warn) { return measureViewerFigure(f, m, p, base, current, apply, warn, view); },
       textWidth: function (need) { viewerTextWidth(view, need); },

@@ -674,7 +674,10 @@ function writeDiagrams(markup, held, parts, notes, marks) {
   const mark = held.mark;
   const json = new RegExp(`^(\\s*)${mark}(\\d+)${mark}(\\s*)</figure(?=[\\t\\n\\f\\r />])[^>]*>`, "i");
   let engine = null;
+  let idBase = null;
   let serial = 0;
+  // The ids figures have on this page (G146): a figure's own id is the base of the ids inside it, the same on every build wherever it is on the page.
+  const named = new Set();
   let out = "";
   let at = 0;
   for (let i = markup.indexOf("<"); i !== -1; i = markup.indexOf("<", i + 1)) {
@@ -725,9 +728,19 @@ function writeDiagrams(markup, held, parts, notes, marks) {
       for (const name of ["diagram-scale", "diagram-gantt", "diagram-matrix", "diagram-timeline", "diagram-schedule", "diagram-state", "diagram-deployment"]) if (exists(parts, `${name}.js`)) vm.runInContext(read(parts, `${name}.js`), ctx);
       vm.runInContext(read(parts, "diagram.js"), ctx);
       engine = context.window.Basalt._.diagramMarkup;
+      idBase = context.window.Basalt._.diagramIdBase;
+    }
+    // Numbered by its place among the figures, whether or not it takes the number, so a figure given an id moves no other figure's ids. An id written
+    // with a character reference is the browser's to read, so that figure keeps its number, as does the second figure with one id, which is said.
+    const number = `dg${++serial}`;
+    const id = attrs.get("id");
+    let base = number;
+    if (id && !id.includes("&") && typeof idBase === "function") {
+      if (named.has(id)) notes.push(`two figures on this page have the id "${id}", so the second's ids inside are numbered: give each figure its own id`);
+      else { named.add(id); base = idBase(id); }
     }
     let made;
-    try { made = engine(spec, `dg${++serial}`); } catch (e) { notes.push(`${spec?.title ?? "a diagram"} could not be written (${e.message}); the page's script will say so`); continue; }
+    try { made = engine(spec, base); } catch (e) { notes.push(`${spec?.title ?? "a diagram"} could not be written (${e.message}); the page's script will say so`); continue; }
     for (const w of made.warnings) notes.push(`${spec.title ?? "a diagram"}: ${w}`);
     const merged = new Map(attrs);
     for (const [, k, v] of made.open.matchAll(/\s([\w:-]+)="([^"]*)"/g)) {
