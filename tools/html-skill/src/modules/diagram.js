@@ -4,7 +4,7 @@
    and draw the same pixels. compose.mjs runs `Basalt._.diagramMarkup` at build time and writes each figure's words into the page, so it
    reads before any script runs; this script then measures it, draws its lines and labels, and wires the keys, the trace and the list.
    Source: tools/html-skill/src/modules/diagram.js (do not edit the copy in the skill folder). */
-import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, figureKey, figureList, figureTree, hasStops, hintEntries, idBase, keysSentence, keyTarget, measureFigure, moveStop, placeLabels, settleEntrance, syncAttributes, toHtml } from "../../../../packages/react/src/diagram-core.ts";
+import { applyTrace, autoType, buildModel, entranceDrawn, escapeHtml, figureKey, figureList, figureTree, hovers, hintEntries, idBase, keysSentence, keyTarget, measureFigure, moveStop, placeLabels, pressHold, pressTarget, settleEntrance, syncAttributes, toHtml, traces } from "../../../../packages/react/src/diagram-core.ts";
 
 (function (B) {
   'use strict';
@@ -28,7 +28,7 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
     return {
       source: escapeHtml(String(spec.source || '')),
       summary: escapeHtml(String(spec.summary || '')),
-      hint: hintEntries(model).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + escapeHtml(e.words) + '</span>'; }).join(''),
+      hint: hintEntries(model, {}).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + escapeHtml(e.words) + '</span>'; }).join(''),
       // Named for its figure (G17 of the console's log): the words shown, then the title, as React's; the words lead the name (WCAG 2.5.3).
       toggle: '<button type="button" class="btn diagram-toggle" data-variant="secondary" data-size="sm" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="' + escapeHtml(base) + '-list" aria-labelledby="' + escapeHtml(base) + '-toggle-words ' + escapeHtml(base) + '-title"><span id="' + escapeHtml(base) + '-toggle-words">' + (open ? 'Hide the list' : 'View as list') + '</span></button>',
     };
@@ -117,7 +117,9 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
     var opts = options(base, spec, viewer);
     var state = {};
     var measured = null;
-    var focusTrace = null, hoverTrace = null, touchTrace = null;
+    var focusTrace = null, hoverTrace = null;
+    // The card a Space press went down on: the hold acts on its keyup on the same card; blur, or focus moving, cancels it (DECISIONS 392, 4).
+    var spaceOn = null;
     var warned = Object.create(null);
     var warn = function (m, level) { if (!warned[m]) { warned[m] = 1; (level === 'error' ? console.error : console.warn)('Basalt diagram: ' + m); } };
     var apply = function (d) { syncAttributes(figure, figureTree(model, d, opts)); };
@@ -129,13 +131,18 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
     var motion = null, drawn = null;
     var settle = function () { if (animated) settleEntrance(figure); };
 
-    function retrace() { applyTrace(figure, P, measured && measured.geo, measured && measured.tokens, base, focusTrace || touchTrace || hoverTrace); syncClear(); }
-    // A trace on touch (DECISIONS 306, 1.5): "Clear highlight", last in the foot, is mounted whenever the figure is on touch and drawn with lines, and
-    // aria-disabled until a trace is up. "On touch" is the media's, or a figure that has taken a touch tap.
+    // Focus, then hover, then the held card (DECISIONS 392, 1): a peek shows over the hold, and the hold returns after. The hold is the state's (`held`), so
+    // its aria-pressed and data-held are the tree's, as React's are.
+    function heldNow() { return traces(model, state) && state.held || null; }
+    function retrace() { applyTrace(figure, P, measured && measured.geo, measured && measured.tokens, base, focusTrace || hoverTrace || heldNow()); syncClear(); }
+    // The hold's one function: keys call it directly and never dispatch a click.
+    function press(id) { settle(); setState(pressHold(state, id)); retrace(); }
+    // "Clear highlight" (DECISIONS 306, 1.5, and 392, 5): last in the foot, on touch alone, mounted while the layout traces, aria-disabled until a card is
+    // held. "On touch" is the media's, or a figure that has taken a click from a touch or a pen. With focus on it as the layout stops tracing it stays,
+    // disabled, until focus leaves it.
     var clearBtn = null, touched = !viewer && matchMedia('(hover: none), (pointer: coarse)').matches;
     function syncClear() {
-      // A type of its own with no lines (a gantt, a matrix, a timeline) has no trace on touch, and so no "Clear highlight" (DECISIONS 359).
-      var want = touched && !viewer && ink && ink.innerHTML !== '' && (!model.ext || Boolean(ink.querySelector('.diagram-edge')));
+      var want = touched && !viewer && traces(model, state);
       figure.toggleAttribute('data-touch', Boolean(touched && !viewer));
       if (want && !clearBtn) {
         var foot = figure.querySelector(':scope > .diagram-foot');
@@ -149,22 +156,22 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
         // Named for its figure (G17 of cimip-gaps-3): its words, then the title, as React's.
         clearBtn.firstChild.id = base + '-clear-words';
         clearBtn.setAttribute('aria-labelledby', base + '-clear-words ' + base + '-title');
-        clearBtn.addEventListener('click', function () { if (touchTrace) { touchTrace = null; retrace(); } });
+        clearBtn.addEventListener('click', function () { if (heldNow()) press(null); });
+        clearBtn.addEventListener('blur', function () { if (!traces(model, state)) syncClear(); });
         // Last of the controls; a download's note (the diagram-export module's) stays under them, the last thing in the foot.
         foot.insertBefore(clearBtn, foot.querySelector(':scope > .diagram-export-note'));
-      } else if (!want && clearBtn) { clearBtn.remove(); clearBtn = null; }
+      } else if (!want && clearBtn && document.activeElement !== clearBtn) { clearBtn.remove(); clearBtn = null; }
       // "Clear highlight" is last in the foot, after the motion module's buttons, which may be added after it (Neon's P7); never moved while it has focus.
       if (clearBtn && clearBtn !== clearBtn.parentNode.lastElementChild && document.activeElement !== clearBtn) clearBtn.parentNode.appendChild(clearBtn);
-      if (clearBtn) { if (touchTrace) clearBtn.removeAttribute('aria-disabled'); else clearBtn.setAttribute('aria-disabled', 'true'); }
+      if (clearBtn) { if (heldNow()) clearBtn.removeAttribute('aria-disabled'); else clearBtn.setAttribute('aria-disabled', 'true'); }
     }
-    function onTap(event) {
-      if (event.defaultPrevented) return;
-      var next = tapTrace(figure, P, event, touchTrace);
+    // A press holds and the ground releases (DECISIONS 392, 4): a click from any pointer or an assistive technology; only a touch or a pen marks the figure
+    // "on touch".
+    function onClick(event) {
+      var next = pressTarget(figure, P, model, state, event);
       if (next === undefined) return;
-      settle();
-      touched = true;
-      touchTrace = next;
-      retrace();
+      if (event.pointerType === 'touch' || event.pointerType === 'pen') touched = true;
+      press(next);
     }
     // The toggle's words and state follow the list's (a stack drawn with no lines opens it).
     function syncToggle() {
@@ -214,14 +221,14 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
       state = measured.dyn;
       apply(state);
       syncToggle();
-      // The key hint follows the layout: four arrows where the drawn figure has rows and columns (DECISIONS 306, 1.5).
+      // The key hint follows the layout: four arrows where the drawn figure has rows and columns (DECISIONS 306, 1.5), none where it does not trace (392).
       var hintEl = figure.querySelector(':scope > .diagram-hint');
       // The keys sentence follows it too, from the measured layout (it was written before measuring, as the stack's): what the tab stop is described by.
       var keysEl = figure.querySelector(':scope > [id="' + base + '-keys"]');
-      if (keysEl) { var keysWords = keysSentence(model, state.layout === 'drawn') + (viewer ? ' ' + viewer.keys : ''); if (keysEl.textContent !== keysWords) keysEl.textContent = keysWords; }
-      if (hintEl) { var hintHtml = hintEntries(model, state.layout === 'drawn').map(function (e) { return '<span>' + e.keys.map(function (k) { return '<kbd class="kbd">' + escapeHtml(k) + '</kbd>'; }).join(' ') + ' ' + escapeHtml(e.words) + '</span>'; }).join(''); if (hintEl.innerHTML !== hintHtml) hintEl.innerHTML = hintHtml; }
-      // A layout with no stops traces nothing: a pointer resting on a node as the figure narrows into one leaves no trace behind.
-      if (!hasStops(model, state)) hoverTrace = touchTrace = null;
+      if (keysEl) { var keysWords = viewer ? keysSentence(model, state.layout === 'drawn', true) + ' ' + viewer.keys : keysSentence(model, state.layout === 'drawn'); if (keysEl.textContent !== keysWords) keysEl.textContent = keysWords; }
+      if (hintEl) { var hintHtml = hintEntries(model, state).map(function (e) { return '<span>' + e.keys.map(function (k) { return '<kbd class="kbd">' + escapeHtml(k) + '</kbd>'; }).join(' ') + ' ' + escapeHtml(e.words) + '</span>'; }).join(''); if (hintEl.innerHTML !== hintHtml) hintEl.innerHTML = hintHtml; }
+      // A layout whose cards do not answer traces nothing: a pointer resting on a node as the figure narrows into one leaves no trace behind.
+      if (!hovers(model, state)) hoverTrace = null;
       var fresh = ink && measured.ink !== drawn;
       if (fresh) { ink.innerHTML = measured.ink; drawn = measured.ink; }
       // The labels' places are not in the ink's string (a content policy refuses a style attribute in it): set through the CSSOM after every measure, since
@@ -244,19 +251,39 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
     var nodeOf = function (t) { var el = t && t.closest ? t.closest('.diagram-node') : null; return el && figure.contains(el) ? el : null; };
 
     function onKey(event) {
+      if (event.defaultPrevented) return;
       var node = nodeOf(event.target);
-      if (!node || event.defaultPrevented) return;
+      // Esc with a hold up and focus on the foot or in the list (DECISIONS 392, 4): it releases the hold and goes no further; with none it bubbles.
+      if (!node) { if (event.key === 'Escape' && !viewer && heldNow()) { event.preventDefault(); event.stopPropagation(); press(null); } return; }
       settle();
-      // In the viewer Esc always closes the dialog, traced or not (DECISIONS 310, 9.8). Elsewhere an Esc that clears a trace is the figure's alone: it
-      // goes no further (and cancels the browser's close), so a dialog or sheet round the figure stays open, and the next Esc, with nothing traced, closes it.
-      if (event.key === 'Escape') { if (!viewer && (focusTrace || hoverTrace || touchTrace)) { event.preventDefault(); event.stopPropagation(); focusTrace = hoverTrace = touchTrace = null; retrace(); } return; }
-      if (!hasStops(model, state)) return;
+      // In the viewer Esc always closes the dialog, held or not (DECISIONS 310, 9.8). Elsewhere an Esc that clears a trace or a hold is the figure's alone: it
+      // goes no further (and cancels the browser's close), so a dialog or sheet round the figure stays open, and the next Esc, with nothing up, closes it.
+      if (event.key === 'Escape') {
+        if (!viewer && (focusTrace || hoverTrace || heldNow())) { event.preventDefault(); event.stopPropagation(); focusTrace = hoverTrace = null; if (heldNow()) press(null); else retrace(); }
+        return;
+      }
+      if (!traces(model, state)) return;
+      // A toggle card: Enter acts on keydown, once, with no modifier; Space is held off the page's scroll and acts on its keyup.
+      var toggle = !node.hasAttribute('href');
+      if (toggle && event.key === 'Enter') { if (!event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); press(node.getAttribute('data-node')); } return; }
+      // Space with Ctrl, Meta or Alt is not a press and is left alone; Shift+Space presses, held off the page's scroll.
+      if (toggle && event.key === ' ') { if (event.ctrlKey || event.metaKey || event.altKey) { spaceOn = null; return; } event.preventDefault(); if (!event.repeat) spaceOn = node.getAttribute('data-node'); return; }
       var to = keyTarget(model, node.getAttribute('data-node'), event.key, state.layout === 'drawn');
       if (!to) return;
       event.preventDefault();
       setStop(to, true);
       var el = figure.querySelector('.diagram-node[data-node="' + CSS.escape(to) + '"]');
       if (el) el.focus();
+    }
+    function onKeyUp(event) {
+      if (event.key !== ' ' || spaceOn === null) return;
+      var id = spaceOn;
+      spaceOn = null;
+      var node = nodeOf(event.target);
+      // A keyup with Ctrl, Meta or Alt down cancels the armed press.
+      if (event.ctrlKey || event.metaKey || event.altKey || !node || node.getAttribute('data-node') !== id || !traces(model, state)) return;
+      event.preventDefault();
+      press(id);
     }
     function onFocusIn(event) {
       var node = nodeOf(event.target);
@@ -265,12 +292,14 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
       var id = node.getAttribute('data-node');
       // Tracing follows the keyboard's focus (:focus-visible), so a press that focuses a node traces nothing.
       focusTrace = node.matches(':focus-visible') ? id : null;
-      if (hasStops(model, state) && state.stop !== id) setStop(id);
+      if (traces(model, state) && state.stop !== id) setStop(id);
       retrace();
     }
     function onFocusOut(event) {
       var left = nodeOf(event.target);
       if (!left) return;
+      // Focus moving cancels a Space press.
+      spaceOn = null;
       if (!nodeOf(event.relatedTarget)) {
         focusTrace = null;
         // Focus has left the cards: the stop is described by the keys sentence again, for the next tab in.
@@ -283,7 +312,7 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
       if (event.pointerType !== 'mouse' || !matchMedia('(hover: hover)').matches) return;
       var node = nodeOf(event.target);
       if (node) settle();
-      var next = node && hasStops(model, state) ? node.getAttribute('data-node') : null;
+      var next = node && hovers(model, state) ? node.getAttribute('data-node') : null;
       if (next !== hoverTrace) { hoverTrace = next; retrace(); }
     }
     function onLeave() { if (hoverTrace) { hoverTrace = null; retrace(); } }
@@ -294,11 +323,12 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
     }
 
     figure.addEventListener('keydown', onKey);
+    figure.addEventListener('keyup', onKeyUp);
     figure.addEventListener('focusin', onFocusIn);
     figure.addEventListener('focusout', onFocusOut);
     figure.addEventListener('pointerover', onOver);
     figure.addEventListener('pointerleave', onLeave);
-    figure.addEventListener('click', onTap);
+    figure.addEventListener('click', onClick);
     if (toggle) toggle.addEventListener('click', onToggle);
     layout();
     var width = figure.clientWidth, frame = 0, live = true;
@@ -327,8 +357,8 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
         live = false; observer.disconnect(); cancelAnimationFrame(frame);
         if (marks) forced.removeEventListener('change', layout);
         if (motion) motion.destroy();
-        figure.removeEventListener('keydown', onKey); figure.removeEventListener('focusin', onFocusIn); figure.removeEventListener('focusout', onFocusOut);
-        figure.removeEventListener('pointerover', onOver); figure.removeEventListener('pointerleave', onLeave); figure.removeEventListener('click', onTap);
+        figure.removeEventListener('keydown', onKey); figure.removeEventListener('keyup', onKeyUp); figure.removeEventListener('focusin', onFocusIn); figure.removeEventListener('focusout', onFocusOut);
+        figure.removeEventListener('pointerover', onOver); figure.removeEventListener('pointerleave', onLeave); figure.removeEventListener('click', onClick);
         if (clearBtn) clearBtn.remove();
         if (toggle) toggle.removeEventListener('click', onToggle);
       },

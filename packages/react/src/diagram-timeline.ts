@@ -4,7 +4,7 @@
 // zone through time-format.ts (DECISIONS 207). TimelineDiagram hands this module to the engine on the spec. Nothing runs at load. The implementation has
 // not been reviewed.
 
-import { escapeHtml, h, iso, own, rectOf, sentence, svgA, txt } from "./diagram-core";
+import { cardAttrs, escapeHtml, h, iso, own, rectOf, sentence, svgA, txt } from "./diagram-core";
 import type { DiagramSpec, DiagramTypeExt, Dyn, ExtBuildKit, ExtBuilt, ExtMeasureKit, Geo, Measured, MNode, Model, VElement, VNode } from "./diagram-core";
 import { clockLadder, dateWords, instantOf, roundOut, scaleMap, ticks } from "./diagram-scale";
 import type { ScaleMap, ScaleTick } from "./diagram-scale";
@@ -126,8 +126,7 @@ function drawing(P: string, m: Model, dyn: Dyn, level?: number): VNode[] {
     const gap = gapBefore(p, e);
     out.push(h(e.href ? "a" : "div", {
       class: `${P}-node ${P}-tl-card`, href: e.href, target: e.href && e.blank ? "_blank" : undefined, rel: e.href && e.blank ? "noopener noreferrer" : undefined, "data-link": e.href ? (e.blank ? "external" : "") : undefined,
-      "data-node": e.id, "data-focal": e.focal ? "" : undefined, "data-level": level, role: e.href ? undefined : "img", "aria-label": writeSentence(m, n),
-      tabindex: dyn.layout && !dyn.bare ? (dyn.stop === e.id ? 0 : -1) : dyn.keep === e.id ? -1 : undefined, style: own(dyn.place, e.id),
+      "data-node": e.id, "data-focal": e.focal ? "" : undefined, "data-level": level, ...cardAttrs(m, dyn, n, writeSentence(m, n)), style: own(dyn.place, e.id),
     },
     // The kind line: the time (Geist, 500, tabular), the gap since the event before (stacked only), then the kind in Mono; never broken.
     h("span", { class: `${P}-kind ${P}-tl-line` }, h("span", { class: `${P}-tl-time` }, clockOf(e.at, p.zone)), gap !== null && k > 0 ? h("span", { class: `${P}-tl-gap` }, ` +${lengthWords(gap)}`) : null, e.kind ? [" · ", iso(e.kind)] : null),
@@ -322,32 +321,19 @@ function stackInk(el: HTMLElement, m: Model, P: string, tk: ExtMeasureKit["tk"])
   return { geo, ink: svgOf(P, geo, body) };
 }
 
-function keyTarget(m: Model, from: string, key: string, drawn: boolean, rtl: boolean): string | null {
-  const i = m.byId.get(from)?.i ?? 0, n = m.nodes.length;
-  // ← → the event before and after in time: physical keys, so they swap right to left. Stacked, the arrows are the time order.
-  const fwd = drawn ? (key === "ArrowRight" ? !rtl : key === "ArrowLeft" ? rtl : null) : key === "ArrowDown" || key === "ArrowRight" ? true : key === "ArrowUp" || key === "ArrowLeft" ? false : null;
-  const to = key === "Home" ? 0 : key === "End" ? n - 1 : fwd === null ? null : i + (fwd ? 1 : -1);
-  return to === null ? null : m.nodes[Math.max(0, Math.min(n - 1, to))]?.id ?? null;
-}
-
 let made: DiagramTypeExt | undefined;
 /** The timeline's module, made at its first use. */
 export function timelineType(): DiagramTypeExt {
   return (made ??= {
     type: "timeline",
     build,
-    stop: "an event",
+    stop: ["an event", "event"],
     sentence: writeSentence,
     key,
     list,
     drawing,
     least: (_m, tk) => tk.wide,
     layout,
-    keyTarget,
-    hasStops: (_m, dyn) => Boolean(dyn.layout && !dyn.bare),
-    traces: () => false,
-    hint: (m, drawn) => [{ keys: drawn ? ["←", "→"] : ["↑", "↓"], words: "an event" }, { keys: ["Home", "End"], words: "the ends" }, ...(m.nodes.some((n) => n.href) ? [{ keys: ["Enter"], words: "open" }] : [])],
-    keys: (m, drawn) => `${drawn ? "Left and right arrows move to the event before or after in time" : "Arrow keys move to the event before or after in time"}; Home and End go to the first and the last.${m.nodes.some((n) => n.href) ? " Enter opens an event that is a link." : ""}`,
     rootStyle: (_m, dyn) => { const v = own(dyn.place, ""); return v ? [v] : []; },
   });
 }

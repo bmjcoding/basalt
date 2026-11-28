@@ -3,7 +3,7 @@
 // stacked with tracks, stacked in words. The scale is diagram-scale's; everything drawn on it is this module's. GanttDiagram hands it to the engine on the
 // spec, so an app that draws an architecture bundles none of it. Nothing runs at load. The implementation has not been reviewed.
 
-import { h, iso, own, rectOf, sentence, svgA, txt } from "./diagram-core";
+import { cardAttrs, h, iso, own, rectOf, sentence, svgA, txt } from "./diagram-core";
 import type { DiagramSpec, DiagramTypeExt, Dyn, ExtBuildKit, ExtBuilt, ExtMeasureKit, Geo, Measured, MNode, Model, VElement, VNode } from "./diagram-core";
 import { dateWords, datesWords, dayLadder, dayNumber, numberLadder, scaleMap, ticks, yearOf } from "./diagram-scale";
 import type { ScaleTick } from "./diagram-scale";
@@ -215,7 +215,6 @@ function drawing(P: string, m: Model, dyn: Dyn, level?: number): VNode[] {
     if (ph !== phase && ph) out.push(h("p", { class: `${P}-gantt-phase`, "aria-hidden": "true" }, iso(p.phases.find((x) => x.id === ph)!.label)));
     phase = ph;
     const n = m.byId.get(t.id)!;
-    const stops = Boolean(dyn.layout && !dyn.bare);
     const s = r2(frac(p, t.a) * 100), w = r2(frac(p, t.b) * 100 - frac(p, t.a) * 100);
     // A row whose range holds today ends its range line with today's label, in the stack in words (the CSS shows it there only).
     const holdsToday = hasToday && p.today! >= t.a && p.today! <= t.b;
@@ -223,8 +222,7 @@ function drawing(P: string, m: Model, dyn: Dyn, level?: number): VNode[] {
       class: `${P}-node ${P}-gantt-row`,
       href: t.href, target: t.href && t.blank ? "_blank" : undefined, rel: t.href && t.blank ? "noopener noreferrer" : undefined, "data-link": t.href ? (t.blank ? "external" : "") : undefined,
       "data-node": t.id, "data-focal": t.focal ? "" : undefined, "data-level": level,
-      role: t.href ? undefined : "img", "aria-label": writeSentence(m, n),
-      tabindex: stops ? (dyn.stop === t.id ? 0 : -1) : dyn.keep === t.id ? -1 : undefined,
+      ...cardAttrs(m, dyn, n, writeSentence(m, n)),
     },
     h("span", { class: `${P}-gantt-words` },
       h("span", { class: `${P}-name` }, iso(t.name)),
@@ -348,33 +346,19 @@ function inkOf(el: HTMLElement, m: Model, P: string, tk: ExtMeasureKit["tk"], dr
   return { geo, ink: `<svg class="${P}-svg" width="${geo.w}" height="${geo.h}" viewBox="0 0 ${geo.w} ${geo.h}" focusable="false">${out}${words}</svg>` };
 }
 
-// ---- Keys ----
-
-function keyTarget(m: Model, from: string, key: string): string | null {
-  const i = m.byId.get(from)?.i ?? 0;
-  const n = m.nodes.length;
-  const to = key === "ArrowDown" ? i + 1 : key === "ArrowUp" ? i - 1 : key === "Home" ? 0 : key === "End" ? n - 1 : null;
-  return to === null ? null : m.nodes[Math.max(0, Math.min(n - 1, to))]?.id ?? null;
-}
-
 let made: DiagramTypeExt | undefined;
 /** The gantt's module, made at its first use. */
 export function ganttType(): DiagramTypeExt {
   return (made ??= {
     type: "gantt",
     build,
-    stop: "a task",
+    stop: ["a task", "task"],
     sentence: writeSentence,
     key,
     list,
     drawing,
     least,
     layout,
-    keyTarget,
-    hasStops: (_m, dyn) => Boolean(dyn.layout && !dyn.bare),
-    traces: () => false,
-    hint: (m) => [{ keys: ["↑", "↓"], words: "a task" }, { keys: ["Home", "End"], words: "the ends" }, ...(m.nodes.some((n) => n.href) ? [{ keys: ["Enter"], words: "open" }] : [])],
-    keys: (m) => `Up and down arrows move to the next or the previous task; Home and End go to the ends.${m.nodes.some((n) => n.href) ? " Enter opens a task that is a link." : ""}`,
     rootStyle: (_m, dyn) => { const v = own(dyn.place, ""); return v ? [v] : []; },
     // Before script (1.1): stacked, with tracks only if the shortest bar is at least 1/34 of the domain (8px in the 272px track of a 320px window).
     form: (m) => { const p = planOf(m); return !Number.isFinite(p.shortest) || p.shortest * 34 >= p.domain[1] - p.domain[0] ? "tracks" : "words"; },

@@ -2,8 +2,8 @@
 // describes the card that holds the drawing's tab stop, so it is said as a reader tabs in, and not again on each arrow (the card an arrow reaches carries
 // none, until focus leaves the figure). "View as list", "Expand" and the rest of Basalt's foot name their figure, the words shown leading the name
 // (WCAG 2.5.3); an app's action is described by the title. Every card's name begins with its visible name, in every type (Astra's 4). The viewer's list
-// sits under the dialog's h2: its sub-headings are h3 and its group lines h4, whatever the page's heading. G18 (a card's role) is held for a design
-// round and is not tested here. In Chromium against the built package. Written while tests are paused (DECISIONS 359): not yet run by the suite; the
+// sits under the dialog's h2: its sub-headings are h3 and its group lines h4, whatever the page's heading. G18 (a card's role, DECISIONS 392) is tested in
+// diagram-hold.test.mjs. In Chromium against the built package. Written while tests are paused (DECISIONS 359): not yet run by the suite; the
 // probe of cimip-gaps-3/diagrams read the same pages. The G15 test is in content-policy.test.mjs.
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
@@ -90,11 +90,11 @@ describe("a page of diagrams (G17)", () => {
 
   test("Tab, then an arrow, then out and in: the keys are the stop's description on each tab-in and on no card an arrow reaches", async () => {
     const { page, errors } = await threePage();
-    for (const id of ["fig-a", "fig-b", "fig-c", "fig-d"]) {
+    // The kanban (fig-c) traces nothing, so its cards are pictures and no stop (DECISIONS 392, 3): the three that trace. A traced card is a toggle button.
+    for (const id of ["fig-a", "fig-b", "fig-d"]) {
       const got = await tabArrowTab(page, id, P);
-      // Each fixture's own keys (a kanban's say nothing of a trace: it has none).
       assert.ok(got.keys && got.keys.length > 20, `${id}: the figure has a keys sentence (${got.keys})`);
-      assert.ok(["image", "link"].includes(got.tabIn?.role), `${id}: tabbing in, focus is on a card (${got.tabIn?.role})`);
+      assert.ok(["button", "link"].includes(got.tabIn?.role), `${id}: tabbing in, focus is on a card (${got.tabIn?.role})`);
       assert.equal(got.tabIn?.description, got.keys, `${id}: tabbing in, the card is described by the keys`);
       assert.ok(got.moved, `${id}: an arrow moves the stop`);
       assert.equal(got.moved.description, "", `${id}: the card an arrow reaches is not described by them again`);
