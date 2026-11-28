@@ -1,0 +1,19 @@
+/* Point 3: nesting is resolved, under a nested at-rule too, so these land on Basalt's parts. */
+.toolbar {
+  .basalt-button {
+    color: var(--basalt-text-primary);
+  }
+}
+.basalt-card {
+  &:hover {
+    background: var(--basalt-surface-raised);
+  }
+  @media (prefers-contrast: more) {
+    box-shadow: none;
+  }
+}
+.basalt-button {
+  @media (hover: hover) {
+    padding: var(--basalt-space-1);
+  }
+}
