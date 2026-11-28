@@ -280,9 +280,12 @@
       var(--basalt-size-focus-offset));
   }
 
+  /* An inverse fill carries its own selected-text pair (DECISIONS 420), for every fill the variant steps to (hover, press, loading). */
   .basalt-button[data-variant="primary"] {
     background: var(--basalt-action-primary);
     color: var(--basalt-action-primary-text);
+    --basalt-selection-fill: var(--basalt-selection-fill-inverse);
+    --basalt-selection-ink: var(--basalt-action-primary-text);
   }
 
   .basalt-button[data-variant="secondary"] {
@@ -464,7 +467,8 @@
 
   /* Disabled keeps its variant's shape, so it reads as the same control, unavailable. */
   .basalt-button[data-disabled] { cursor: not-allowed; color: var(--basalt-text-disabled); }
-  .basalt-button[data-variant="primary"][data-disabled] { background: var(--basalt-state-selected); }
+  /* Disabled takes the inverse fill away, so it gives the parent's selected-text pair back. */
+  .basalt-button[data-variant="primary"][data-disabled] { background: var(--basalt-state-selected); --basalt-selection-fill: inherit; --basalt-selection-ink: inherit; }
   .basalt-button[data-variant="secondary"][data-disabled] { box-shadow: 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
   .basalt-button[data-variant="danger"][data-disabled],
   .basalt-button[data-variant="outline"][data-disabled] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
@@ -1374,6 +1378,19 @@
     .basalt-tabs-list[data-slide][data-orientation="vertical"] .basalt-tab { transition-property: color; }
     :is(.basalt-segmented, .basalt-segmented-scroll)[data-slide] .basalt-segment[data-pressed],
     .basalt-tabs-list[data-slide][data-orientation="vertical"] .basalt-tab[data-active] { background: transparent; box-shadow: none; }
+  }
+
+  /* A theme switch is instant (DECISIONS 420): for the one style change that applies a theme, every transition's duration and delay is zero and nothing else is
+     touched. transition-property stays, so a movement already running (a transform, an opacity) finishes on its own time, and no animation is touched, so loops
+     keep their phase. The theme code sets the attribute, writes, flushes style and removes it in one call; an app does not set it. */
+  :root[data-theme-switching],
+  :root[data-theme-switching] *,
+  :root[data-theme-switching] ::before,
+  :root[data-theme-switching] ::after,
+  :root[data-theme-switching] ::placeholder,
+  :root[data-theme-switching] ::backdrop {
+    transition-duration: var(--basalt-duration-instant) !important;
+    transition-delay: var(--basalt-duration-instant) !important;
   }
 
   /* ---- The theme choice (DECISIONS 146 B): System, Light and Dark, three words in the segmented control's drawing, with radio semantics ----
@@ -4590,6 +4607,10 @@
   .basalt-ticker > .basalt-ticker-visual { display: inline-block; line-height: 1; -webkit-user-select: none; user-select: none; }
   /* A zero-width character, so the strips' line has a text strut in a page with no doctype too (its baseline is then the text's, as in standards mode); it is generated, so it is never copied. */
   .basalt-ticker > .basalt-ticker-visual::before { content: "\200b"; }
+  /* While the strips are drawn the number under them stays transparent when selected: the band shows through and the strips' digits draw over it (DECISIONS 420). */
+  @media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+    .basalt-ticker > .basalt-ticker-text::selection { color: transparent; }
+  }
   /* A ticker that is a flex item (the sparkline's headline) keeps what it always did: its digits sit on the bottom of whatever box it is stretched to. */
   .basalt-sparkline-head > .basalt-ticker { display: flex; align-items: flex-end; }
   /* Under reduced motion and in forced colours the strips go and the number is its own text, in the sentence's own line: plain tabular text with the same width and baseline as the
@@ -5918,8 +5939,9 @@
   .basalt-diagram[data-rtl] .basalt-diagram-node[data-shape="participant"][data-mark] { flex-direction: var(--_d-pfd, row-reverse); }
   .basalt-diagram-node[data-shape="participant"][data-mark] > .basalt-diagram-mark + .basalt-diagram-name { --_d-pnp: var(--_drawn) var(--basalt-space-6); padding-inline: var(--_d-pnp, 0); }
 
-  /* The focal node: inverted ink; its quiet lines at opacity-amount, at full strength under more contrast. */
-  .basalt-diagram-node[data-focal] { background: var(--basalt-diagram-focal); border-color: var(--basalt-diagram-focal); }
+  /* The focal node: inverted ink; its quiet lines at opacity-amount, at full strength under more contrast. It is an inverse fill, so it carries its own selected-text
+     pair (DECISIONS 420): the kanban card, journey head and blueprint cell are focal nodes too. A focal node whose fill is taken away gives the pair back (the Gantt row). */
+  .basalt-diagram-node[data-focal] { background: var(--basalt-diagram-focal); border-color: var(--basalt-diagram-focal); --basalt-selection-fill: var(--basalt-selection-fill-inverse); --basalt-selection-ink: var(--basalt-diagram-focal-ink); }
   .basalt-diagram-node[data-focal] :is(.basalt-diagram-name, .basalt-diagram-kind, .basalt-diagram-detail, .basalt-diagram-tname, .basalt-diagram-cname, .basalt-diagram-keyseat, .basalt-diagram-ctype, .basalt-diagram-more) { color: var(--basalt-diagram-focal-ink); }
   .basalt-diagram-node[data-focal] :is(.basalt-diagram-kind, .basalt-diagram-detail, .basalt-diagram-keyseat, .basalt-diagram-ctype, .basalt-diagram-more) { opacity: var(--basalt-opacity-amount); }
 
@@ -6753,7 +6775,7 @@
   }
   .basalt-diagram-node.basalt-diagram-gantt-row:focus-visible { outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
   /* The focal task is its bar (or diamond) alone: its row's words do not change. */
-  .basalt-diagram-node.basalt-diagram-gantt-row[data-focal] { background: none; border-color: var(--basalt-border-divider); }
+  .basalt-diagram-node.basalt-diagram-gantt-row[data-focal] { background: none; border-color: var(--basalt-border-divider); --basalt-selection-fill: inherit; --basalt-selection-ink: inherit; }
   .basalt-diagram-gantt-row[data-focal] .basalt-diagram-name { color: var(--basalt-text-primary); opacity: 1; }
   .basalt-diagram-gantt-row[data-focal] :is(.basalt-diagram-gantt-range, .basalt-diagram-gantt-after, .basalt-diagram-detail) { color: var(--basalt-text-secondary); opacity: 1; }
   .basalt-diagram-gantt-words { display: flex; flex-direction: column; gap: var(--basalt-space-0-5); min-width: 0; }
@@ -6778,7 +6800,7 @@
   .basalt-diagram-gantt-mile { position: absolute; inset-block-start: calc(50% - var(--basalt-space-2)); inset-inline-start: calc(var(--_s) - var(--basalt-space-2)); width: var(--basalt-space-4); height: var(--basalt-space-4); }
   .basalt-diagram-gantt-mile > svg { display: block; width: 100%; height: 100%; overflow: visible; }
   .basalt-diagram-gantt-mile path, .basalt-diagram-swatch-bar { fill: var(--basalt-plate-0); stroke: var(--basalt-diagram-edge); stroke-width: var(--basalt-size-hairline); }
-  .basalt-diagram-gantt-bar[data-focal] { background: var(--basalt-diagram-focal); border-color: var(--basalt-diagram-focal); }
+  .basalt-diagram-gantt-bar[data-focal] { background: var(--basalt-diagram-focal); border-color: var(--basalt-diagram-focal); --basalt-selection-fill: var(--basalt-selection-fill-inverse); --basalt-selection-ink: var(--basalt-diagram-focal-ink); }
   .basalt-diagram-gantt-mile[data-focal] path, .basalt-diagram-swatch-bar[data-focal] { fill: var(--basalt-diagram-focal); stroke: var(--basalt-diagram-focal); }
   .basalt-diagram-gantt-grid { fill: none; stroke: var(--basalt-chart-grid); stroke-width: var(--basalt-size-hairline); }
   .basalt-diagram-today { fill: none; stroke: var(--basalt-diagram-structure); stroke-width: var(--basalt-size-hairline); stroke-dasharray: var(--basalt-size-diagram-guide-dash) var(--basalt-size-diagram-guide-dash); }

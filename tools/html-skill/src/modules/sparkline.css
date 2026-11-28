@@ -14,6 +14,8 @@
   .sparkline-value { white-space: nowrap; font-variant-numeric: tabular-nums; font-kerning: none; }
   .sparkline-head > .sparkline-value { display: flex; align-items: flex-end; }
   .sparkline-text { display: inline-block; width: 0; color: transparent; forced-color-adjust: none; }
+  /* While the strips are drawn the number under them stays transparent when selected: the band shows through and the strips' digits draw over it (DECISIONS 420). */
+  @media (forced-colors: none) { .sparkline-text::selection { color: transparent; } }
   .sparkline-value > [aria-hidden] { display: inline-block; line-height: 1; -webkit-user-select: none; user-select: none; }
   .sparkline-value > [aria-hidden]::before { content: "\200b"; }
   /* stylelint-disable-next-line unit-disallowed-list -- one line of a digit strip is 1em, the digit's own font size, whatever size the number is set in; a fixed-length token cannot follow it */

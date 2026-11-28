@@ -83,7 +83,12 @@
   a, button, summary, [role="tab"], .row, .disclosure, .segment button { -webkit-tap-highlight-color: transparent; }
   [hidden] { display: none !important; }
   :focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
-  ::selection { background: var(--basalt-state-selected); }
+  /* Selected text (DECISIONS 420): a wash with its ink lifted to primary, on every surface; an inverse fill sets its own pair, a fill taken away gives it back. */
+  ::selection { background: var(--basalt-selection-fill); color: var(--basalt-selection-ink); }
+  @media (forced-colors: active) { ::selection { background: Highlight; color: HighlightText; } }
+  /* A theme switch is instant (DECISIONS 420): for the one style change that applies a theme, every transition's duration and delay is zero and nothing else is touched,
+     so a movement already running finishes on its own time and loops keep their phase. The core sets the attribute around its write and removes it in the same call. */
+  :root[data-theme-switching], :root[data-theme-switching] *, :root[data-theme-switching] ::before, :root[data-theme-switching] ::after, :root[data-theme-switching] ::placeholder, :root[data-theme-switching] ::backdrop { transition-duration: var(--basalt-duration-instant) !important; transition-delay: var(--basalt-duration-instant) !important; }
   svg.icon { flex: none; }
   /* A brand file inlined with data-brand: compose.mjs hides it and drops its title; it takes no pointer, so the link round it is what is hovered and named. */
   svg[data-brand] { pointer-events: none; }
@@ -263,7 +268,7 @@
   .btn[data-size="sm"] { --_h: var(--basalt-size-control-sm); --_px: var(--basalt-space-2-5); font-size: var(--basalt-text-sm-size); }
   .btn[data-size="lg"] { --_h: var(--basalt-size-control-lg); --_px: var(--basalt-space-3-5); border-radius: var(--basalt-radius-md); }
   .btn[data-icon-only] { width: var(--_h); padding: 0; }
-  .btn[data-variant="primary"] { background: var(--basalt-action-primary); color: var(--basalt-action-primary-text); box-shadow: none; }
+  .btn[data-variant="primary"] { background: var(--basalt-action-primary); color: var(--basalt-action-primary-text); box-shadow: none; --basalt-selection-fill: var(--basalt-selection-fill-inverse); --basalt-selection-ink: var(--basalt-action-primary-text); }
   .btn[data-variant="ghost"] { background: transparent; color: var(--basalt-text-secondary); box-shadow: none; }
   /* Danger is red text on a red hairline. No red fill: the destructive control stays quieter than the primary. */
   .btn[data-variant="danger"] { background: transparent; color: var(--basalt-status-danger); box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 45%, transparent); }
@@ -283,7 +288,7 @@
      target would fall to 43.12px. This invisible extension, 1.03% a side (1 / .98 is 1.0204), keeps the pressed target at its rest size. */
   .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"])::after { content: ""; position: absolute; inset: -1.03%; }
   .btn[disabled], .btn[aria-disabled="true"] { cursor: not-allowed; color: var(--basalt-text-disabled); box-shadow: 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
-  .btn[data-variant="primary"][disabled], .btn[data-variant="primary"][aria-disabled="true"] { background: var(--basalt-state-selected); box-shadow: none; }
+  .btn[data-variant="primary"][disabled], .btn[data-variant="primary"][aria-disabled="true"] { background: var(--basalt-state-selected); box-shadow: none; --basalt-selection-fill: inherit; --basalt-selection-ink: inherit; }
   .btn[data-variant="ghost"][disabled] { box-shadow: none; }
   /* Busy keeps the width: the label (and any icon) is invisible and a ring is laid over the middle, as the React Button does. Keep a label in a <span>. */
   .btn[aria-busy="true"] { cursor: progress; }

@@ -1,4 +1,5 @@
-// The page base (cimip-gaps-3 T1): one opt-in file, base.css, one body rule in @layer basalt, from one source behind two doors. Never in
+// The page base (cimip-gaps-3 T1): one opt-in file, base.css, one body rule in @layer basalt, from one source behind two doors, and since micro-details m6 (DECISIONS
+// 420) selected text beside it (::selection, and the system's pair in forced colours). Never in
 // components.css or styles.css. Applied to a bare document it sets 14/20, the sans stack, margin 0 and the page's fill and ink, and leaves the root at
 // the browser's 16px; an app's unlayered body rule wins. Node checks first, then Chromium, both themes.
 import assert from "node:assert/strict";
@@ -18,10 +19,13 @@ describe("the file", () => {
     assert.equal(JSON.parse(read(pkg, "..", "tokens", "package.json")).exports["./base.css"], "./dist/css/base.css");
   });
 
-  test("one body rule in @layer basalt, and nothing on html", () => {
+  test("one body rule and selected text in @layer basalt, and nothing on html", () => {
     const css = read(pkg, "dist", "base.css").replace(/\/\*[\s\S]*?\*\//g, "");
-    assert.match(css, /^\s*@layer basalt\s*\{\s*body\s*\{[^{}]*\}\s*\}\s*$/);
-    assert.doesNotMatch(css, /\bhtml\b|:root|box-sizing|font-smoothing|color-scheme|scrollbar-gutter/);
+    assert.match(css, /^\s*@layer basalt\s*\{\s*body\s*\{[^{}]*\}\s*::selection\s*\{[^{}]*\}\s*@media \(forced-colors: active\)\s*\{\s*::selection\s*\{[^{}]*\}\s*\}\s*\}\s*$/);
+    const [selection, forced] = [...css.matchAll(/::selection\s*\{([^{}]*)\}/g)].map((m) => m[1].replace(/\s+/g, " ").trim());
+    assert.equal(selection, "background: var(--basalt-selection-fill); color: var(--basalt-selection-ink);");
+    assert.equal(forced, "background: Highlight; color: HighlightText;");
+    assert.doesNotMatch(css, /\bhtml\b|:root|box-sizing|color-scheme|scrollbar-gutter/);
   });
 
   test("styles.css and components.css style neither body nor html: the base is opt-in", () => {
@@ -30,6 +34,13 @@ describe("the file", () => {
       assert.doesNotMatch(css, /(^|[{};,])\s*(html|body)\s*[{,]/, name);
     }
     assert.doesNotMatch(read(pkg, "src", "styles", "components.css").replace(/\/\*[\s\S]*?\*\//g, ""), /(^|[{};,])\s*(html|body)\s*[{,]/);
+  });
+
+  test("styles.css and components.css style no bare ::selection: importing a component never repaints a page's selection (DECISIONS 420)", () => {
+    for (const css of [read(pkg, "dist", "styles.css"), read(pkg, "dist", "components.css"), read(pkg, "src", "styles", "components.css").replace(/\/\*[\s\S]*?\*\//g, "")]) {
+      // A selection rule is allowed only scoped to a Basalt part (the ticker's number): never at the start of a selector, nor after a combinator alone.
+      assert.doesNotMatch(css, /(^|[{};,]|[\s>+~])::selection/);
+    }
   });
 });
 

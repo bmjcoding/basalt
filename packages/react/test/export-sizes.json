@@ -296,7 +296,7 @@
   "SingleKeysMenuItem": 185750,
   "SingleKeysSwitch": 17082,
   "SiteBrand": 1302,
-  "SiteFooter": 15031,
+  "SiteFooter": 16164,
   "SiteHeader": 190429,
   "SiteLockupDefs": 694,
   "SiteMenu": 182625,
@@ -371,8 +371,8 @@
   "TextButton": 11393,
   "TextMorph": 4681,
   "Textarea": 27723,
-  "ThemeChoiceControl": 4794,
-  "ThemeMenu": 214276,
+  "ThemeChoiceControl": 5926,
+  "ThemeMenu": 215409,
   "TimeChart": 48153,
   "TimelineDiagram": 133971,
   "ToastProvider": 93971,
@@ -438,7 +438,8 @@
   "shownHeading": 158,
   "sortRows": 459,
   "standIn": 431,
-  "themeBootstrap": 320,
+  "themeBootstrap": 731,
+  "themeColorMeta": 280,
   "trailingMean": 319,
   "travelLeg": 248,
   "travelRun": 896,
@@ -466,7 +467,7 @@
   "useSitePhase": 2952,
   "useSlideDirection": 296,
   "useStaged": 1042,
-  "useTheme": 1755,
+  "useTheme": 2871,
   "useToast": 3302,
   "useWaitMark": 303
  },
@@ -477,11 +478,11 @@
   }
  },
  "package": {
-  "bytes": 1153082,
-  "gzip": 382981
+  "bytes": 1154919,
+  "gzip": 383381
  },
  "styles": {
-  "bytes": 625559,
-  "gzip": 78908
+  "bytes": 627130,
+  "gzip": 79145
  }
 }

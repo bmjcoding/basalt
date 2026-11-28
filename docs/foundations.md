@@ -68,6 +68,18 @@ of Basalt's accent classes, in its named roles, and nowhere else.
 All colours are OKLCH and inside sRGB, so every display shows the same colour. The neutrals
 are achromatic (no tint) and named by HSL lightness: `neutral-4` is `#0a0a0a`.
 
+**Browser chrome.** A page's `theme-color` is its ground (`surface-page`: `#fafafa` in light, `#000000` in dark, or the palette's), never
+animated. A static pair scoped by `prefers-color-scheme` serves a page before or without script. The head script keeps one tag of its own
+first, for the theme shown, and a palette that changes the ground sets that tag's light and dark colours. An app with its own `theme-color`
+renders no Basalt pair, and Basalt then writes none. (DECISIONS 420: React's `themeColorMeta` and `themeBootstrap`, the skill's compose and
+core.)
+
+**Selected text** is a wash, `selection-fill` (black at 24% in light, white at 24% in dark), with its ink lifted to `selection-ink`
+(`text-primary`), on every surface. On an inverse fill (a primary button, a focal diagram card) the fill is `selection-fill-inverse` and the
+ink the surface's own. In forced colours it is the system's `Highlight` and `HighlightText`, and more contrast does not step it. The page
+base and the skill's core draw it. A component never repaints a page's selection. (DECISIONS 420: the ink holds 5.81:1 or better on the band
+over every ground, and every band shows at least 1.7:1 against its ground.)
+
 ### Surfaces
 
 Depth is four levels, `surface-0` to `surface-3`. A role token is one of them, so naming the
@@ -2720,6 +2732,11 @@ they time nothing but a diagram.
 Loops are not on this scale: they repeat while work is happening. `duration-loop-ring` is 640ms,
 `duration-loop-braille` 800ms, `duration-loop-fade` 1200ms and `duration-loop-ambient` 6000ms, the middle period of a page's
 one ambient loop (each mark runs 0.6 to 1.4 times it).
+
+**A theme switch is instant.** For the change that applies a theme or palette, every transition's duration and delay is zero and nothing
+else is touched (`data-theme-switching`), so loops keep their phase and a movement already running finishes on its own time. What the
+choice itself moves (the theme choice's pill, a closing menu) moves as usual. (DECISIONS 420: the attribute is set, the theme written, style
+flushed and the attribute removed in one call; an app can see it but does not set it.)
 
 | Curve | Value | For |
 |---|---|---|

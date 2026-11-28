@@ -37,8 +37,14 @@ import { MessageChannel, receiveMessageOnPort, Worker } from "node:worker_thread
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-// Sets the theme before first paint: the stored choice, else the system's; and a hardware key already seen this session.
-const THEME_INIT = `(function(){var t,c,r=document.documentElement;try{t=localStorage.getItem("basalt-theme")}catch(e){}c=t==="light"||t==="dark"?t:"system";if(c==="system")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";r.setAttribute("data-theme",t);r.setAttribute("data-theme-choice",c);try{if(sessionStorage.getItem("basalt-keyboard")==="hardware")document.documentElement.setAttribute("data-keyboard","hardware")}catch(e){}})();`;
+// Sets the theme before first paint: the stored choice, else the system's; the browser chrome's live theme-color tag for it, first in the head (DECISIONS 420);
+// and a hardware key already seen this session.
+const THEME_INIT = `(function(){var t,c,r=document.documentElement;try{t=localStorage.getItem("basalt-theme")}catch(e){}c=t==="light"||t==="dark"?t:"system";if(c==="system")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";r.setAttribute("data-theme",t);r.setAttribute("data-theme-choice",c);var h=document.head,m;if(h&&!h.querySelector("meta[name=theme-color]:not([data-basalt-theme-color])")){m=h.querySelector("meta[data-basalt-theme-color=live]");if(!m){m=document.createElement("meta");m.name="theme-color";m.setAttribute("data-basalt-theme-color","live");m.setAttribute("property","basalt-live");h.insertBefore(m,h.querySelector("meta[name=theme-color]"))}m.content=t==="dark"?"#000000":"#fafafa"}try{if(sessionStorage.getItem("basalt-keyboard")==="hardware")document.documentElement.setAttribute("data-keyboard","hardware")}catch(e){}})();`;
+
+const THEME_COLOR = [
+  '<meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafafa" data-basalt-theme-color>',
+  '<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" data-basalt-theme-color>',
+];
 
 // A page with the loops module sets a stored hold before first paint (React's loopsBootstrap), beside the theme's line.
 // The modules that draw a loop (their own held rules travel with them), and the toggle's.
@@ -685,6 +691,8 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     // A page with a phone tab bar or an app shell reads the safe-area insets, which a phone gives only to a page that covers its whole screen.
     `<meta name="viewport" content="width=device-width, initial-scale=1${chosen.modules.some((n) => manifest.modules[n].viewportFit) ? ", viewport-fit=cover" : ""}">`,
     '<meta name="color-scheme" content="dark light">',
+    // The browser chrome's colour without script, the page ground of each theme (surface-page): markup no script touches. The head script's live tag goes first (DECISIONS 420).
+    ...THEME_COLOR,
     `<title>${title}</title>`,
     ...headTags,
     `<script>${THEME_INIT}</script>`,

@@ -1320,3 +1320,58 @@ for (const theme of THEMES) {
     }
   });
 }
+
+// ---- Selected text (DECISIONS 420, micro-details m6 H6) ----
+// Selected text is selection-fill (black at 24% in light, white at 24% in dark) with its ink lifted to selection-ink (text-primary). The ink is held to 4.5:1
+// on the band composited over every ground it can sit on: levels 0 to 3, sunken and sunken-strong, each also under the hover and selected washes, and the
+// plates. The ticker's digits stay text-primary over the band, so text-primary is held there too. On an inverse fill (the primary button's three fills, the
+// focal card's fill and its arrival step) the band is selection-fill-inverse and the ink the surface's own. Each band against its ground is at least 1.5:1:
+// a visibility floor so a palette cannot make selection vanish, not a WCAG claim. More contrast steps none of these tokens; it is proved anyway.
+const SELECTION_GROUNDS = (theme) => {
+  const grounds = [];
+  for (const name of [...LEVELS, "surface-sunken", "surface-sunken-strong"]) {
+    const ground = color(theme, name);
+    grounds.push([name, ground]);
+    for (const wash of ["state-hover", "state-selected"]) grounds.push([`${wash} over ${name}`, over(color(theme, wash), ground)]);
+  }
+  for (const level of [0, 1, 2, 3]) grounds.push([`plate-${level}`, color(theme, `plate-${level}`)]);
+  return grounds;
+};
+
+for (const theme of THEMES) {
+  test(`${theme}: selected text's ink and the ticker's digits hold 4.5:1 on the band over every ground, and the band shows 1.5:1 against it, and under more contrast`, () => {
+    for (const [mode, ink] of CONTRASTS) {
+      for (const [groundName, ground] of SELECTION_GROUNDS(theme)) {
+        const band = over(ink(theme, "selection-fill"), ground);
+        for (const name of ["selection-ink", "text-primary"]) {
+          const r = ratio(over(ink(theme, name), band), band);
+          assert.ok(r >= 4.5, `${theme}${mode}: ${name} on the selection band over ${groundName} is ${fmt(r)}:1`);
+        }
+        const seen = ratio(band, ground);
+        assert.ok(seen >= 1.5, `${theme}${mode}: the selection band against ${groundName} is ${fmt(seen)}:1, needs 1.5:1`);
+      }
+    }
+  });
+
+  test(`${theme}: on an inverse fill, the surface's own ink holds 4.5:1 on selection-fill-inverse, and the band shows 1.5:1, and under more contrast`, () => {
+    for (const [mode, ink] of CONTRASTS) {
+      for (const [inkName, fills] of [["action-primary-text", ["action-primary", "action-primary-hover", "action-primary-press"]], ["diagram-focal-ink", ["diagram-focal", "diagram-focal-hit"]]]) {
+        for (const fill of fills) {
+          const ground = color(theme, fill);
+          const band = over(ink(theme, "selection-fill-inverse"), ground);
+          const r = ratio(over(ink(theme, inkName), band), band);
+          assert.ok(r >= 4.5, `${theme}${mode}: ${inkName} on the inverse selection band over ${fill} is ${fmt(r)}:1`);
+          const seen = ratio(band, ground);
+          assert.ok(seen >= 1.5, `${theme}${mode}: the inverse selection band against ${fill} is ${fmt(seen)}:1, needs 1.5:1`);
+        }
+      }
+    }
+  });
+
+  test(`${theme}: the selection tokens are the colours the decision names: a 24% wash, primary ink, and the other theme's wash for an inverse fill`, () => {
+    const other = theme === "dark" ? "black-24" : "white-24";
+    assert.deepEqual(color(theme, "selection-fill"), color(theme, theme === "dark" ? "white-24" : "black-24"));
+    assert.deepEqual(color(theme, "selection-ink"), color(theme, "text-primary"));
+    assert.deepEqual(color(theme, "selection-fill-inverse"), color(theme, other));
+  });
+}
