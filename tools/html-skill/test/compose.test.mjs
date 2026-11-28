@@ -117,6 +117,12 @@ describe("what a body gets", () => {
       assert.match(html.split("</head>")[0], /localStorage\.getItem\("basalt-loops"\)/, body);
       assert.match(html, rule, body);
     }
+    // micro-m5 fix 1 (item 6): a page whose only loop is Basalt.wait's ring (no loops, spinner or braille module) keeps a stored hold, and the held
+    // ring's rule is in the core it always carries.
+    const waiting = compose("<button class=\"btn\" id=\"b\"><span>Save</span></button><script>Basalt.wait(document.getElementById('b'), new Promise(function () {}));</script>", { fonts: false });
+    assert.ok(waiting.modules.includes("wait") && !waiting.modules.some((n) => ["loops", "spinner", "braille"].includes(n)), waiting.modules.join(", "));
+    assert.match(waiting.html.split("</head>")[0], /localStorage\.getItem\("basalt-loops"\)/, "the stored hold, before first paint");
+    assert.match(part("core", "css"), /:root\[data-loops="?held"?\] \.btn:is\(\[data-loading\],\s*\[aria-busy="?true"?\]:not\(\[data-busy\]\)\):after\{animation:none/, "the held ring is in the core");
   });
 
   test("the art tokens come only to a page that names one: art, aspect, stage headroom and chart tokens bring the art module, and a page that names none gets none", () => {

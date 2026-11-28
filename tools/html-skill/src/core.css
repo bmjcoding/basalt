@@ -298,6 +298,9 @@
   .btn:is([data-loading], [aria-busy="true"]:not([data-busy])) > * { opacity: 0; }
   /* stylelint-disable-next-line unit-disallowed-list -- the ring's 1.5px stroke; no token */
   .btn:is([data-loading], [aria-busy="true"]:not([data-busy]))::after { content: ""; position: absolute; inset: 0; margin: auto; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); border: 1.5px solid color-mix(in oklch, currentColor 25%, transparent); border-top-color: currentColor; border-radius: var(--basalt-radius-full); animation: bh-spin var(--basalt-duration-loop-ring) linear infinite; }
+  /* The hold (data-loops="held", from the stored choice or the toggle) stands the ring still, beside its own animation, so every page that can draw it
+     carries it (a toast's action, Basalt.wait, a static aria-busy), with or without the loops module. Only the animation: the arc keeps its colour. */
+  :root[data-loops="held"] .btn:is([data-loading], [aria-busy="true"]:not([data-busy]))::after { animation: none; }
   .btn svg { flex: none; }
   /* A ghost control at an edge (DECISIONS 336), React's `edge`: `data-edge="start"` or `"end"` puts its glyph or words on the head's line and
      hangs its box into the padding by its inset (its padding with words; half its drawn size less its glyph, icon-only), only into the room

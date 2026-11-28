@@ -210,6 +210,21 @@ describe("4: a toast's action that waits", () => {
     } finally { await page.close(); }
   });
 
+  test("fix 1: a press and a newcomer in the same task: the waiting toast is already off the list of those closed for room", async () => {
+    const { page } = await open();
+    try {
+      await page.evaluate(ACTION('window.ask("undo")'));
+      await page.evaluate(() => { window.t.show({ title: "Moved 1", home: "row" }); window.t.show({ title: "Moved 2", home: "row" }); });
+      await run(page, 0);
+      const mine = page.locator(".basalt-toast", { hasText: "Archived" });
+      // One task: the press (no pointer, no focus), then a fourth timed toast before React has rendered anything.
+      await page.evaluate(() => { document.querySelector(".basalt-toast-action").click(); window.t.show({ title: "Moved 3", home: "row" }); });
+      await run(page, 500);
+      assert.equal(await mine.getAttribute("data-ending-style"), null, "not closed for room");
+      assert.equal(await page.locator(".basalt-toast:not([data-ending-style])", { hasText: "Moved 1" }).count(), 0, "the oldest free timed toast went instead");
+    } finally { await page.close(); }
+  });
+
   test("a handler that returns nothing is called on every press and gets no busy attributes", async () => {
     const { page } = await open();
     try {
@@ -247,6 +262,30 @@ describe("5: focus survives an update", () => {
         } finally { await page.close(); }
       });
     }
+
+    test(`${theme}: fix 1: a quick grouped result that joins a focused toast and has no action focuses the toast, and Escape returns to where F6 came from`, async () => {
+      const { page } = await open({ theme });
+      try {
+        await page.evaluate(() => window.t.show({ title: "Library synced", group: "sync", home: "row", timeout: 0, action: { label: "View", onClick: () => {} } }));
+        await run(page, 0);
+        await page.evaluate(() => {
+          window.lost = 0;
+          document.querySelector(".basalt-toast-viewport").addEventListener("focusout", (event) => { if (event.relatedTarget === null) window.lost += 1; });
+        });
+        await page.locator("#page").focus();
+        await page.keyboard.press("F6");
+        assert.equal(await page.evaluate(() => document.activeElement?.classList.contains("basalt-toast-action")), true);
+        // Settled inside 300ms: the result is shown at once, joins the group on screen and has no action.
+        await page.evaluate(() => { window.t.promise(Promise.resolve("ok"), { running: { title: "Library synced", group: "sync", home: "row" }, success: {}, error: "Could not sync" }); });
+        await run(page, 0);
+        assert.equal(await page.locator(".basalt-toast-action").count(), 0);
+        assert.equal(await page.evaluate(() => document.activeElement?.classList.contains("basalt-toast")), true, "focus is on the toast");
+        assert.equal(await page.evaluate(() => window.lost), 0);
+        await page.keyboard.press("Escape");
+        await run(page, 0);
+        assert.equal(await page.evaluate(() => document.activeElement?.id), "page");
+      } finally { await page.close(); }
+    });
 
     test(`${theme}: an update that removes the focused action focuses the toast, with no focusout to nowhere, and Escape returns to where F6 came from`, async () => {
       const { page } = await open({ theme });
@@ -303,6 +342,27 @@ describe("6 and 7: the queued seat, showAfter 0, and an unmount", () => {
       assert.equal(await page.locator(".basalt-toast[data-running]").count(), 1, "still running before its 400ms");
       await run(page, 40);
       assert.equal(await live(page).first().locator(".basalt-toast-title").textContent(), "Links checked");
+    } finally { await page.close(); }
+  });
+
+  test("fix 1: the provider unmounted after the running toast entered, the work settling inside its 400ms: no result, no timer, nothing throws", async () => {
+    const { page, errors } = await open();
+    try {
+      await page.evaluate(() => {
+        window.timersAfter = 0;
+        window.t.promise(window.ask("late")(), { running: "Saving", success: "Saved", error: "Could not save" });
+      });
+      await run(page, 320);
+      assert.equal(await page.locator(".basalt-toast[data-running]").count(), 1, "entered at 300ms");
+      await page.evaluate(() => window.unmount());
+      await run(page, 0);
+      // From here, count the timers the page sets: the settled work must start none.
+      await page.evaluate(() => { const set = window.setTimeout; window.setTimeout = (...a) => { window.timersAfter += 1; return set(...a); }; window.answer("late"); });
+      await run(page, 0);
+      assert.equal(await page.evaluate(() => window.timersAfter), 0, "no timer for the result's floor");
+      await run(page, 1000);
+      assert.equal(await page.locator(".basalt-toast").count(), 0);
+      assert.deepEqual(errors, []);
     } finally { await page.close(); }
   });
 

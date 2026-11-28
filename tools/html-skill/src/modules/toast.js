@@ -232,10 +232,12 @@
    * stops every press until it settles), and the toast's clock and line hold until then; a handler that returns nothing gets no busy state.
    */
   function press(t) {
+    // The pressed button, taken before app code runs: a handler may update the toast and take its action away before it returns.
+    var button = t.act;
     var a = t.o.action;
     var r = a && a.onClick();
     if (!r || typeof r.then !== 'function') return;
-    B.wait(t.act, r);
+    B.wait(button, r);
     t.actionBusy = (t.actionBusy || 0) + 1;
     t.el.setAttribute('data-action-busy', '');
     clock(t);

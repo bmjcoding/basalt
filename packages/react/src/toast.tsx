@@ -39,7 +39,7 @@ export interface ToastAction {
    * `aria-busy` from the press, its ring shows after 300ms and stays at least 400ms, and its label and width hold. While it waits the toast's clock
    * and drain line pause and it is never closed to make room; Dismiss and a swipe still close it. For an Undo that asks the server.
    */
-  onClick: () => void | Promise<unknown>;
+  onClick: () => unknown;
   /** The app's own key for it, written to `aria-keyshortcuts` ("Meta+Z"; "Mod+Z" is Meta on Apple's systems and Control elsewhere). No chip is drawn on the button. */
   keys?: string;
 }
@@ -164,6 +164,8 @@ interface Controller {
   timers: Set<number>;
   /** The toasts whose action is waiting for its answer: never closed to make room. */
   busy: Set<string>;
+  /** The provider has unmounted: a `promise` that settles now shows and updates nothing, and starts no timer. */
+  disposed: boolean;
 }
 
 const ControllerContext = /* @__PURE__ */ React.createContext<Controller | null>(null);
@@ -171,7 +173,7 @@ const ControllerContext = /* @__PURE__ */ React.createContext<Controller | null>
 const defaultActionWords = (label: string) => `${label} is available. Press F6 to reach it.`;
 
 function createController(): Controller {
-  return { api: null, items: new Map(), queue: [], limit: 3, seq: 0, say: null, actionWords: defaultActionWords, early: [], promised: null, timers: new Set(), busy: new Set() };
+  return { api: null, items: new Map(), queue: [], limit: 3, seq: 0, say: null, actionWords: defaultActionWords, early: [], promised: null, timers: new Set(), busy: new Set(), disposed: false };
 }
 
 // The app's key as `aria-keyshortcuts` says it: "Mod+Z" is "Meta+Z" on Apple's systems and "Control+Z" elsewhere (DECISIONS 244); any other string is as written.
@@ -252,10 +254,11 @@ function show(c: Controller, options: ToastOptions): string {
     const waiting = c.queue.find(same);
     const found = live ?? waiting;
     if (found) {
+      const prev = found.options;
       found.count += 1;
       found.options = options;
       if (live) {
-        c.api?.update(live.id, toBase(c, live, ++c.seq));
+        replace(c, live, prev);
         announce(c, live.id, options, `, ${live.count} times`);
       }
       return found.id;
@@ -272,6 +275,19 @@ function resultOf(running: ToastOptions, patch: ToastUpdate): ToastOptions {
   return { title: running.title, group: running.group, home: running.home, timeout: running.timeout, ...patch, running: false } as ToastOptions;
 }
 
+/**
+ * Hands a toast on screen its next state. An update that takes away the action holding focus moves focus to the toast first, inside the stack, so it
+ * never falls to the page and F6's way back is kept. After the commit would be too late: the removed button has blurred by then. Every replacement of a
+ * toast on screen comes through here (an update, and a repeat that joins its group).
+ */
+function replace(c: Controller, entry: Entry, prev: ToastOptions) {
+  if (prev.action && !entry.options.action && typeof document !== "undefined") {
+    const root = document.querySelector<HTMLElement>(`.basalt-toast[data-toast-id="${CSS.escape(entry.id)}"]`);
+    if (root && root.querySelector(".basalt-toast-action")?.contains(document.activeElement)) root.focus({ preventScroll: true });
+  }
+  c.api?.update(entry.id, toBase(c, entry, ++c.seq));
+}
+
 function update(c: Controller, id: string, patch: ToastUpdate) {
   const entry = c.items.get(id) ?? c.queue.find((pending) => pending.id === id);
   if (!entry) return;
@@ -283,13 +299,7 @@ function update(c: Controller, id: string, patch: ToastUpdate) {
   // On screen the seat is latched, so the text does not move when the mark goes; a toast still queued enters as what it now is (a neutral result, no seat).
   entry.seat = onScreen ? entry.seat || statusOf(next) !== "neutral" : !!next.running || statusOf(next) !== "neutral";
   if (!onScreen) return;
-  // An update that takes away the action holding focus moves focus to the toast first, inside the stack, so it never falls to the page and F6's way
-  // back is kept. After the commit would be too late: the removed button has blurred by then.
-  if (prev.action && !next.action && typeof document !== "undefined") {
-    const root = document.querySelector<HTMLElement>(`.basalt-toast[data-toast-id="${CSS.escape(id)}"]`);
-    if (root && root.querySelector(".basalt-toast-action")?.contains(document.activeElement)) root.focus({ preventScroll: true });
-  }
-  c.api?.update(id, toBase(c, entry, ++c.seq));
+  replace(c, entry, prev);
   const settled = !next.running;
   // A changed result is said whole, with its action's sentence if it has one. An action that appears, or whose label changes, with the
   // result as it was, is said alone: the listener has the result already. An action that goes says nothing.
@@ -345,6 +355,8 @@ function promise<Value>(c: Controller, work: Promise<Value>, o: ToastPromiseOpti
   else timer = later(c, showAfter, () => { id = show(c, running); });
   const patch = (given: string | ToastUpdate): ToastUpdate => (typeof given === "string" ? { title: given } : given);
   const settle = (result: ToastUpdate) => {
+    // The provider has gone: no result, and no timer for one.
+    if (c.disposed) return;
     if (id === null) {
       // The provider went before the running toast was due: nothing shows.
       if (!c.timers.has(timer)) return;
@@ -359,7 +371,7 @@ function promise<Value>(c: Controller, work: Promise<Value>, o: ToastPromiseOpti
     const wait = shownAt === undefined ? 0 : Math.max(0, minShown - (performance.now() - shownAt));
     const target = id;
     if (wait === 0) update(c, target, result);
-    else later(c, wait, () => update(c, target, result));
+    else later(c, wait, () => { if (!c.disposed) update(c, target, result); });
   };
   work.then(
     (value) => settle(patch(typeof o.success === "function" ? o.success(value) : o.success)),
@@ -403,9 +415,13 @@ export function ToastProvider({ children, limit = 3, actionWords = defaultAction
   const current = controller.current;
   React.useEffect(() => onPageChange(() => leavePage(current)), [current]);
   // A `promise` still waiting to show its running toast, or its result, shows nothing once the provider has gone.
-  React.useEffect(() => () => {
-    for (const timer of current.timers) window.clearTimeout(timer);
-    current.timers.clear();
+  React.useEffect(() => {
+    current.disposed = false;
+    return () => {
+      current.disposed = true;
+      for (const timer of current.timers) window.clearTimeout(timer);
+      current.timers.clear();
+    };
   }, [current]);
   return (
     <ControllerContext.Provider value={controller.current}>
@@ -614,26 +630,29 @@ function ToastList() {
  */
 function useActionBusy(c: Controller | null, id: string, onClick: ToastAction["onClick"] | undefined) {
   const [pending, setPending] = React.useState(0);
-  const busy = pending > 0;
-  React.useEffect(() => {
-    if (!c || !busy) return undefined;
-    c.busy.add(id);
-    return () => { c.busy.delete(id); };
-  }, [c, id, busy]);
+  // The count the controller reads: written in the press itself, so a toast shown in the same task as the press already finds this one waiting.
+  const waiting = React.useRef(0);
+  React.useEffect(() => () => { c?.busy.delete(id); }, [c, id]);
   // The Button calls this only when it is not already waiting, so each accepted press is counted once.
   const press = onClick
     ? () => {
         const result = onClick();
         if (isThenable(result)) {
+          waiting.current += 1;
+          c?.busy.add(id);
           setPending((n) => n + 1);
-          const done = () => setPending((n) => n - 1);
+          const done = () => {
+            waiting.current -= 1;
+            if (waiting.current === 0) c?.busy.delete(id);
+            setPending((n) => n - 1);
+          };
           // Counted out either way; the Button's own wait passes a rejection on, so it is not swallowed.
           result.then(done, done);
         }
         return result;
       }
     : undefined;
-  return { busy, press };
+  return { busy: pending > 0, press };
 }
 
 function ToastItem({ toast, front, swipe }: { toast: ReturnType<typeof BaseToast.useToastManager<ToastData>>["toasts"][number]; front: boolean; swipe: readonly ("up" | "down" | "right")[] }) {

@@ -39,7 +39,8 @@ const BODY = `<main class="page stack">
   window.ask = function (name) { return function () { window.calls[name] = (window.calls[name] || 0) + 1; return new Promise(function (resolve, reject) { (window.open_[name] = window.open_[name] || []).push({ resolve: resolve, reject: reject }); }); }; };
   window.answer = function (name) { window.open_[name].shift().resolve('ok'); };
   window.refuse = function (name) { window.open_[name].shift().reject(new Error('Synthetic refusal')); };
-  window.addEventListener('unhandledrejection', function (e) { e.preventDefault(); });
+  window.unhandled = [];
+  window.addEventListener('unhandledrejection', function (e) { window.unhandled.push(String(e.reason && e.reason.message || e.reason)); });
 </script>
 <!-- basalt:use wait toast spinner loops -->`;
 const html = compose(`<title>m5</title>${BODY}`, { fonts: false }).html;
@@ -133,25 +134,47 @@ describe("8: Basalt.wait on a .btn", () => {
     } finally { await context.close(); }
   });
 
+  test("fix 1: a rejection the caller catches leaves no unhandled rejection behind, and the caller's catch hears it", async () => {
+    const { page, context } = await open();
+    try {
+      await page.evaluate(() => {
+        const b = document.getElementById("publish");
+        window.heard = null;
+        Basalt.wait(b, window.ask("publish")).catch((e) => { window.heard = e.message; });
+        window.refuse("publish");
+      });
+      await run(page, 0);
+      await page.waitForTimeout(50);
+      assert.equal(await page.evaluate(() => window.heard), "Synthetic refusal", "the returned promise is the work itself");
+      assert.deepEqual(await page.evaluate(() => window.unhandled), [], "the module's cleanup leaves nothing to reject unhandled");
+      assert.equal(await attr(page, "#publish", "aria-busy"), null);
+    } finally { await context.close(); }
+  });
+
   test("no press look while busy, while only the ring shows, or on a static aria-busy; the cursor is progress in all three", async () => {
     const { page, context } = await open();
     try {
       await page.evaluate(() => { const b = document.getElementById("publish"); b.addEventListener("click", () => Basalt.wait(b, window.ask("publish"))); });
-      const rest = (await css(page, "#publish", ["backgroundColor"])).backgroundColor;
-      const restStatic = (await css(page, "#static", ["backgroundColor"])).backgroundColor;
+      // The pointer rests on the button until its hover has settled (a busy button keeps its hover), then presses at the same point: the settled
+      // press is read against the settled hover, so only a press look could tell them apart. Transitions run in real time, not on the fake clock.
       const pressed = async (sel) => {
         const b = await page.locator(sel).boundingBox();
         await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+        await page.waitForTimeout(250);
+        const hover = await css(page, sel, ["transform", "backgroundColor", "boxShadow"]);
         await page.mouse.down();
-        const out = await css(page, sel, ["transform", "backgroundColor", "cursor"]);
+        await page.waitForTimeout(250);
+        const out = await css(page, sel, ["transform", "backgroundColor", "boxShadow", "cursor"]);
         await page.mouse.up();
-        return out;
+        await page.mouse.move(0, 0);
+        return { hover, out };
       };
       await page.locator("#publish").click();
-      for (const [label, sel, bg] of [["busy", "#publish", rest], ["static aria-busy", "#static", restStatic]]) {
-        const out = await pressed(sel);
+      for (const [label, sel] of [["busy", "#publish"], ["static aria-busy", "#static"]]) {
+        const { hover, out } = await pressed(sel);
         assert.equal(out.transform, "none", `${label}: no scale`);
-        assert.equal(out.backgroundColor, bg, `${label}: no colour step`);
+        assert.equal(out.backgroundColor, hover.backgroundColor, `${label}: no colour step from the hover`);
+        assert.equal(out.boxShadow, hover.boxShadow, `${label}: the edge as hovered`);
         assert.equal(out.cursor, "progress", `${label}: progress`);
       }
       await run(page, 350);
@@ -160,9 +183,9 @@ describe("8: Basalt.wait on a .btn", () => {
       assert.equal(await attr(page, "#publish", "aria-busy"), null);
       assert.equal(await attr(page, "#publish", "data-loading"), "", "only the ring's tail now");
       // The press in the tail goes through (a new wait) but shows no press.
-      const out = await pressed("#publish");
+      const { hover, out } = await pressed("#publish");
       assert.equal(out.transform, "none");
-      assert.equal(out.backgroundColor, rest);
+      assert.equal(out.backgroundColor, hover.backgroundColor);
       assert.equal(out.cursor, "progress");
     } finally { await context.close(); }
   });
@@ -277,6 +300,24 @@ describe("10: the toast's action waits, and focus survives an update", () => {
       assert.equal(await mine.getAttribute("data-ending-style"), null);
       await run(page, 200);
       assert.equal(await mine.getAttribute("data-ending-style"), "", "closing on the 500ms that were left");
+    } finally { await context.close(); }
+  });
+
+  test("fix 1: an Undo that takes its own action away before it returns a promise: no error, and the toast keeps going", async () => {
+    const { page, context, errors } = await open();
+    try {
+      const id = await page.evaluate(() => {
+        const id = Basalt.toast({ title: "Archived", home: "row", action: { label: "Undo", onClick: () => { Basalt.toast.update(id, { title: "Restoring", action: undefined }); return window.ask("undo")(); } } });
+        return id;
+      });
+      await page.evaluate(() => document.querySelector(".toast-action").click());
+      assert.equal(await calls(page, "undo"), 1);
+      assert.equal(await page.locator(".toast-action").count(), 0, "the action is gone, as the handler asked");
+      assert.equal(await page.locator(`#${id}`).getAttribute("data-action-busy"), "", "the wait is still counted on the toast");
+      await page.evaluate(() => window.answer("undo"));
+      await run(page, 0);
+      assert.equal(await page.locator(`#${id}`).getAttribute("data-action-busy"), null);
+      assert.deepEqual(errors, []);
     } finally { await context.close(); }
   });
 

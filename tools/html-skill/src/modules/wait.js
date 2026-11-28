@@ -2,7 +2,8 @@
    function that returns one (called only when the button is not already waiting). From the call the button is aria-busy, aria-disabled and
    data-busy (focus, label, width and ink kept; its own `disabled` untouched) and a press, Enter or Space on it calls nothing and submits or follows
    nothing; after showAfter (300ms) it shows the ring (data-loading). On the answer, either way, it is free at once, and the ring, once shown, stays
-   until it has been up minShown (400ms). A rejection is passed on, never swallowed. Returns the promise, or undefined when the button was busy.
+   until it has been up minShown (400ms). The promise is returned as it is: a rejection reaches whoever handles it, and the module's own cleanup leaves
+   no second promise to reject unhandled. Returns the promise, or undefined when the button was busy.
    Basalt.wait.SHOW_AFTER and .MIN_SHOWN are the two timings (DECISIONS 247, 248), which the toast's action and toast.promise use too.
    Source: tools/html-skill/src/modules/wait.js (do not edit the copy in the skill folder). */
 (function (B) {
@@ -35,13 +36,16 @@
     clearTimeout(s.clear);
     busy(el, true);
     if (!el.hasAttribute('data-loading')) s.show = setTimeout(function () { el.setAttribute('data-loading', ''); s.at = performance.now(); }, after);
-    Promise.resolve(p).finally(function () {
+    // Cleanup on both outcomes, on a branch of its own: no second promise is left to reject unhandled, and the caller's own catch on `p` still
+    // hears a rejection.
+    var done = function () {
       clearTimeout(s.show);
       // Presses, aria-busy and aria-disabled end with the answer (a Retry in the ring's tail goes through); the ring keeps its minimum.
       busy(el, false);
       // A negative delay runs at once.
       if (el.hasAttribute('data-loading')) s.clear = setTimeout(function () { el.removeAttribute('data-loading'); }, min - (performance.now() - s.at));
-    });
+    };
+    p.then(done, done);
     return p;
   }
   wait.SHOW_AFTER = 300;

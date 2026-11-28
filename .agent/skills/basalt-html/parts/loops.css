@@ -1,1 +1,1 @@
-@layer basalt{:root[data-loops=held] .btn:is([data-loading],[aria-busy=true]:not([data-busy])):after{animation:none}}
+@layer basalt;
