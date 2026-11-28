@@ -226,7 +226,7 @@ export const ROUND_85: Round = {
       id: "skill",
       name: "Before and after: selected text in the HTML skill",
       intro: "The skill's core draws the same pair: the wash with primary ink, the inverse pair on a primary button, the page's on a disabled one. A selected table row keeps its wash band under the selection.",
-      decisions: ["\"Before\" puts the core's old rule back over the new one: the selected wash (white at 9%, black at 7%) and no ink.", "The core's cap is 43,000 (from 40,900), measured at 42,985.", NOT_REVIEWED],
+      decisions: ["\"Before\" puts the core's old rule back over the new one: the selected wash (white at 9%, black at 7%) and no ink.", "The core's cap is 43,200 (from 40,900), measured at 43,195; the core also watches the root, so a page with no theme module follows an author's own data-theme write.", NOT_REVIEWED],
       tryIt: ["Select the frame's text."],
       states: ["before-selected", "selected"],
       widths: [1440, 390],

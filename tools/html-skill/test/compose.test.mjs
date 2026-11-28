@@ -583,9 +583,11 @@ describe("budgets", () => {
   test("the core (CSS and script every page gets) is well under the old 80 KiB", () => {
     const bytes = size("core");
     assert.ok(bytes <= manifest.budgets.core, `core is ${bytes} bytes of ${manifest.budgets.core}`);
-    // Under half of 80 KiB until micro-details m6 (DECISIONS 420) put the selected-text pair, the theme-switch window and the live theme-color sync in core
-    // (40899 to 42985 bytes); a soft line, raised with the cap and its reason in modules.json.
-    assert.ok(bytes < 42 * 1024, "well under 80 KiB");
+    // Under half of 80 KiB until micro-details m6 (DECISIONS 420), 40899 to 43195 bytes: the selected-text pair and its tokens, the theme-switch window, the
+    // primary button's inverse pair, and the one theme write with its live theme-color sync and the root's observer, all of which every page needs (the core
+    // writes the theme on every page, and a page with no theme module must still follow an author's data-theme write). The owner's rule: a skill budget is
+    // soft, raised with a recorded reason, never a fix dropped to fit. The cap and the same reason are in modules.json (budgets.coreReason).
+    assert.ok(bytes < 43 * 1024, "well under 80 KiB");
   });
 
   for (const name of modules) {

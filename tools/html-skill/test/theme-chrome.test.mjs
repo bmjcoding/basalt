@@ -1,7 +1,7 @@
 // Micro-details m6, themes and native chrome (DECISIONS 420), in the skill. H2: compose writes the media-scoped theme-color pair right after the colour
 // scheme (markup no script touches), the head snippet keeps a live tag first, and one core function (_.writeTheme) writes every theme and then syncs it
 // (_.syncThemeColor): setThemeChoice, followSystem, storage, the deprecated toggle and a page's own data-theme write (the theme module's watch). Print
-// passes quiet and leaves the live tag alone. A palette's pair on the live tag (data-light, data-dark) survives every later sync. H4: the switch window
+// passes quiet and leaves the live tag alone. The core watches the root itself, so a plain page with no theme module follows an author's own write too. A palette's pair on the live tag (data-light, data-dark) survives every later sync. H4: the switch window
 // (data-theme-switching) zeroes every transition's duration and delay for the one write and touches nothing else. H6: selected text in the core, the
 // primary button's inverse pair, the disabled button's page pair, the sparkline's number transparent under its strips, forced colours. Written while tests
 // are paused (DECISIONS 359): not yet run. React's share is packages/react/test/theme-chrome.test.mjs and selection.test.mjs.
@@ -131,6 +131,23 @@ describe("H2: compose writes the pair, the head snippet the live tag", () => {
     await waitChrome(p, ground.light);
     await p.evaluate(() => { const m = document.head.querySelector('meta[data-basalt-theme-color="live"]'); m.removeAttribute("data-light"); m.removeAttribute("data-dark"); window.Basalt.setThemeChoice("dark"); });
     await waitChrome(p, DARK);
+    await context.close();
+  });
+
+  test("a plain page (no theme control, so no theme module): the author's own data-theme write and a .dark root move the chrome through the core", async () => {
+    const plain = compose(`<title>Plain</title><main class="page"><p>Tide tables for the week.</p></main>`, { fonts: false });
+    assert.ok(!plain.modules.includes("theme"), "the page carries no theme module");
+    const { page: p, context, errors } = await openHtml(browser, plain.html, { scheme: "light" });
+    assert.equal((await chrome(p)).live, LIGHT);
+    assert.equal(await p.evaluate(() => document.head.querySelector('meta[data-basalt-theme-color="live"]').getAttribute("property")), "basalt-live");
+    await p.evaluate(() => document.documentElement.setAttribute("data-theme", "dark"));
+    await waitChrome(p, DARK);
+    await p.evaluate(() => { document.documentElement.removeAttribute("data-theme"); document.documentElement.classList.add("light"); });
+    await waitChrome(p, LIGHT);
+    await p.evaluate(() => window.Basalt.setTheme("dark"));
+    await waitChrome(p, DARK);
+    assert.deepEqual(await pair(p), PAIR);
+    assert.deepEqual(errors, []);
     await context.close();
   });
 

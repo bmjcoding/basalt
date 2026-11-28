@@ -35,7 +35,8 @@ before(async () => { browser = await launch(); });
 after(async () => { await browser?.close(); });
 
 // The recorded page with Geist put back where the fixture has its placeholder.
-const fonts = read(skillDir, "parts", "geist.css").trim();
+// The two font parts (micro-details m8, X8), joined as compose.mjs joins them on a page that draws mono: the one geist.css they were.
+const fonts = `${read(skillDir, "parts", "geist-sans.css").trim()}\n${read(skillDir, "parts", "geist-mono.css").trim()}`;
 const baseline = (name) => read(here, "fixtures", `baseline-${name}.html`).replace("<!-- basalt:fonts -->", () => `<style data-basalt-fonts>\n${fonts}\n</style>`);
 
 /** The page as a PNG, the viewport sized to the document (a full-page capture on a phone context drops its touch media features). */

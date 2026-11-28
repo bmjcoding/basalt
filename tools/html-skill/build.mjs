@@ -1,7 +1,8 @@
 // Builds the Basalt HTML skill (.agent/skills/basalt-html/) from its sources in tools/html-skill/src/:
 //
 //   compose.mjs               src/compose.mjs, copied: the tool an agent runs to make a page from a body fragment
-//   parts/manifest.json       src/modules.json: which module a page gets for which class, attribute or tag
+//   parts/manifest.json       src/modules.json: which module a page gets for which class, attribute or tag; and `mono`, generated from the
+//                             assembled parts (monoManifest): what on a page draws Geist Mono
 //   parts/core.css            the generated Basalt tokens (both themes) + src/core.css, minified
 //   parts/core.js             src/core.js, minified
 //   parts/<module>.css|js     src/modules/<module>.css|js, minified; compose.mjs adds the ones a page uses
@@ -12,7 +13,8 @@
 //   parts/icons.json          the Phosphor icons in src/icons.json (Bold paths: the skill draws Bold at every size) and Phosphor's MIT notice
 //   parts/usage/<name>.md     src/usage/<name>.md, copied as prose: what `compose.mjs --usage <name>` prints. One for the core and one per
 //                             module; a module without a usage file, or a usage file without a module, fails the build.
-//   parts/geist.css           Geist and Geist Mono as data URIs; compose.mjs inlines it into a page
+//   parts/geist-sans.css      Geist as a data URI, with the OFL notice; compose.mjs inlines it into every page with fonts
+//   parts/geist-mono.css      Geist Mono as a data URI; compose.mjs inlines it only when the page can draw mono (manifest.mono, below)
 //   examples/*.body.html      src/examples/*.body.html, copied: the example bodies for compose.mjs
 //
 //   node tools/html-skill/build.mjs                  write the files (committed; a test fails if they drift)
@@ -121,16 +123,143 @@ function findPackage(name) {
 /** A package's licence file as a legal comment (/*!, which a minifier keeps): a line saying what it covers, then the package's own text, whole. */
 const licenceComment = (file, covers) => `/*! ${covers}\n${fs.readFileSync(file, "utf8").trim().replaceAll("*/", "* /")}\n*/`;
 
-/** The two @font-face rules as data URIs, with the SIL OFL 1.1 text in full. The skill's geist.css. */
+/**
+ * The two @font-face rules as data URIs, with the SIL OFL 1.1 text in full, as two parts (micro-details m8, X8): `sans` (the header, the notice and the
+ * Geist face) goes on every page with fonts; `mono` (the Geist Mono face) only on a page that can draw it. The notice in the sans part covers mono,
+ * because mono never ships without sans. The two, trimmed and joined by a line break, are the one geist.css the skill shipped before the split.
+ */
 function geistFonts() {
   const dir = path.join(findPackage("geist"), "dist", "fonts");
   const uri = (sub, file) => `data:font/woff2;base64,${fs.readFileSync(path.join(dir, sub, file)).toString("base64")}`;
-  return [
-    "/* Geist Sans and Geist Mono, variable fonts, inlined as data URIs. Built by tools/html-skill/build.mjs; do not edit. */",
-    licenceComment(path.join(findPackage("geist"), "LICENSE.txt"), "Geist Sans and Geist Mono:"),
-    `@font-face { font-family: "Geist"; src: url("${uri("geist-sans", "Geist-Variable.woff2")}") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }`,
-    `@font-face { font-family: "Geist Mono"; src: url("${uri("geist-mono", "GeistMono-Variable.woff2")}") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }`,
-  ].join("\n");
+  return {
+    sans: [
+      "/* Geist Sans and Geist Mono, variable fonts, inlined as data URIs. Built by tools/html-skill/build.mjs; do not edit. */",
+      licenceComment(path.join(findPackage("geist"), "LICENSE.txt"), "Geist Sans and Geist Mono:"),
+      `@font-face { font-family: "Geist"; src: url("${uri("geist-sans", "Geist-Variable.woff2")}") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }`,
+    ].join("\n"),
+    mono: `@font-face { font-family: "Geist Mono"; src: url("${uri("geist-mono", "GeistMono-Variable.woff2")}") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }`,
+  };
+}
+
+/**
+ * Whether CSS or JS names the mono family: the token and the core's two mono type roles (custom properties, so in their own case), or the face's own name (a
+ * family name, so in any case).
+ */
+const namesMono = (text) => /--basalt-font-family-mono|--bh-xs-mono|--bh-sm-mono/.test(text) || /geist\s+mono/i.test(text);
+/**
+ * The style rules of a stylesheet (minified or not) as [{ selectors: [the selector of each enclosing style rule, outermost first], body: its own declarations }];
+ * an at-rule's block (@layer, @media, @supports, @container) is walked into and adds no selector. Comments and strings are skipped. This reads the skill's own
+ * parts, not any CSS: it is not a CSS parser.
+ */
+function cssRules(css) {
+  const text = css.replace(/\/\*[\s\S]*?\*\//g, " ");
+  const rules = [];
+  const stack = []; // { selector: string | null, body: string }
+  let prelude = "";
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"' || c === "'") {
+      let j = i + 1;
+      while (j < text.length && text[j] !== c) j += text[j] === "\\" ? 2 : 1;
+      prelude += text.slice(i, j + 1);
+      i = j;
+    } else if (c === "{") {
+      const head = prelude.trim();
+      // The declarations before a nested rule belong to the enclosing block, not to the nested rule's selector.
+      const cut = head.lastIndexOf(";");
+      if (stack.length && cut >= 0) stack[stack.length - 1].body += head.slice(0, cut + 1);
+      const own = head.slice(cut + 1).trim();
+      stack.push({ selector: own.startsWith("@") ? null : own, body: "" });
+      prelude = "";
+    } else if (c === "}") {
+      const frame = stack.pop();
+      if (!frame) { prelude = ""; continue; }
+      frame.body += prelude;
+      prelude = "";
+      if (frame.selector !== null) rules.push({ selectors: [...stack.filter((f) => f.selector !== null).map((f) => f.selector), frame.selector], body: frame.body });
+    } else prelude += c;
+  }
+  return rules;
+}
+/** A selector list split at its top-level commas (a comma inside `:is()`, `:not()` or `[...]` is not a split). */
+function selectorParts(selector) {
+  const parts = [];
+  let depth = 0;
+  let from = 0;
+  for (let i = 0; i < selector.length; i++) {
+    const c = selector[i];
+    if (c === "(" || c === "[") depth++;
+    else if (c === ")" || c === "]") depth--;
+    else if (c === "," && depth === 0) { parts.push(selector.slice(from, i).trim()); from = i + 1; }
+  }
+  parts.push(selector.slice(from).trim());
+  return parts.filter(Boolean);
+}
+/** A selector with its negations taken out: `:not(...)` names what the rule does not match, so it never names its subject. */
+const withoutNot = (selector) => {
+  let out = selector;
+  for (let at; (at = out.search(/:not\(/i)) !== -1;) {
+    let depth = 0;
+    let end = at + 4;
+    for (; end < out.length; end++) { if (out[end] === "(") depth++; else if (out[end] === ")" && --depth === 0) break; }
+    out = out.slice(0, at) + out.slice(end + 1);
+  }
+  return out;
+};
+/**
+ * A selector with every parenthesised argument and quoted string taken out: what is left is what the selector requires of its elements. `:is([data-mono], .x)`
+ * or `:where([data-mono])` requires nothing of the attribute, so it is not proof.
+ */
+const topLevel = (selector) => {
+  let out = "";
+  let depth = 0;
+  for (let i = 0; i < selector.length; i++) {
+    const c = selector[i];
+    if (c === '"' || c === "'") { const e = selector.indexOf(c, i + 1); i = e === -1 ? selector.length : e; continue; }
+    if (c === "(") depth++;
+    else if (c === ")") depth = Math.max(0, depth - 1);
+    else if (depth === 0) out += c;
+  }
+  return out;
+};
+/**
+ * Whether a rule (its chain of selectors) is proved to match only an element with `data-mono`: some selector of the chain requires `[data-mono]` in every
+ * part, outside any parenthesis. Anything less (the attribute only inside `:is()`, `:where()` or `:not()`) counts as unlimited, so the module is listed.
+ */
+const limitedToDataMono = (selectors) => selectors.some((selector) => selectorParts(selector).every((part) => /\[\s*data-mono\s*[\]=~|^$*]/.test(topLevel(part))));
+/**
+ * `manifest.mono` (micro-details m8, X8): what on a page draws Geist Mono, read from the parts as this build writes them (the React-derived diagram sections and
+ * bundles included), never listed by hand, so a module that gains mono later can't drift out of it. compose.mjs adds the mono face when a page has any of them.
+ *   modules     every module whose CSS sets the mono family in a rule not limited to `[data-mono]`, or whose JS writes a mono name
+ *   tags, classes, attributes   the subjects of core.css's rules that set the mono family (a tag, a class), and every attribute a module limits a mono rule to
+ */
+export function monoManifest(files, moduleList) {
+  const sets = (css) => cssRules(css).filter((rule) => namesMono(rule.body));
+  const modules = moduleList.filter((name) => {
+    const css = files[`parts/${name}.css`];
+    const js = files[`parts/${name}.js`];
+    return (css !== undefined && sets(css).some((rule) => !limitedToDataMono(rule.selectors))) || (js !== undefined && namesMono(js));
+  });
+  const tags = new Set();
+  const classes = new Set();
+  const attributes = new Set();
+  for (const rule of sets(files["parts/core.css"])) {
+    for (const part of selectorParts(rule.selectors[rule.selectors.length - 1])) {
+      // The subject: the last compound of the selector, its negations and pseudo-classes taken out.
+      const subject = withoutNot(part).split(/\s*[\s>+~]\s*/).pop().replace(/::?[\w-]+(\([^)]*\))?/g, "");
+      const tag = subject.match(/^[a-z][\w-]*/i)?.[0];
+      if (tag) tags.add(tag.toLowerCase());
+      for (const m of subject.matchAll(/\.([\w-]+)/g)) classes.add(m[1]);
+      for (const m of subject.matchAll(/\[([\w-]+)/g)) attributes.add(m[1]);
+    }
+  }
+  for (const name of moduleList) {
+    const css = files[`parts/${name}.css`];
+    if (css === undefined) continue;
+    for (const rule of sets(css)) if (limitedToDataMono(rule.selectors)) attributes.add("data-mono");
+  }
+  const sorted = (set) => [...set].sort((a, b) => a.localeCompare(b));
+  return { modules, tags: sorted(tags), classes: sorted(classes), attributes: sorted(attributes) };
 }
 
 /** esbuild's minifier: whitespace, comments and redundant syntax go; a /*! comment stays. The sources keep their comments. */
@@ -332,7 +461,6 @@ export function build() {
   files["compose.mjs"] = src("compose.mjs");
   // The placer compose.mjs runs for an automatic diagram (DECISIONS 306, 1.8): React's placeDiagram, with elkjs left to resolve from the repository.
   files["parts/diagram-place.mjs"] = esbuild.buildSync({ entryPoints: [path.join(srcDir, "diagram-place.mjs")], bundle: true, format: "esm", platform: "node", target: "node20", write: false, logLevel: "silent", external: ["elkjs", "elkjs/*"] }).outputFiles[0].text;
-  files["parts/manifest.json"] = `${JSON.stringify(manifest, null, 2)}\n`;
   files["parts/core.css"] = minifyCss(`${dedupeSystemDark(filterTokens(tokensCss(), inCore))}\n${src("core.css")}`);
   files["parts/core.js"] = minifyJs(src("core.js"));
   for (const name of Object.keys(manifest.modules)) {
@@ -362,7 +490,11 @@ export function build() {
   files["parts/glyphs.json"] = `${JSON.stringify(glyphData())}\n`;
   // Every bundled service mark (DECISIONS 292, 2.6), generated by packages/react/marks/generate.mjs; compose.mjs writes into a page only the marks it names.
   files["parts/marks.json"] = src("marks.json");
-  files["parts/geist.css"] = `${geistFonts()}\n`;
+  const geist = geistFonts();
+  files["parts/geist-sans.css"] = `${geist.sans}\n`;
+  files["parts/geist-mono.css"] = `${geist.mono}\n`;
+  // What draws mono, read from the parts above as written (the diagram sections and bundles from React included); the manifest is rewritten with it.
+  files["parts/manifest.json"] = `${JSON.stringify({ ...manifest, mono: monoManifest(files, Object.keys(manifest.modules)) }, null, 2)}\n`;
   // The usage text is prose, so it is copied as it is: one file for the core and one for each module.
   const usageDir = path.join(srcDir, "usage");
   const usageNames = ["core", ...Object.keys(manifest.modules)];

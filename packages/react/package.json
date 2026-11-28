@@ -48,6 +48,9 @@
     "./styles.css": "./dist/styles.css",
     "./components.css": "./dist/components.css",
     "./fonts.css": "./dist/fonts.css",
+    "./fonts/Geist-Variable.woff2": "./dist/fonts/Geist-Variable.woff2",
+    "./fonts/GeistMono-Variable.woff2": "./dist/fonts/GeistMono-Variable.woff2",
+    "./fonts/OFL.txt": "./dist/fonts/OFL.txt",
     "./base.css": "./dist/base.css"
   },
   "bin": {

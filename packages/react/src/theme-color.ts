@@ -43,6 +43,9 @@ export function syncThemeColor(): void {
     live = document.createElement("meta");
     live.name = "theme-color";
     live.setAttribute("data-basalt-theme-color", "live");
+    // A property React 19's matcher reads: it claims a server-rendered hoistable <meta> by content, name, property, http-equiv and charset, so without
+    // it the live tag (first, the same name and, in one theme, the same content) could be taken for one of the pair. The browser ignores it.
+    live.setAttribute("property", "basalt-live");
   }
   // The first matching tag in tree order wins, so the live tag goes before the first (the pair, wherever the app rendered it).
   const first = head.querySelector(ANY);

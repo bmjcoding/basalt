@@ -9,11 +9,12 @@
  * `<script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />`. Under a policy that forbids inline scripts, the same line is a file,
  * `@srasyndicate/basalt/head/theme.js`, for a plain `<script src>` in `<head>`; with a nonce, give the inline script the nonce.
  *
- * It also tints the browser's chrome (DECISIONS 420): it keeps one `<meta name="theme-color" data-basalt-theme-color="live">` of its own first in `<head>`,
+ * It also tints the browser's chrome (DECISIONS 420): it keeps one `<meta name="theme-color" data-basalt-theme-color="live" property="basalt-live">` of its own
+ * first in `<head>` (the `property` keeps React 19 from claiming it as one of `themeColorMeta`'s tags when it hydrates),
  * its `content` the page colour of the theme it wrote (`#000000` in dark, `#fafafa` in light). An app's own `theme-color` (a tag without
  * `data-basalt-theme-color`) wins: with one in `<head>` it writes none, so an app's own `theme-color` goes above the head script to hold from the first frame.
  */
-export const themeBootstrap = '(function(){var t,c,r=document.documentElement;try{t=localStorage.getItem("basalt-theme")}catch(e){}c=t==="light"||t==="dark"?t:"system";if(c==="system")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";r.setAttribute("data-theme",t);r.setAttribute("data-theme-choice",c);var h=document.head,m;if(h&&!h.querySelector("meta[name=theme-color]:not([data-basalt-theme-color])")){m=h.querySelector("meta[data-basalt-theme-color=live]");if(!m){m=document.createElement("meta");m.name="theme-color";m.setAttribute("data-basalt-theme-color","live");h.insertBefore(m,h.querySelector("meta[name=theme-color]"))}m.content=t==="dark"?"#000000":"#fafafa"}})();';
+export const themeBootstrap = '(function(){var t,c,r=document.documentElement;try{t=localStorage.getItem("basalt-theme")}catch(e){}c=t==="light"||t==="dark"?t:"system";if(c==="system")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";r.setAttribute("data-theme",t);r.setAttribute("data-theme-choice",c);var h=document.head,m;if(h&&!h.querySelector("meta[name=theme-color]:not([data-basalt-theme-color])")){m=h.querySelector("meta[data-basalt-theme-color=live]");if(!m){m=document.createElement("meta");m.name="theme-color";m.setAttribute("data-basalt-theme-color","live");m.setAttribute("property","basalt-live");h.insertBefore(m,h.querySelector("meta[name=theme-color]"))}m.content=t==="dark"?"#000000":"#fafafa"}})();';
 
 /** One of the two `theme-color` tags in `themeColorMeta`. */
 export interface ThemeColorMeta {

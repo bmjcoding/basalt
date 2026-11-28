@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { fitArt } from "./art-fit";
 import type { ArtAnchor, ArtFit } from "./art-fit";
+import type { ImageFetchPriority } from "./framed-art";
 import { join } from "./utils";
 
 // The stage: full-bleed art at the top of a page, under the site header (decision 104). Level 0, so it is the page painted with art:
@@ -66,6 +67,11 @@ export interface PairedArtProps {
   position?: string;
   /** Both pictures are `lazy` by default: only the one that is shown is in view, so only it loads until the theme changes. `eager` loads both. */
   loading?: "lazy" | "eager";
+  /**
+   * Both pictures' `fetchpriority`; none is written by default. With `loading="lazy"` the hidden theme's picture is still never fetched. For the one
+   * picture on a first screen, pass `loading="eager"` and `fetchPriority="high"`.
+   */
+  fetchPriority?: ImageFetchPriority;
   width?: number;
   height?: number;
 }
@@ -74,12 +80,12 @@ export interface PairedArtProps {
  * A stage's art in two versions, a dark and a light, and the page's theme chooses: the one for `[data-theme]` or `.dark` or `.light`
  * (the toggle's), else the system's. Never filtered; the two files are the art. Decorative (`alt` is empty), as a stage's art is.
  */
-export function PairedArt({ dark, light, position, loading = "lazy", width, height }: PairedArtProps) {
+export function PairedArt({ dark, light, position, loading = "lazy", fetchPriority, width, height }: PairedArtProps) {
   const style = position ? { objectPosition: position } : undefined;
   return (
     <>
-      <img className="basalt-paired-art" data-art="dark" src={dark} alt="" loading={loading} decoding="async" width={width} height={height} style={style} />
-      <img className="basalt-paired-art" data-art="light" src={light} alt="" loading={loading} decoding="async" width={width} height={height} style={style} />
+      <img className="basalt-paired-art" data-art="dark" src={dark} alt="" loading={loading} fetchPriority={fetchPriority} decoding="async" width={width} height={height} style={style} />
+      <img className="basalt-paired-art" data-art="light" src={light} alt="" loading={loading} fetchPriority={fetchPriority} decoding="async" width={width} height={height} style={style} />
     </>
   );
 }

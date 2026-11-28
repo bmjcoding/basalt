@@ -41,6 +41,7 @@ describe("the colours are the tokens' page ground, and the head scripts agree", 
     assert.ok(themeBootstrap.includes(`m.content=t==="dark"?"${DARK}":"${LIGHT}"`), "themeBootstrap's literals are tokens.json's surface-page");
     assert.ok(themeBootstrap.includes(`h.querySelector("meta[name=theme-color]:not([data-basalt-theme-color])")`), "an app's own theme-color is looked for first");
     assert.ok(themeBootstrap.includes(`h.insertBefore(m,h.querySelector("meta[name=theme-color]"))`), "the live tag goes before the first theme-color");
+    assert.ok(themeBootstrap.includes(`m.setAttribute("property","basalt-live")`), "the live tag carries a property React 19's hoistable matcher reads, so hydration never claims it for the pair");
   });
 
   test("themeColorMeta is the frozen pair: light then dark, by media, marked, the page ground of each", () => {
@@ -74,21 +75,31 @@ describe("the colours are the tokens' page ground, and the head scripts agree", 
 
 /**
  * The client: a document rendered by React 19 (`renderToString` of <html>), then `hydrateRoot(document, ...)` with a probe of `useTheme`. Bundled as a
- * development build, so React reports a hydration mismatch and the install's warning runs. `pair` renders themeColorMeta in <head> before the head script.
+ * development build, so React reports a hydration mismatch and the install's warning runs. `<html>` carries `suppressHydrationWarning`, as an app's
+ * must: the head script writes `data-theme` and `data-theme-choice` on it before React hydrates, and those two are the only expected difference (the
+ * flag covers that one element's attributes, so a mismatch in the head or the body still reports). `pair` renders themeColorMeta `before` or `after` the
+ * head script (false: none), each with a ref kept in `window.__pairRefs`; `window.__setPair(false)` removes it later. `app` renders an app's own
+ * theme-color through React (`{ color, at }`, `at` before or after the head script), with its ref in `window.__appRef`.
  */
-async function documentBundle({ pair }) {
-  const app = `
+async function documentBundle({ pair = "before", app = null }) {
+  const appTag = app ? `<meta name="theme-color" content="${app.color}" id="app-color" ref={(n) => { if (n) window.__appRef = n; }} />` : "";
+  const pairTags = `{showPair ? B.themeColorMeta.map((m, i) => <meta key={m.media} {...m} ref={(n) => { if (n) (window.__pairRefs ??= [])[i] = n; }} />) : null}`;
+  const app_ = `
     import * as React from "react";
     import * as B from "./dist/index.js";
     export function App() {
       const state = B.useTheme();
-      if (typeof window !== "undefined") window.__theme = state;
+      const [showPair, setPair] = React.useState(${pair ? "true" : "false"});
+      if (typeof window !== "undefined") { window.__theme = state; window.__setPair = setPair; }
       return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
           <head>
             <title>Basalt</title>
-            ${pair ? "{B.themeColorMeta.map((m) => <meta key={m.media} {...m} />)}" : ""}
+            ${pair === "before" ? pairTags : ""}
+            ${app?.at === "before" ? appTag : ""}
             <script dangerouslySetInnerHTML={{ __html: B.themeBootstrap }} />
+            ${pair === "after" ? pairTags : ""}
+            ${app?.at === "after" ? appTag : ""}
           </head>
           <body><main id="p">{[state.theme, state.choice, String(state.ready)].join("/")}</main></body>
         </html>
@@ -98,31 +109,33 @@ async function documentBundle({ pair }) {
     stdin: { contents, resolveDir: pkg, loader: "tsx" }, bundle: true, write: false, jsx: "automatic", platform, logLevel: "silent",
     format: platform === "node" ? "esm" : "iife", external: platform === "node" ? ["react", "react-dom"] : [], define: { "process.env.NODE_ENV": '"development"' },
   });
-  const server = await build(`${app}\nimport { renderToString } from "react-dom/server";\nexport const html = "<!doctype html>" + renderToString(<App />);`, "node");
-  const file = path.join(pkg, `.theme-chrome-${pair ? "pair" : "none"}.mjs`);
+  const server = await build(`${app_}\nimport { renderToString } from "react-dom/server";\nexport const html = "<!doctype html>" + renderToString(<App />);`, "node");
+  const file = path.join(pkg, `.theme-chrome-${process.pid}-${Date.now()}.mjs`);
   fs.writeFileSync(file, server.outputFiles[0].text);
   let html;
-  try { ({ html } = await import(`${pathToFileURL(file).href}?${Date.now()}`)); } finally { fs.rmSync(file, { force: true }); }
-  const client = await build(`${app}
+  try { ({ html } = await import(pathToFileURL(file).href)); } finally { fs.rmSync(file, { force: true }); }
+  const client = await build(`${app_}
     import { hydrateRoot } from "react-dom/client";
     window.__pair = [...document.querySelectorAll('meta[data-basalt-theme-color=""]')].map((m) => [m, m.getAttribute("media"), m.getAttribute("content")]);
+    window.__liveAtLoad = document.head.querySelector('meta[data-basalt-theme-color="live"]');
     window.__recoverable = [];
     hydrateRoot(document, <App />, { onRecoverableError: (e) => window.__recoverable.push(String(e && e.message)) });`, "browser");
   return { html, client: client.outputFiles[0].text };
 }
 
 /**
- * Opens the document. `app` is an app's own theme-color tag, written into the served <head> `before` or `after` the head script (an app's tag from its
- * framework, not React's tree). `scheme` is the OS, `stored` the choice in storage, `script` false turns scripting off.
+ * Opens the document. `pair` and `app` are documentBundle's. `framework` is an app's own theme-color written into the served <head> `before` or `after`
+ * the head script outside React's tree (a framework's tag; React 19 may hoist its own metas ahead of the script, so this is the sure way to put one after
+ * it). `scheme` is the OS, `stored` the choice in storage, `script` false turns scripting off.
  */
-async function openDocument({ pair = true, scheme = "light", stored, app, script = true, context } = {}) {
-  const { html, client } = await documentBundle({ pair });
+async function openDocument({ pair = "before", app = null, framework, scheme = "light", stored, script = true, context } = {}) {
+  const { html, client } = await documentBundle({ pair, app });
   let served = html;
   const bootstrap = served.indexOf("<script>(function(){var t,c");
   assert.ok(bootstrap > 0, "the head script is in the server's head");
-  if (app) {
+  if (framework) {
     const tag = '<meta name="theme-color" content="#2a6f97" id="app-color">';
-    const at = app === "before" ? bootstrap : served.indexOf("</script>", bootstrap) + "</script>".length;
+    const at = framework === "before" ? bootstrap : served.indexOf("</script>", bootstrap) + "</script>".length;
     served = served.slice(0, at) + tag + served.slice(at);
   }
   served = served.replace("</body>", "<script src=\"/client.js\"></script></body>").replace("</head>", `<style>${css()}</style></head>`);
@@ -139,7 +152,7 @@ async function openDocument({ pair = true, scheme = "light", stored, app, script
   page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); if (m.type() === "warning") warnings.push(m.text()); });
   await page.goto(`${ORIGIN}/`);
   if (script) await page.waitForFunction(() => document.getElementById("p")?.textContent.endsWith("/true"));
-  return { page, context, errors, warnings };
+  return { page, context, errors, warnings, served };
 }
 
 /** Every theme-color tag in the head, in tree order, and the one the browser uses: the first whose media matches (or has none). */
@@ -230,25 +243,70 @@ describe("H2: the pair and the live tag through hydration", () => {
     });
   }
 
-  for (const app of ["before", "after"]) {
-    test(`an app's own theme-color ${app} the head script, without the pair: the first matching tag is the app's own node after hydration`, async () => {
-      const { page, context, errors, warnings } = await openDocument({ pair: false, scheme: "dark", app });
+  for (const at of ["before", "after"]) {
+    test(`the pair ${at} the head script: React's refs are the pair's own nodes (with their media), never the live tag; with the pair removed, the live node and its palette attributes stay`, async () => {
+      const { page, context, errors } = await openDocument({ pair: at, scheme: "dark" });
+      const refs = await page.evaluate(() => {
+        const live = document.head.querySelector('meta[data-basalt-theme-color="live"]');
+        return {
+          media: window.__pairRefs.map((n) => n.getAttribute("media")),
+          marked: window.__pairRefs.map((n) => n.getAttribute("data-basalt-theme-color")),
+          claimsLive: window.__pairRefs.includes(live),
+          sameLive: live === window.__liveAtLoad,
+          property: live.getAttribute("property"),
+        };
+      });
+      assert.deepEqual(refs, { media: ["(prefers-color-scheme: light)", "(prefers-color-scheme: dark)"], marked: ["", ""], claimsLive: false, sameLive: true, property: "basalt-live" });
+      assert.equal((await chrome(page)).count, 3);
+      assert.deepEqual(errors, []);
+      await page.evaluate(() => { const m = document.head.querySelector('meta[data-basalt-theme-color="live"]'); m.setAttribute("data-light", "#f3efe6"); m.setAttribute("data-dark", "#0b1520"); window.__theme.setChoice("dark"); });
+      await waitChrome(page, "#0b1520");
+      await page.evaluate(() => window.__setPair(false));
+      await page.waitForFunction(() => !document.querySelector('meta[data-basalt-theme-color=""]'));
+      const after = await page.evaluate(() => {
+        const live = window.__liveAtLoad;
+        return { connected: live.isConnected, same: live === document.head.querySelector('meta[data-basalt-theme-color="live"]'), light: live.getAttribute("data-light"), dark: live.getAttribute("data-dark"), content: live.content, count: document.head.querySelectorAll('meta[name="theme-color"]').length };
+      });
+      assert.deepEqual(after, { connected: true, same: true, light: "#f3efe6", dark: "#0b1520", content: "#0b1520", count: 1 });
+      await page.evaluate(() => window.__theme.setChoice("light"));
+      await waitChrome(page, "#f3efe6");
+      await context.close();
+    });
+  }
+
+  for (const [at, color] of [["before", "#2a6f97"], ["after", "#2a6f97"], ["before", DARK], ["after", DARK]]) {
+    test(`an app's own theme-color rendered by React ${at} the head script, ${color === DARK ? "the live tag's own colour" : "a colour of its own"}, without the pair: the first matching tag is the app's node, its ref`, async () => {
+      const { page, context, errors, warnings } = await openDocument({ pair: false, app: { color, at }, scheme: "dark" });
+      const identity = await page.evaluate(() => {
+        const first = [...document.head.querySelectorAll('meta[name="theme-color"]')].find((m) => !m.media || matchMedia(m.media).matches);
+        return { ref: first === window.__appRef, id: first.id, content: first.content, live: Boolean(document.head.querySelector('meta[data-basalt-theme-color="live"]')) };
+      });
+      assert.deepEqual(identity, { ref: true, id: "app-color", content: color, live: false });
+      await page.evaluate(() => window.__theme.setChoice("light"));
+      await frames(page);
+      assert.deepEqual((await chrome(page)).first, { kind: "app-color", content: color }, "a theme change leaves the app's tag first, and Basalt writes none");
+      assert.deepEqual(errors, []);
+      assert.deepEqual(warnings.filter((w) => /theme-color/.test(w)), []);
+      await context.close();
+    });
+  }
+
+  for (const framework of ["before", "after"]) {
+    test(`a framework's own theme-color ${framework} the head script, without the pair: the first matching tag is the app's own node after hydration`, async () => {
+      const { page, context, errors, served } = await openDocument({ pair: false, scheme: "dark", framework });
+      assert.equal(served.indexOf('id="app-color"') > served.indexOf("<script>(function(){var t,c"), framework === "after", "the tag is where the case says");
       const identity = await page.evaluate(() => {
         const first = [...document.head.querySelectorAll('meta[name="theme-color"]')].find((m) => !m.media || matchMedia(m.media).matches);
         return { same: first === document.getElementById("app-color"), content: first.content };
       });
       assert.deepEqual(identity, { same: true, content: "#2a6f97" });
       assert.equal((await chrome(page)).live, null, "Basalt writes no tag of its own");
-      await page.evaluate(() => window.__theme.setChoice("light"));
-      await frames(page);
-      assert.deepEqual((await chrome(page)).first, { kind: "app-color", content: "#2a6f97" }, "a theme change leaves the app's tag first");
       assert.deepEqual(errors, []);
-      assert.deepEqual(warnings.filter((w) => /theme-color/.test(w)), []);
       await context.close();
     });
 
-    test(`an app's own theme-color ${app} the head script, with the pair: in development useTheme warns once`, async () => {
-      const { page, context, warnings } = await openDocument({ pair: true, scheme: "dark", app });
+    test(`an app's own theme-color ${framework} the head script, with the pair: in development useTheme warns once`, async () => {
+      const { page, context, warnings } = await openDocument({ scheme: "dark", framework });
       assert.equal(warnings.filter((w) => /own theme-color renders no themeColorMeta/.test(w)).length, 1);
       assert.equal((await chrome(page)).live, null, "the live tag is removed: the app's tag owns the chrome");
       await page.evaluate(() => window.__theme.setChoice("light"));

@@ -5834,7 +5834,9 @@
 
   /* Right to left (DECISIONS 306, 1.7): the engine lays out a mirrored model on a left-to-right grid, so the drawing is set left to right and what is in it
      is set right to left again; identifiers are isolated left to right as runs, never as blocks, so they keep the card's start edge. */
-  .basalt-diagram[data-rtl]:not([data-type="gantt"], [data-type="kanban"], [data-type="journey"], [data-type="service-blueprint"], [data-type="story-map"], [data-type="timeline"]) > .basalt-diagram-drawing { direction: ltr; }
+  /* A card's mark is set with the card, left to right, and its lines right to left again, so the mark's side is the lines' start: the first line's clearance
+     (--_mks, --_mke: the start and end padding it takes beside a mark) is on its start side here. */
+  .basalt-diagram[data-rtl]:not([data-type="gantt"], [data-type="kanban"], [data-type="journey"], [data-type="service-blueprint"], [data-type="story-map"], [data-type="timeline"]) > .basalt-diagram-drawing { direction: ltr; --_mks: var(--basalt-space-6); --_mke: 0; }
   /* Stacked, the figure mirrors too (1.7): the end gutter is on the left, and a branch is indented from the right, its end lane on the left. */
   .basalt-diagram[data-rtl] > .basalt-diagram-drawing { padding: var(--_d-pad, 0 0 0 var(--_gutter, 0)); }
   .basalt-diagram[data-rtl] .basalt-diagram-node[data-branch] { margin-inline: var(--_d-mi, var(--basalt-space-6) var(--basalt-space-12)); }
@@ -5927,7 +5929,8 @@
   }
   /* A mark with one form for both grounds may set --_ml alone (the skill writes it once): the dark form falls back to it. */
   .basalt-diagram-node[data-focal] > .basalt-diagram-mark { --_mf: var(--_dkm) var(--_ml); background-image: var(--_mf, var(--_md, var(--_ml))); }
-  .basalt-diagram-node[data-mark] > .basalt-diagram-mark + :is(.basalt-diagram-kind, .basalt-diagram-name) { padding-inline-end: var(--basalt-space-6); }
+  /* The clearance is on the mark's side in both directions: its end, or its start where a figure right to left sets its lines against the card (above). */
+  .basalt-diagram-node[data-mark] > .basalt-diagram-mark + :is(.basalt-diagram-kind, .basalt-diagram-name) { padding-inline: var(--_mks, 0) var(--_mke, var(--basalt-space-6)); }
   /* A participant's head centres its words: its first line keeps space-6 clear on both sides. Stacked, the chip draws the mark inline before the name,
      space-1-5 apart; the focal chip takes the other theme's form, as the focal card does (DECISIONS 306, 1.6). */
   .basalt-diagram-node[data-shape="participant"][data-mark] > .basalt-diagram-mark + :is(.basalt-diagram-kind, .basalt-diagram-name) { padding-inline: var(--basalt-space-6); }
@@ -6495,7 +6498,7 @@
     .basalt-diagram :is(.basalt-diagram-ftab, .basalt-diagram-flabel, .basalt-diagram-fword) { color: CanvasText; background: Canvas; }
     /* No mark is drawn, and the first line keeps no padding for one (DECISIONS 292, 2.7): the card's words name the service. */
     .basalt-diagram .basalt-diagram-mark { display: none; }
-    .basalt-diagram .basalt-diagram-node[data-mark] > .basalt-diagram-mark + :is(.basalt-diagram-kind, .basalt-diagram-name) { padding-inline-end: 0; }
+    .basalt-diagram .basalt-diagram-node[data-mark] > .basalt-diagram-mark + :is(.basalt-diagram-kind, .basalt-diagram-name) { padding-inline-end: 0; --_mks: 0; }
     /* A count takes its kind line's ink and opacity (DECISIONS 405, G151): CanvasText on a card, Canvas on the focal card. */
     .basalt-diagram .basalt-diagram-node .basalt-diagram-replicas { color: inherit; }
   }
@@ -7131,9 +7134,9 @@
   .basalt-diagram-artifact-detail { color: var(--basalt-text-tertiary); }
   .basalt-diagram-node[data-focal] :is(.basalt-diagram-artifact-name, .basalt-diagram-artifact-detail) { color: var(--basalt-diagram-focal-ink); }
   /* A host with artifacts keeps its kind line clear of a mark as any card does (DECISIONS 405, G151): the line is first in the header band, not after the mark. */
-  .basalt-diagram-node[data-mark] > .basalt-diagram-mark + .basalt-diagram-host-head > :is(.basalt-diagram-kind, .basalt-diagram-name):first-child { padding-inline-end: var(--basalt-space-6); }
+  .basalt-diagram-node[data-mark] > .basalt-diagram-mark + .basalt-diagram-host-head > :is(.basalt-diagram-kind, .basalt-diagram-name):first-child { padding-inline: var(--_mks, 0) var(--_mke, var(--basalt-space-6)); }
   @media (forced-colors: active) {
-    .basalt-diagram .basalt-diagram-node[data-mark] > .basalt-diagram-mark + .basalt-diagram-host-head > :is(.basalt-diagram-kind, .basalt-diagram-name):first-child { padding-inline-end: 0; }
+    .basalt-diagram .basalt-diagram-node[data-mark] > .basalt-diagram-mark + .basalt-diagram-host-head > :is(.basalt-diagram-kind, .basalt-diagram-name):first-child { padding-inline: 0; }
   }
 
   /* ---- Lit figures, the headline frame and N1's figures (DECISIONS 153) ----

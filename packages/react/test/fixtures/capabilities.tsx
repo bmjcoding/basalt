@@ -7,8 +7,8 @@ import {
   MenuSeparator, MenuSubmenu, Nav, NavGroup, NavItem, NumberField, Popover, Radio, RadioGroup, SegmentedControl, Segment, Select, Sheet, Slider, Switch, Tab, Tabs,
   TabsList, TabsPanel, GlidePlate, Reserve, SkipLink, MenuTrigger, PopoverContent, PopoverTrigger, StatusLine, VisuallyHidden, createPopoverHandle, themeBootstrap, useMediaQuery, useTheme,
 } from "@srasyndicate/basalt";
-import { AccordionItem, CardTitle, Stepper, ToastProvider, Toolbar, ToolbarButton, ToolbarGroup, ToolbarIconButton, ToolbarInput, ToolbarLink, ToolbarSeparator } from "@srasyndicate/basalt";
-import type { CollisionAvoidance, PlacementAnchor, PlacementData, PopoverHandle, ThemeChoice } from "@srasyndicate/basalt";
+import { AccordionItem, CardTitle, FramedArt, PairedArt, Stepper, ToastProvider, Toolbar, ToolbarButton, ToolbarGroup, ToolbarIconButton, ToolbarInput, ToolbarLink, ToolbarSeparator } from "@srasyndicate/basalt";
+import type { CollisionAvoidance, ImageFetchPriority, PlacementAnchor, PlacementData, PopoverHandle, ThemeChoice } from "@srasyndicate/basalt";
 
 const focus = React.createRef<HTMLButtonElement>();
 const popupActions = React.createRef<{ unmount(): void; close(): void }>();
@@ -242,4 +242,18 @@ export const toolbar = (
     {/* @ts-expect-error a toolbar button has a label to show */}
     <ToolbarButton />
   </Toolbar>
+);
+
+// A picture's fetch priority (micro-details m8, X8): on the picture form of FramedArt and on PairedArt, Basalt's own ImageFetchPriority; never on a drawing.
+const firstScreen: ImageFetchPriority = "high";
+export const fetchPriority = (
+  <>
+    <FramedArt src="/a.jpg" alt="A field at dusk" loading="eager" fetchPriority={firstScreen} />
+    <FramedArt src="/b.jpg" alt="" fetchPriority="low" />
+    <PairedArt dark="/d.jpg" light="/l.jpg" loading="eager" fetchPriority="high" />
+    {/* @ts-expect-error a drawing is inline, so there is nothing to fetch */}
+    <FramedArt art={<svg />} alt="" fetchPriority="high" />
+    {/* @ts-expect-error the three values are the attribute's own */}
+    <FramedArt src="/c.jpg" alt="" fetchPriority="urgent" />
+  </>
 );

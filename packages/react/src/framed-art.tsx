@@ -10,6 +10,9 @@ import { join } from "./utils";
 
 export type FramedArtAspect = "square" | "photo" | "screen" | "wide";
 
+/** How soon the browser fetches a picture, against the page's other requests: the `fetchpriority` attribute (micro-details m8, X8). */
+export type ImageFetchPriority = "high" | "low" | "auto";
+
 interface FramedArtBase extends Omit<React.ComponentProps<"figure">, "children"> {
   /** The ratio of the frame, from the four tokens: `square` 1, `photo` 3:2, `screen` 16:10, `wide` 16:9. Default `photo`. */
   aspect?: FramedArtAspect;
@@ -33,6 +36,11 @@ interface FramedPicture {
   anchor?: never;
   /** `lazy` by default. */
   loading?: "lazy" | "eager";
+  /**
+   * The picture's `fetchpriority`, on the `<img>`; none is written by default. For the one picture on a first screen, pass `loading="eager"` and
+   * `fetchPriority="high"`.
+   */
+  fetchPriority?: ImageFetchPriority;
   srcSet?: string;
   sizes?: string;
 }
@@ -49,6 +57,7 @@ interface FramedDrawing {
   /** Where the crop holds, like `object-position`: `end floor` keeps the end and the floor in every box. Default `center center`. */
   anchor?: ArtAnchor;
   loading?: never;
+  fetchPriority?: never;
   srcSet?: never;
   sizes?: never;
 }
@@ -62,7 +71,7 @@ type Phase = "idle" | "loading" | "loaded" | "failed";
  * art fades in over `duration-base` on `ease-out` (100ms, opacity only, under reduced motion). Without script the art simply shows.
  * The caption and the credit are a `figcaption` under the frame, never over the art.
  */
-export function FramedArt({ src, alt = "", art, fit, anchor, aspect = "photo", caption, credit, loading = "lazy", srcSet, sizes, className, ...props }: FramedArtProps) {
+export function FramedArt({ src, alt = "", art, fit, anchor, aspect = "photo", caption, credit, loading = "lazy", fetchPriority, srcSet, sizes, className, ...props }: FramedArtProps) {
   const [phase, setPhase] = React.useState<Phase>("idle");
   const image = React.useRef<HTMLImageElement>(null);
   // Which source a decode belongs to. A decode that finishes after the source changed (or after unmount) must not set the phase.
@@ -91,7 +100,7 @@ export function FramedArt({ src, alt = "", art, fit, anchor, aspect = "photo", c
         </div>
       ) : (
       <div className="basalt-framed-frame" data-phase={phase}>
-        <img ref={image} className="basalt-framed-img" src={src} srcSet={srcSet} sizes={sizes} alt={alt} loading={loading} decoding="async" onLoad={loaded} onError={() => setPhase("failed")} />
+        <img ref={image} className="basalt-framed-img" src={src} srcSet={srcSet} sizes={sizes} alt={alt} loading={loading} fetchPriority={fetchPriority} decoding="async" onLoad={loaded} onError={() => setPhase("failed")} />
         {phase === "failed" && !decorative ? <span className="basalt-framed-alt">{alt}</span> : null}
       </div>
       )}

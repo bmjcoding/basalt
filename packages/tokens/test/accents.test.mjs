@@ -266,7 +266,7 @@ test("only Badge's accent dot reads the accent, and only as its background", () 
   assert.match(SHEETS["the HTML skill's source CSS"], /\[data-status="accent"\]::before \{ background: var\(--basalt-accent-ink, var\(--basalt-text-primary\)\); \}/, "the skill's reader falls back to the ink");
   // The built skill: the variable is read in status.css alone, and defined in accent.css alone (the accent module, only for a page that sets data-accent).
   const parts = "../../../.agent/skills/basalt-html/parts/";
-  const built = fs.readdirSync(new URL(parts, import.meta.url)).filter((f) => /\.(css|js)$/.test(f) && f !== "geist.css");
+  const built = fs.readdirSync(new URL(parts, import.meta.url)).filter((f) => /\.(css|js)$/.test(f) && f !== "geist-sans.css" && f !== "geist-mono.css");
   assert.ok(built.length > 0, "the built HTML skill has no parts to check");
   const mentions = built.filter((f) => /--basalt-accent|data-accent/.test(read(parts + f)));
   assert.deepEqual(mentions, ["accent.css", "status.css"], "the built HTML skill mentions the accent outside the reader and the accent sheet");

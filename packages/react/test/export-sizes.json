@@ -124,7 +124,7 @@
   "FormGrid": 558,
   "FormGridItem": 628,
   "FormPreview": 801,
-  "FramedArt": 2067,
+  "FramedArt": 2099,
   "GanttDiagram": 131750,
   "GlidePlate": 4230,
   "Heading": 799,
@@ -210,7 +210,7 @@
   "PageSections": 246,
   "PageWait": 2453,
   "Pagination": 22725,
-  "PairedArt": 462,
+  "PairedArt": 510,
   "PaneLayout": 7599,
   "PanelList": 773,
   "PanelRow": 5566,
@@ -296,7 +296,7 @@
   "SingleKeysMenuItem": 185750,
   "SingleKeysSwitch": 17082,
   "SiteBrand": 1302,
-  "SiteFooter": 16123,
+  "SiteFooter": 16164,
   "SiteHeader": 190429,
   "SiteLockupDefs": 694,
   "SiteMenu": 182625,
@@ -371,8 +371,8 @@
   "TextButton": 11393,
   "TextMorph": 4681,
   "Textarea": 27723,
-  "ThemeChoiceControl": 5885,
-  "ThemeMenu": 215368,
+  "ThemeChoiceControl": 5926,
+  "ThemeMenu": 215409,
   "TimeChart": 48153,
   "TimelineDiagram": 133971,
   "ToastProvider": 93971,
@@ -438,7 +438,7 @@
   "shownHeading": 158,
   "sortRows": 459,
   "standIn": 431,
-  "themeBootstrap": 690,
+  "themeBootstrap": 731,
   "themeColorMeta": 280,
   "trailingMean": 319,
   "travelLeg": 248,
@@ -467,7 +467,7 @@
   "useSitePhase": 2952,
   "useSlideDirection": 296,
   "useStaged": 1042,
-  "useTheme": 2830,
+  "useTheme": 2871,
   "useToast": 3302,
   "useWaitMark": 303
  },
@@ -478,11 +478,11 @@
   }
  },
  "package": {
-  "bytes": 1154757,
-  "gzip": 383337
+  "bytes": 1154919,
+  "gzip": 383381
  },
  "styles": {
-  "bytes": 627031,
-  "gzip": 79141
+  "bytes": 627125,
+  "gzip": 79186
  }
 }

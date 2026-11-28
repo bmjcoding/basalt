@@ -346,7 +346,7 @@ export { Stage, PairedArt } from "./stage";
 export type { PairedArtProps, StageProps } from "./stage";
 export type { ArtAnchor, ArtFit } from "./art-fit";
 export { FramedArt } from "./framed-art";
-export type { FramedArtAspect, FramedArtProps } from "./framed-art";
+export type { FramedArtAspect, FramedArtProps, ImageFetchPriority } from "./framed-art";
 export { Toolbar, ToolbarButton, ToolbarGroup, ToolbarIconButton, ToolbarInput, ToolbarLink, ToolbarSeparator } from "./toolbar";
 export type { ToolbarButtonProps, ToolbarGroupProps, ToolbarIconButtonProps, ToolbarInputProps, ToolbarProps, ToolbarSeparatorProps } from "./toolbar";
 

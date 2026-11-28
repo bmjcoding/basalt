@@ -87,7 +87,7 @@
     if (!h) return;
     m = h.querySelector('meta[data-basalt-theme-color="live"]');
     if (h.querySelector(q + ':not([data-basalt-theme-color])')) { if (m) m.remove(); return; }
-    if (!m) { m = document.createElement('meta'); m.name = 'theme-color'; m.setAttribute('data-basalt-theme-color', 'live'); }
+    if (!m) { m = document.createElement('meta'); m.name = 'theme-color'; m.setAttribute('data-basalt-theme-color', 'live'); m.setAttribute('property', 'basalt-live'); }
     f = h.querySelector(q);
     if (f !== m) h.insertBefore(m, f && f.parentNode === h ? f : null);
     t = r.getAttribute('data-theme');
@@ -96,11 +96,21 @@
     if (m.content !== c) m.content = c;
   }
 
+  /* A page's own write of data-theme (or of a .dark or .light root) moves the chrome too, on a page with no theme module: one observer, made at init. The
+     script's own writes are consumed in writeTheme, which syncs itself (or, printing, leaves the tag alone). */
+  var themeWatch = null;
+  function watchTheme() {
+    if (themeWatch) return;
+    themeWatch = new MutationObserver(syncThemeColor);
+    themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+  }
+
   /** Every write of data-theme, the core's and the theme module's: a change in the switch window, then the chrome's colour. Print passes quiet: the page is not shown
       in chrome while it prints, so the live tag is left alone. */
   function writeTheme(t, quiet) {
     var r = document.documentElement;
     if (r.getAttribute('data-theme') !== t) withoutTransitions(function () { r.setAttribute('data-theme', t); });
+    if (themeWatch) themeWatch.takeRecords();
     if (!quiet) syncThemeColor();
   }
 
@@ -120,6 +130,7 @@
     try { stored = localStorage.getItem(THEME_KEY); } catch (e) { /* ignore */ }
     var t = stored === 'light' || stored === 'dark' ? stored : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     writeTheme(t);
+    watchTheme();
     return t;
   }
 
