@@ -1,0 +1,24 @@
+/* Stylesheet rules pass: layout on Basalt's classes, appearance on the app's own, tokens, a documented hook, and a reasoned exception. */
+.toolbar .basalt-button {
+  margin-inline-start: auto;
+  grid-column: 2;
+}
+.basalt-card:has(.app-flag) {
+  display: none;
+}
+.app-panel {
+  display: grid;
+  gap: var(--basalt-space-4);
+  padding: var(--basalt-space-6);
+  color: var(--basalt-text-secondary);
+  border-radius: var(--basalt-radius-lg);
+  transition: opacity var(--basalt-duration-base) var(--basalt-ease-out);
+}
+.app-panel:has(.basalt-button) {
+  background: var(--basalt-surface-raised);
+}
+:root {
+  --basalt-sticky-offset: calc(var(--basalt-space-16) + env(safe-area-inset-top, 0));
+}
+/* basalt-lint-disable-next-line basalt/no-restyle -- the owner's recorded exception (DECISIONS 213): Jump to latest is smoked like the header */
+.jump .basalt-button { background: var(--basalt-surface-chrome); }
