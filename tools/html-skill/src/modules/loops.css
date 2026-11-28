@@ -4,7 +4,6 @@
      The ring, a busy button's ring and braille (so a toast's, a status's and the terminal's). It outranks reduced motion by specificity, so
      held is one look whatever the OS says, and it stops the ring's fade too. Braille holds its first frame (the base look, the dots that are
      lit at rest); the ring stands still at its drawing, at full opacity. Nothing is hidden or swapped, and the words still say the work is
-     running. The toast's drain is a countdown, not a loop, so it is not held. The ring's and braille's own rules are in their modules, so a page with
-     one of them and no toggle still keeps a stored hold. */
-  :root[data-loops="held"] .btn[aria-busy="true"]::after { animation: none; border-top-color: currentColor; }
+     running. The toast's drain is a countdown, not a loop, so it is not held. Each loop's held rule is beside its own animation (the busy button's in
+     the core, the ring's and braille's in their modules), so a page with one of them and no toggle still keeps a stored hold. */
 }

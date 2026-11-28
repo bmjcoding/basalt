@@ -49,7 +49,7 @@
   .skip-link:not(:focus) { clip-path: inset(50%); }
   /* Only primary and secondary ink may sit on it: tertiary is promoted to secondary. A pressed ghost button takes primary ink (on its wash). */
   :is(.topbar, .app-header) :is(.faint, .necessity) { color: var(--basalt-text-secondary); }
-  :is(.topbar, .app-header) .btn[data-variant="ghost"]:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { color: var(--basalt-text-primary); }
+  :is(.topbar, .app-header) .btn[data-variant="ghost"]:active:not([disabled], [aria-disabled="true"], [aria-busy="true"], [data-loading]) { color: var(--basalt-text-primary); }
   /* The opaque form of the bar, for a page whose content does not scroll under it: the same bar on the page colour, with no filter. */
   :is(.topbar, .app-header)[data-solid] { background: var(--basalt-surface-page); -webkit-backdrop-filter: none; backdrop-filter: none; }
   /* No backdrop-filter, or the reader asks for less transparency or more contrast: the page colour, opaque, with no filter. */

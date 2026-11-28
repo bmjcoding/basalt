@@ -461,10 +461,16 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // cimip-gaps-3 E6 (G161, IconButton's `icon` as an element, told apart by React.isValidElement (a runtime React import in button.js, +25 in every graph that holds a
 // Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
 // NotificationCentre 164,955 on main, 165,086 with E6 (+131), so 164,995 to 165,126.
-// micro-details m1 (DECISIONS 405, 409), measured with this file's own graph() and bundle() on origin/main d67696d1 and on the m1 head; each limit rises by the
+// Micro-details m5 (DECISIONS 405, 409, L3 and L4; this file's graph() on origin/main 79453efb and on the m5 head): the toast's action is a Basalt Button, so
+// it waits on a promise as every Button does (the decision's own choice, over a second copy of the wait's markup), and toast.promise keeps the wait's two
+// timings: ToastProvider 94,466 on main, 101,643 with m5 (+7,177, nearly all of it Button's own graph, which an app with any Button already loads), so
+// 94,500 to 101,650; useToast 3,436 on main, 4,152 with m5 (+716: promise's timers, the shared result builder, the queued seat), so 4,000 to 4,200.
+// m5 fix 1, measured again on the merged tree (origin/main d67696d1, which measures as 79453efb did): ToastProvider 101,741 (the press's eviction guard,
+// the disposed flag, the shared focus handoff; +98), so 101,650 to 101,750; useToast 4,220 (+68), so 4,200 to 4,250.
+// micro-details m1 (DECISIONS 405, 409), measured with this file's own graph() and bundle() on origin/main d67696d1, again on f754e174 (m5) merged, and on the m1 head; each limit rises by the
 // increase alone: the touch mark (attachPress in plate.tsx, data-pressing on a popup's row and a notification entry under a still finger) rides wherever the
-// glide does, and the peek plate's option cursor (peek-plate.ts) wherever a row peeks. NotificationCentre's graph 165,086 to 166,168 (+1,082; 165,126 to 166,208).
-for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 166_208]]) {
+// glide does, and the peek plate's option cursor (peek-plate.ts) wherever a row peeks. NotificationCentre's graph 165,086 to 166,168 (+1,082; 165,126 to 166,208); on f754e174 165,098 to 166,180, the same +1,082.
+for (const [name, limit] of [["ToastProvider", 101_750], ["useToast", 4_250], ["NotificationCentre", 166_208]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);

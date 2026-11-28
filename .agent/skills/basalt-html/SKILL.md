@@ -86,6 +86,7 @@ Markup your script builds (a `.row`) isn't seen: add `<!-- basalt:use rows -->` 
 - **spinner** `.spinner`: ring for a wait; `aria-hidden` beside a word; a long wait needs `loops`.
 - **braille** `<braille-spinner>`: inside `.status` beside a word; never in a button.
 - **loops** `data-loops-toggle`: a page that spins past five seconds needs it; the control's name stays fixed.
+- **wait** `Basalt.wait`: a press that waits on a promise; a quick answer shows no ring.
 - **ambient** `data-ambient`: one loop a page, in art only, opacity only; the page then needs the `loops` toggle.
 - **copy** `data-copy`: a button with an icon and a `<span>` label.
 - **theme** `.theme-choice`, `data-theme-menu`: the footer's three words, or an icon and a menu.

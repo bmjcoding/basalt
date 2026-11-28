@@ -117,6 +117,12 @@ describe("what a body gets", () => {
       assert.match(html.split("</head>")[0], /localStorage\.getItem\("basalt-loops"\)/, body);
       assert.match(html, rule, body);
     }
+    // micro-m5 fix 1 (item 6): a page whose only loop is Basalt.wait's ring (no loops, spinner or braille module) keeps a stored hold, and the held
+    // ring's rule is in the core it always carries.
+    const waiting = compose("<button class=\"btn\" id=\"b\"><span>Save</span></button><script>Basalt.wait(document.getElementById('b'), new Promise(function () {}));</script>", { fonts: false });
+    assert.ok(waiting.modules.includes("wait") && !waiting.modules.some((n) => ["loops", "spinner", "braille"].includes(n)), waiting.modules.join(", "));
+    assert.match(waiting.html.split("</head>")[0], /localStorage\.getItem\("basalt-loops"\)/, "the stored hold, before first paint");
+    assert.match(part("core", "css"), /:root\[data-loops="?held"?\] \.btn:is\(\[data-loading\],\s*\[aria-busy="?true"?\]:not\(\[data-busy\]\)\):after\{animation:none/, "the held ring is in the core");
   });
 
   test("the art tokens come only to a page that names one: art, aspect, stage headroom and chart tokens bring the art module, and a page that names none gets none", () => {
@@ -589,9 +595,10 @@ describe("budgets", () => {
     // soft, raised with a recorded reason, never a fix dropped to fit. The cap and the same reason are in modules.json (budgets.coreReason).
     // micro-details m2 (DECISIONS 419) adds tabular `time`, the ligature setting, the clamp's wrap, hanging quotes, theme smoothing and `.date-age-age`, which the
     // decision puts in core; the combined figure, measured on the merged tree, is in modules.json (budgets.coreReason), under the same soft-budget rule.
+    // micro-details m5 (DECISIONS 405, 409): the busy .btn (busy not disabled, no press while ringed, the ring after 300ms, the held ring in the core, the forced-colours arc) takes the core to 44,388 on the merged tree, so the line moves to 44 KiB with the cap.
     // micro-details m1 (DECISIONS 405, 409) adds the pressable set's touch-action and tap highlight on elements, summary's user-select, the bare link's hover
-    // gate and press, and the passive touchstart listener, which the decision puts in core: 43744 to 44131 bytes on the merged tree, so the line moves to 44 KiB
-    // under the same soft-budget rule (budgets.coreReason).
+    // gate and press, and the passive touchstart listener, which the decision puts in core: 44388 to 44775 bytes on the merged tree (with m5), under the same
+    // soft-budget rule (budgets.coreReason); the 44 KiB line holds.
     assert.ok(bytes < 44 * 1024, "well under 80 KiB");
   });
 
