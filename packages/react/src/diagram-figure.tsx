@@ -56,6 +56,14 @@ export interface DiagramFigureProps extends Omit<React.ComponentProps<"figure">,
    */
   motion?: DiagramMotion;
   /**
+   * `true` (DECISIONS 405, G149) puts "Draw again" in an animated figure's foot, after the run button and before "Pause animations": a press plays the
+   * entrance again from its first frame, at once, inside five seconds. It ends a run, clears a trace and sends nothing; a `send` waits for its end. It
+   * plays under the hold, and is not drawn under reduced motion, in forced colours, in a layout with no lines or in the viewer. Only a press in the
+   * figure's own foot starts one (this button, or an action's `replay()`): an app never presses it for the reader, and `data-entrance` is Basalt's own
+   * state, not an API. Default `false`; on a still figure it is a development warning.
+   */
+  replay?: boolean;
+  /**
    * `true` (the default) puts "Expand" in the foot, after "View as list" (DECISIONS 310): it opens the viewer, a dialog that holds the drawn layout,
    * where the reader zooms (from Fit or 100% to 400%) and pans it. `false` leaves both out. Before script there is no button: it does nothing without it.
    */
@@ -97,6 +105,12 @@ export interface DiagramActionContext {
   readonly viewer: boolean;
   /** That figure's layout as `onLayout` reports it (what `exportMeasuredDiagram` takes); `null` where it has no measured geometry. */
   readonly layout: DiagramLayoutInfo | null;
+  /**
+   * Draws the page's figure again, as its "Draw again" does (DECISIONS 405, G149), for a figure that sets `replay`. It works only inside the press: from the
+   * start of `onSelect` until it returns, so an async handler calls it before its first `await`. True when a replay started. Called again after one started,
+   * after the press, or in the viewer, it returns false with a development error; under reduced motion or in forced colours it returns false.
+   */
+  replay(): boolean;
 }
 
 /** A figure's layout as it is on screen (`onLayout`). */
@@ -186,8 +200,10 @@ export interface DiagramFigureInternalProps extends DiagramFigureProps {
   viewer?: DiagramViewerMode;
 }
 
-export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, actions, entrance: _entrance, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, ...props }: DiagramFigureInternalProps) {
+export function DiagramFigure({ spec: specIn, component, viewer, zoom = true, onLayout, actions, replay, entrance: _entrance, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, ...props }: DiagramFigureInternalProps) {
   const base = `dg${React.useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  // `replay` is a figure prop that every diagram passes through untouched: the engine reads it on the spec, as the skill's JSON has it.
+  const spec = React.useMemo<DiagramSpec>(() => (replay === undefined ? specIn : { ...specIn, replay }), [specIn, replay]);
   const level = usePanelLevel();
   // The key hint is a data-kbd-hint legend, hidden on touch until a hardware key is pressed: this installs the listener that reveals it.
   useShortcutsVisible();
@@ -475,7 +491,9 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
   React.useLayoutEffect(() => {
     const fig = figRef.current;
     if (!fig || !animated || !motionModule) return undefined;
-    const made = motionModule.attachMotion({ fig, P, base, model: () => modelRef.current, geo: () => measured.current?.geo ?? null, tokens: () => measured.current?.tokens ?? null });
+    // A replay clears the reader's trace (DECISIONS 405, G149): a focus, a hover or a tap.
+    const clearTrace = () => { setFocusTrace(null); setHoverTrace(null); setTouchTrace(null); };
+    const made = motionModule.attachMotion({ fig, P, base, model: () => modelRef.current, geo: () => measured.current?.geo ?? null, tokens: () => measured.current?.tokens ?? null, clearTrace });
     setController(made);
     return () => { made.destroy(); setController(null); };
   }, [animated, motionModule, base]);
@@ -665,7 +683,9 @@ export function DiagramFigure({ spec, component, viewer, zoom = true, onLayout, 
     </button>
   ) : null;
   // An app's actions (the foot decision): after Basalt's own controls and before "Clear highlight". A press settles a running entrance before onSelect.
-  const own = Actions && actions ? <Actions actions={actions} viewer={false} component={component} describedBy={titleId} onPress={settle} context={() => ({ figure: figRef.current!, viewer: false, layout: layoutInfo() })} /> : null;
+  // An action's `replay()` (DECISIONS 405, G149) is the controller's, where the figure asks for it; the actions module keeps it to the press.
+  const replayOf = model.motion.replay ? () => controller?.replay() ?? false : undefined;
+  const own = Actions && actions ? <Actions actions={actions} viewer={false} component={component} describedBy={titleId} onPress={settle} replay={replayOf} context={() => ({ figure: figRef.current!, viewer: false, layout: layoutInfo() })} /> : null;
   const foot = <>{toggle}{expand}{Foot && controller ? <Foot controller={controller} base={base} titleId={titleId} /> : null}{own}{clear}</>;
   return toReact(tree, { source, summary, hint, toggle: foot }, inkProp, root) as React.ReactElement;
 }

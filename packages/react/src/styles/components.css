@@ -5841,6 +5841,11 @@
   .basalt-diagram-node:focus-visible { z-index: 2; outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-diagram-node[data-near] { border-color: var(--basalt-border-hover); }
   .basalt-diagram-kind { color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); }
+  /* A card for several of one kind (DECISIONS 405, G151; an architecture's and a deployment's): `× 3` at the end of the kind line, space-2 after the kind's
+     last word and never broken from it (no space sits between them); with no kind it is the kind line alone, on the name's edge. Geist with tabular figures. */
+  .basalt-diagram-replicas { margin-inline-start: var(--basalt-space-2); color: var(--basalt-text-secondary); font-family: var(--basalt-font-family-sans); font-weight: var(--basalt-font-weight-medium); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .basalt-diagram-replicas:first-child { margin-inline-start: 0; }
+  .basalt-diagram-node[data-focal] .basalt-diagram-replicas { color: var(--basalt-diagram-focal-ink); }
   .basalt-diagram-lane-word { --_d-lw: var(--_drawn) none; display: var(--_d-lw, inline); }
   .basalt-diagram-name { color: var(--basalt-text-primary); font: var(--basalt-font-weight-semibold) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
   .basalt-diagram-detail { margin-block-start: var(--basalt-space-0-5); color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
@@ -6244,6 +6249,8 @@
   .basalt-diagram-fk-mark { color: var(--basalt-text-secondary); font-family: var(--basalt-font-family-mono); }
   /* A schema's key seats, set in the key as the seat sets them. */
   .basalt-diagram-key-letters { color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-mono); }
+  /* The count's key entry, set as the count is. */
+  .basalt-diagram-key-letters[data-replicas] { font-family: var(--basalt-font-family-sans); font-weight: var(--basalt-font-weight-medium); font-variant-numeric: tabular-nums; }
 
   .basalt-diagram-hint { display: flex; flex-wrap: wrap; gap: var(--basalt-space-1) var(--basalt-space-4); margin: 0; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--basalt-text-xs-size) / var(--basalt-text-xs-line-height) var(--basalt-font-family-sans); }
   .basalt-diagram-hint > span { display: inline-flex; align-items: center; gap: var(--basalt-space-1); }
@@ -6404,6 +6411,8 @@
     /* No mark is drawn, and the first line keeps no padding for one (DECISIONS 292, 2.7): the card's words name the service. */
     .basalt-diagram .basalt-diagram-mark { display: none; }
     .basalt-diagram .basalt-diagram-node[data-mark] > .basalt-diagram-mark + :is(.basalt-diagram-kind, .basalt-diagram-name) { padding-inline-end: 0; }
+    /* A count takes its kind line's ink and opacity (DECISIONS 405, G151): CanvasText on a card, Canvas on the focal card. */
+    .basalt-diagram .basalt-diagram-node .basalt-diagram-replicas { color: inherit; }
   }
   /* Print: the lines, the key's swatches, a card's mark and every focal node's fill print whatever the reader's "Background graphics" setting
      (DECISIONS 292, 2.6; every focal node, with a mark or without, DECISIONS 298). */
@@ -6450,7 +6459,7 @@
     .basalt-diagram .basalt-diagram-msg[data-ahead] .basalt-diagram-mlabel { color: var(--basalt-text-primary) !important; }
   }
 
-  /* ---- Diagram motion (DECISIONS 292): the entrance, flow, the pulse, the packet, the arrival step and the foot's two buttons ----
+  /* ---- Diagram motion (DECISIONS 292): the entrance, flow, the pulse, the packet, the arrival step and the foot's buttons ("Draw again", DECISIONS 405) ----
      Only on a figure that asks for it (data-motion="animated"); a still figure is the drawing above, unchanged. The motion code is a module of its
      own (diagram-motion), loaded on demand; the still engine marks a figure pending in the frame its lines are first drawn (data-entrance). Every
      moving part is hidden from assistive technology. Order, back to front: lines; flow cuts, the bead and the dot; labels and their plates; nodes.
@@ -6488,7 +6497,7 @@
   .basalt-diagram[data-motion="animated"] .basalt-diagram-num { transition: color calc(var(--basalt-duration-slower) * 0.75) var(--basalt-ease-in); }
   .basalt-diagram .basalt-diagram-msg[data-arrival] .basalt-diagram-num { color: var(--basalt-text-primary); transition: color var(--basalt-duration-slower) var(--basalt-ease-out); }
   @media (pointer: coarse) {
-    .basalt-diagram-play, .basalt-diagram-pause { min-height: var(--basalt-size-tap-min); }
+    .basalt-diagram-play, .basalt-diagram-replay, .basalt-diagram-pause { min-height: var(--basalt-size-tap-min); }
   }
   @media (forced-colors: active) {
     /* The figure is still in forced colours; a run the reader starts and an app's send still travel, in Highlight. The focal card keeps its edge. */
@@ -6501,7 +6510,7 @@
   /* Print, with or without script: every line whole and shown, every label in its resting ink, no mover, and no motion control (a pause or a run
      button on paper says nothing). Important, so it outranks a running animation and the pending rule. */
   @media print {
-    .basalt-diagram :is(.basalt-diagram-play, .basalt-diagram-pause) { display: none !important; }
+    .basalt-diagram :is(.basalt-diagram-play, .basalt-diagram-replay, .basalt-diagram-pause) { display: none !important; }
     .basalt-diagram .basalt-diagram-edges { visibility: visible !important; }
     .basalt-diagram .basalt-diagram-edge { mask: none !important; }
     .basalt-diagram .basalt-diagram-mlabel { color: var(--basalt-text-primary) !important; }
@@ -7034,9 +7043,11 @@
   .basalt-diagram-artifact-name { color: var(--basalt-text-primary); }
   .basalt-diagram-artifact-detail { color: var(--basalt-text-tertiary); }
   .basalt-diagram-node[data-focal] :is(.basalt-diagram-artifact-name, .basalt-diagram-artifact-detail) { color: var(--basalt-diagram-focal-ink); }
-  .basalt-diagram-replicas { margin-inline-start: var(--basalt-space-2); color: var(--basalt-text-secondary); font-family: var(--basalt-font-family-sans); font-weight: var(--basalt-font-weight-medium); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .basalt-diagram-node[data-focal] .basalt-diagram-replicas { color: var(--basalt-diagram-focal-ink); }
-  .basalt-diagram-key-letters[data-replicas] { font-family: var(--basalt-font-family-sans); font-weight: var(--basalt-font-weight-medium); font-variant-numeric: tabular-nums; }
+  /* A host with artifacts keeps its kind line clear of a mark as any card does (DECISIONS 405, G151): the line is first in the header band, not after the mark. */
+  .basalt-diagram-node[data-mark] > .basalt-diagram-mark + .basalt-diagram-host-head > :is(.basalt-diagram-kind, .basalt-diagram-name):first-child { padding-inline-end: var(--basalt-space-6); }
+  @media (forced-colors: active) {
+    .basalt-diagram .basalt-diagram-node[data-mark] > .basalt-diagram-mark + .basalt-diagram-host-head > :is(.basalt-diagram-kind, .basalt-diagram-name):first-child { padding-inline-end: 0; }
+  }
 
   /* ---- Lit figures, the headline frame and N1's figures (DECISIONS 153) ----
      Ported from the owner's approved prototypes, with the council's changes. The lit gradient is three neutral stops that each hold 3:1 on levels 0 to 3; a lit line is

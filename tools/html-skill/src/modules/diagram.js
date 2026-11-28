@@ -298,7 +298,8 @@ import { applyTrace, autoType, tapTrace, buildModel, entranceDrawn, escapeHtml, 
     var forced = matchMedia('(forced-colors: active)');
     var marks = model.nodes.some(function (n) { return n.mark; });
     if (marks) forced.addEventListener('change', layout);
-    if (animated) motion = _.diagramMotion(figure, { fig: figure, P: P, base: base, model: function () { return model; }, geo: function () { return measured && measured.geo; }, tokens: function () { return measured && measured.tokens; } }, spec);
+    // A replay clears the reader's trace (DECISIONS 405, G149), as React's does.
+    if (animated) motion = _.diagramMotion(figure, { fig: figure, P: P, base: base, model: function () { return model; }, geo: function () { return measured && measured.geo; }, tokens: function () { return measured && measured.tokens; }, clearTrace: function () { focusTrace = hoverTrace = touchTrace = null; retrace(); } }, spec);
     // "Expand" and the viewer (DECISIONS 310) are the diagram-zoom module's: compose.mjs adds it to a page unless every figure on it says "zoom": false.
     var zoom = !viewer && spec.zoom !== false && typeof _.diagramZoom === 'function' ? _.diagramZoom(figure, spec, { model: model, settle: settle, animated: animated }) : null;
     // "Download SVG" and "Download PNG" (DECISIONS 306, 1.7) are the diagram-export module's, for a figure that says "export": true.

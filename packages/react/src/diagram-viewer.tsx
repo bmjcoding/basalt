@@ -66,7 +66,8 @@ const probeWidth = (stage: HTMLElement | null, which: string) => stage?.querySel
 export function DiagramViewer({ kit, actions, Actions, spec, component, source, summary, opener, host, onClose }: DiagramViewerProps) {
   const { Figure: DiagramFigure, Kbd, buildModel, figureKey, figureList, hintEntries, toHtml, inLevel, measureFigure } = kit;
   // The viewer's figure is still (9.7): no entrance, flow, mover or run, so no motion code is loaded for it.
-  const still = React.useMemo<DiagramSpec>(() => ({ ...spec, motion: "still" }), [spec]);
+  // Its "Draw again" too (DECISIONS 405, G149): `replay` is left off, so the still figure is not warned about it.
+  const still = React.useMemo<DiagramSpec>(() => ({ ...spec, motion: "still", replay: undefined }), [spec]);
   // An automatic figure's foot (its key hint) is read from a placed model: unplaced, every card is in one cell and the hint would say two arrows where the
   // drawing has rows and columns (the pixel review's check on the viewer's hint).
   // Its list sits under the dialog's h2, whatever the page's heading: its sub-headings are h3 and its group lines h4 (the viewer's outline). The heading is

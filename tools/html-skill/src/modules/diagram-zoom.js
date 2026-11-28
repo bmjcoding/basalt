@@ -18,7 +18,7 @@ import { attachZoom, drawnSize, measureViewerFigure, revealIn, VIEWER_KEYS, view
   /** Builds the viewer for one figure and opens it; closing it removes it. */
   function openViewer(page, spec, ctx, opener) {
     var kit = _.diagramKit;
-    var still = Object.assign({}, spec, { motion: 'still' });
+    var still = Object.assign({}, spec, { motion: 'still', replay: undefined });
     // An automatic figure's key hint is read from a placed model, as React's (unplaced, every card is in one cell).
     // Its list sits under the dialog's h2, whatever the page's heading: h3 sub-headings and h4 group lines, as React's. The model's alone.
     var model = kit.buildModel(Object.assign({}, still, { heading: 2 }), { placement: Array.isArray(still.placement) ? still.placement[0] : still.placement });

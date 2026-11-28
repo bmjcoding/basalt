@@ -90,6 +90,8 @@ mark is stored when an entrance that played finishes or gives way to the reader,
 nothing. Flow is on any edge: a dashed line's own dashes march, one period every 625ms, and sit where the key draws them whenever they are not
 moving. A text sequence builds by ink: a message's label and arrow lift to their resting ink at its turn. No line is hidden and there is no caret.
 There is no blinking caret. The diagram's viewer (DECISIONS 310) is still: no entrance, flow, mover or run plays in it, and a zoom lands at once.
+An entrance plays again only when the reader presses "Draw again" in the figure's own foot (`replay`, DECISIONS 405): from its first frame, at
+once, inside five seconds, and under the hold; never under reduced motion, in forced colours, with no lines drawn or in the viewer.
 
 ## The hover glide
 

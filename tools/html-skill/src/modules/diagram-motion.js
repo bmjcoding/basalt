@@ -1,9 +1,11 @@
 /* Basalt HTML script, diagram-motion module (DECISIONS 292): a diagram whose JSON says "motion": "animated" draws each line once when it comes into
    view (every word at rest), then runs whichever of flow, a pulse or a packet its data names, and a sequence's run. compose.mjs adds this module, and
    loops, only to a page with such a diagram (a page that draws one from script names it with <!-- basalt:use diagram-motion -->). The engine is React's
-   own (packages/react/src/diagram-motion-core.ts): build.mjs bundles it in, so the skill and React move the same way. This file builds the foot's two
-   buttons: the run button ("Play the run", "Stop the run") and "Pause animations", the page's hold (a data-loops-toggle button, which the loops module
-   wires). Basalt.diagram(figure, spec) with a new packet.send sends one message, as a new prop does in React.
+   own (packages/react/src/diagram-motion-core.ts): build.mjs bundles it in, so the skill and React move the same way. This file builds the foot's
+   buttons: the run button ("Play the run", "Stop the run"), "Draw again" where the JSON says "replay": true (DECISIONS 405, G149: a press plays the
+   entrance again; nothing else starts one), and "Pause animations", the page's hold (a data-loops-toggle button, which the loops module wires).
+   Basalt.diagram(figure, spec) with a new packet.send sends one message, as a new prop does in React; a call that only sends keeps the drawing, focus
+   and a replay in progress. A call that changes "replay" draws a new figure, which never replays.
    Source: tools/html-skill/src/modules/diagram-motion.js (do not edit the copy in the skill folder). */
 import { attachMotion, motionErrors } from "../../../../packages/react/src/diagram-motion-core.ts";
 
@@ -29,10 +31,13 @@ import { attachMotion, motionErrors } from "../../../../packages/react/src/diagr
     checked.warnings.forEach(function (w) { console.warn('Basalt diagram: ' + w); });
     var controller = attachMotion(host);
     var foot = figure.querySelector('.diagram-foot');
-    var run = null, pause = null;
+    var run = null, replay = null, pause = null;
     if (foot) {
       run = button('diagram-play', 'Play the run');
       run.addEventListener('click', function () { controller.toggleRun(); });
+      // "Draw again": its words and width never change and it is never disabled; a press while a replay plays starts it over.
+      replay = button('diagram-replay', 'Draw again');
+      replay.addEventListener('click', function () { controller.replay(); });
       pause = button('diagram-pause', 'Pause animations', function (b) {
         b.setAttribute('data-loops-toggle', '');
         b.setAttribute('aria-pressed', String(Boolean(B.loops && B.loops.held())));
@@ -40,14 +45,16 @@ import { attachMotion, motionErrors } from "../../../../packages/react/src/diagr
       });
       // Each names its figure (G17 of cimip-gaps-3): its own words (the button itself, referenced), then the title, as React's.
       var titleId = figure.getAttribute('aria-labelledby');
-      if (titleId) [[run, '-play'], [pause, '-pause']].forEach(function (p) { p[0].id = titleId.replace(/-title$/, '') + p[1]; p[0].setAttribute('aria-labelledby', p[0].id + ' ' + titleId); });
-      run.hidden = pause.hidden = true;
+      if (titleId) [[run, '-play'], [replay, '-replay'], [pause, '-pause']].forEach(function (p) { p[0].id = titleId.replace(/-title$/, '') + p[1]; p[0].setAttribute('aria-labelledby', p[0].id + ' ' + titleId); });
+      run.hidden = replay.hidden = pause.hidden = true;
       foot.appendChild(run);
+      foot.appendChild(replay);
       foot.appendChild(pause);
     }
     function show() {
       var s = controller.state();
       if (run) { run.hidden = !s.runShown; run.lastChild.textContent = s.running ? 'Stop the run' : 'Play the run'; }
+      if (replay) replay.hidden = !s.replayShown;
       if (pause) { pause.hidden = !s.canLoop; pause.setAttribute('aria-pressed', String(Boolean(B.loops && B.loops.held()))); }
     }
     var unsubscribe = controller.subscribe(show);
@@ -60,7 +67,7 @@ import { attachMotion, motionErrors } from "../../../../packages/react/src/diagr
     return {
       redrawn: controller.redrawn,
       sendValue: function (v) { controller.sendValue(v); figure.__diagramSend = v; },
-      destroy: function () { unsubscribe(); controller.destroy(); if (run) run.remove(); if (pause) pause.remove(); },
+      destroy: function () { unsubscribe(); controller.destroy(); if (run) run.remove(); if (replay) replay.remove(); if (pause) pause.remove(); },
     };
   };
 })(window.Basalt);
