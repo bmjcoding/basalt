@@ -6,5 +6,6 @@
      lit at rest); the ring stands still at its drawing, at full opacity. Nothing is hidden or swapped, and the words still say the work is
      running. The toast's drain is a countdown, not a loop, so it is not held. The ring's and braille's own rules are in their modules, so a page with
      one of them and no toggle still keeps a stored hold. */
-  :root[data-loops="held"] .btn[aria-busy="true"]::after { animation: none; border-top-color: currentColor; }
+  /* Only the animation: the arc keeps the colour its own rule gives it (currentColor, ButtonText in forced colours). */
+  :root[data-loops="held"] .btn:is([data-loading], [aria-busy="true"]:not([data-busy]))::after { animation: none; }
 }

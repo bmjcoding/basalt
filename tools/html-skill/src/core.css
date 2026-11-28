@@ -273,28 +273,31 @@
   /* Danger is red text on a red hairline. No red fill: the destructive control stays quieter than the primary. */
   .btn[data-variant="danger"] { background: transparent; color: var(--basalt-status-danger); box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 45%, transparent); }
   @media (hover: hover) {
-    .btn:hover:not([disabled], [aria-disabled="true"]) { box-shadow: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hover), 0 0 0 var(--basalt-size-hairline) var(--basalt-surface-0); }
-    .btn[data-variant="primary"]:hover:not([disabled], [aria-disabled="true"]) { background: var(--basalt-action-primary-hover); box-shadow: none; }
-    .btn[data-variant="ghost"]:hover:not([disabled], [aria-disabled="true"]) { background: var(--basalt-state-hover); color: var(--basalt-text-primary); box-shadow: none; }
-    .btn[data-variant="danger"]:hover:not([disabled], [aria-disabled="true"]) { background: var(--basalt-state-hover); box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 70%, transparent); }
+    .btn:hover:not([disabled], [aria-disabled="true"]:not(:where([aria-busy="true"]))) { box-shadow: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hover), 0 0 0 var(--basalt-size-hairline) var(--basalt-surface-0); }
+    .btn[data-variant="primary"]:hover:not([disabled], [aria-disabled="true"]:not(:where([aria-busy="true"]))) { background: var(--basalt-action-primary-hover); box-shadow: none; }
+    .btn[data-variant="ghost"]:hover:not([disabled], [aria-disabled="true"]:not(:where([aria-busy="true"]))) { background: var(--basalt-state-hover); color: var(--basalt-text-primary); box-shadow: none; }
+    .btn[data-variant="danger"]:hover:not([disabled], [aria-disabled="true"]:not(:where([aria-busy="true"]))) { background: var(--basalt-state-hover); box-shadow: inset 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-status-danger) 70%, transparent); }
   }
   /* A press is a colour step (primary steps to action-primary-press, the rest to the selected wash), and the button also scales
-     to .98 over duration-fast on ease-out while pressed, as Button and IconButton do. Never on a disabled or busy button, and
-     on nothing else: no row, tab, card or disclosure. */
-  .btn:active:not([disabled], [aria-disabled="true"]) { background: var(--basalt-state-selected); }
-  .btn[data-variant="primary"]:active:not([disabled], [aria-disabled="true"]) { background: var(--basalt-action-primary-press); }
-  .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { transform: scale(0.98); }
+     to .98 over duration-fast on ease-out while pressed, as Button and IconButton do. Never on a disabled or busy button, nor one whose ring is
+     still up (a press in the ring's tail goes through and shows nothing), and on nothing else: no row, tab, card or disclosure. */
+  .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"], [data-loading]) { background: var(--basalt-state-selected); }
+  .btn[data-variant="primary"]:active:not([disabled], [aria-disabled="true"], [aria-busy="true"], [data-loading]) { background: var(--basalt-action-primary-press); }
+  .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"], [data-loading]) { transform: scale(0.98); }
   /* The scale shrinks the hit box under a held pointer, so a press at a wide button's edge would lose its click and a 44px touch
      target would fall to 43.12px. This invisible extension, 1.03% a side (1 / .98 is 1.0204), keeps the pressed target at its rest size. */
-  .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"])::after { content: ""; position: absolute; inset: -1.03%; }
-  .btn[disabled], .btn[aria-disabled="true"] { cursor: not-allowed; color: var(--basalt-text-disabled); box-shadow: 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
-  .btn[data-variant="primary"][disabled], .btn[data-variant="primary"][aria-disabled="true"] { background: var(--basalt-state-selected); box-shadow: none; --basalt-selection-fill: inherit; --basalt-selection-ink: inherit; }
+  .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"], [data-loading])::after { content: ""; position: absolute; inset: -1.03%; }
+  /* Busy is not disabled: a waiting button (aria-busy with aria-disabled) keeps its variant's ink and its hover, as React's does. */
+  .btn:is([disabled], [aria-disabled="true"]:not(:where([aria-busy="true"]))) { cursor: not-allowed; color: var(--basalt-text-disabled); box-shadow: 0 0 0 var(--basalt-size-hairline) color-mix(in oklch, var(--basalt-border-hairline) 50%, transparent); }
+  .btn[data-variant="primary"]:is([disabled], [aria-disabled="true"]:not(:where([aria-busy="true"]))) { background: var(--basalt-state-selected); box-shadow: none; --basalt-selection-fill: inherit; --basalt-selection-ink: inherit; }
   .btn[data-variant="ghost"][disabled] { box-shadow: none; }
-  /* Busy keeps the width: the label (and any icon) is invisible and a ring is laid over the middle, as the React Button does. Keep a label in a <span>. */
-  .btn[aria-busy="true"] { cursor: progress; }
-  .btn[aria-busy="true"] > * { opacity: 0; }
+  /* Busy keeps the width: the label (and any icon) is invisible and a ring is laid over the middle, as the React Button does. Keep a label in a <span>.
+     The ring follows the look: a static aria-busy shows it at once (React's `loading`); Basalt.wait marks its wait data-busy and shows the ring
+     (data-loading) only after 300ms, for at least 400ms. */
+  .btn:is([aria-busy="true"], [data-loading]) { cursor: progress; }
+  .btn:is([data-loading], [aria-busy="true"]:not([data-busy])) > * { opacity: 0; }
   /* stylelint-disable-next-line unit-disallowed-list -- the ring's 1.5px stroke; no token */
-  .btn[aria-busy="true"]::after { content: ""; position: absolute; inset: 0; margin: auto; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); border: 1.5px solid color-mix(in oklch, currentColor 25%, transparent); border-top-color: currentColor; border-radius: var(--basalt-radius-full); animation: bh-spin var(--basalt-duration-loop-ring) linear infinite; }
+  .btn:is([data-loading], [aria-busy="true"]:not([data-busy]))::after { content: ""; position: absolute; inset: 0; margin: auto; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); border: 1.5px solid color-mix(in oklch, currentColor 25%, transparent); border-top-color: currentColor; border-radius: var(--basalt-radius-full); animation: bh-spin var(--basalt-duration-loop-ring) linear infinite; }
   .btn svg { flex: none; }
   /* A ghost control at an edge (DECISIONS 336), React's `edge`: `data-edge="start"` or `"end"` puts its glyph or words on the head's line and
      hangs its box into the padding by its inset (its padding with words; half its drawn size less its glyph, icon-only), only into the room
@@ -352,16 +355,18 @@
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     /* No loop runs: a busy button's ring stands still at its drawing (the quarter arc in currentColor), at full opacity, as held. */
-    .btn[aria-busy="true"]::after { animation: none; }
+    .btn:is([data-loading], [aria-busy="true"]:not([data-busy]))::after { animation: none; }
     /* A press keeps its colour step and its scale is 1. Same specificity as the press rule, and later; transform leaves the
        transition list too, so switching to reduced motion while a button is held doesn't animate the scale back. */
-    .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"]) { transform: none; }
+    .btn:active:not([disabled], [aria-disabled="true"], [aria-busy="true"], [data-loading]) { transform: none; }
     .btn { transition-property: background-color, color, box-shadow; }
   }
 
   @media (forced-colors: active) {
     %panel% { border-color: CanvasText; }
     .btn { border: var(--basalt-size-hairline) solid ButtonText; }
+    /* The ring stays an arc: forced colours would paint every side of its border the system colour, a full circle. */
+    .btn:is([data-loading], [aria-busy="true"]:not([data-busy]))::after { forced-color-adjust: none; border-color: transparent; border-top-color: ButtonText; }
   }
 
   /* ---- Print: light (the script switches the theme for the print and back), no skip link, panels whole ---- */

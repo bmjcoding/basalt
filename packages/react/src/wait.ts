@@ -26,7 +26,7 @@ export function useWaitMark(waiting: boolean, showAfter: number = WAIT_SHOW_AFTE
     const timer = window.setTimeout(() => {
       since.current = performance.now();
       setShown(waiting);
-    }, waiting ? showAfter : minShown - (performance.now() - since.current));
+    }, waiting ? showAfter : Math.max(0, minShown - (performance.now() - since.current)));
     return () => window.clearTimeout(timer);
   }, [waiting, shown, showAfter, minShown]);
   return shown;

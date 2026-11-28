@@ -1390,6 +1390,17 @@
       "budgetReason": "cimip-gaps-3 t6 (DECISIONS 385; the skill's budgets are soft): a menu's checkbox row drives the hold (aria-checked, committed on menuchange): 1978 to 2291 bytes (+313); cap 2200 to 2291. Usage 1794 to 2100.",
       "usage": 2100
     },
+    "wait": {
+      "text": [
+        "Basalt\\s*\\.\\s*wait\\b"
+      ],
+      "textWords": [
+        "a call to Basalt.wait"
+      ],
+      "budget": 1100,
+      "budgetReason": "Micro-details m5 (DECISIONS 405, 409): new, React's usePressWait for a .btn (the press guard, the ring after 300ms held 400ms, a bare label wrapped); script only, so a page that waits on nothing pays nothing.",
+      "usage": 1000
+    },
     "ambient": {
       "classes": [
         "ambient-mark"
@@ -1621,7 +1632,8 @@
         "a call to Basalt.toast"
       ],
       "requires": [
-        "braille"
+        "braille",
+        "wait"
       ],
       "icons": [
         "CheckCircle",

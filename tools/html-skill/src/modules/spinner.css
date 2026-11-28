@@ -9,10 +9,15 @@
   .btn .spinner, .palette .spinner { color: inherit; }
 
   /* The hold (data-loops="held", set before first paint from a stored choice): the ring stands still at its drawing, at full opacity, whatever the OS says. */
-  :root[data-loops="held"] .spinner { animation: none; border-top-color: currentColor; }
+  :root[data-loops="held"] .spinner { animation: none; }
 
   /* Reduced motion: no loop runs, so the ring stands still at the same drawing as held. */
   @media (prefers-reduced-motion: reduce) {
     .spinner { animation: none; }
+  }
+
+  /* Forced colours: an arc in the system's text colour on transparent sides, held or not (they would otherwise all be painted, a full circle). */
+  @media (forced-colors: active) {
+    .spinner { forced-color-adjust: none; border-color: transparent; border-top-color: ButtonText; }
   }
 }

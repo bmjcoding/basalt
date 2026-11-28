@@ -5,6 +5,8 @@ import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
 import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
+import { Button } from "./button";
+import { WAIT_MIN_SHOWN_MS, WAIT_SHOW_AFTER_MS } from "./constants";
 import { CloseGlyph } from "./glyphs/close";
 import { Icon } from "./icon";
 import { isApplePlatform } from "./platform";
@@ -13,6 +15,7 @@ import { useScreenKeyboardLayout } from "./screen-keyboard";
 import { Spinner } from "./spinner";
 import { useMediaQuery } from "./use-media";
 import type { IconComponent } from "./types";
+import { isThenable } from "./wait";
 
 export type ToastStatus = "neutral" | "success" | "warning" | "danger";
 
@@ -31,7 +34,12 @@ export type ToastHome = "center" | "centre" | "row" | "key" | "page";
 export interface ToastAction {
   /** What it does: "Undo", "Retry", "View". */
   label: string;
-  onClick: () => void;
+  /**
+   * Called on a press. A promise back makes the button wait for it, as every Button does: further presses (and Enter or Space) call nothing, it is
+   * `aria-busy` from the press, its ring shows after 300ms and stays at least 400ms, and its label and width hold. While it waits the toast's clock
+   * and drain line pause and it is never closed to make room; Dismiss and a swipe still close it. For an Undo that asks the server.
+   */
+  onClick: () => void | Promise<unknown>;
   /** The app's own key for it, written to `aria-keyshortcuts` ("Meta+Z"; "Mod+Z" is Meta on Apple's systems and Control elsewhere). No chip is drawn on the button. */
   keys?: string;
 }
@@ -82,6 +90,10 @@ export interface ToastPromiseOptions<Value> {
   running: string | Omit<ToastOptions, "running">;
   success: string | ToastUpdate | ((value: Value) => string | ToastUpdate);
   error: string | ToastUpdate | ((error: unknown) => string | ToastUpdate);
+  /** How long the work may run before its running toast shows, in ms. Default 300 (`WAIT_SHOW_AFTER_MS`); 0 shows it at once. */
+  showAfter?: number;
+  /** Once the running toast is on screen, the least time before its result replaces it, in ms. Default 400 (`WAIT_MIN_SHOWN_MS`). */
+  minShown?: number;
 }
 
 // Stated here rather than left to Base UI, because the drain line must last as long as the timer.
@@ -120,6 +132,8 @@ interface Entry {
   options: ToastOptions;
   seat: boolean;
   count: number;
+  /** When it entered the stack (`performance.now()`); none while it waits in the queue. A running toast's result waits from here. */
+  shownAt?: number;
 }
 
 interface Pending extends Entry {}
@@ -146,6 +160,10 @@ interface Controller {
   early: Array<[string, boolean]>;
   /** The toast whose action was announced last: F6 takes the reader to that action, the one the words promised. */
   promised: string | null;
+  /** The timers of `promise` that are still to run (the running toast's delay, its result's floor), cleared when the provider unmounts. */
+  timers: Set<number>;
+  /** The toasts whose action is waiting for its answer: never closed to make room. */
+  busy: Set<string>;
 }
 
 const ControllerContext = /* @__PURE__ */ React.createContext<Controller | null>(null);
@@ -153,7 +171,7 @@ const ControllerContext = /* @__PURE__ */ React.createContext<Controller | null>
 const defaultActionWords = (label: string) => `${label} is available. Press F6 to reach it.`;
 
 function createController(): Controller {
-  return { api: null, items: new Map(), queue: [], limit: 3, seq: 0, say: null, actionWords: defaultActionWords, early: [], promised: null };
+  return { api: null, items: new Map(), queue: [], limit: 3, seq: 0, say: null, actionWords: defaultActionWords, early: [], promised: null, timers: new Set(), busy: new Set() };
 }
 
 // The app's key as `aria-keyshortcuts` says it: "Mod+Z" is "Meta+Z" on Apple's systems and "Control+Z" elsewhere (DECISIONS 244); any other string is as written.
@@ -184,7 +202,9 @@ function toBase(c: Controller, entry: Entry, stamp: number) {
     type: statusOf(options),
     // Base UI's own clock is never used: the toast times itself, so that a hidden tab and a queue are covered.
     timeout: 0,
-    actionProps: options.action ? { children: options.action.label, onClick: options.action.onClick, ...(options.action.keys ? { "aria-keyshortcuts": ariaKeys(options.action.keys) } : null) } : undefined,
+    // Only the key goes to Base UI: it merges these props last, so a handler here would run past the action Button's wait. The label and the press
+    // are the Button's own (`ToastItem`).
+    actionProps: options.action ? (options.action.keys ? { "aria-keyshortcuts": ariaKeys(options.action.keys) } : {}) : undefined,
     data,
     onClose: () => {
       c.items.delete(entry.id);
@@ -201,17 +221,18 @@ function isFocused(id: string): boolean {
 }
 
 function enter(c: Controller, entry: Entry) {
+  entry.shownAt = performance.now();
   c.items.set(entry.id, entry);
   c.api?.add(toBase(c, entry, ++c.seq));
   // Running work is not announced, step by step or at all: only its result is (see `update`).
   if (!entry.options.running) announce(c, entry.id, entry.options, entry.count > 1 ? `, ${entry.count} times` : "");
 }
 
-/** Room for one more: below the limit, or by closing the oldest toast that is not the only copy and is not focused. */
+/** Room for one more: below the limit, or by closing the oldest toast that is not the only copy, is not focused and is not waiting on its action. */
 function makeRoom(c: Controller): boolean {
   if (c.items.size < c.limit) return true;
   for (const [id, entry] of c.items) {
-    if (lifetimeOf(entry.options) > 0 && !isFocused(id)) {
+    if (lifetimeOf(entry.options) > 0 && !isFocused(id) && !c.busy.has(id)) {
       c.api?.close(id);
       return c.items.size < c.limit;
     }
@@ -246,20 +267,28 @@ function show(c: Controller, options: ToastOptions): string {
   return entry.id;
 }
 
+/** A result is a new statement: it starts from the running toast's title, group and lifetime, not from its action. Every path to a result uses it. */
+function resultOf(running: ToastOptions, patch: ToastUpdate): ToastOptions {
+  return { title: running.title, group: running.group, home: running.home, timeout: running.timeout, ...patch, running: false } as ToastOptions;
+}
+
 function update(c: Controller, id: string, patch: ToastUpdate) {
   const entry = c.items.get(id) ?? c.queue.find((pending) => pending.id === id);
   if (!entry) return;
   const prev = entry.options;
   const ends = !!prev.running && !patch.running;
-  // A result is a new statement: it starts from the title, the group and the lifetime, not from the running toast's action.
-  const next = {
-    ...(ends ? { title: prev.title, group: prev.group, home: prev.home, timeout: prev.timeout } : prev),
-    ...patch,
-    running: patch.running ?? false,
-  } as ToastOptions;
+  const next = ends ? resultOf(prev, patch) : ({ ...prev, ...patch, running: patch.running ?? false } as ToastOptions);
   entry.options = next;
-  entry.seat = entry.seat || statusOf(next) !== "neutral";
-  if (!c.items.has(id)) return;
+  const onScreen = c.items.has(id);
+  // On screen the seat is latched, so the text does not move when the mark goes; a toast still queued enters as what it now is (a neutral result, no seat).
+  entry.seat = onScreen ? entry.seat || statusOf(next) !== "neutral" : !!next.running || statusOf(next) !== "neutral";
+  if (!onScreen) return;
+  // An update that takes away the action holding focus moves focus to the toast first, inside the stack, so it never falls to the page and F6's way
+  // back is kept. After the commit would be too late: the removed button has blurred by then.
+  if (prev.action && !next.action && typeof document !== "undefined") {
+    const root = document.querySelector<HTMLElement>(`.basalt-toast[data-toast-id="${CSS.escape(id)}"]`);
+    if (root && root.querySelector(".basalt-toast-action")?.contains(document.activeElement)) root.focus({ preventScroll: true });
+  }
   c.api?.update(id, toBase(c, entry, ++c.seq));
   const settled = !next.running;
   // A changed result is said whole, with its action's sentence if it has one. An action that appears, or whose label changes, with the
@@ -290,13 +319,51 @@ function close(c: Controller, id: string) {
   else c.queue = c.queue.filter((pending) => pending.id !== id);
 }
 
+/** A timer of `promise`'s, kept in the controller so the provider's unmount clears it. */
+function later(c: Controller, ms: number, run: () => void): number {
+  const timer = window.setTimeout(() => {
+    c.timers.delete(timer);
+    run();
+  }, ms);
+  c.timers.add(timer);
+  return timer;
+}
+
+/**
+ * Running work, then its result, on the wait's two timings (DECISIONS 247, 248): no running toast for work under `showAfter`, and once one is on
+ * screen it stays `minShown` before its result, whether the work succeeded or failed. The work itself is returned at once and never delayed.
+ */
 function promise<Value>(c: Controller, work: Promise<Value>, o: ToastPromiseOptions<Value>): Promise<Value> {
   const base = typeof o.running === "string" ? { title: o.running } : o.running;
-  const id = show(c, { ...base, running: true } as ToastOptions);
+  const running = { ...base, running: true } as ToastOptions;
+  const showAfter = o.showAfter ?? WAIT_SHOW_AFTER_MS;
+  const minShown = o.minShown ?? WAIT_MIN_SHOWN_MS;
+  let id: string | null = null;
+  let timer = 0;
+  // At 0 the running toast shows in the call, before the work's answer is listened for: an answer already in hand must not skip it.
+  if (showAfter <= 0) id = show(c, running);
+  else timer = later(c, showAfter, () => { id = show(c, running); });
   const patch = (given: string | ToastUpdate): ToastUpdate => (typeof given === "string" ? { title: given } : given);
+  const settle = (result: ToastUpdate) => {
+    if (id === null) {
+      // The provider went before the running toast was due: nothing shows.
+      if (!c.timers.has(timer)) return;
+      window.clearTimeout(timer);
+      c.timers.delete(timer);
+      // Quicker than the delay: the result alone, built as a slow one is, so both have the same title, group, home and lifetime.
+      show(c, resultOf(running, result));
+      return;
+    }
+    const shownAt = c.items.get(id)?.shownAt;
+    // Still queued (it enters as its result, announced once) or closed by the reader (a no-op): at once.
+    const wait = shownAt === undefined ? 0 : Math.max(0, minShown - (performance.now() - shownAt));
+    const target = id;
+    if (wait === 0) update(c, target, result);
+    else later(c, wait, () => update(c, target, result));
+  };
   work.then(
-    (value) => update(c, id, patch(typeof o.success === "function" ? o.success(value) : o.success)),
-    (error) => update(c, id, { status: "danger", ...patch(typeof o.error === "function" ? o.error(error) : o.error) }),
+    (value) => settle(patch(typeof o.success === "function" ? o.success(value) : o.success)),
+    (error) => settle({ status: "danger", ...patch(typeof o.error === "function" ? o.error(error) : o.error) }),
   );
   return work;
 }
@@ -335,6 +402,11 @@ export function ToastProvider({ children, limit = 3, actionWords = defaultAction
   controller.current.actionWords = actionWords;
   const current = controller.current;
   React.useEffect(() => onPageChange(() => leavePage(current)), [current]);
+  // A `promise` still waiting to show its running toast, or its result, shows nothing once the provider has gone.
+  React.useEffect(() => () => {
+    for (const timer of current.timers) window.clearTimeout(timer);
+    current.timers.clear();
+  }, [current]);
   return (
     <ControllerContext.Provider value={controller.current}>
       <BaseToast.Provider limit={limit} timeout={0}>
@@ -536,16 +608,47 @@ function ToastList() {
   return toasts.map((toast) => <ToastItem key={toast.id} toast={toast} front={toast === front} swipe={phone ? SWIPE_PHONE : SWIPE_WIDE} />);
 }
 
+/**
+ * Whether the toast's action is waiting for its answer: from a press whose handler returned a promise until it settles, either way (the `busy` of the
+ * Button's wait, not its ring's tail). While it is, the controller does not close the toast to make room.
+ */
+function useActionBusy(c: Controller | null, id: string, onClick: ToastAction["onClick"] | undefined) {
+  const [pending, setPending] = React.useState(0);
+  const busy = pending > 0;
+  React.useEffect(() => {
+    if (!c || !busy) return undefined;
+    c.busy.add(id);
+    return () => { c.busy.delete(id); };
+  }, [c, id, busy]);
+  // The Button calls this only when it is not already waiting, so each accepted press is counted once.
+  const press = onClick
+    ? () => {
+        const result = onClick();
+        if (isThenable(result)) {
+          setPending((n) => n + 1);
+          const done = () => setPending((n) => n - 1);
+          // Counted out either way; the Button's own wait passes a rejection on, so it is not swallowed.
+          result.then(done, done);
+        }
+        return result;
+      }
+    : undefined;
+  return { busy, press };
+}
+
 function ToastItem({ toast, front, swipe }: { toast: ReturnType<typeof BaseToast.useToastManager<ToastData>>["toasts"][number]; front: boolean; swipe: readonly ("up" | "down" | "right")[] }) {
   const { close: closeToast } = BaseToast.useToastManager();
+  const controller = React.useContext(ControllerContext);
   const expanded = React.useContext(ExpandedContext);
   const away = React.useContext(AwayContext);
   const data = toast.data as ToastData;
   const status = statusOf(data.options);
   const running = !!data.options.running;
   const lifetime = lifetimeOf(data.options);
-  // The line stays while the toast leaves (it has run out by then); the clock does not.
-  useToastTimer(toast.transitionStatus === "ending" ? 0 : lifetime, data.stamp, expanded || away, () => closeToast(toast.id));
+  const action = data.options.action;
+  const actionWait = useActionBusy(controller, toast.id, action?.onClick);
+  // The line stays while the toast leaves (it has run out by then); the clock does not. Both pause while the action waits, and resume with what was left.
+  useToastTimer(toast.transitionStatus === "ending" ? 0 : lifetime, data.stamp, expanded || away || actionWait.busy, () => closeToast(toast.id));
   const Mark = status === "neutral" ? null : MARKS[status];
   return (
     <BaseToast.Root
@@ -560,6 +663,7 @@ function ToastItem({ toast, front, swipe }: { toast: ReturnType<typeof BaseToast
       data-front={front ? "" : undefined}
       data-status={status}
       data-running={running ? "" : undefined}
+      data-action-busy={actionWait.busy ? "" : undefined}
       className="basalt-toast"
     >
       {lifetime > 0 ? <span key={data.stamp} className="basalt-toast-drain" style={{ animationDuration: `${lifetime}ms` }} /> : null}
@@ -583,7 +687,20 @@ function ToastItem({ toast, front, swipe }: { toast: ReturnType<typeof BaseToast
           </BaseToast.Title>
           <BaseToast.Description className="basalt-toast-description" />
         </div>
-        {toast.actionProps ? <BaseToast.Action className="basalt-button basalt-toast-action" data-variant="secondary" data-size="xs" /> : null}
+        {/* The action is a Basalt Button (secondary, xs), so it waits for a promise as every Button does. It keeps its element while an action is
+            there before and after an update, its label rewritten, so focus on it survives the update. */}
+        {action ? (
+          <BaseToast.Action
+            className="basalt-toast-action"
+            render={(props) => (
+              <Button {...(props as React.ButtonHTMLAttributes<HTMLButtonElement> & { ref?: React.Ref<HTMLButtonElement> })} variant="secondary" size="xs" onClick={actionWait.press}>
+                {action.label}
+              </Button>
+            )}
+          >
+            {action.label}
+          </BaseToast.Action>
+        ) : null}
         <BaseToast.Close className="basalt-button basalt-toast-close" data-variant="ghost" data-size="xs" data-icon-only="" aria-label="Dismiss">
           <Icon icon={CloseGlyph} size={16} />
         </BaseToast.Close>

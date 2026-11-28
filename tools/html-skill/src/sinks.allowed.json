@@ -27,7 +27,7 @@
   "modules/still-table.js": { "count": 1, "data": false, "takes": "a sortable header's caret glyphs", "safe": "drawings from the icon and glyph sets" },
   "modules/terminal.js": { "count": 3, "data": true, "takes": "a terminal's lines and its stage lines, its title and its copy buttons (drawn once with their three glyphs)", "safe": "each line, stage word and the title go through esc; a stage's mark comes from its known state; the button is constant" },
   "modules/theme.js": { "count": 2, "data": false, "takes": "the theme toggle's sun or moon icon", "safe": "icons from the icon set" },
-  "modules/toast.js": { "count": 2, "data": true, "takes": "a toast's content from Basalt.toast's options, and its drain bar", "safe": "words go through esc; status is a known value; the drain's duration is a number" },
+  "modules/toast.js": { "count": 4, "data": true, "takes": "a toast's parts, made once (its text block and Dismiss), its seat's mark, its title from Basalt.toast's options, and its drain bar (micro-details m5: fill writes into parts made once, so focus survives an update; 2 to 4)", "safe": "the parts' ids are the module's own counter and Dismiss's glyph is a build-time constant; the seat is a known icon or the braille tag, chosen by a known status; the title's words go through esc and its count is a number; the drain's duration is a number" },
   "modules/tooltip.js": { "count": 1, "data": true, "takes": "a tooltip's words from data-tooltip, and its key chips", "safe": "the words and keys go through esc" },
   "modules/topbar.js": { "count": 1, "data": false, "takes": "the footer label's toggle button", "safe": "constant markup with the module's own id" }
 }
