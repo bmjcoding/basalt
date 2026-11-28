@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { formatAge, formatClock, formatCountdown, formatDay, formatStamp, formatStatTime, formatUntil } from "./time-format";
+import { ageSeat, english, formatAge, formatClock, formatCountdown, formatDay, formatStamp, formatStatTime, formatUntil } from "./time-format";
 import type { TimeOptions } from "./time-format";
 import { DotSep } from "./dot-sep";
 import { useLoops } from "./loops";
@@ -187,9 +187,23 @@ function DateAgeDay({ time, timeZone, locale, now: nowProp, short = false, class
   return (
     <span key={running && !drawn ? "server" : "client"} {...props} className={join("basalt-date-age", className)}>
       <time dateTime={day.dateTime} className="basalt-time" suppressHydrationWarning={quietly}>{day.text}</time>
-      <span className="basalt-date-age-age" suppressHydrationWarning={quietly}><DotSep />{short ? <Reserve live={running} suppressHydrationWarning={quietly} className="basalt-date-age-seat" show="age" alternatives={{ age: formatAge(time, now, { short }), widest: "548mo" }} /> : formatAge(time, now)}</span>
+      <Age time={time} now={now} short={short} locale={locale} running={running} />
     </span>
   );
+}
+
+/**
+ * The age after the dot. Long, it wraps and keeps no seat. Short, it stands in a seat that never moves the text after it: in English the approved widest form
+ * ("548mo"); in any other language every short form the age can take (`ageSeat`, folded to the locale's 8 and deduplicated), beside the current age.
+ */
+function Age({ time, now, short, locale, running }: { time: Date | number; now: Date | number; short: boolean; locale?: string | string[]; running: boolean }) {
+  const quietly = running || undefined;
+  const age = formatAge(time, now, { short, locale });
+  if (!short) return <span className="basalt-date-age-age" suppressHydrationWarning={quietly}><DotSep />{age}</span>;
+  const alternatives: Record<string, string> = { age };
+  if (english(locale)) alternatives.widest = "548mo";
+  else ageSeat(locale ?? "en-US").forEach((form, i) => { alternatives[`f${i}`] = form; });
+  return <span className="basalt-date-age-age" suppressHydrationWarning={quietly}><DotSep /><Reserve live={running} suppressHydrationWarning={quietly} className="basalt-date-age-seat" show="age" alternatives={alternatives} /></span>;
 }
 
 /** The minute form: the time of day (the date added on another day), then the age; it ticks by the minute on the shared timer unless `now` is fixed. */
@@ -202,7 +216,7 @@ function DateAgeMinute({ time, timeZone, locale, fixed, short = false, className
   return (
     <span key={running && !drawn ? "server" : "client"} {...props} className={join("basalt-date-age", className)} data-precision="minute">
       <time dateTime={at.dateTime} className="basalt-time" suppressHydrationWarning={quietly}>{at.text}</time>
-      <span className="basalt-date-age-age" suppressHydrationWarning={quietly}><DotSep />{short ? <Reserve live={running} suppressHydrationWarning={quietly} className="basalt-date-age-seat" show="age" alternatives={{ age: formatAge(time, now, { short }), widest: "548mo" }} /> : formatAge(time, now)}</span>
+      <Age time={time} now={now} short={short} locale={locale} running={running} />
     </span>
   );
 }

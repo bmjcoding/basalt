@@ -89,20 +89,20 @@ describe("StageRail at the minutes scale", () => {
       <B.RunStage name="Approval" state="running" start={10_000 - 4_900} />
     </B.StageRail>`));
     let r = await timers(page);
-    assert.deepEqual(r.map((x) => [x.drawn, x.iso]), [["1 s", "PT1.5S"], ["4 s", "PT4.9S"]]);
+    assert.deepEqual(r.map((x) => [x.drawn, x.iso]), [["1\u00a0s", "PT1.5S"], ["4\u00a0s", "PT4.9S"]]);
     await page.clock.runFor(300);
     r = await timers(page);
-    assert.equal(r[1].drawn, "5 s");
+    assert.equal(r[1].drawn, "5\u00a0s");
     await page.clock.runFor(500);
-    assert.equal((await timers(page))[1].drawn, "5 s", "no change inside the second");
+    assert.equal((await timers(page))[1].drawn, "5\u00a0s", "no change inside the second");
   });
 
   test("a rail given the seconds scale keeps its tenths, also once a long stage has grown its scale to minutes", async () => {
     const page = await open(render(`<B.StageRail label="Build stages"><B.RunStage name="Build" state="success" start={0} end={1_500} /><B.RunStage name="Test" state="success" start={0} end={130_000} /><B.RunStage name="Ship" state="queued" /></B.StageRail>`));
     await page.clock.runFor(100);
     const r = await timers(page);
-    assert.deepEqual([r[0].drawn, r[0].iso], ["1.5 s", "PT1.5S"]);
-    assert.equal(r[1].drawn, "2 min 10 s");
+    assert.deepEqual([r[0].drawn, r[0].iso], ["1.5\u00a0s", "PT1.5S"]);
+    assert.equal(r[1].drawn, "2\u00a0min 10\u00a0s");
   });
 });
 

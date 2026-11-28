@@ -14,7 +14,8 @@
 
   /** One chip. Command, Option and Control are icons; everything else is Geist Mono text. aria-hidden: the control carries aria-keyshortcuts. */
   function kbd(key) {
-    return '<kbd class="kbd" aria-hidden="true">' + (MOD_ICON[key] ? icon(MOD_ICON[key], { size: 12 }) : esc(key)) + '</kbd>';
+    // Each chip is left as written by a page translator (m2 I3); the spoken words beside the chips still translate.
+    return '<kbd class="kbd" translate="no" aria-hidden="true">' + (MOD_ICON[key] ? icon(MOD_ICON[key], { size: 12 }) : esc(key)) + '</kbd>';
   }
 
   /** A shortcut: one chip per key, 2px apart. keys is an array such as ['⌘', 'K']. */

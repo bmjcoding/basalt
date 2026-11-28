@@ -71,7 +71,7 @@ export function DescriptionItem({ term, children, values, mono, missing, detail,
     <div {...props} className={join("basalt-description-item", className)}>
       <dt className="basalt-description-term">{term}</dt>
       {details.map((value, i) => (
-        <dd key={i} className="basalt-description-details" data-mono={mono && !missing ? "" : undefined} data-missing={missing ? "" : undefined}>{value}</dd>
+        <dd key={i} className="basalt-description-details" translate={mono && !missing ? "no" : undefined} data-mono={mono && !missing ? "" : undefined} data-missing={missing ? "" : undefined}>{value}</dd>
       ))}
       {detail !== undefined ? <dd className="basalt-description-more">{detail}</dd> : null}
     </div>

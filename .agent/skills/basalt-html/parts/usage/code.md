@@ -7,7 +7,7 @@
 </div>
 ```
 
-`tabindex="0"` goes on `pre.code-body` (it scrolls), with `<code>` inside; not on the `<code>`.
+`tabindex="0"` goes on `pre.code-body` (it scrolls), with `<code>` inside; not on the `<code>`. The script sets `translate="no"` on the `pre` unless it has one; write it yourself on inline `code`.
 
 Its Copy takes `data-edge="end"`.
 

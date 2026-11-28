@@ -158,7 +158,7 @@ describe("Q5 (W9): a clock a person reads follows the locale; a stamp to the sec
     assert.equal(dist.formatStamp(AT, { timeZone: "UTC", locale: "en-US" }).text, "18:42:07");
     assert.equal(dist.formatStamp(AT, { timeZone: "UTC", locale: "en-GB" }).text, "18:42:07");
     assert.deepEqual(dist.formatStatTime(MORNING, { now: MORNING, timeZone: "UTC" }), { text: `8:02${NBSP}AM`, dateTime: "2026-11-07T08:02" });
-    assert.deepEqual(dist.formatStatTime(MORNING, { now: AT, timeZone: "UTC" }), { text: `Nov 7, 8:02${NBSP}AM`, dateTime: "2026-11-07T08:02" });
+    assert.deepEqual(dist.formatStatTime(MORNING, { now: AT, timeZone: "UTC" }), { text: `Nov\u00a07, 8:02${NBSP}AM`, dateTime: "2026-11-07T08:02" });
     assert.equal(dist.formatStatTime(MORNING, { now: AT, timeZone: "UTC", locale: "en-GB" }).text, "7 Nov, 08:02");
   });
 
@@ -181,7 +181,7 @@ describe("Q5 (W9): a clock a person reads follows the locale; a stamp to the sec
         const time = (selector) => page.locator(selector).evaluate((el) => [el.textContent, el.getAttribute("datetime")]);
         assert.deepEqual(await time("#clock-us time"), [`6:42${NBSP}PM`, "2026-11-17T18:42"]);
         assert.deepEqual(await time("#clock-gb time"), ["18:42", "2026-11-17T18:42"]);
-        assert.deepEqual(await time(".basalt-stat-source time"), [`Nov 7, 8:02${NBSP}AM`, "2026-11-07T08:02"]);
+        assert.deepEqual(await time(".basalt-stat-source time"), [`Nov\u00a07, 8:02${NBSP}AM`, "2026-11-07T08:02"]);
         assert.deepEqual(await time("#source time"), ["18:42:07", "2026-11-17T18:42:07.000Z"], "an instant (cimip-gaps-3 E1)");
         assert.deepEqual(await time("#retry time"), ["18:42:07", "2026-11-17T18:42:07.000Z"], "an instant (cimip-gaps-3 E1)");
         assert.deepEqual(await time(".basalt-command-block-time"), ["18:42:07", "2026-11-17T18:42:07"]);

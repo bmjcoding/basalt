@@ -109,6 +109,8 @@
       // A .code that is a pre's container; never a .code nested in another's head.
       var pre = block.querySelector(':scope > pre');
       if (!pre) return;
+      // Code is left as written by a page translator (m2 I3), unless the page says otherwise.
+      if (!pre.hasAttribute('translate')) pre.setAttribute('translate', 'no');
       hint(block);
       // Each side that hides code fades (cimip-gaps-3 t7); the line of words stays. A terminal fades its own (it scrolls down too while lines arrive).
       if (!block.classList.contains('terminal') && !pre.__bhFade) pre.__bhFade = _.scrollFade(pre, { axis: 'inline' });

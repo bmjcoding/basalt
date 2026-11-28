@@ -499,7 +499,8 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, wrap
         </figcaption>
       ) : null}
       {/* a scrollable region must be reachable by keyboard */}
-      <pre ref={pre} className="basalt-code-pre" tabIndex={0} role="region" aria-label={title ? `${title} code` : "Code"}>
+      {/* The code is left as written by a page translator (m2 I3); the caption, the buttons and the state words still translate. */}
+      <pre ref={pre} className="basalt-code-pre" translate="no" tabIndex={0} role="region" aria-label={title ? `${title} code` : "Code"}>
         {lines && (prompt !== undefined || lineNumbers) ? (
           <code data-language={language} className="basalt-code-lines" data-numbered={lineNumbers ? "" : undefined} data-prompted={prompt !== undefined ? "" : undefined}>
             {lines.map((line, i) => (

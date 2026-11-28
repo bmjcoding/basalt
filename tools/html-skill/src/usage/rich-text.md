@@ -10,5 +10,6 @@ Type and rhythm for text a renderer made (Markdown, a forge's comment): `<div cl
 ```
 
 - Body 14/20; paragraphs, lists, quotes and `pre` are `space-3` apart; every heading is 14/20 at 600, whatever its level.
-- Inline `code` is the sunken chip; a link keeps its line. A long word or address wraps, so it never widens the column.
+- Inline `code` is the sunken chip; a link keeps its line. A long word or address wraps, so it never widens the column. Write `translate="no"` on `code`, `pre` and a product's name.
+- Paragraphs and items wrap pretty; a quote's opening mark hangs into its padding (Safari). Code has no ligatures.
 - Write the elements yourself; never paste a string of untrusted markup. Tables, task lists and footnotes are not styled.
