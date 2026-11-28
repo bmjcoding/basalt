@@ -200,16 +200,19 @@ describe("compose.mjs and the diagram's markup", () => {
     assert.equal(new Set(all).size, all.length, "no id twice in the page, the figures' own ids included");
   });
 
-  test("an id is read as the browser reads an attribute: a literal &, &amp;, &#38; and a named reference; two spellings of one id are one id (G146)", () => {
+  test("an id is read as the browser reads an attribute: a literal &, &amp;, &#38;, a few names; any other name is numbered and said (G146)", () => {
     const one = (attr) => labelled(compose(`<h1>x</h1>${figure(`class="diagram" id="${attr}"`)}`).html)[0];
     for (const attr of ["a&b", "a&amp;b", "a&#38;b", "a&#x26;b", "a&AMP;b"]) assert.equal(one(attr), "bd-a_26_b_dg-title", attr);
-    assert.equal(one("&copy;"), "bd-_a9__dg-title", "a named reference");
-    assert.equal(one("&copy"), "bd-_a9__dg-title", "a legacy name, with nothing after it");
-    assert.equal(one("&copyx"), "bd-_26_copyx_dg-title", "a legacy name a letter follows stays text in an attribute");
-    assert.equal(one("&check;"), "bd-_2713__dg-title", "a name HTML 4 did not have");
-    assert.equal(one("&nosuch;"), "bd-_26_nosuch_3b__dg-title", "a name not in the list is text");
+    assert.equal(one("&lt;x&gt;&quot;&apos;&nbsp;"), "bd-_3c_x_3e__22__27__a0__dg-title", "the names it decodes");
+    assert.equal(one("a&lt"), "bd-a_3c__dg-title", "a legacy form, with nothing after it");
     assert.equal(one("&#x80;"), "bd-_20ac__dg-title", "0x80 is windows-1252's euro, as the browser reads it");
     assert.equal(one("&#0;"), "bd-_fffd__dg-title");
+    // A name it does not decode: the figure keeps its number, the composer says so, and the page's script settles the base from the DOM id.
+    for (const attr of ["&copy;", "&check;", "&nosuch;", "&copy"]) {
+      const result = compose(`<h1>x</h1>${figure(`class="diagram" id="${attr}"`)}`);
+      assert.equal(labelled(result.html)[0], "bd-n1-title", attr);
+      assert.ok(result.diagrams.some((n) => n === `the id "${attr}" has a character reference compose doesn't decode; the figure is numbered`), `${attr} is said`);
+    }
     // Every spelling of a&b is the same id: the second figure is numbered, and said.
     const spelled = compose(`<h1>x</h1>${["a&b", "a&amp;b", "a&#38;b"].map((attr) => figure(`class="diagram" id="${attr}"`)).join("")}`);
     assert.deepEqual(labelled(spelled.html), ["bd-a_26_b_dg-title", "bd-n2-title", "bd-n3-title"]);
