@@ -12,6 +12,7 @@
 // the absolute units (cm, mm, q, in, pt, pc) and the time units (s, ms) are all raw. A colour function is raw in any case it is written in.
 import { basaltRules } from "./stylelint-rules.mjs";
 import { LENGTH_UNITS, TIME_UNITS } from "./values.mjs";
+import { loadVocabulary } from "./vocabulary.mjs";
 
 const CONTAINER = ["cqw", "cqh", "cqi", "cqb", "cqmin", "cqmax"];
 
@@ -35,7 +36,9 @@ export const DESIGN_VALUE_RULES = {
  */
 export function basaltStylelintConfig(stylelint, options = {}) {
   const prefix = options.configurationComment ?? "stylelint";
-  const rules = basaltRules(stylelint, { vocabulary: options.vocabulary, exception: `${prefix}-disable-next-line basalt/no-restyle -- <reason>` });
+  // The restyle rule reads the release's manifest (which classes are sized controls, and their props); Basalt's own lint has no restyle rule.
+  const vocabulary = options.restyle ? options.vocabulary ?? loadVocabulary() : null;
+  const rules = basaltRules(stylelint, { vocabulary, exception: `${prefix}-disable-next-line basalt/no-restyle -- <reason>` });
   return {
     reportDescriptionlessDisables: true,
     reportNeedlessDisables: true,

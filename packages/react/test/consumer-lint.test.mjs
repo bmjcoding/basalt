@@ -24,6 +24,14 @@ const EXPECTED = {
   "primitive-fail.tsx": ["2 basalt/primitive", "3 basalt/primitive", "4 basalt/primitive", "5 basalt/primitive", "10 basalt/primitive", "11 basalt/primitive", "12 basalt/primitive", "13 basalt/primitive", "14 basalt/primitive", "15 basalt/primitive"],
   "raw-value-fail.tsx": [...Array(6).fill("4 basalt/raw-value"), "6 basalt/raw-value", "6 basalt/raw-value", "8 basalt/raw-value", "8 basalt/raw-value"],
   "restyle-fail.tsx": ["8 basalt/no-restyle", "9 basalt/no-restyle", "10 basalt/no-restyle", "11 basalt/no-restyle", "12 basalt/no-restyle"],
+  // Fix pass 1: the hook list, nesting, scope, blanket disables and type units.
+  "blanket-fail.css": ["2 basalt/disable", "3 color-no-hex", "4 basalt/disable", "5 color-no-hex", "5 basalt/disable", "6 basalt/disable", "7 color-no-hex"],
+  "blanket-fail.tsx": ["2 basalt/disable", "3 basalt/raw-value", "4 basalt/disable", "4 basalt/raw-value"],
+  "hooks-fail.css": ["3 basalt/no-restyle"],
+  "hooks-fail.tsx": ["3 basalt/no-restyle", "3 basalt/no-restyle"],
+  "nested-fail.css": ["4 basalt/no-restyle", "9 basalt/no-restyle", "12 basalt/no-restyle", "17 basalt/no-restyle"],
+  "scope-fail.tsx": ["7 basalt/no-restyle"],
+  "type-units-fail.tsx": ["4 basalt/raw-value", "4 basalt/raw-value", "4 basalt/raw-value", "5 basalt/raw-value"],
   "styles-fail.css": ["3 basalt/no-restyle", "7 basalt/no-restyle", "10 basalt/no-restyle", "10 unit-disallowed-list", "13 unit-disallowed-list", "14 color-no-hex", "15 unit-disallowed-list", "16 unit-disallowed-list", "18 unit-disallowed-list", "21 basalt/disable", "23 basalt/disable"],
 };
 
@@ -95,6 +103,36 @@ test("the command: exit 1 on an error, 0 on advice alone, 2 on a bad option; --m
   } finally {
     process.chdir(cwd);
   }
+});
+
+test("fix pass 1: the hook list is the whole contract, nesting and scope resolve, and type units are refused in JSX", async () => {
+  const got = byFile((await run()).findings);
+  const text = (file) => (got[file] ?? []).map((f) => f.message).join("\n");
+  assert.match(text("hooks-fail.tsx"), /`--basalt-viewport-top` is Basalt's own .* not one of the hooks an app sets/);
+  assert.match(text("nested-fail.css"), /"\.toolbar \.basalt-button" sets color/);
+  assert.match(text("nested-fail.css"), /"\.basalt-card:hover" sets background/);
+  assert.match(text("nested-fail.css"), /"\.basalt-button" sets padding .*`Button`'s `size` prop/);
+  // A binding's object is reported where it is used, so the exception goes on that line.
+  assert.match(text("scope-fail.tsx"), /the style object is declared on line 4/);
+  assert.match(text("type-units-fail.tsx"), /style\.fontSize sets type in cqi \("4cqi"\).*var\(--basalt-text-xs-size\)/);
+  assert.match(text("blanket-fail.css"), /basalt-lint-disable with no rule excuses nothing/);
+  const { HOOKS } = await import("../lint/appearance.mjs");
+  assert.deepEqual([...HOOKS].sort(), ["--basalt-dot-line-wrap", "--basalt-edge-room", "--basalt-edge-room-end", "--basalt-edge-room-start", "--basalt-shell-width", "--basalt-stage-room", "--basalt-sticky-offset"]);
+});
+
+test("the shareable config gives the CLI's answers without a parser: it reads the release's manifest, never oxc-parser", async () => {
+  const fs = await import("node:fs");
+  for (const file of ["stylelint-config.mjs", "stylelint-policy.mjs", "stylelint-rules.mjs", "vocabulary.mjs", "appearance.mjs", "hints.mjs", "values.mjs", "resolve.mjs"]) {
+    assert.doesNotMatch(fs.readFileSync(path.join(pkg, "lint", file), "utf8").replace(/^\s*\/\/.*$/gm, ""), /oxc-parser/, `${file} loads no parser`);
+  }
+  assert.ok(fs.existsSync(path.join(pkg, "dist", "lint-manifest.json")), "the build writes the manifest");
+  const config = { extends: [pathToFileURL(path.join(pkg, "lint", "stylelint-config.mjs")).pathname] };
+  const lint = async (code) => (await stylelint.lint({ code, config, codeFilename: path.join(fixtures, "probe.css") })).results[0].warnings.map((w) => w.rule);
+  // A sized control's height is its size prop; a card's height is layout. The same contract as the CLI's.
+  assert.deepEqual(await lint(".basalt-button { min-height: 100%; }"), ["basalt/no-restyle"]);
+  assert.deepEqual(await lint(".basalt-card { min-height: 100%; }"), []);
+  assert.deepEqual(await lint(".app-head { --basalt-edge-room: var(--basalt-space-6); }"), []);
+  assert.deepEqual(await lint(".app-head { --basalt-banner-height: var(--basalt-space-6); }"), ["basalt/no-restyle"]);
 });
 
 test("the shareable config is Basalt's own stylesheet policy plus basalt/no-restyle, with Stylelint's reasoned exception", async () => {

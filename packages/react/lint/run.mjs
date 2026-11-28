@@ -27,7 +27,7 @@ export async function basaltLint(options = {}) {
   const cwd = path.resolve(options.cwd ?? process.cwd());
   const files = listFiles(cwd, options.include?.length ? options.include : ["."], [...DEFAULT_EXCLUDE, ...(options.exclude ?? [])]);
   const oxc = await loadModule("oxc-parser", cwd);
-  const vocabulary = loadVocabulary(oxc, options.basaltRoot);
+  const vocabulary = loadVocabulary(options.basaltRoot);
   const hooks = [...(options.hooks ?? [])];
   const styleFiles = options.css === false ? [] : files.filter((f) => STYLE_EXT.test(f));
   let styles = { findings: new Map(), classes: new Map(), mentioned: new Set() };
@@ -38,7 +38,7 @@ export async function basaltLint(options = {}) {
   // A source is a package specifier, or (written as a path) one of the app's own modules that re-exports Basalt.
   const relative = (options.sources ?? []).filter((s) => /^\.{0,2}\//.test(s));
   const sourceFiles = new Set(relative.map((s) => path.resolve(cwd, s).replace(/\.[mc]?[jt]sx?$/, "").replace(/\/index$/, "")));
-  const context = { cwd, sourceFiles, oxc, vocabulary, sources: new Set(["@srasyndicate/basalt", ...(options.sources ?? []).filter((s) => !relative.includes(s))]), classes: styles.classes, hooks: new Set([...HOOKS, ...vocabulary.hooks, ...hooks]), mentioned: styles.mentioned };
+  const context = { cwd, sourceFiles, oxc, vocabulary, sources: new Set(["@srasyndicate/basalt", ...(options.sources ?? []).filter((s) => !relative.includes(s))]), classes: styles.classes, hooks: new Set([...HOOKS, ...hooks]), mentioned: styles.mentioned };
   const findings = [];
   for (const [file, list] of styles.findings) for (const f of list) findings.push({ file: path.relative(cwd, file), ...f });
   for (const file of files.filter((f) => SOURCE_EXT.test(f))) {

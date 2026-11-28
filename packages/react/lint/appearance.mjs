@@ -24,10 +24,16 @@ const SIZED = new Set(["height", "min-height", "max-height", "block-size", "min-
 const HIDE = new Set(["none"]);
 
 /**
- * Custom properties an app is documented to set (README: `Stage closing`'s `--basalt-stage-room`, `AppShell capped`'s `--basalt-shell-width`, a sticky
- * bar's `--basalt-sticky-offset`). Setting any other `--basalt-*` property changes a token for that box: a design decision, not an app's.
+ * The `--basalt-*` custom properties an app may set: each one is documented as the app's to write, and this list is the whole contract (the source
+ * check and the stylesheet rule both read it; docs/consumer-lint.md prints it). Every other `--basalt-*` property is a token or a measurement Basalt
+ * writes itself (`--basalt-viewport-top`, `--basalt-banner-height`), and setting it is a restyle.
+ *   --basalt-stage-room                the closing `Stage`'s bottom room, the app's (README: Stage closing)
+ *   --basalt-shell-width               `AppShell capped`'s cap, set on the root (README: AppShell)
+ *   --basalt-sticky-offset             a page's own sticky bar of another height, set on the root (README: a page with its own sticky bar)
+ *   --basalt-edge-room, -start, -end   the room a head declares for a ghost control hung at its edge (foundations: a ghost control at an edge)
+ *   --basalt-dot-line-wrap             `nowrap` for a `DotLine` that never wraps (foundations: DotLine)
  */
-export const HOOKS = new Set(["--basalt-stage-room", "--basalt-shell-width", "--basalt-sticky-offset"]);
+export const HOOKS = new Set(["--basalt-stage-room", "--basalt-shell-width", "--basalt-sticky-offset", "--basalt-edge-room", "--basalt-edge-room-start", "--basalt-edge-room-end", "--basalt-dot-line-wrap"]);
 
 /** `paddingInline` → `padding-inline`; `WebkitBackdropFilter` → `-webkit-backdrop-filter`; a custom property and a kebab name stay as written. */
 export function kebab(name) {
@@ -83,6 +89,31 @@ export function subjectClasses(selector) {
     const plain = stripFunctions(compound, /^(has|not)$/i);
     return [...plain.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)].map((m) => m[1]);
   });
+}
+
+/**
+ * The selectors a declaration lands under, nesting resolved: its nearest rule's selectors, each joined to every selector of the rule that holds it
+ * (through any at-rule between them: `.a { @media (...) { .b { } } }` is `.a .b`). A nested selector with `&` puts the parent where `&` is
+ * (`&:hover` under `.basalt-button` is `.basalt-button:hover`); one without is a descendant of it. A rule in `@keyframes` has none.
+ * @param {{ type: string, selector?: string, name?: string, parent?: any }} node a PostCSS declaration or rule
+ * @returns {string[]}
+ */
+export function effectiveSelectors(node) {
+  let rule = node.type === "rule" ? node : node.parent;
+  while (rule && rule.type !== "rule") {
+    if (rule.type !== "atrule" || /keyframes$/i.test(rule.name)) return [];
+    rule = rule.parent;
+  }
+  if (!rule) return [];
+  let holder = rule.parent;
+  while (holder && holder.type === "atrule") {
+    if (/keyframes$/i.test(holder.name)) return [];
+    holder = holder.parent;
+  }
+  const own = selectorList(rule.selector);
+  if (!holder || holder.type !== "rule") return own;
+  const parents = effectiveSelectors(holder);
+  return own.flatMap((selector) => parents.map((parent) => (selector.includes("&") ? selector.replaceAll("&", parent) : `${parent} ${selector}`)));
 }
 
 /** The selectors of a selector list (`a, :is(b, c)` is two). */

@@ -742,7 +742,7 @@ npx basalt-lint client          # or "client/**/*.tsx" client/app.css; --format 
 
 | Rule | | What it reports |
 |---|---|---|
-| `basalt/no-restyle` | error | A `style` key that sets appearance on a Basalt component, a `className` whose rules in the checked CSS set appearance on one, a stylesheet rule that sets appearance on a `.basalt-*` class, and a `--basalt-*` token set by the app. Layout passes: margin, placement, width, `display: none` and the documented hooks. |
+| `basalt/no-restyle` | error | A `style` key that sets appearance on a Basalt component, a `className` whose rules in the checked CSS set appearance on one, a stylesheet rule that sets appearance on a `.basalt-*` class, and a `--basalt-*` property set by the app that is not one of the listed hooks (`--basalt-edge-room` and its two sides, `--basalt-stage-room`, `--basalt-shell-width`, `--basalt-sticky-offset`, `--basalt-dot-line-wrap`). Nesting and scope are resolved. Layout passes: margin, placement, width and `display: none`. |
 | `basalt/raw-value` | error | A raw colour, length or time in a statically known `style` value (React's numbers included), in an SVG colour attribute, or in a custom property. In CSS, Basalt's Stylelint policy reports it under Stylelint's rule names. |
 | `basalt/class-on-component` | advice | A `className` on a Basalt component that the check cannot classify: it is computed, or the checked CSS has no rule for it. |
 | `basalt/primitive` | advice | Another library's part, or a native element (a plain `<button>`, `<select>` or checkbox), where Basalt has a proven part. It never applies to a `render` target, a row action or a hidden input. |

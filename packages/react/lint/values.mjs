@@ -65,3 +65,13 @@ export function rawNumber(property, number) {
   if (!Number.isFinite(number) || number === 0 || !numberIsLength(property)) return null;
   return { kind: "length", text: `${number}`, number, unit: "px", numeric: true };
 }
+
+/** The type properties the stylesheet policy keeps off container units and `lh` (stylelint-policy.mjs, `declaration-property-unit-disallowed-list`). */
+export const TYPE_PROPERTY = /^(font|font-size|line-height|letter-spacing|word-spacing)$/;
+const TYPE_UNIT = /(?<![\w.#-])(-?(?:\d+\.?\d*|\.\d+))(cqw|cqh|cqi|cqb|cqmin|cqmax|lh)(?![\w-])/gi;
+
+/** A container unit or `lh` in a type property's value: type steps at 720 and 1024 and is never sized by its container (foundations: display type). */
+export function typeUnits(property, value) {
+  if (!TYPE_PROPERTY.test(property)) return [];
+  return [...blankOpaque(String(value)).matchAll(TYPE_UNIT)].map((m) => ({ kind: "type", text: m[0], number: Number(m[1]), unit: m[2].toLowerCase() }));
+}

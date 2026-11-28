@@ -6,7 +6,7 @@
 //   basalt/no-restyle        an app's stylesheet setting appearance on Basalt's classes (`.basalt-*` as the subject of a selector), or setting a
 //                            `--basalt-*` token. Layout (margin, placement, width, `display: none`) is allowed; so are the documented hooks. Only in an
 //                            app's stylesheet: Basalt's own CSS draws these classes and does not use it.
-import { classify, HOOKS, selectorList, subjectClasses } from "./appearance.mjs";
+import { classify, effectiveSelectors, HOOKS, subjectClasses } from "./appearance.mjs";
 import { restyleHint, sizeProp } from "./hints.mjs";
 import { componentOfClass } from "./vocabulary.mjs";
 
@@ -39,12 +39,14 @@ export function basaltRules(stylelint, context = {}) {
   const restyleName = "basalt/no-restyle";
   const restyleMessages = utils.ruleMessages(restyleName, {
     rejected: (selector, property, hint) => `"${selector}" sets ${property} on Basalt's part: ${hint}`,
-    token: (property, hint) => `${property} is Basalt's token: ${hint}`,
+    token: (property, hint) => `sets ${property}: ${hint}`,
   });
   const restyle = (primary, secondary) => (root, result) => {
     if (!utils.validateOptions(result, restyleName, { actual: primary }, { actual: secondary, possible: { hooks: [(v) => typeof v === "string"] }, optional: true })) return;
-    const vocabulary = context.vocabulary ?? null;
-    const hooks = new Set([...HOOKS, ...(vocabulary?.hooks ?? []), ...(secondary?.hooks ?? [])]);
+    // The release's manifest, read without a parser: the same sizes and names whoever runs the rule (stylelint-policy.mjs loads it).
+    const vocabulary = context.vocabulary;
+    if (!vocabulary) throw new Error("basalt/no-restyle needs the release's manifest: build it through basaltStylelintConfig (stylelint-policy.mjs)");
+    const hooks = new Set([...HOOKS, ...(secondary?.hooks ?? [])]);
     const exception = context.exception ?? "stylelint-disable-next-line basalt/no-restyle -- <reason>";
     root.walkDecls((decl) => {
       const property = decl.prop;
@@ -53,15 +55,14 @@ export function basaltRules(stylelint, context = {}) {
         utils.report({ ruleName: restyleName, result, node: decl, word: property, message: restyleMessages.token(property, restyleHint(vocabulary, null, property, { className: "basalt-*", exception })) });
         return;
       }
-      const rule = decl.parent;
-      if (!rule || rule.type !== "rule" || property.startsWith("--")) return;
-      for (const [i, classes] of subjectClasses(rule.selector).entries()) {
-        const basalt = classes.find((c) => c.startsWith("basalt-"));
+      if (property.startsWith("--")) return;
+      const selectors = effectiveSelectors(decl);
+      for (const selector of selectors) {
+        const basalt = subjectClasses(selector)[0].find((c) => c.startsWith("basalt-"));
         if (!basalt) continue;
-        const component = vocabulary ? componentOfClass(vocabulary, basalt) : null;
+        const component = componentOfClass(vocabulary, basalt);
         const sized = Boolean(component && sizeProp(vocabulary.components.get(component)));
         if (classify(property, decl.value, { sized, hooks }) !== "appearance") continue;
-        const selector = selectorList(rule.selector)[i] ?? rule.selector;
         const hint = restyleHint(vocabulary, component, property, { className: basalt, exception });
         utils.report({ ruleName: restyleName, result, node: decl, word: property, message: restyleMessages.rejected(selector, property, hint) });
         break;

@@ -64,16 +64,21 @@ fails the run: the check never passes a file it could not read.
 ### `basalt/no-restyle` (error)
 
 An app restyling a Basalt component. The check knows a component by its import binding: `import { Button }`, an alias (`import { Card as Panel }`, reported as
-`Card`) and a namespace member (`import * as UI`, then `<UI.Badge>`). It reports:
+`Card`) and a namespace member (`import * as UI`, then `<UI.Badge>`). The name is resolved where it is used, so a parameter or a local that shadows the
+import is not Basalt's. It reports:
 
 - **A `style` key that sets appearance on a Basalt component.** `<Button style={{ padding: 12 }}>` gives: "use `Button`'s `size` prop ("xs" | … |
-  "5xl"); for space between controls, set the parent's `gap`". The prop and its values come from the installed declarations.
+  "5xl"); for space between controls, set the parent's `gap`". The prop and its values come from the installed release (`dist/lint-manifest.json`, which
+  Basalt's build writes from its own declarations). `style={styles}` is read when the `styles` in scope there is a `const` object, and the finding is
+  reported at the use site, where its exception goes.
 - **A `className` on a Basalt component when the checked CSS shows that the class sets appearance.** The message gives the class, the property, and the
   file and line of the rule.
 - **A stylesheet rule whose subject is one of Basalt's classes and that sets appearance.** `.jump .basalt-button { background: … }` lands on
-  `.basalt-button`. `.card:has(.basalt-button) { … }` lands on `.card` and passes.
-- **A `--basalt-*` token set by the app**, in a stylesheet (`:root { --basalt-space-4: 18px }`) or in any `style`. A token is design, decided by Basalt's
-  panel.
+  `.basalt-button`. `.card:has(.basalt-button) { … }` lands on `.card` and passes. Nesting is resolved, through nested at-rules too:
+  `.toolbar { .basalt-button { … } }` is `.toolbar .basalt-button`, and `.basalt-card { &:hover { … } }` is `.basalt-card:hover`.
+- **A `--basalt-*` property set by the app that is not a hook** (the list below), in a stylesheet (`:root { --basalt-space-4: 18px }`) or in any
+  `style`. A token is design, decided by Basalt's panel. Any other `--basalt-*` property is a measurement or a part's private value that Basalt writes
+  itself (`--basalt-viewport-top`, `--basalt-banner-height`).
 
 What stays allowed:
 
@@ -83,8 +88,16 @@ What stays allowed:
 - Height and its limits are layout, except on a component that takes `size` (or a field's `controlSize`). There the size prop sets the height.
 - Anything on a wrapper or on the app's own elements.
 - The app's own custom properties (`--app-slot`).
-- The documented hooks. These are `--basalt-stage-room`, `--basalt-shell-width` and `--basalt-sticky-offset`, plus every `--basalt-*` property Basalt's
-  stylesheet reads with a fallback and that is not a token, read from the installed release. A head's `--basalt-edge-room` is one of them.
+- The hooks: the `--basalt-*` properties an app may set. The list is the whole contract (`HOOKS` in `packages/react/lint/appearance.mjs`, read by the
+  source check and the stylesheet rule alike), and a config's `hooks` adds to it for one app:
+
+  | Hook | What the app sets it for |
+  |---|---|
+  | `--basalt-edge-room`, `--basalt-edge-room-start`, `--basalt-edge-room-end` | The room a head declares for a ghost control hung at its edge: its padding less any safe-area inset (foundations: a ghost control at an edge). |
+  | `--basalt-stage-room` | The closing `Stage`'s bottom room, the app's (README: `Stage closing`). |
+  | `--basalt-shell-width` | `AppShell capped`'s cap, on the root (README: `AppShell`). |
+  | `--basalt-sticky-offset` | A page's own sticky bar of another height, on the root (README: a page with its own sticky bar). |
+  | `--basalt-dot-line-wrap` | `nowrap` for a `DotLine` that never wraps (foundations: `DotLine`). |
 
 ### `basalt/raw-value` (error)
 
@@ -96,6 +109,8 @@ and so are `px`, `rem`, `em`, `ch` and the other font-relative units, the viewpo
 - **A raw colour in an SVG presentation attribute**: `fill`, `stroke`, `color`, `stop-color`, `flood-color` and `lighting-color`. An attribute cannot
   read a custom property. The fix is `fill="currentColor"`, with the colour set from a token in CSS or `style`.
 - **A raw literal in a custom property** (`"--app-ink": "rgb(0 0 0)"`).
+- **Type in a container unit or `lh`**: `fontSize: "4cqi"`, `lineHeight: "2lh"` and the same on `font`, `letter-spacing` and `word-spacing`. This is the
+  stylesheet's typography rule (foundations: display type) applied by property. A container unit off a type property (art placed by its container) passes.
 
 The message suggests a token by role, from the installed token release. A gap, padding or margin gets a space step. A radius gets a radius, a font size a
 type step, a duration a duration, a media query a breakpoint, and a colour the role tokens for its property: ink for `color`, a surface for `background`,
@@ -123,7 +138,8 @@ Where Basalt has a proven part:
   `<select>`, `<textarea>`, `<dialog>`, `<progress>`, `<meter>`, `<hr>`, `<kbd>`, `<table>` and `<details>`.
 
 It is never a blanket native ban. It leaves alone an element in a `render` prop (`render={<button type="submit" />}`), an element with a `role` or a
-spread (a wrapper), a button in a list or table row, or one with several parts (a row or card target), and a hidden input (`hidden`, `aria-hidden`,
+spread (a wrapper), a button in a list or table row (a native `li`, `tr`, `td` or `th`, or one of Basalt's own rows and cells: `TableRow`,
+`TableCell`, `TableRowHead`, `PanelRow` and every other `…Row`), or one with several parts (a row or card target), and a hidden input (`hidden`, `aria-hidden`,
 `type="hidden"`, or a visually-hidden class). It names only parts the installed release exports.
 
 ### `basalt/disable` (error)
@@ -155,8 +171,10 @@ One comment can name several rules, separated by commas.
 .clip { clip: rect(0 0 1px 1px); }
 ```
 
-Inside `basalt-lint`, a stylesheet's exceptions use the `basalt-lint-` prefix too, so one form covers source and CSS. An app that runs the shareable config in
-its own Stylelint (below) writes Stylelint's own `stylelint-disable-next-line`, with the same reason rule.
+Inside `basalt-lint`, a stylesheet's exceptions use the `basalt-lint-` prefix too, so one form covers source and CSS. Only that form excuses anything: a
+blanket `basalt-lint-disable` (for a block or a file), a `basalt-lint-enable`, a same-line `basalt-lint-disable-line` and a next-line comment that names no
+rule are each reported as `basalt/disable` and excuse nothing. An app that runs the shareable config in its own Stylelint (below) writes Stylelint's own
+`stylelint-disable-next-line`, with the same reason rule. Basalt's own repository lint keeps Stylelint's comments as they are.
 
 ## The shareable Stylelint config
 
@@ -168,7 +186,8 @@ export default { extends: ["@srasyndicate/basalt/stylelint-config"] };
 ```
 
 It is the policy Basalt's own CSS follows (`packages/react/lint/stylelint-policy.mjs`, which the repository's `stylelint.config.mjs` is built from) plus
-`basalt/no-restyle`. Without `oxc-parser` installed, its messages name the class and not the component.
+`basalt/no-restyle`. It needs no parser: what it knows of the components (their names, which take a `size`, their props' values) is the release's
+`dist/lint-manifest.json`, so it gives the same answers as `basalt-lint` with or without `oxc-parser` installed.
 
 ## From code
 
@@ -184,8 +203,9 @@ The options are the config's keys plus `cwd`.
 
 - **A wrapper in another file.** An app's `PrimaryButton` that forwards `className` or `style` to `Button`: the check reports what is written at the
   `Button` inside it, never what callers pass through it.
-- **A spread or a computed object.** In `style={{ ...base, padding: 4 }}` the `padding` is read and `...base` is not. `style={styles}` is read when `styles`
-  is a `const` object declared once in the same file.
+- **A spread or a computed object.** In `style={{ ...base, padding: 4 }}` the `padding` is read and `...base` is not. `style={styles}` is read when the
+  `styles` in scope at that line is a `const` object; a `let`, a parameter or an object built by a call is not read.
+- **An alias by assignment.** `const Primary = Button` is not followed; `<Primary>` is not checked as `Button`.
 - **The cascade.** A class is classified by the rules that land on it in the checked CSS. The check does not know which rule wins at run time, or what a
   class added by a script sets.
 - **A computed `className`.** It is advice, never an error.

@@ -16,14 +16,17 @@ import { classify, HOOKS, kebab } from "./appearance.mjs";
 import { applyDisables, readDisables } from "./disables.mjs";
 import { restyleHint, sizeProp } from "./hints.mjs";
 import { competingImport, nativeElement } from "./primitives.mjs";
-import { rawNumber, rawValues } from "./values.mjs";
-import { suggest } from "./vocabulary.mjs";
+import { lookup, scopeOf } from "./scope.mjs";
+import { rawNumber, rawValues, typeUnits } from "./values.mjs";
+import { suggest, typeStep } from "./vocabulary.mjs";
 
 export const SOURCE_RULES = ["basalt/no-restyle", "basalt/raw-value", "basalt/class-on-component", "basalt/primitive"];
 const SEVERITY = { "basalt/no-restyle": "error", "basalt/raw-value": "error", "basalt/class-on-component": "warning", "basalt/primitive": "warning" };
 /** SVG presentation attributes that take a colour, as JSX writes them and as SVG does. */
 const SVG_COLOUR = new Set(["fill", "stroke", "color", "stopColor", "stop-color", "floodColor", "flood-color", "lightingColor", "lighting-color"]);
 const EXCEPTION = "basalt-lint-disable-next-line basalt/no-restyle -- <reason>";
+/** Basalt's own rows and cells: a native button inside one is the row's action, not an ordinary one. */
+const ROW = /(Row|^TableRowHead|^TableCell|^TableHead|^SelectableItem)$/;
 
 /**
  * Lints one source file.
@@ -47,52 +50,49 @@ export function lintSource(file, text, context) {
   const hooks = context.hooks ?? HOOKS;
   const has = (name) => vocabulary.has(name);
   const findings = [];
-  const add = (rule, node, message) => findings.push({ rule, severity: SEVERITY[rule], ...position(node.start), message });
+  const report = (rule, node, message) => findings.push({ rule, severity: SEVERITY[rule], ...position(node.start), message });
+  const add = report;
 
-  // Import identity: a local name or namespace bound to a Basalt export.
-  const locals = new Map();
-  const namespaces = new Set();
+  // Import identity: a module-scope name or namespace bound to a Basalt export. Each use resolves through the scopes at its site (scope.mjs).
+  const imports = new Map();
   for (const statement of parsed.program.body) {
-    if (statement.type !== "ImportDeclaration" || statement.importKind === "type") continue;
+    if (statement.type !== "ImportDeclaration") continue;
     const source = statement.source.value;
-    if (context.sources.has(source) || isSourceFile(file, source, context)) {
-      for (const s of statement.specifiers) {
-        if (s.importKind === "type") continue;
-        // Only a name the installed Basalt exports: an app's barrel (`sources`) may export its own components beside Basalt's.
-        if (s.type === "ImportSpecifier" && has(s.imported.name ?? s.imported.value)) locals.set(s.local.name, s.imported.name ?? s.imported.value);
-        else if (s.type === "ImportNamespaceSpecifier") namespaces.add(s.local.name);
-      }
-      continue;
+    const basalt = context.sources.has(source) || isSourceFile(file, source, context);
+    for (const s of statement.specifiers) {
+      const imported = s.type === "ImportSpecifier" ? s.imported.name ?? s.imported.value : null;
+      // Only a value the installed Basalt exports: an app's barrel (`sources`) may export its own components beside Basalt's.
+      if (basalt && statement.importKind !== "type" && s.importKind !== "type" && imported && has(imported)) imports.set(s.local.name, { kind: "import", basalt: imported });
+      else if (basalt && statement.importKind !== "type" && s.type === "ImportNamespaceSpecifier") imports.set(s.local.name, { kind: "import", namespace: true });
+      else imports.set(s.local.name, { kind: "import" });
     }
+    if (basalt || statement.importKind === "type") continue;
     const names = statement.specifiers.filter((s) => s.importKind !== "type").map((s) => (s.type === "ImportSpecifier" ? s.imported.name ?? s.imported.value : s.type === "ImportNamespaceSpecifier" ? "*" : "default"));
     const advice = competingImport(source, names, has);
     if (advice) add("basalt/primitive", statement, advice);
   }
 
-  // Objects declared once with `const`, so `style={styles}` reads what `styles` is.
-  const objects = new Map();
-  const declaredTwice = new Set();
-  walk(parsed.program, (node) => {
-    if (node.type === "VariableDeclarator" && node.id?.type === "Identifier") {
-      if (objects.has(node.id.name)) declaredTwice.add(node.id.name);
-      objects.set(node.id.name, node.init);
-    }
-  });
-  const objectOf = (expr) => {
+  /** The object a `style` value is: written in place, or the nearest binding of its name when that is a `const` holding an object. */
+  const objectOf = (expr, scope) => {
     if (expr?.type === "ObjectExpression") return expr;
-    if (expr?.type === "Identifier" && !declaredTwice.has(expr.name) && objects.get(expr.name)?.type === "ObjectExpression") return objects.get(expr.name);
-    if (expr?.type === "TSAsExpression" || expr?.type === "TSSatisfiesExpression") return objectOf(expr.expression);
+    if (expr?.type === "TSAsExpression" || expr?.type === "TSSatisfiesExpression" || expr?.type === "ParenthesizedExpression") return objectOf(expr.expression, scope);
+    if (expr?.type === "Identifier") {
+      const binding = lookup(scope, expr.name);
+      if (binding?.kind === "const" && binding.init) return objectOf(binding.init, null);
+    }
     return null;
   };
 
-  /** The Basalt export a JSX name is, or null. */
-  const componentOf = (name) => {
-    if (name.type === "JSXIdentifier") return locals.get(name.name) ?? null;
-    if (name.type === "JSXMemberExpression" && name.object.type === "JSXIdentifier" && namespaces.has(name.object.name) && has(name.property.name)) return name.property.name;
+  /** The Basalt export a JSX name is at its use site, or null. */
+  const componentOf = (name, scope) => {
+    if (name.type === "JSXIdentifier") return lookup(scope, name.name)?.basalt ?? null;
+    if (name.type === "JSXMemberExpression" && name.object.type === "JSXIdentifier" && lookup(scope, name.object.name)?.namespace && has(name.property.name)) return name.property.name;
     return null;
   };
 
-  const checkStyle = (styleObject, component) => {
+  /** `at`: where to report when the object is a binding's (the use site, where its exception goes), else each property where it is written. */
+  const checkStyle = (styleObject, component, at = null) => {
+    const add = (rule, node, message) => report(rule, at ?? node, at ? `${message} (the style object is declared on line ${position(styleObject.start).line})` : message);
     const info = component ? vocabulary.components.get(component) : null;
     const sized = Boolean(sizeProp(info));
     for (const p of styleObject.properties) {
@@ -109,6 +109,9 @@ export function lintSource(file, text, context) {
       for (const part of statics) {
         const raws = typeof part === "number" ? [rawNumber(property, part)].filter(Boolean) : rawValues(part);
         for (const raw of raws) add("basalt/raw-value", p.value, `style.${key} is the raw ${raw.kind} ${raw.numeric ? `${raw.number} (React writes ${raw.number}px)` : `"${raw.text}"`}: ${suggest(vocabulary.tokens, property, raw)}`);
+        if (typeof part === "string") {
+          for (const t of typeUnits(property, part)) add("basalt/raw-value", p.value, `style.${key} sets type in ${t.unit} ("${t.text}"): type is never sized by its container or set in lh (foundations: display type); ${typeStep(vocabulary.tokens, property)}`);
+        }
       }
     }
   };
@@ -143,7 +146,7 @@ export function lintSource(file, text, context) {
     if (!node || typeof node.type !== "string") return;
     if (node.type === "JSXElement") {
       const opening = node.openingElement;
-      const component = componentOf(opening.name);
+      const component = componentOf(opening.name, ctx.scope);
       const tag = opening.name.type === "JSXIdentifier" && /^[a-z]/.test(opening.name.name) ? opening.name.name : null;
       const attrs = new Map();
       let hasSpread = false;
@@ -152,7 +155,7 @@ export function lintSource(file, text, context) {
         const name = attr.name.type === "JSXNamespacedName" ? `${attr.name.namespace.name}:${attr.name.name.name}` : attr.name.name;
         const v = attr.value;
         attrs.set(name, v == null ? true : v.type === "Literal" ? v.value : v.type === "JSXExpressionContainer" ? staticString(v.expression) : undefined);
-        if (name === "style" && v?.type === "JSXExpressionContainer") { const o = objectOf(v.expression); if (o) checkStyle(o, component); }
+        if (name === "style" && v?.type === "JSXExpressionContainer") { const o = objectOf(v.expression, ctx.scope); if (o) checkStyle(o, component, o === v.expression ? null : attr); }
         if (name === "className" && component) checkClassName(attr, component);
         if (tag && SVG_COLOUR.has(name)) {
           const s = v?.type === "Literal" ? v.value : v?.type === "JSXExpressionContainer" ? staticString(v.expression) : undefined;
@@ -165,7 +168,9 @@ export function lintSource(file, text, context) {
         const advice = nativeElement(tag, attrs, { inRender: ctx.inRender, inRow: ctx.inRow, hasSpread, children, text }, has);
         if (advice) add("basalt/primitive", opening, `<${tag}>: ${advice}`);
       }
-      const inner = { inRender: false, inRow: ctx.inRow || tag === "li" || tag === "tr" || tag === "td" || tag === "th" };
+      // A row: a list item or table row, or one of Basalt's own rows (`TableRow`, `PanelRow`, `TableCell` and the rest).
+      const row = tag === "li" || tag === "tr" || tag === "td" || tag === "th" || (component !== null && ROW.test(component));
+      const inner = { scope: ctx.scope, inRender: false, inRow: ctx.inRow || row };
       for (const attr of opening.attributes) {
         if (attr.type === "JSXAttribute" && attr.value) visit(attr.value, { ...inner, inRender: attr.name.name === "render" || ctx.inRender });
         else if (attr.type === "JSXSpreadAttribute") visit(attr.argument, inner);
@@ -173,14 +178,16 @@ export function lintSource(file, text, context) {
       for (const child of node.children) visit(child, inner);
       return;
     }
+    const opened = scopeOf(node, imports);
+    const here = opened ? { ...ctx, scope: { names: opened, parent: ctx.scope } } : ctx;
     for (const key of Object.keys(node)) {
       if (key === "parent") continue;
       const value = node[key];
-      if (Array.isArray(value)) for (const child of value) visit(child, ctx);
-      else if (value && typeof value.type === "string") visit(value, ctx);
+      if (Array.isArray(value)) for (const child of value) visit(child, here);
+      else if (value && typeof value.type === "string") visit(value, here);
     }
   };
-  visit(parsed.program, { inRender: false, inRow: false });
+  visit(parsed.program, { scope: null, inRender: false, inRow: false });
 
   const disables = readDisables(parsed.comments, (offset) => position(offset).line);
   return applyDisables(findings, disables, new Set([...SOURCE_RULES, "basalt/disable"]));
@@ -194,16 +201,6 @@ function isSourceFile(file, specifier, context) {
   return context.sourceFiles.has(bare(target));
 }
 
-function walk(node, visit) {
-  if (!node || typeof node.type !== "string") return;
-  visit(node);
-  for (const key of Object.keys(node)) {
-    if (key === "parent") continue;
-    const value = node[key];
-    if (Array.isArray(value)) for (const child of value) walk(child, visit);
-    else if (value && typeof value.type === "string") walk(value, visit);
-  }
-}
 
 /** A string the source wrote whole, or undefined. */
 function staticString(expr) {

@@ -1,5 +1,7 @@
-// What the consumer lint knows about the Basalt it runs beside: the installed release's exports, each export's props (read from its declarations)
-// and the installed token release. Nothing is copied into the lint, so a fix-it message names only a component, prop or token the app can use today.
+// What the consumer lint knows about the Basalt it runs beside: the installed release's components and their props (dist/lint-manifest.json, written
+// at build time by lint/manifest.mjs from the package's own exports and declarations) and the installed token release. Nothing is copied into the
+// lint and no parser is needed to read either, so the CLI and the shareable Stylelint config give the same answers, and a fix-it message names only a
+// component, prop or token the app can use today.
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -8,116 +10,16 @@ import { fileURLToPath } from "node:url";
 const pkgRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
- * The installed Basalt: { components: Map<name, { module, props:Set, values:Map<prop, string[]> }>, tokens, has(name) }.
- * @param {{ parseSync: Function }} oxc the parser, already loaded
+ * The installed Basalt: { components: Map<name, { props:Set<string>, valuesOf(prop): string[] }>, tokens, has(name) }.
  * @param {string} [root] the `@srasyndicate/basalt` package directory (the one this file ships in, by default)
  */
-export function loadVocabulary(oxc, root = pkgRoot) {
-  const dist = path.join(root, "dist");
-  const entry = path.join(dist, "index.js");
-  if (!fs.existsSync(entry)) throw new Error(`basalt-lint: ${path.relative(process.cwd(), entry) || entry} is missing; build or install @srasyndicate/basalt first`);
-  /** export name → the module (path without extension) that defines it */
-  const exports = new Map();
-  const seen = new Set();
-  const visit = (file) => {
-    if (seen.has(file) || !fs.existsSync(file)) return;
-    seen.add(file);
-    const parsed = oxc.parseSync(file, fs.readFileSync(file, "utf8"), { sourceType: "module", lang: "js" });
-    for (const record of parsed.module.staticExports) for (const e of record.entries) {
-      const from = e.moduleRequest ? path.resolve(path.dirname(file), e.moduleRequest.value) : file;
-      if (e.exportName.kind === "Name") { if (!exports.has(e.exportName.name)) exports.set(e.exportName.name, from.replace(/\.js$/, "")); }
-      else if (e.exportName.kind === "None" && e.moduleRequest) visit(from);
-    }
-  };
-  visit(entry);
-  const declarations = new Map();
-  const declarationOf = (module) => {
-    if (!declarations.has(module)) {
-      const file = `${module}.d.ts`;
-      declarations.set(module, fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "");
-    }
-    return declarations.get(module);
-  };
-  const allDeclarations = () => {
-    for (const file of fs.readdirSync(dist)) if (file.endsWith(".d.ts")) declarationOf(path.join(dist, file.replace(/\.d\.ts$/, "")));
-    return [...declarations.values()].join("\n");
-  };
+export function loadVocabulary(root = pkgRoot) {
+  const file = path.join(root, "dist", "lint-manifest.json");
+  if (!fs.existsSync(file)) throw new Error(`basalt-lint: ${path.relative(process.cwd(), file) || file} is missing; build or install @srasyndicate/basalt first`);
+  const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
   const components = new Map();
-  for (const [name, module] of exports) {
-    // A component is a PascalCase value export (constants are UPPER_CASE; hooks and helpers start lower case).
-    if (!/^[A-Z][a-z]/.test(name)) continue;
-    let own = null;
-    const read = () => (own ??= ownProps(declarationOf(module), name));
-    components.set(name, { module, get props() { return read().props; }, valuesOf: (prop) => unionValues(read().text, prop, allDeclarations) });
-  }
-  const tokens = loadTokens(root);
-  return { root, components, has: (name) => components.has(name), tokens, hooks: inputHooks(dist, tokens) };
-}
-
-/**
- * The custom properties Basalt reads from an app: a `--basalt-*` name its stylesheet reads with a fallback (`var(--basalt-edge-room, ...)`) that is not
- * a token. A head declares `--basalt-edge-room`; Basalt never asks an app to set a token.
- */
-function inputHooks(dist, tokens) {
-  const file = path.join(dist, "components.css");
-  if (!fs.existsSync(file)) return new Set();
-  const css = fs.readFileSync(file, "utf8");
-  return new Set([...css.matchAll(/var\(--basalt-([\w-]+),/g)].map((m) => m[1]).filter((n) => !tokens.names.has(n)).map((n) => `--basalt-${n}`));
-}
-
-/** A declaration file's top-level type declarations: name → its text. */
-function topLevel(text) {
-  const blocks = new Map();
-  const heads = [...text.matchAll(/^(?:export )?(?:declare )?(type|interface|function|const|class) ([A-Za-z_$][\w$]*)/gm)];
-  heads.forEach((m, i) => {
-    if (m[1] !== "type" && m[1] !== "interface") return;
-    blocks.set(m[2], text.slice(m.index, heads[i + 1]?.index ?? text.length));
-  });
-  return blocks;
-}
-
-/**
- * One component's own props, from its declaration: the names its signature destructures (`function Card({ className, children, ...props })`), and the
- * members of its props type and the local types that type is built from (`ButtonProps = BaseProps & ButtonToggle & {...}`). The text returned is
- * those types, where a prop's values are read.
- */
-function ownProps(text, name) {
-  const props = new Set();
-  const signature = new RegExp(`^export declare (?:function ${name}\\s*(?:<[^>]*>)?\\(([^\\n]*)\\)|const ${name}:([^\\n]*))`, "m").exec(text);
-  const blocks = topLevel(text);
-  let typeText = "";
-  if (signature) {
-    const params = signature[1] ?? "";
-    const destructured = /^\s*\{([^}]*)\}/.exec(params);
-    if (destructured) for (const part of destructured[1].split(",")) { const n = /^\s*([A-Za-z_$][\w$]*)/.exec(part)?.[1]; if (n && !part.trim().startsWith("...")) props.add(n); }
-    const seen = new Set();
-    const pull = (source, depth) => {
-      for (const ref of source.matchAll(/\b([A-Z][\w$]*)\b/g)) {
-        const block = blocks.get(ref[1]);
-        if (!block || seen.has(ref[1])) continue;
-        seen.add(ref[1]);
-        typeText += `${block}\n`;
-        if (depth < 3) pull(block, depth + 1);
-      }
-    };
-    pull(signature[2] ?? params.replace(/^\s*\{[^}]*\}/, ""), 0);
-  } else typeText = text;
-  for (const m of typeText.matchAll(/^\s+(?:readonly\s+)?([a-zA-Z_$][\w$]*)\??:/gm)) props.add(m[1]);
-  return { props, text: typeText };
-}
-
-/** The string values a prop takes (`size?: ControlSize` with `type ControlSize = "xs" | "sm"`), as written in the declarations: every place the prop is declared, joined. */
-function unionValues(text, prop, all) {
-  const literals = (s) => [...s.matchAll(/"([^"]+)"/g)].map((x) => x[1]);
-  const values = new Set();
-  for (const m of text.matchAll(new RegExp(`^\\s+${prop}\\??:\\s*([^;\\n]+)`, "gm"))) {
-    for (const v of literals(m[1])) values.add(v);
-    for (const alias of m[1].matchAll(/\b([A-Z][\w$]*)\b/g)) {
-      const def = new RegExp(`type ${alias[1]}\\s*=\\s*([^;]+);`).exec(text) ?? new RegExp(`type ${alias[1]}\\s*=\\s*([^;]+);`).exec(all());
-      if (def) for (const v of literals(def[1])) values.add(v);
-    }
-  }
-  return [...values];
+  for (const [name, c] of Object.entries(manifest.components)) components.set(name, { props: new Set(c.props), valuesOf: (prop) => c.values[prop] ?? [] });
+  return { root, components, has: (name) => components.has(name), tokens: loadTokens(root) };
 }
 
 /** The installed token release: { names:Set, primitives: Map<name, css>, roles: { dark: Map<name, hex>, light: Map<name, hex> } }. */
@@ -224,6 +126,13 @@ export function suggest(tokens, property, raw) {
   const sorted = candidates.sort((a, b) => Math.abs(a[1] - Math.abs(base)) - Math.abs(b[1] - Math.abs(base))).slice(0, 2);
   if (!sorted.length) return `use ${family.label} token`;
   return `no ${family.label.replace(/^an? /, "")} token is ${raw.text}: the nearest are ${sorted.map(([n, , css]) => `${v(n)} (${css})`).join(" and ")}; a value between them is a design decision`;
+}
+
+/** The type step tokens for a type property, from the installed release: "use a type step: var(--basalt-text-sm-size), …". */
+export function typeStep(tokens, property) {
+  const suffix = property === "line-height" ? "line-height" : property === "letter-spacing" ? "tracking" : "size";
+  const names = [...tokens.names].filter((n) => new RegExp(`^text-(xs|sm|base|md|lg|xl)-${suffix}$`).test(n));
+  return names.length ? `use a type step: ${names.slice(0, 4).map((n) => `var(--basalt-${n})`).join(", ")}, or \`Text\`'s \`size\`` : "use a type step token";
 }
 
 function roleList(tokens, roles) {

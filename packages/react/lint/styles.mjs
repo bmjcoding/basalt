@@ -6,7 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { subjectClasses } from "./appearance.mjs";
+import { effectiveSelectors, subjectClasses } from "./appearance.mjs";
 import { resolvePackage } from "./resolve.mjs";
 import { basaltStylelintConfig } from "./stylelint-policy.mjs";
 import { rawValues } from "./values.mjs";
@@ -29,27 +29,33 @@ export async function lintStyles(files, context) {
   if (!files.length) return { findings, classes, mentioned };
   const postcss = await loadPostcss();
   const roots = new Map();
+  const sources = new Map();
+  const disableFindings = new Map();
   for (const file of files) {
-    const text = fs.readFileSync(file, "utf8");
+    const { text, invalid } = onlyNextLineDisables(fs.readFileSync(file, "utf8"));
+    sources.set(file, text);
+    if (invalid.length) disableFindings.set(file, invalid);
     const root = postcss.parse(text, { from: file });
     roots.set(file, root);
     const rel = path.relative(cwd, file);
     root.walkRules((rule) => {
-      if (rule.parent?.type === "atrule" && /keyframes$/i.test(rule.parent.name)) return;
       for (const m of rule.selector.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) mentioned.add(m[1]);
-      const subjects = subjectClasses(rule.selector).flat().filter((c) => !c.startsWith("basalt-"));
-      if (!subjects.length) return;
-      for (const node of rule.nodes ?? []) {
-        if (node.type !== "decl") continue;
-        for (const name of new Set(subjects)) {
-          if (!classes.has(name)) classes.set(name, []);
-          classes.get(name).push({ property: node.prop, value: node.value, file: rel, line: node.source?.start?.line ?? rule.source?.start?.line ?? 0 });
-        }
+    });
+    // What each of the app's classes sets, nesting resolved (`.a { &:hover { } }`, `.a { @media (...) { } }`).
+    root.walkDecls((decl) => {
+      const subjects = new Set(effectiveSelectors(decl).flatMap((sel) => subjectClasses(sel).flat()).filter((c) => !c.startsWith("basalt-")));
+      for (const name of subjects) {
+        if (!classes.has(name)) classes.set(name, []);
+        classes.get(name).push({ property: decl.prop, value: decl.value, file: rel, line: decl.source?.start?.line ?? 0 });
       }
     });
   }
   const config = basaltStylelintConfig(stylelint, { restyle: true, hooks: context.hooks, vocabulary, configurationComment: "basalt-lint" });
-  const result = await stylelint.lint({ files, config, cwd, allowEmptyInput: true });
+  const result = { results: [] };
+  for (const [file, code] of sources) {
+    const one = await stylelint.lint({ code, codeFilename: file, config, cwd, allowEmptyInput: true });
+    result.results.push(...one.results.map((r) => ({ ...r, source: file })));
+  }
   for (const res of result.results) {
     const file = res.source;
     const list = [];
@@ -61,6 +67,8 @@ export async function lintStyles(files, context) {
       else if (KIND[rule]) message = `${message}: ${hint(roots.get(file), w, vocabulary)}. If it must stay, record why: /* basalt-lint-disable-next-line ${rule} -- <reason> */`;
       list.push({ rule, severity: w.severity === "warning" ? "warning" : "error", line: w.line, column: w.column, message });
     }
+    list.push(...(disableFindings.get(file) ?? []));
+    list.sort((a, b) => a.line - b.line || a.column - b.column);
     if (list.length) findings.set(file, list);
   }
   return { findings, classes, mentioned };
@@ -84,6 +92,24 @@ function hint(root, warning, vocabulary) {
   if (!raw) return "use a --basalt-* token";
   if (found.type === "atrule") return suggest(vocabulary.tokens, "", { ...raw, kind: "media" });
   return suggest(vocabulary.tokens, property, raw);
+}
+
+/**
+ * In the consumer check only the reasoned, rule-specific next-line form excuses anything (`/* basalt-lint-disable-next-line <rule> -- <reason> *\/`).
+ * Any other directive (`basalt-lint-disable`, `-enable`, `-disable-line`, a next-line one that names no rule) is reported and made inert, at the same
+ * length so every line and column stays where it was. Basalt's own repository lint keeps Stylelint's own directives as they are.
+ */
+function onlyNextLineDisables(text) {
+  const invalid = [];
+  const out = text.replace(/\/\*(\s*)basalt-lint-(disable|enable)(-next-line|-line)?\b([\s\S]*?)\*\//g, (whole, space, verb, scope, rest, offset) => {
+    const rules = rest.split(/\s--\s?/)[0].trim();
+    if (verb === "disable" && scope === "-next-line" && rules) return whole;
+    const line = text.slice(0, offset).split("\n").length;
+    const form = `basalt-lint-${verb}${scope ?? ""}`;
+    invalid.push({ rule: "basalt/disable", severity: "error", line, column: offset - text.lastIndexOf("\n", offset - 1), message: `${form}${rules ? "" : " with no rule"} excuses nothing in basalt-lint: write /* basalt-lint-disable-next-line <rule> -- <reason> */ on the line before each exception` });
+    return whole.replace("basalt-lint", "basalt-void");
+  });
+  return { text: out, invalid };
 }
 
 const escape = (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
