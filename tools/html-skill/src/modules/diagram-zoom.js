@@ -27,7 +27,7 @@ import { attachZoom, drawnSize, measureViewerFigure, revealIn, VIEWER_KEYS, view
     var gone = page.__viewer;
     if (gone) { clearTimeout(gone.__leave); gone.remove(); }
     var key = kit.figureKey('diagram', model);
-    var hint = viewerHint(kit.hintEntries(model, true)).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + esc(e.words) + '</span>'; }).join('');
+    var hint = viewerHint(kit.hintEntries(model, { layout: 'drawn' })).map(function (e) { return '<span>' + e.keys.map(kbd).join(' ') + ' ' + esc(e.words) + '</span>'; }).join('');
     var d = document.createElement('dialog');
     d.className = 'panel float modal dialog diagram-viewer';
     d.setAttribute('data-form', '');

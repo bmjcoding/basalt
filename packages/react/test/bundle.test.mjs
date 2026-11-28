@@ -118,7 +118,10 @@ async function lazyGraph(names, extra = "") {
 // merge with origin/main 8b090549 (T5, which moved none of these five: the same main figures): Listbox 3,358 to 10,173 (+6,815: 3,400 to 10,215); SearchDialog 90,327 to 98,748 (+8,421: 90,350 to 98,771, its dialog's and results' fade);
 // NotificationCentre 156,110 to 164,955 (+8,845: 156,150 to 164,995); Text 17,568 to 23,692 (+6,124: 17,600 to 23,724, the lazy peek plate's status port
 // inlined by bundle(); built on its own so no root import's graph carries the fade); Terminal 43,980 to 50,042 (+6,062: 43,991 to 50,053).
-for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_100], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_678], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 10_215], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_250]]) {
+// cimip-gaps-3 E6 (G161, IconButton's `icon` as an element, told apart by React.isValidElement (a runtime React import in button.js, +25 in every graph that holds a
+// Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
+// Button 18,672 on main, 18,697 with E6 (+25), so 18,678 to 18,703; Drawer 19,234 to 19,259 (+25), so 19,250 to 19,275.
+for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_100], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_703], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 10_215], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_275]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);
@@ -135,9 +138,13 @@ for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_100], ["Skeleto
 // SearchDialog 89,550 (main's) to 89,950 in DECISIONS 336: its top is held where a full result has it (DialogContent's held top for a dialog that is not a form), and Close is hung.
 // The stream's merge: SearchDialog was over its limit on main before this stream (89,981 against 89,950); with T4's FilterResult and Reserve it measures
 // 90,327 on the combined head (origin/main 6a78d57c: 89,981), so its limit is that figure and a small margin, 90,350.
+// cimip-gaps-3 E6 (G161, IconButton's `icon` as an element, told apart by React.isValidElement (a runtime React import in button.js, +25 in every graph that holds a
+// Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
+// SearchDialog 98,748 on main, 98,879 with E6 (+131), so 98,771 to 98,902.
 // cimip-gaps-3 t8 (DECISIONS 407), measured with this file's graph() on origin/main 1b4749df and again on d8c9ac79 (the same figure), and on the t8 head: SearchDialog 98,748 to 99,313 (+565: the query's
 // fade at rest, the watcher started only while there are words and its refreshes on value, focus, blur and the fonts), so its limit rises by that alone, 98,771 to 99,336.
-for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 99_336]]) {
+// Combined on the merge of main (E6) into t8: 98,902 (E6) + 565 (t8) = 99,467.
+for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 99_467]]) {
   test(`${name} alone, with splitting, loads Base UI's dialog and the close button and no command panel (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes (limit ${limit})`);
@@ -438,7 +445,10 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // c67926bf: main 153,260, the head 155,936; then 155,982 once the first load's fallback is busy (a held first paint waits for the shape's code), the limit
 // 155,950 to 156,000.
 // The stream's merge (T3 and T4 both raised it): NotificationCentre 153,260 on origin/main 6a78d57c, 156,110 on the combined head (+2,850), so main's 153,300 to 156,150.
-for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 164_995]]) {
+// cimip-gaps-3 E6 (G161, IconButton's `icon` as an element, told apart by React.isValidElement (a runtime React import in button.js, +25 in every graph that holds a
+// Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
+// NotificationCentre 164,955 on main, 165,086 with E6 (+131), so 164,995 to 165,126.
+for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 165_126]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);
@@ -452,7 +462,10 @@ for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["N
 // DECISIONS 326: a text toggle's seat holds its glyph and hands over to the check (button.tsx), about 185 bytes on every Button: the toolbar parts 58,803 (58,650 to 58,850).
 // The toolbar's parts 58,950 (main's) to 59,200 in DECISIONS 336: Button's edge and done seat.
 // The stream's merge: the toolbar set 59,197 on origin/main 6a78d57c, 59,340 on the combined head (+143), so main's 59,200 to 59,343.
-for (const [name, limit] of [["Toolbar", 25_000], ["Toolbar, ToolbarButton, ToolbarIconButton, ToolbarLink, ToolbarInput, ToolbarGroup, ToolbarSeparator", 59_343]]) {
+// cimip-gaps-3 E6 (G161, IconButton's `icon` as an element, told apart by React.isValidElement (a runtime React import in button.js, +25 in every graph that holds a
+// Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
+// the whole toolbar set 59,340 on main, 59,470 with E6 (+130), so 59,343 to 59,473.
+for (const [name, limit] of [["Toolbar", 25_000], ["Toolbar, ToolbarButton, ToolbarIconButton, ToolbarLink, ToolbarInput, ToolbarGroup, ToolbarSeparator", 59_473]]) {
   test(`${name.length > 10 ? "Every toolbar part" : name} stays small and loads no Shiki, cmdk or grammar (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -487,7 +500,10 @@ test("Stats with Stat loads no Base UI and no Shiki up front, and of Phosphor on
 // cimip-gaps-3 E5: E1 had raised this limit to main's measure, because PR #143 built the lazy diagram-actions.js in the main build, so it imported
 // Button's dist chunk and an app's bundler put Button and Base UI's button in a chunk every root import loaded. diagram-actions is built on its own now
 // (build.mjs), and the limit is the measure on the E5 branch, rounded up to the next 50: PeriodStepper 21,274 on main, 18,285 (21,300 to 18,300; E1's quiet arrival is the 155 over the old 18,150).
-for (const [name, limit, plain] of [["AppTile", 1_500, true], ["CaptionedColumns, CaptionedColumn", 1_000, true], ["TableCall", 800, true], ["PeriodStepper", 18_300, false]]) {
+// cimip-gaps-3 E6 (G161, IconButton's `icon` as an element, told apart by React.isValidElement (a runtime React import in button.js, +25 in every graph that holds a
+// Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
+// PeriodStepper 18,284 on main, 18,414 with E6 (+130), so 18,300 to 18,430.
+for (const [name, limit, plain] of [["AppTile", 1_500, true], ["CaptionedColumns, CaptionedColumn", 1_000, true], ["TableCall", 800, true], ["PeriodStepper", 18_430, false]]) {
   test(`${name} alone is small and loads no Shiki or cmdk${plain ? ", no Base UI and no Phosphor" : ""} (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -556,7 +572,10 @@ test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async
   // origin/main ac962cec, again at 42,889 on origin/main c67926bf (merge prep), and 43,007 on the t6 head (+118), so the limit rises by the increase, 42,900 to 43,018.
   // The stream's merge (T1, T2 and T6 each raised it): 43,007 on origin/main 6a78d57c, 43,980 on the combined head (+973), so main's 43,018 to 43,991.
   // cimip-gaps-3 t7: the transcript fades (scroll-fade.ts): 43,980 on origin/main 4e438ecb and on 8b090549, 50,042 on the t7 head (+6,062), so 43,991 to 50,053.
-  assert.ok(bytes < 50_053, `Terminal bundle is ${bytes} bytes`);
+  // cimip-gaps-3 E6 (G161, IconButton's `icon` as an element, told apart by React.isValidElement (a runtime React import in button.js, +25 in every graph that holds a
+  // Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
+  // Terminal 50,042 on main, 50,172 with E6 (+130), so 50,053 to 50,183.
+  assert.ok(bytes < 50_183, `Terminal bundle is ${bytes} bytes`);
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
 });
@@ -608,7 +627,10 @@ test("LoopsToggleIcon alone loads the icon button and the hold, and not Switch",
 // DirectoryList 20,350 to 20,950, Reveal 19,950 to 20,550 and CopyButton 18,900 to 19,500 (from main's) in DECISIONS 336: Button's edge and done seat.
 // The stream's merge (several batches): DirectoryList 20,925 to 21,053 (+128; main's 20,950 to 21,078), Reveal 20,521 to 20,649 (+128; 20,550 to 20,678), CopyButton
 // 19,485 to 19,613 (+128; 19,500 to 19,628), measured with graph() on origin/main 6a78d57c and on the combined head.
-for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_000, false], ["BackLink", 5_500, false], ["BigLinkList", 1_000, false], ["BigLinkRow", 6_000, false], ["DirectoryRow", 6_500, false], ["DirectoryList", 21_078, true], ["Reveal", 20_678, true], ["CopyButton", 19_628, true]]) {
+// cimip-gaps-3 E6 (G161, IconButton's `icon` as an element, told apart by React.isValidElement (a runtime React import in button.js, +25 in every graph that holds a
+// Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
+// DirectoryList 21,053 on main, 21,078 with E6 (+25), so 21,078 to 21,103; CopyButton 19,613 to 19,638 (+25), so 19,628 to 19,653. Reveal 20,649 to 20,674 stays under 20,678.
+for (const [name, limit, base] of [["LinkCard", 6_500, false], ["LinkTile", 6_000, false], ["BackLink", 5_500, false], ["BigLinkList", 1_000, false], ["BigLinkRow", 6_000, false], ["DirectoryRow", 6_500, false], ["DirectoryList", 21_103, true], ["Reveal", 20_678, true], ["CopyButton", 19_653, true]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);

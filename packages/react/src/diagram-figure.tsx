@@ -4,7 +4,7 @@ import { Kbd } from "./kbd";
 import { useShortcutsVisible } from "./keyboard";
 import { inLevel, ModalHost, usePanelLevel } from "./layers";
 import {
-  applyTrace, autoType, buildModel, idBase, anonymousBase, placeLabels, tapTrace, transcript, entranceDrawn, figureKey, figureList, figureTree, hasStops, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml,
+  applyTrace, autoType, buildModel, idBase, anonymousBase, placeLabels, pressHold, pressTarget, transcript, entranceDrawn, figureKey, figureList, figureTree, hovers, hintEntries, keyTarget, measureFigure, settleEntrance, syncAttributes, toHtml, traces,
 } from "./diagram-core";
 import type { DiagramLegend, DiagramMotion, DiagramPlacement, DiagramSpec, Dyn, Geo, Measured, Model, VNode } from "./diagram-core";
 import type { MotionController } from "./diagram-motion-core";
@@ -204,7 +204,7 @@ export interface DiagramFigureInternalProps extends DiagramFigureProps {
  */
 let figureIds: WeakMap<Node, Map<string, number>> | undefined;
 
-export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, onLayout, actions, entrance: _entrance, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, id, ...props }: DiagramFigureInternalProps) {
+export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, onLayout, actions, entrance: _entrance, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onKeyUp, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, id, ...props }: DiagramFigureInternalProps) {
   // Every id inside is built on the base (G146), in Basalt's namespace: the viewer's, the figure's own id's where it has one (bd-…_dg), else React's useId,
   // which follows the render order, written whole and one to one after bd-u (anonymousBase: no underscore, so never a form an id gives).
   const reactId = React.useId();
@@ -278,9 +278,14 @@ export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, on
   modelRef.current = model;
   const [focusTrace, setFocusTrace] = React.useState<string | null>(null);
   const [hoverTrace, setHoverTrace] = React.useState<string | null>(null);
-  // A trace on touch (DECISIONS 306, 1.5), the third source after keyboard focus. "On touch" is the media's, or a figure that has taken a touch tap.
-  const [touchTrace, setTouchTrace] = React.useState<string | null>(null);
+  // The held card (DECISIONS 392) is the state's (Dyn.held), so its aria-pressed and data-held come from the tree, as the skill's do. "On touch" is the
+  // media's, or a figure that has taken a click from a touch or a pen.
   const [touched, setTouched] = React.useState(false);
+  // "Clear highlight" with focus as its layout stops tracing stays, disabled, until focus leaves it (DECISIONS 392, 5).
+  const clearRef = React.useRef<HTMLButtonElement>(null);
+  const [clearKept, setClearKept] = React.useState(false);
+  // The card a Space press went down on: the hold acts on its keyup on the same card; blur, or focus moving, cancels it.
+  const spaceOn = React.useRef<string | null>(null);
   // On whether there is a source, not the node itself: a parent's render makes a new node each time, which would measure the figure again on every render.
   // The viewer's keys likewise, by the value the tree reads.
   const hasSource = source !== undefined && source !== null;
@@ -429,12 +434,13 @@ export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, on
     if (viewer?.laid && result.geo) viewer.laid(layoutInfo()!);
     // The same layout is the same state: a measure that changes nothing renders nothing.
     // (A layout is plain data that the engine builds in one order, so its text is a fair test.)
+    if (!viewer && !traces(model, result.dyn) && clearRef.current && document.activeElement === clearRef.current) setClearKept(true);
     if (JSON.stringify(dynRef.current) !== JSON.stringify(result.dyn)) { dynRef.current = result.dyn; setDyn(result.dyn); }
     setInk(result.ink);
     // A label can move while the ink's string stays the same (its place is not in it): placed now, and again below once React writes a new ink.
     placeLabels(fig, P, result.geo);
-    // A layout with no stops traces nothing: a pointer resting on a node as the figure narrows into one leaves no trace behind.
-    if (!hasStops(model, result.dyn)) { setHoverTrace(null); setTouchTrace(null); }
+    // A layout whose cards do not answer traces nothing: a pointer resting on a node as the figure narrows into one leaves no trace behind.
+    if (!hovers(model, result.dyn)) setHoverTrace(null);
     // A figure hidden (the viewer's list is open) was not measured: the viewer keeps the drawing's size and place it had. A text figure's art is in the DOM
     // only once React has written it, so its size is read after that (below).
     if (viewer && result.tokens && !model.text) viewer.onMeasured(result, fig);
@@ -476,7 +482,9 @@ export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, on
   }, [ink]);
   // An animated text figure builds by ink (1.2) as a drawn figure's entrance plays: the motion module plays it when it comes into view, settles it as it
   // settles any entrance, and keeps the first visit's mark (below, its art counts as its lines).
-  const trace = focusTrace ?? touchTrace ?? hoverTrace;
+  // Focus, then hover, then the held card (DECISIONS 392, 1): a peek shows over the hold, and the hold returns after.
+  const held = traces(model, dyn) ? dyn.held ?? null : null;
+  const trace = focusTrace ?? hoverTrace ?? held;
   React.useLayoutEffect(() => {
     const fig = figRef.current;
     if (fig) applyTrace(fig, P, measured.current?.geo ?? null, measured.current?.tokens ?? null, base, trace);
@@ -573,7 +581,10 @@ export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, on
     const el = (target as HTMLElement | null)?.closest?.<HTMLElement>(`.${P}-node`);
     return el && figRef.current?.contains(el) ? el : null;
   };
-  const stops = hasStops(model, dyn);
+  const stops = traces(model, dyn);
+  // The hold's one function (DECISIONS 392, 4): keys call it directly and never dispatch a click.
+  const press = (id: string | null) => { settle(); const next = pressHold(dynRef.current, id); dynRef.current = next; setDyn(next); };
+  const inFigure = (target: EventTarget | null) => Boolean(figRef.current && target instanceof Node && figRef.current.contains(target));
 
   const root = {
     ...props,
@@ -583,14 +594,21 @@ export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, on
     style,
     onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
       onKeyDown?.(event);
+      if (event.defaultPrevented) return;
       const node = nodeOf(event.target);
-      if (!node || event.defaultPrevented) return;
+      // Esc with a hold up and focus on the foot or in the list (DECISIONS 392, 4): it releases the hold and goes no further; with none it bubbles. A key
+      // from the viewer, which React hands this figure through its portal, is not the figure's.
+      if (!node) { if (event.key === "Escape" && !viewer && held && inFigure(event.target)) { event.preventDefault(); event.stopPropagation(); press(null); } return; }
       settle();
-      // In the viewer Esc always closes the dialog, traced or not (9.8): the figure leaves it to the dialog. Elsewhere an Esc that clears a trace is the
-      // figure's alone: it goes no further, so a modal round the figure (Base UI's dismissal, a React handler on its popup and a listener on the document,
-      // neither of which reads defaultPrevented) stays open, and the next Esc, with nothing traced, closes it.
-      if (event.key === "Escape") { if (!viewer && (focusTrace || hoverTrace || touchTrace)) { event.preventDefault(); event.stopPropagation(); setFocusTrace(null); setHoverTrace(null); setTouchTrace(null); } return; }
+      // In the viewer Esc always closes the dialog, held or not (9.8): the figure leaves it to the dialog. Elsewhere an Esc that clears a trace or a hold is
+      // the figure's alone: it goes no further, so a modal round the figure (Base UI's dismissal, a React handler on its popup and a listener on the document,
+      // neither of which reads defaultPrevented) stays open, and the next Esc, with nothing up, closes it.
+      if (event.key === "Escape") { if (!viewer && (focusTrace || hoverTrace || held)) { event.preventDefault(); event.stopPropagation(); setFocusTrace(null); setHoverTrace(null); if (held) press(null); } return; }
       if (!stops) return;
+      // A toggle card (DECISIONS 392, 4): Enter acts on keydown, once, with no modifier; Space is held off the page's scroll and acts on its keyup.
+      if (!node.hasAttribute("href") && event.key === "Enter") { if (!event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); press(node.dataset.node!); } return; }
+      // Space with Ctrl, Meta or Alt is not a press and is left alone; Shift+Space presses, held off the page's scroll.
+      if (!node.hasAttribute("href") && event.key === " ") { if (event.ctrlKey || event.metaKey || event.altKey) { spaceOn.current = null; return; } event.preventDefault(); if (!event.repeat) spaceOn.current = node.dataset.node!; return; }
       // The model is mirrored right to left, so the table is already physical.
       const to = keyTarget(model, node.dataset.node!, event.key, dynRef.current.layout === "drawn");
       if (!to) return;
@@ -600,6 +618,16 @@ export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, on
       dynRef.current = next;
       setDyn(next);
       figRef.current?.querySelector<HTMLElement>(`.${P}-node[data-node="${CSS.escape(to)}"]`)?.focus({ preventScroll: false });
+    },
+    onKeyUp: (event: React.KeyboardEvent<HTMLElement>) => {
+      onKeyUp?.(event);
+      if (event.key !== " " || spaceOn.current === null) return;
+      const id = spaceOn.current;
+      spaceOn.current = null;
+      // A keyup with Ctrl, Meta or Alt down cancels the armed press.
+      if (event.ctrlKey || event.metaKey || event.altKey || nodeOf(event.target)?.dataset.node !== id || !traces(model, dynRef.current)) return;
+      event.preventDefault();
+      press(id);
     },
     onFocus: (event: React.FocusEvent<HTMLElement>) => {
       onFocus?.(event);
@@ -615,12 +643,14 @@ export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, on
       onBlur?.(event);
       const left = nodeOf(event.target);
       if (!left) return;
+      // Focus moving cancels a Space press.
+      spaceOn.current = null;
       // Focus leaving the figure's cards: the trace goes, and the stop is described by the keys sentence again for the next tab in.
       if (!nodeOf(event.relatedTarget)) {
         setFocusTrace(null);
         if (dynRef.current.roved) { const next = { ...dynRef.current, roved: undefined }; dynRef.current = next; setDyn(next); }
       }
-      // A node kept as a stop in a stack with no stops stops being one once focus has left it.
+      // A node kept as a picture in a layout that does not trace stops being focusable once focus has left it.
       if (dynRef.current.keep === left.dataset.node) { const next = { ...dynRef.current, keep: undefined }; dynRef.current = next; setDyn(next); }
     },
     onPointerOver: (event: React.PointerEvent<HTMLElement>) => {
@@ -628,19 +658,20 @@ export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, on
       if (event.pointerType !== "mouse" || !window.matchMedia("(hover: hover)").matches) return;
       const node = nodeOf(event.target);
       if (node) settle();
-      setHoverTrace(node && hasStops(model, dynRef.current) ? node.dataset.node! : null);
+      setHoverTrace(node && hovers(model, dynRef.current) ? node.dataset.node! : null);
     },
     onPointerLeave: (event: React.PointerEvent<HTMLElement>) => { onPointerLeave?.(event); setHoverTrace(null); },
     "data-touch": !viewer && (onTouch || touched) ? "" : undefined,
     onClick: (event: React.MouseEvent<HTMLElement>) => {
       props.onClick?.(event as React.MouseEvent<HTMLElement>);
       const fig = figRef.current;
-      if (!fig || event.defaultPrevented) return;
-      const next = tapTrace(fig, P, event.nativeEvent, touchTrace);
+      if (!fig) return;
+      // A press holds; the ground releases (DECISIONS 392, 4). Only a click from a touch or a pen makes the figure "on touch".
+      const next = pressTarget(fig, P, model, dynRef.current, event.nativeEvent);
       if (next === undefined) return;
-      settle();
-      setTouched(true);
-      setTouchTrace(next);
+      const type = (event.nativeEvent as PointerEvent).pointerType;
+      if (type === "touch" || type === "pen") setTouched(true);
+      press(next);
     },
   };
 
@@ -661,7 +692,7 @@ export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, on
       <span id={`${base}-toggle-words`} className="basalt-button-label">{dyn.open ? "Hide the list" : "View as list"}</span>
     </button>
   );
-  const hint = hintEntries(model, dyn.layout === "drawn").map((entry) => (
+  const hint = hintEntries(model, dyn).map((entry) => (
     <span key={entry.words}>{entry.keys.map((k, i) => <React.Fragment key={k}>{i ? " " : null}<Kbd>{k}</Kbd></React.Fragment>)} {entry.words}</span>
   ));
   const tree = figureTree(model, dyn, options);
@@ -699,10 +730,10 @@ export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, on
       ) : null}
     </>
   ) : null;
-  // "Clear highlight" (1.5): last in the foot, mounted whenever the figure is on touch and can be traced, aria-disabled until a trace is up. A text
-  // sequence (its art or its transcript) has no lines a tap traces, so it has none, as in the skill, which mounts it only for a figure drawn with lines.
-  const clear = !viewer && !model.text && (onTouch || touched) && ink ? (
-    <button type="button" className="basalt-button basalt-diagram-clear" data-variant="secondary" data-size="sm" aria-labelledby={`${base}-clear-words ${titleId}`} aria-disabled={touchTrace ? undefined : true} data-disabled={touchTrace ? undefined : ""} onClick={() => { if (touchTrace) setTouchTrace(null); }}>
+  // "Clear highlight" (1.5, and DECISIONS 392, 5): last in the foot, on touch alone, mounted while the layout traces, aria-disabled until a card is held. With
+  // focus on it as the layout stops tracing it stays, disabled, until focus leaves it.
+  const clear = !viewer && (onTouch || touched) && (stops || clearKept) ? (
+    <button ref={clearRef} type="button" className="basalt-button basalt-diagram-clear" data-variant="secondary" data-size="sm" aria-labelledby={`${base}-clear-words ${titleId}`} aria-disabled={held ? undefined : true} data-disabled={held ? undefined : ""} onClick={() => { if (held) press(null); }} onBlur={() => setClearKept(false)}>
       <span id={`${base}-clear-words`} className="basalt-button-label">Clear highlight</span>
     </button>
   ) : null;

@@ -10,7 +10,7 @@ import type { Dyn, Measured, Model } from "./diagram-core";
 type MeasureFigure = (fig: HTMLElement, m: Model, P: string, base: string, current: Dyn, apply: (dyn: Dyn) => void, warn?: (s: string) => void, sizeTo?: (least: number) => void) => Measured;
 
 /** The viewer's addition to the figure's keys sentence (9.8). */
-export const VIEWER_KEYS = "Plus and minus zoom, zero fits the drawing, Escape closes.";
+export const VIEWER_KEYS = "Plus and minus zoom, zero fits the drawing, Escape closes the viewer.";
 
 /** The viewer's key hint (9.8): the figure's, with Esc closing and the zoom keys added. */
 export function viewerHint(entries: Array<{ keys: string[]; words: string }>): Array<{ keys: string[]; words: string }> {

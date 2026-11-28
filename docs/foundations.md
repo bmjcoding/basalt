@@ -2263,28 +2263,38 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
 
 ### Keyboard, tracing and motion
 
-- Where lines are drawn the drawing is one tab stop: a `role="group"` with `aria-roledescription="diagram"`, named by the title and
-  described by the summary. The node that holds the tab stop is described by a sentence about the keys: hidden, so a page of figures
-  never reads it in its flow, and said as a reader tabs in, not again on each arrow (the hint on screen is hidden from assistive
-  technology). Each node is a focusable `role="img"` named by a sentence that begins with its visible name and says what it is, where it
-  sits, and what it connects from and to (G17 of cimip-gaps-3, DECISIONS 385). Basalt's foot buttons are named by their words, then the
+- Where a layout traces (it draws at least one line that ends on a card) the drawing is one tab stop: a `role="group"` with
+  `aria-roledescription="diagram"`, named by the title and described by the summary. Each card is a stop in one roving set, named by a
+  sentence that begins with its visible name and says what it is, where it sits, and what it connects from and to: a toggle button
+  (`role="button"`, `aria-pressed`, no role description) or, with `href`, a native link. The card Tab lands on is described by the
+  sentence about the keys, and no other card is (G17 of cimip-gaps-3, DECISIONS 385 and 392). Basalt's foot buttons are named by their words, then the
   figure's title; an app's action keeps its own name and is described by the title. → ↓ ← ↑ move to the nearest part in that direction: first a part in the same row
   or column, then the lowest of tracks along the arrow plus twice the tracks across it. The rule runs on a part's column and rows,
   never on its measured centre, and a figure whose parts cannot all be reached that way keeps the author's order. Stacked, the keys
-  are the author's order. Home and End the ends, Esc clears. No live region. The SVG is `aria-hidden`. A layout change keeps focus on the same node, and never moves it, even into a stack with no stops.
+  are the author's order. Home and End the ends. No live region. The SVG is `aria-hidden`. A layout change keeps focus on the same card
+  and never moves it; into a layout with no stops, the card keeps focus as a picture until focus leaves it.
+- **A stop does something.** Where a layout does not trace, no card is a stop: each is a picture (`role="img"`) named by its sentence,
+  read in the author's order as before script, and a linked card is a native link in the page's tab order. There is no key hint.
 - **Tracing** a node (hover, or keyboard focus) lifts its lines to primary ink and dims the rest to `diagram-edge-dim`. It changes ink
   and never weight, dash or head, so the key stays true.
-- **A card may be a link** (`href`): the card is the link and the figure's roving stop, Enter follows it, and its cue is the arrow
+- **A card may be a link** (`href`): the card is the link (in the roving set where its layout traces), Enter follows it, and its cue is the arrow
   after its name ([Links and rows](#links-and-rows)); a press is a colour step.
-- **On touch a tap traces,** where lines are drawn. It clears by a tap on the same card, a tap on the ground or "Clear highlight", a
-  button that stays in the foot and is `aria-disabled` until a trace is up. A hint line says so. A card that answers a tap is at
-  least 44px tall. A linked card follows its link and is never traced by a tap. Nothing is announced.
+- **A press holds the trace:** a click, a tap, Enter, Space or an assistive technology's click on a card keeps its trace up after the
+  pointer and focus leave. A press on the held card, a press on the drawing's ground, or Esc with focus in the figure releases it. One
+  card at most is held. While focus or a pointer is on another card, that card's trace shows and the held one returns after. The held
+  card carries the underline: `size-indicator` in primary ink (the focal card's own ink on the focal card) on its bottom inside edge, as
+  wide as its content and never its padding (a terminal's stays on the straight part of its bottom edge); a decision's is under its words, as wide as their box, inside the diamond and clear of its
+  four points. `Highlight` in forced colours. It fades over `duration-fast`, with or without reduced motion. The rim does not change and
+  nothing moves. It does not print. **Status:** not yet heard in a screen reader.
+- **On touch** a hint line says a tap highlights, a card that answers a tap is at least 44px tall, and "Clear highlight" is last in the
+  foot, `aria-disabled` until a card is held; with focus on it when the layout stops tracing, it stays until focus leaves it. It is not
+  drawn for a fine pointer or in the viewer. A linked card follows its link and is never held. Nothing is announced but the pressed
+  state.
 - A diagram is still unless its author asks for motion (`motion="animated"`); see [Motion in a diagram](#motion-in-a-diagram). A
   trace's ink changes over `duration-fast`, at once under reduced motion.
-- A planning figure is the same one tab stop. A figure with no edges (gantt, kanban, journey, story map, a blueprint without arrows) has
-  no trace, no tap hint and no "Clear highlight". A schedule's numbers are words in its card and never stops.
-- A timeline's arrows are ← and → through the events in time; a hovered or focused card lifts its own stem and dot, and nothing dims. It
-  has no trace on touch.
+- A planning figure with no lines (gantt, kanban, journey, story map, timeline, a blueprint without arrows) has no stops, no trace, no
+  hints and no "Clear highlight". A schedule's numbers are words in its card.
+- A timeline's hovered card, or its focused linked card, lifts its own stem and dot, and nothing dims.
 
 
 ### The viewer
@@ -2314,7 +2324,9 @@ rim included, with the sheet's head, body and foot. "Expand" is words only. Deci
   `inViewer: false`). The end group wraps and is never cut: it is at the row's end while it shares the row, and starts on the start edge
   on a row of its own. An action pressed here is handed the viewer's drawing: the drawn layout at 100% whatever the zoom, with the list
   open or closed. On a phone each row of actions takes 52px from the stage.
-- **Focus** opens on the stage (the flush field's inset ring). Esc always closes, and focus returns to "Expand".
+- **Focus** opens on the stage (the flush field's inset ring). Esc always closes, held or not. It opens with nothing held, and a hold
+  made in it ends with it. Its hints say Esc closes, and never that it clears; a second press releases a held card. Focus returns to
+  "Expand".
 - **A trace works. Nothing else moves:** no entrance, flow, mover or run plays in the viewer, and the page's figure holds its
   loops while it is open.
 - **Under 100%** the words are under 12px and a hairline may be thinner than a device pixel: an overview, with no size or
@@ -3020,7 +3032,7 @@ under the list moves whenever the list's height does, drops rows away from the p
   drives it. A total that changes by itself (rows arriving in a live list) is neither, so it never swallows a page change said with it; without a `filterKey`, a change of the total is
   read as a filter.
 - **Narrow.** Under `size-breakpoint-container-lg` (640) of the band's own width the numbers go (under `size-breakpoint-md`, 720, on a coarse pointer, where the wide form's three tracks cannot hold 44px targets and the page size covered Next from 640 to 690): Previous, the count and Next, with the page size after them. It is a row that wraps by what it measures, and both parts are reserved widths, so it never changes with its content: one row where they fit (a 193px pager and a 132px page size in 358), and where they do not (a 343 band on touch needs 340.1, and the 292px card) the page size is the end of a second row, so nothing overflows. The count is centred between the arrows (its seat holds the widest form and the text sits in the middle of it). The page size is a `sm` Select with a real `<label>` ("per page"); the band, Back to top and the list are one element, so the band sticks within the list.
-- **At one page or none** (cimip-gaps-3 T3). In the narrow form the band marks itself whole (`data-whole`): the pager is not drawn (no hidden arrows holding 44px seats), and the band's own range starts the row, on the gutter, with the page size at its end, on one row. With a second page the pager returns and the count is centred between its arrows, as above; the wide form is unchanged. `onePage="size"` shows the page size alone at one page or none (and at a total of 0): in the wide form the range and the pager keep their seats unseen, in the narrow form neither is drawn; a smaller size that makes a second page fills the seats and the select does not move. The `Select` is one mounted element through every state, so it never loses focus when the page count crosses one. **The stated limit:** in a band too narrow for the pager and the page size on one row (about 340 of its own width: a 343 band on touch, the 292 card), a second page adds the second row, at the reader's own change of size or a filter; a held, empty pager seat there would be the dead room DECISIONS 227 removed, so it is not held.
+- **At one page or none** (cimip-gaps-3 T3). In the narrow form the band marks itself whole (`data-whole`): the pager is not drawn (no hidden arrows holding 44px seats), and the band's own range starts the row, on the gutter, with the page size at its end, on one row. With a second page the pager returns and the count is centred between its arrows, as above; the wide form is unchanged. `onePage="size"` shows the page size alone at one page or none (and at a total of 0): in the wide form the range and the pager keep their seats unseen, in the narrow form neither is drawn; a smaller size that makes a second page fills the seats and the select does not move. The `Select` is one mounted element through every state, so it never loses focus when the page count crosses one. **The stated limit:** in a band too narrow for the pager and the page size on one row (about 340 of its own width: a 343 band on touch, the 292 card), a second page adds the second row, at the reader's own change of size or a filter; a held, empty pager seat there would be the dead room DECISIONS 227 removed, so it is not held by default. **The held seat** (G144). A list that sets `keepFootRoom`, and any list while its `total` is `null` (not known yet), keeps the pager in the narrow row at one page or none: unseen and inert (no tab stop, no landmark, nothing spoken), with the band's own range drawn from the gutter over the start of its seat. The band is then the size it has with more pages: one row where the pager and the page size fit, and where they do not, the range on the first row and the page size ending the second (on touch 108 tall in place of 60: two 44px rows, `space-1` between them, `space-2` above and below). No width is named: the held seat is the pager's own box, so it wraps where the pager will. The spare room is the page's (DECISIONS 328): the band has no rim or fill of its own, and nothing drawn is wider than what it shows. `keepFootRoom` holds the seat through every total, so a late total, a filter and a change of size never change the band's height. `null` alone holds it until the total is known: a total of one page then lets the seat go, once. `null` is for the time before the first answer; while a later answer is on its way the app keeps the last total. The seat is only as wide as the band knows: a list whose total starts as `null` gives `seatTotal` (or `maxTotal`), or the seat grows when the total arrives and the row can wrap then (a development warning says so).
 
 ### Back to top and the list's foot
 
@@ -3049,7 +3061,7 @@ DECISIONS 227: the empty seat and the off-centre pager were what the owner objec
 ("Order pages, end of list"). It is not drawn from 720 (the band is stuck there), nor with one page or none, unless the app holds its room (`keepFootRoom`, opt-in, as cimip-gaps-3 T3 decided: on by default it would put empty room under every
 short list, and kept once drawn it would make the same results a different height by filter history). At one page or none the held foot draws nothing: its arrows
 and its count are hidden (`visibility: hidden`, no landmark, no name), since the band above already says the range. Use it for a list whose rows arrive after the
-first frame and that expects more than one page, so those rows move nothing under the list. A press changes the page, returns the window at once to where the band rests (the band
+first frame and that expects more than one page, so those rows move nothing under the list. It holds the band's pager seat too (the held seat, above), so they move nothing over the list either. A press changes the page, returns the window at once to where the band rests (the band
 under the bar and the first row under it), moves focus to the band's own Previous or Next, and the band's status line says the page once; Back to top goes, since the window moved up.
 
 **The ring fix.** The band's narrow form and the foot set an arrow, the count and the next arrow `space-1` apart, so an arrow's +2 focus ring (2px wide, ending 4px out) touched the count's text. The

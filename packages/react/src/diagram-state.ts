@@ -156,7 +156,7 @@ export function stateType(): DiagramTypeExt {
     type: "state",
     as: "architecture",
     routed: true,
-    stop: "a state",
+    stop: ["a state", "state"],
     prepare,
     adopt,
     card: (P, m, n) => card(P, m, n),
