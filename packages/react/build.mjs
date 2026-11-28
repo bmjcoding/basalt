@@ -483,6 +483,13 @@ const tokens = fs.readFileSync(require.resolve("@srasyndicate/basalt-tokens/toke
 // The two style sheets ship without their comments and whitespace (minify-css.mjs); the commented source stays in the repository and in the demo page below.
 fs.writeFileSync(path.join(dist, "components.css"), minifyCss(components));
 fs.writeFileSync(path.join(dist, "styles.css"), minifyCss(`${tokens}\n${components}`));
+// The consumer lint's view of this release (lint/manifest.mjs): every component, its props and the values its fix-it messages print, so `basalt-lint`
+// and the shareable Stylelint config read the same contract without a parser. No module imports it.
+{
+  const { buildManifest } = await import("./lint/manifest.mjs");
+  fs.writeFileSync(path.join(dist, "lint-manifest.json"), `${JSON.stringify(buildManifest(await import("oxc-parser"), dist))}\n`);
+}
+
 // The page base: one source (the tokens package's), two doors. Opt-in, so styles.css never includes it.
 fs.copyFileSync(require.resolve("@srasyndicate/basalt-tokens/base.css"), path.join(dist, "base.css"));
 
