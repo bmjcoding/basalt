@@ -7,14 +7,15 @@ import path from "node:path";
 import { describe, test } from "node:test";
 
 import { compose } from "../../../.agent/skills/basalt-html/compose.mjs";
-import { build, moduleNames, skillDir } from "../build.mjs";
+import { build, monoManifest, moduleNames, skillDir } from "../build.mjs";
 import { read, repoRoot } from "./support.mjs";
 
 const files = build();
 const manifest = JSON.parse(files["parts/manifest.json"]);
 const sans = read(skillDir, "parts", "geist-sans.css").trim();
 const mono = read(skillDir, "parts", "geist-mono.css").trim();
-const MONO_NAMES = /--basalt-font-family-mono|--bh-xs-mono|--bh-sm-mono|Geist Mono/;
+/** The mono names: the custom properties in their own case, the face's name in any case. */
+const MONO_NAMES = { test: (text) => /--basalt-font-family-mono|--bh-xs-mono|--bh-sm-mono/.test(text) || /geist\s+mono/i.test(text) };
 
 /** The face a composed page carries: { sans, mono }, read from its font style. */
 const faces = (html) => {
@@ -56,6 +57,22 @@ describe("compose: the mono face goes in when the page can draw it", () => {
     "a handler that adds the class (no module, no script element)": "<button onclick=\"this.classList.add('mono')\">000123</button>",
     "a handler in upper case": "<button ONCLICK=\"this.classList.add('mono')\">000123</button>",
     "a mono module (code)": '<div class="code"><pre><code>x</code></pre></div>',
+    // Astra's review: values read decoded, <noscript>, the family name in any case and through a CSS escape, and a style or font attribute inside svg or a template.
+    "an encoded space in a class": '<p class="x&#32;mono">000123</p>',
+    "a named tab in a class": '<p class="x&Tab;mono">000123</p>',
+    "an encoded javascript: URL": '<a href="javascript&#58;document.body.classList.add(\'mono\')">Go</a>',
+    "a javascript: URL with a named colon": '<a href="javascript&colon;void 0">Go</a>',
+    "a javascript: URL broken by a tab": '<a href=" java&Tab;script:void 0">Go</a>',
+    "a <noscript> (its content is markup without script)": "<noscript><code>x</code></noscript>",
+    "a <noscript> of plain words": "<noscript><p>Turn on scripts.</p></noscript>",
+    "the family name in lower case": "<style>.id { font-family: geist mono; }</style><p class=id>a1b2</p>",
+    "the family name in upper case": '<style>.id { font-family: "GEIST MONO"; }</style><p class=id>a1b2</p>',
+    "the family name through a CSS escape": '<style>.id { font-family: "G\\65 ist Mono"; }</style><p class=id>a1b2</p>',
+    "an encoded style attribute": '<p style="font: var(&#45;-bh-sm-mono)">a1b2</p>',
+    "a font-family attribute in an svg": '<svg viewBox="0 0 10 10"><text font-family="geist mono">1</text></svg>',
+    "a <style> in an svg": '<svg viewBox="0 0 10 10"><style>text { font-family: "Geist Mono"; }</style><text>1</text></svg>',
+    "a <style> in a template": "<template><style>p { font: var(--bh-xs-mono); }</style><p>1</p></template>",
+    "an old <font face>": '<font face="Geist Mono">1</font>',
   };
   for (const [what, body] of Object.entries(KEEPS)) {
     test(`keeps the face: ${what}`, () => {
@@ -91,6 +108,16 @@ describe("compose: the mono face goes in when the page can draw it", () => {
     assert.equal(keeps('<h1>x</h1><!-- <code>x</code> <span class="mono"> --bh-sm-mono -->').mono, false);
   });
 
+  test("words that only spell the face, in the page, an svg's text or a template, bring nothing in; nor do a query string or an escaped ampersand", () => {
+    for (const body of [
+      "<p>We set code in Geist Mono.</p>",
+      '<svg viewBox="0 0 10 10"><text>Geist Mono</text></svg>',
+      "<template><p>Geist Mono</p></template>",
+      '<p><a href="?a=1&b=2">Next</a></p>',
+      '<p class="x&amp;mono">1</p>',
+    ]) assert.equal(keeps(body).mono, false, body);
+  });
+
   test("a script of another type is not author script", () => {
     assert.equal(keeps('<h1>x</h1><script type="application/json" data-x>{"a": 1}</script>').mono, false);
   });
@@ -111,16 +138,28 @@ describe("build: manifest.mono is generated from the assembled parts", () => {
       }
       if (manifest.mono.modules.includes(name)) continue;
       // Not listed: so its JS names none, and every CSS rule that names the family is under [data-mono].
-      assert.doesNotMatch(js, MONO_NAMES, `${name}'s script writes a mono name and is not in mono.modules`);
+      assert.ok(!MONO_NAMES.test(js), `${name}'s script writes a mono name and is not in mono.modules`);
       const rules = [...css.matchAll(/([^{};]+)\{([^{}]*)\}/g)].filter((m) => MONO_NAMES.test(m[2]));
       assert.ok(rules.length > 0, `${name}: the family is named in a rule`);
-      for (const [, selector] of rules) for (const part of selector.split(",")) assert.match(part, /\[data-mono\]/, `${name}: "${selector.trim()}" sets mono outside [data-mono]`);
+      for (const [, selector] of rules) for (const part of selector.split(",")) assert.match(part.replace(/\([^()]*\)/g, ""), /\[data-mono\]/, `${name}: "${selector.trim()}" sets mono outside [data-mono]`);
     }
     for (const name of ["diagram", "diagram-export", "code", "kbd", "release", "rich-text", "runs", "terminal"]) assert.ok(manifest.mono.modules.includes(name), `${name} is in mono.modules`);
     for (const name of ["dlist", "table"]) assert.ok(!manifest.mono.modules.includes(name), `${name} sets mono only under [data-mono]`);
     assert.ok(manifest.mono.attributes.includes("data-mono"), "the attribute comes from the [data-mono] rules");
     assert.deepEqual(manifest.mono.tags, ["code", "kbd", "pre", "samp"], "the tags of core.css's mono rules");
     assert.deepEqual(manifest.mono.classes, ["mono"], "the class of core.css's mono rule");
+  });
+
+  test("a mono rule counts as limited only when its selector requires [data-mono] outside any parenthesis, and the face's name is read in any case", () => {
+    const parts = {
+      "parts/core.css": "pre,code{font-family:var(--basalt-font-family-mono)}.mono{font-family:var(--basalt-font-family-mono)}",
+      "parts/is.css": "@layer basalt{.a :is([data-mono],.x){font-family:var(--basalt-font-family-mono)}}",
+      "parts/where.css": ".c:where([data-mono]){font:1em geist mono}",
+      "parts/required.css": "@layer basalt{.b td[data-mono]{font-family:var(--basalt-font-family-mono)}}",
+      "parts/not.css": ".d:not([data-mono]) [data-mono]{font-family:'GEIST MONO'}",
+      "parts/script.js": "x.style.fontFamily='geist mono'",
+    };
+    assert.deepEqual(monoManifest(parts, ["is", "where", "required", "not", "script"]), { modules: ["is", "where", "script"], tags: ["code", "pre"], classes: ["mono"], attributes: ["data-mono"] });
   });
 
   test("the sans part carries the OFL notice, and the two parts are the one geist.css apart from the split", () => {

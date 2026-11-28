@@ -141,8 +141,11 @@ function geistFonts() {
   };
 }
 
-/** The names that set the mono family in the skill's CSS and JS: the token, the core's two mono type roles, and the face's own name. */
-const MONO_NAMES = /--basalt-font-family-mono|--bh-xs-mono|--bh-sm-mono|Geist Mono/;
+/**
+ * Whether CSS or JS names the mono family: the token and the core's two mono type roles (custom properties, so in their own case), or the face's own name (a
+ * family name, so in any case).
+ */
+const namesMono = (text) => /--basalt-font-family-mono|--bh-xs-mono|--bh-sm-mono/.test(text) || /geist\s+mono/i.test(text);
 /**
  * The style rules of a stylesheet (minified or not) as [{ selectors: [the selector of each enclosing style rule, outermost first], body: its own declarations }];
  * an at-rule's block (@layer, @media, @supports, @container) is walked into and adds no selector. Comments and strings are skipped. This reads the skill's own
@@ -192,7 +195,7 @@ function selectorParts(selector) {
   parts.push(selector.slice(from).trim());
   return parts.filter(Boolean);
 }
-/** A selector with its negations taken out: `:not(...)` names what the rule does not match, so it never limits a rule or names its subject. */
+/** A selector with its negations taken out: `:not(...)` names what the rule does not match, so it never names its subject. */
 const withoutNot = (selector) => {
   let out = selector;
   for (let at; (at = out.search(/:not\(/i)) !== -1;) {
@@ -203,8 +206,27 @@ const withoutNot = (selector) => {
   }
   return out;
 };
-/** Whether a rule (its chain of selectors) matches only an element with `data-mono`: some selector of the chain has `[data-mono` in every part. */
-const limitedToDataMono = (selectors) => selectors.some((selector) => selectorParts(selector).every((part) => /\[data-mono[\]=~|^$*\s]/.test(withoutNot(part))));
+/**
+ * A selector with every parenthesised argument and quoted string taken out: what is left is what the selector requires of its elements. `:is([data-mono], .x)`
+ * or `:where([data-mono])` requires nothing of the attribute, so it is not proof.
+ */
+const topLevel = (selector) => {
+  let out = "";
+  let depth = 0;
+  for (let i = 0; i < selector.length; i++) {
+    const c = selector[i];
+    if (c === '"' || c === "'") { const e = selector.indexOf(c, i + 1); i = e === -1 ? selector.length : e; continue; }
+    if (c === "(") depth++;
+    else if (c === ")") depth = Math.max(0, depth - 1);
+    else if (depth === 0) out += c;
+  }
+  return out;
+};
+/**
+ * Whether a rule (its chain of selectors) is proved to match only an element with `data-mono`: some selector of the chain requires `[data-mono]` in every
+ * part, outside any parenthesis. Anything less (the attribute only inside `:is()`, `:where()` or `:not()`) counts as unlimited, so the module is listed.
+ */
+const limitedToDataMono = (selectors) => selectors.some((selector) => selectorParts(selector).every((part) => /\[\s*data-mono\s*[\]=~|^$*]/.test(topLevel(part))));
 /**
  * `manifest.mono` (micro-details m8, X8): what on a page draws Geist Mono, read from the parts as this build writes them (the React-derived diagram sections and
  * bundles included), never listed by hand, so a module that gains mono later can't drift out of it. compose.mjs adds the mono face when a page has any of them.
@@ -212,11 +234,11 @@ const limitedToDataMono = (selectors) => selectors.some((selector) => selectorPa
  *   tags, classes, attributes   the subjects of core.css's rules that set the mono family (a tag, a class), and every attribute a module limits a mono rule to
  */
 export function monoManifest(files, moduleList) {
-  const sets = (css) => cssRules(css).filter((rule) => MONO_NAMES.test(rule.body));
+  const sets = (css) => cssRules(css).filter((rule) => namesMono(rule.body));
   const modules = moduleList.filter((name) => {
     const css = files[`parts/${name}.css`];
     const js = files[`parts/${name}.js`];
-    return (css !== undefined && sets(css).some((rule) => !limitedToDataMono(rule.selectors))) || (js !== undefined && MONO_NAMES.test(js));
+    return (css !== undefined && sets(css).some((rule) => !limitedToDataMono(rule.selectors))) || (js !== undefined && namesMono(js));
   });
   const tags = new Set();
   const classes = new Set();

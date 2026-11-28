@@ -33,7 +33,7 @@ test("FramedArt writes fetchpriority on the <img>, never the <figure>, and nothi
   const high = renderToStaticMarkup(createElement(FramedArt, { src: "/a.jpg", alt: "A field at dusk", loading: "eager", fetchPriority: "high" }));
   assert.match(high, /<img [^>]*fetchpriority="high"/i, "the <img> has fetchpriority=high");
   assert.doesNotMatch(high.match(/<figure[^>]*>/)[0], /fetchpriority/i, "the <figure> has none");
-  assert.equal((high.match(/fetchpriority/gi) ?? []).length, 1, "written once");
+  assert.equal((high.match(/<img [^>]*>/g) ?? []).filter((img) => /fetchpriority/i.test(img)).length, 1, "on the one <img> (React may also write its own image preload with the priority; that is not the frame's)");
   const plain = renderToStaticMarkup(createElement(FramedArt, { src: "/a.jpg", alt: "A field at dusk" }));
   assert.doesNotMatch(plain, /fetchpriority/i, "no attribute by default");
   const drawn = renderToStaticMarkup(createElement(FramedArt, { art: createElement("svg"), alt: "" }));

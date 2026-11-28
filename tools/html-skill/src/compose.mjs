@@ -544,41 +544,64 @@ export function brandSvg(text) {
 
 /** A script element a browser runs: no type, an empty one, a JavaScript type or `module` (the test callsInit uses). */
 const executable = (item) => JS_TYPE.test((item.attrs.find((a) => a[0] === "type")?.[1] ?? "").trim().toLowerCase());
-/** Text in a style that names the mono family: the token, a mono type role, or the face itself. */
-const MONO_STYLE = /font-family-mono|-mono\)|--bh-xs-mono|--bh-sm-mono|Geist Mono/;
+/**
+ * An attribute value as the browser reads it: numeric character references, and every named reference that stands for an ASCII character (the
+ * only ones that can spell a class, a URL's scheme or a mono name; none stands for a letter but `fjlig`, or for a space or a hyphen-minus), so
+ * `class="x&#32;mono"` and `href="javascript&colon;…"` read as written. Any other named reference stays, and can't make a word that matters here.
+ */
+const ASCII_REFS = { Tab: "\t", NewLine: "\n", excl: "!", quot: '"', QUOT: '"', num: "#", dollar: "$", percnt: "%", amp: "&", AMP: "&", apos: "'", lpar: "(", rpar: ")", ast: "*", midast: "*", plus: "+", comma: ",", period: ".", sol: "/", colon: ":", semi: ";", lt: "<", LT: "<", equals: "=", gt: ">", GT: ">", quest: "?", commat: "@", lsqb: "[", lbrack: "[", bsol: "\\", rsqb: "]", rbrack: "]", Hat: "^", lowbar: "_", UnderBar: "_", grave: "`", DiacriticalGrave: "`", lcub: "{", lbrace: "{", verbar: "|", vert: "|", VerticalLine: "|", rcub: "}", rbrace: "}", fjlig: "fj" };
+const LEGACY_REFS = new Set(["amp", "AMP", "lt", "LT", "gt", "GT", "quot", "QUOT"]); // the ones above a browser also reads without their `;`
+const codePoint = (n) => (n === 0 || n > 0x10ffff || (n >= 0xd800 && n <= 0xdfff) ? "\uFFFD" : String.fromCodePoint(n));
+export const decodeAttr = (value) => value.replace(/&(?:#[xX]([0-9a-fA-F]+);?|#([0-9]+);?|([A-Za-z][A-Za-z0-9]*)(;?))/g, (ref, hex, dec, name, semi) => {
+  if (hex !== undefined) return codePoint(parseInt(hex, 16));
+  if (dec !== undefined) return codePoint(Number(dec));
+  return Object.hasOwn(ASCII_REFS, name) && (semi || LEGACY_REFS.has(name)) ? ASCII_REFS[name] : ref;
+});
+/** CSS text with its comments out and its escapes read (`\47 eist` is `Geist`), so a mono name can't hide behind either. */
+const cssText = (css) => stripCssComments(css).replace(/\\([0-9a-fA-F]{1,6})[ \t\n\r\f]?|\\([^\n0-9a-fA-F])/g, (_, hex, ch) => (hex ? codePoint(parseInt(hex, 16)) : ch));
+/** Whether CSS names the mono family: the token or a mono type role (custom properties, so in their own case), or the face (a family name, in any case). */
+const namesMono = (css) => { const text = cssText(css); return /font-family-mono|-mono\)|--bh-xs-mono|--bh-sm-mono/.test(text) || /geist\s+mono/i.test(text); };
+/** The attributes that carry a font: `style`, SVG's `font-family` and `font`, and the old `<font face>`. */
+const FONT_ATTRS = new Set(["style", "font-family", "font", "face"]);
+/** A `javascript:` URL as the URL parser reads it: leading and trailing C0 controls and spaces dropped, tabs and line breaks removed anywhere. */
+const scriptUrl = (value) => /^javascript:/i.test(decodeAttr(value).replace(/^[\0-\x20]+|[\0-\x20]+$/g, "").replace(/[\t\n\r]/g, ""));
 
 /**
  * Whether a body runs author script (micro-details m8, X8): an executable `<script>` outside a template, an event handler attribute (`on…`, in any case) on any
- * element, or a `javascript:` URL. Markup, classes or styles a script sets at run time can't be read before it runs. `body` is a body's text, or what readBody
- * made of one.
+ * element, or a `javascript:` URL (its value decoded). Markup, classes or styles a script sets at run time can't be read before it runs. `body` is a body's
+ * text, or what readBody made of one.
  */
 export function runsScript(body) {
   const held = typeof body === "string" ? readBody(body) : body;
-  return held.scripts.some(executable) || held.tags.some((tag) => tag.attrs.some(([name, value]) => /^on[a-z]/.test(name) || /^[\s\0-\x1f]*javascript:/i.test(value)));
+  return held.scripts.some(executable) || held.tags.some((tag) => tag.attrs.some(([name, value]) => /^on[a-z]/.test(name) || scriptUrl(value)));
 }
 
 /**
  * Whether a page can draw Geist Mono, so its face goes in (micro-details m8, X8). It leans towards keeping the face: any of these is enough.
  *   1. `all`;  2. a module in `manifest.mono.modules` is on the page;  3. any element, at any depth, has a tag, class or attribute in `manifest.mono` (read
- *   from the tokenizer, quoted or not, comments ignored);  4. an author `<style>`, a `style` attribute, or an svg, math or template holds a mono name;
- *   5. the page runs author script (runsScript), unless `scriptsDrawMono` is false: a build that knows its scripts draw no mono says so.
- * A manifest with no `mono` (a skill folder built before it) keeps the face.
+ *   from the tokenizer, quoted or not, decoded, comments ignored), or the body has a `<noscript>` (its content is text to the tokenizer, and markup to a
+ *   reader without script);  4. an author `<style>`, a `<style>` inside an svg, math or template, or a font-bearing attribute (`style`, `font-family`, `font`,
+ *   `face`) names the mono family (text that merely spells the name does not);  5. the page runs author script (runsScript), unless `scriptsDrawMono` is
+ *   false: a build that knows its scripts draw no mono says so. A manifest with no `mono` (a skill folder built before it) keeps the face.
  */
 function drawsMono(held, styles, modules, manifest, { all, scriptsDrawMono }) {
   const mono = manifest.mono;
   if (all || !mono) return true;
   if (modules.some((name) => mono.modules.includes(name))) return true;
   for (const tag of held.tags) {
-    if (mono.tags.includes(tag.name)) return true;
+    if (mono.tags.includes(tag.name) || tag.name === "noscript") return true;
     for (const [name, value] of tag.attrs) {
       if (mono.attributes.includes(name)) return true;
-      if (name === "class" && value.split(/[\t\n\f\r ]+/).some((c) => mono.classes.includes(c))) return true;
-      if (name === "style" && MONO_STYLE.test(stripCssComments(value))) return true;
+      if (name === "class" && decodeAttr(value).split(/[\t\n\f\r ]+/).some((c) => mono.classes.includes(c))) return true;
+      if (FONT_ATTRS.has(name) && namesMono(decodeAttr(value))) return true;
     }
   }
-  if (styles.some((style) => MONO_STYLE.test(stripCssComments(style.css)))) return true;
-  // A style or a font-family inside an svg, math or template is held whole by the tokenizer: its text, without comments, is read as it is.
-  if (held.saved.some((item, k) => (item.kind === "svg" || item.kind === "math" || item.kind === "template") && MONO_STYLE.test(stripCssComments(held.restore(`${held.mark}${k}${held.mark}`, true))))) return true;
+  if (styles.some((style) => namesMono(style.css))) return true;
+  // A style inside an svg, math or template is held whole by the tokenizer: its content, without comments, is read from the held text.
+  const nested = held.saved.flatMap((item, k) => (item.kind === "svg" || item.kind === "math" || item.kind === "template"
+    ? [...held.restore(`${held.mark}${k}${held.mark}`, true).matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi)].map((m) => m[1])
+    : []));
+  if (nested.some(namesMono)) return true;
   return scriptsDrawMono !== false && runsScript(held);
 }
 
