@@ -8,6 +8,7 @@ import { GoArrow } from "./go-arrow";
 import { Icon } from "./icon";
 import { Reserve } from "./reserve";
 import { NewTabGlyph, NewTabWords, hasVisibleText, newTabWords, opensNewTab } from "./new-tab";
+import { safeHref } from "./safe-href";
 import { join } from "./utils";
 
 export interface LinkProps extends React.ComponentProps<"a"> {
@@ -82,11 +83,23 @@ export function Breadcrumbs({ items, className, "aria-label": label = "Breadcrum
 }
 
 export interface PaginationProps extends Omit<React.ComponentProps<"nav">, "onChange" | "children"> {
+  /**
+   * The `nav`'s id. A pager with an `id` names its arrows: Previous is `id + "-previous"` and Next `id + "-next"`, in the button and the link form, at an
+   * end or not, so a link can name an arrow as its fragment.
+   */
+  id?: string;
   page: number;
   pageCount: number;
+  /** The button form's callback: a press on a page or an arrow. It is not called in the link form (`hrefForPage`); there, `onNavigate` is. */
   onPageChange?: (page: number) => void;
   /** Provide for URL navigation; otherwise buttons paginate the app's current view. */
   hrefForPage?: (page: number) => string;
+  /**
+   * With `hrefForPage`: called on a plain press of a page link (the primary button, no modifier key) in place of the browser following
+   * it, so an app's router can navigate. A modified press, a middle click and the link's own menu stay the browser's. Without it the
+   * links are followed. Called only with an href that passed `safeHref`.
+   */
+  onNavigate?: (href: string, page: number) => void;
   /**
    * The most pages the list can ever reach (its unfiltered count at its smallest page size). Each of the seven slots is as wide as the widest page
    * number up to it, at 600 in tabular figures, and the box reserves `min(7, maxPages)` slots, so Previous and Next never move as the pages change. Default:
@@ -127,7 +140,7 @@ const eights = (n: number) => String(n).replace(/\d/g, "8");
  * hidden and keeps its room. It never wraps: under 640px of its container it is Previous, a summary and Next. The current page is its number at 600 on a plate. A press on a number moves focus to
  * the button that holds the current page.
  */
-export function Pagination({ page, pageCount, onPageChange, hrefForPage, maxPages, summary, compact, keepRoom, className, "aria-label": label = "Pagination", ...props }: PaginationProps) {
+export function Pagination({ id, page, pageCount, onPageChange, hrefForPage, onNavigate, maxPages, summary, compact, keepRoom, className, "aria-label": label = "Pagination", ...props }: PaginationProps) {
   const count = Number.isFinite(pageCount) ? Math.max(0, Math.floor(pageCount)) : 0;
   const current = Math.max(1, Math.min(Math.max(count, 1), Math.floor(page) || 1));
   const whole = count <= 1;
@@ -142,17 +155,31 @@ export function Pagination({ page, pageCount, onPageChange, hrefForPage, maxPage
     pressed.current = false;
     root.current?.querySelector<HTMLElement>('.basalt-pagination-pages [aria-current="page"]')?.focus({ preventScroll: true });
   }, [current]);
-  const control = (value: number, name: string, content: React.ReactNode, ended = false) => {
+  // An app's router takes a plain press of a page link; a modified press, a middle click and the link's menu stay the browser's.
+  const follow = (value: number, name: string) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!onNavigate || !hrefForPage) return;
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    const href = safeHref(hrefForPage(value));
+    if (href === null) {
+      console.error("Basalt: Pagination will not navigate to a link that is not relative, http, https, mailto or tel");
+      return;
+    }
+    pressed.current = name.startsWith("Page ");
+    onNavigate(href, value);
+  };
+  const control = (value: number, name: string, content: React.ReactNode, ended = false, arrowId?: string) => {
     const selected = value === current && name.startsWith("Page ");
     // A page's number is 400 at rest and 600 on the current page, and carries a copy of itself that the stylesheet lays out at 600 (the same as ChosenLabel does for a segment or a tab),
     // and a copy of the widest page number the list can reach (`data-widest`), unseen, so every slot is as wide as the widest page. Both are attributes: the DOM holds the words once.
     if (typeof content === "number") content = <span data-label={content} data-widest={widest}>{content}</span>;
     // An arrow that has nowhere to go stops but stays: `aria-disabled`, still focusable, as the period stepper's is.
-    if (hrefForPage && !ended) return <Link href={hrefForPage(value)} aria-label={name} aria-current={selected ? "page" : undefined} className="basalt-page-link">{content}</Link>;
+    if (hrefForPage && !ended) return <Link id={arrowId} href={hrefForPage(value)} aria-label={name} aria-current={selected ? "page" : undefined} className="basalt-page-link" onClick={onNavigate ? follow(value, name) : undefined}>{content}</Link>;
     // A page that is not there (before the first, after the last) keeps a link's box: a Button's is 4px wider, so reaching the first or last page would move every page after it.
-    if (hrefForPage) return <a role="link" tabIndex={0} aria-disabled="true" aria-label={name} className="basalt-page-link">{content}</a>;
+    if (hrefForPage) return <a id={arrowId} role="link" tabIndex={0} aria-disabled="true" aria-label={name} className="basalt-page-link">{content}</a>;
     return (
       <Button
+        id={arrowId}
         size="sm"
         variant="ghost"
         aria-label={name}
@@ -174,8 +201,8 @@ export function Pagination({ page, pageCount, onPageChange, hrefForPage, maxPage
   if (whole && !keepRoom) return null;
   const items = whole ? [] : pageItems(current, count);
   return (
-    <nav {...props} ref={root} role={whole ? "none" : undefined} aria-label={whole ? undefined : label} data-whole={whole ? "" : undefined} data-compact={compact ? "" : undefined} className={join("basalt-pagination", className)}>
-      {control(current - 1, "Previous page", <Icon icon={ChevronLeftGlyph} />, current <= 1)}
+    <nav {...props} id={id} ref={root} role={whole ? "none" : undefined} aria-label={whole ? undefined : label} data-whole={whole ? "" : undefined} data-compact={compact ? "" : undefined} className={join("basalt-pagination", className)}>
+      {control(current - 1, "Previous page", <Icon icon={ChevronLeftGlyph} />, current <= 1, id ? `${id}-previous` : undefined)}
       {compact ? null : (
         <div className="basalt-pagination-pages">
           <div className="basalt-pagination-reserve" aria-hidden="true">
@@ -191,7 +218,7 @@ export function Pagination({ page, pageCount, onPageChange, hrefForPage, maxPage
         </div>
       )}
       <span className="basalt-pagination-summary" data-default={summary === undefined ? "" : undefined}>{summary ?? <Reserve show="now" alternatives={{ now: `Page ${current} of ${Math.max(count, 1)}`, seat: `Page ${widest} of ${widest}` }} />}</span>
-      {control(current + 1, "Next page", <Icon icon={ChevronRightGlyph} />, current >= count)}
+      {control(current + 1, "Next page", <Icon icon={ChevronRightGlyph} />, current >= count, id ? `${id}-next` : undefined)}
     </nav>
   );
 }

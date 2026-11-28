@@ -122,7 +122,9 @@ async function lazyGraph(names, extra = "") {
 // Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
 // Button 18,672 on main, 18,697 with E6 (+25), so 18,678 to 18,703; Drawer 19,234 to 19,259 (+25), so 19,250 to 19,275.
 // micro-details m2 (DECISIONS 419), measured with this file's own graph() and bundle() on origin/main 79453efb and on the m2 head; each limit rises by the increase alone: NumberTicker's default format goes through formatNumber (number-format.ts). Sparkline's graph 9,060 to 9,696 (+636; 9,100 to 9,736).
-for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_736], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_703], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 10_215], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 19_275]]) {
+// micro-details m7 (DECISIONS 405, 409), measured with this file's own graph() on origin/main d67696d1 and on the m7 head; the limit rises by the increase alone:
+// Drawer's finalFocus (the record of where focus came from, read from focusin and focusout, and the close that returns it), 19,259 to 20,148 (+889; 19,275 to 20,164).
+for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_736], ["Skeleton", 2_500], ["Badge", 3_000], ["NumberTicker", 7_000], ["Button", 18_703], ["Kbd", 11_000], ["AmbientMark", 1_500], ["LoopsToggle", 40_000], ["LoopsToggleIcon", 20_000], ["Reflow", 8_000], ["createTravellers", 1_000], ["entranceVerdict", 2_000], ["Listbox", 10_215], ["OpenList", 2_500], ["NoticeBar", 2_000], ["SearchTrigger", 5_500], ["SearchResult", 2_000], ["Drawer", 20_164]]) {
   test(`${name} alone, with splitting, loads only its own static graph (${limit} bytes at most)`, async () => {
     const { bytes, chunks, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes in ${chunks} chunks (limit ${limit})`);

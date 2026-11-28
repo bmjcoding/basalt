@@ -89,10 +89,11 @@
         "topbar-account"
       ],
       "budget": 20300,
-      "usage": 3200,
+      "usage": 3350,
       "attrs": [
         "data-phase-after"
-      ]
+      ],
+      "usageReason": "m7 (DECISIONS 405, 409; the skill's budgets are soft): 3200 to 3350 for the sentence on scroll restoration."
     },
     "kbd": {
       "classes": [
@@ -321,14 +322,16 @@
       "text": [
         "role\\s*=\\s*[\"']?tab(?:list|panel)?\\b"
       ],
-      "budget": 5400,
-      "usage": 1150,
+      "budget": 7180,
+      "usage": 1700,
       "textWords": [
         "role=\"tab\", role=\"tablist\" or role=\"tabpanel\""
       ],
       "requires": [
         "fade"
-      ]
+      ],
+      "budgetReason": "m7 (DECISIONS 405, 409; the skill's budgets are soft): 5400 to 7180 bytes, measured, for the tabchange event, Basalt.selectTab, the fragment followed on load, at a same-page link's click and on Back and Forward, and data-tabs-hash's replace.",
+      "usageReason": "m7 (DECISIONS 405, 409; the skill's budgets are soft): 1150 to 1700 for the event, selectTab, the fragment and data-tabs-hash."
     },
     "link-tabs": {
       "classes": [
@@ -444,15 +447,16 @@
         "plus",
         "check"
       ],
-      "budget": 18811,
-      "usage": 1790,
+      "budget": 19223,
+      "usage": 2100,
       "builds": [
         "popover",
         "glide",
         "glyph",
         "choice"
       ],
-      "budgetReason": "cimip-gaps-3 t7 (DECISIONS 399; the skill's budgets are soft): 18150 to 18751 bytes, measured, for the checklist's fade and clearance, and a port for a popup with no checklist. T7 fix pass 1 (Astra): 18751 to 18811 bytes, measured, for the glide host chosen where the plate lives and the port's plate rule."
+      "budgetReason": "cimip-gaps-3 t7 (DECISIONS 399; the skill's budgets are soft): 18150 to 18751 bytes, measured, for the checklist's fade and clearance, and a port for a popup with no checklist. T7 fix pass 1 (Astra): 18751 to 18811 bytes, measured, for the glide host chosen where the plate lives and the port's plate rule. m7 (DECISIONS 405, 409; the skill's budgets are soft): 18811 to 19223 bytes, measured, for Basalt.setFilter.",
+      "usageReason": "m7 (DECISIONS 405, 409; the skill's budgets are soft): 1790 to 2100 for Basalt.setFilter."
     },
     "option-chips": {
       "classes": [
@@ -1773,8 +1777,10 @@
         "tooltip"
       ],
       "viewportFit": true,
-      "budget": 10800,
-      "usage": 3800
+      "budget": 10916,
+      "usage": 3900,
+      "budgetReason": "m7 (DECISIONS 405, 409; the skill's budgets are soft): 10800 to 10916 bytes, measured, for the block-axis overscroll rule under a fine pointer.",
+      "usageReason": "m7 (DECISIONS 405, 409; the skill's budgets are soft): 3800 to 3900 for the sentence on scroll restoration."
     },
     "pane": {
       "classes": [

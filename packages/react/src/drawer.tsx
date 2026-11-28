@@ -4,8 +4,10 @@ import { Button } from "./button";
 import type { ButtonProps } from "./button";
 import { ChevronLeftGlyph } from "./glyphs/chevron-left";
 import { useScrollFade } from "./fade-port";
+import type { FocusPlace } from "./route-focus";
 import { useScrollStop } from "./scroll-stop";
 import { join } from "./utils";
+import { useJoinedRef } from "./wait";
 
 export interface DrawerProps extends Omit<React.ComponentProps<"section">, "title"> {
   /** Required: names the drawer's region ("The session and the sources"). */
@@ -20,17 +22,66 @@ export interface DrawerProps extends Omit<React.ComponentProps<"section">, "titl
   onBack?: () => void;
   /** The Back button's name. Default "Back". */
   backLabel?: string;
+  /**
+   * Where focus goes when the drawer closes while focus is inside it (its own Back button, the browser's Back). Default: the element
+   * focus came from when it entered the drawer, if it is still in the document. With neither, nothing moves. When focus is outside the
+   * drawer as it closes, nothing moves.
+   */
+  finalFocus?: FocusPlace;
 }
 
 /**
  * A panel docked in the flow under a page's column, with two titled halves (`DrawerSection`). Not a dialog and not a sheet: it has
  * no portal, scrim, level reset, motion, shadow, fill or corner radius, and it takes no focus when it opens. Its one mark is a
- * `border-divider` along its top. The app owns where it sits, whether it is open, and what moves focus into it.
+ * `border-divider` along its top. The app owns where it sits, whether it is open, and what moves focus into it. When it closes with focus
+ * inside, focus goes to `finalFocus`, else to where it came from when it entered (m7, U2); a focus that arrived from nowhere (a script's move
+ * from no focus, Safari's press on a button) leaves nothing to return to, and `finalFocus` is the app's answer.
  */
-export function Drawer({ label, open = true, rows = 13, columns, onBack, backLabel = "Back", className, style, children, ...props }: DrawerProps) {
+export function Drawer({ label, open = true, rows = 13, columns, onBack, backLabel = "Back", finalFocus, className, style, children, ref, ...props }: DrawerProps) {
+  const section = React.useRef<HTMLElement | null>(null);
+  const joined = useJoinedRef(ref, section);
+  // Where focus came from when it last entered from outside (nothing, when it came from no element), and whether it is inside now: both read from the
+  // focus events, never from `document.activeElement` after `hidden` has been applied.
+  const came = React.useRef<HTMLElement | null>(null);
+  const inside = React.useRef(false);
+  const aim = React.useRef(finalFocus);
+  aim.current = finalFocus;
+  React.useEffect(() => {
+    const el = section.current;
+    if (!el) return undefined;
+    const enter = (event: FocusEvent) => {
+      const from = event.relatedTarget;
+      const outside = !(from instanceof Node && el.contains(from));
+      // An entry from outside replaces the record; one with no element clears it.
+      if (!inside.current || (from !== null && outside)) came.current = from instanceof HTMLElement && outside ? from : null;
+      inside.current = true;
+    };
+    const leave = (event: FocusEvent) => {
+      const to = event.relatedTarget;
+      // The window losing focus (another app) leaves focus where it is: still inside.
+      inside.current = (to instanceof Node && el.contains(to)) || (to === null && !el.ownerDocument.hasFocus() && el.contains(el.ownerDocument.activeElement));
+    };
+    el.addEventListener("focusin", enter);
+    el.addEventListener("focusout", leave);
+    return () => { el.removeEventListener("focusin", enter); el.removeEventListener("focusout", leave); };
+  }, []);
+  const was = React.useRef(open);
+  React.useLayoutEffect(() => {
+    const closed = was.current && !open;
+    was.current = open;
+    if (!closed) return;
+    const back = came.current;
+    // Every close clears the record, used or not, so an opener from one opening is never focused after a later one.
+    came.current = null;
+    if (!inside.current) return;
+    const place = aim.current;
+    const target = (place ? (typeof place === "function" ? place() : place.current) : null) ?? (back && back.isConnected ? back : null);
+    target?.focus({ preventScroll: true });
+  }, [open]);
   return (
     <section
       {...props}
+      ref={joined}
       aria-label={label}
       hidden={open ? undefined : true}
       className={join("basalt-drawer", className)}
