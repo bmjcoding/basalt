@@ -7879,6 +7879,10 @@
     appearance: none;
   }
   .basalt-search-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
+  /* The query fades at each side that hides more while the field is not focused, and is plain while it is (cimip-gaps-3 t8); a placeholder wider than its
+     room ends in an ellipsis. */
+  .basalt-search-input:focus { mask-image: none; }
+  .basalt-search-input:placeholder-shown { text-overflow: ellipsis; }
   /* A browser draws its own clear × in a search field. The band has one ×: the close button. */
   .basalt-search-input::-webkit-search-cancel-button,
   .basalt-search-input::-webkit-search-decoration,
@@ -7947,22 +7951,134 @@
 
   /* ---- Search in a page or a panel (SearchField, SearchPassages) ---- */
 
-  /* The field: an Input with the core search glyph at its start and, while there are words, a 24px clear button at its end. Both seats are
-     padding, kept whether the button shows or not, so the words never move. */
-  .basalt-search-box { position: relative; display: flex; align-items: center; min-width: 0; margin: 0; }
-  .basalt-search-box-glyph { position: absolute; inset-inline-start: var(--basalt-space-2-5); color: var(--basalt-text-tertiary); pointer-events: none; }
-  .basalt-input.basalt-search-box-input {
-    flex: 1;
+  /* The field (cimip-gaps-3 t8, DECISIONS 407): the form is the host and draws what an Input draws (the height, the radius, the raised fill, the
+     boundary, the +2 ring and each state's paint); inside it a label lays out the core search glyph at 16 and the input, a bare port that keeps
+     `basalt-input` for its ink and its font and carries the fade. A press anywhere in the label focuses the input natively. The words start 34px in
+     (space-2-5, the glyph, space-2) in every state; the end is the clear seat (space-1, the 24px ×, space-1; 44 on touch) only while the × shows, and
+     space-2-5 with no words. The host's width never depends on the ×: while it is not there a spacer of the seat less space-2-5 (--_give) counts in the
+     host's intrinsic width and is shrunk to 0 once the host has its width, so a field sized by its content neither grows on the first key nor shrinks on
+     clearing. */
+  .basalt-search-box {
+    --_h: var(--_basalt-control-md, var(--basalt-size-control-md));
+    --_seat: calc(2 * var(--basalt-space-1) + var(--basalt-size-control-xs));
+    --_give: calc(var(--_seat) - var(--basalt-space-2-5));
+
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    align-items: stretch;
     min-width: 0;
-    padding-inline: calc(var(--basalt-space-2-5) + var(--basalt-size-icon-sm) + var(--basalt-space-2)) calc(var(--basalt-space-1) + var(--basalt-size-control-xs) + var(--basalt-space-1));
+    height: var(--_h);
+    margin: 0;
+    padding: 0;
+    border-radius: var(--basalt-radius-sm);
+    background: var(--basalt-surface-raised);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
+    transition: box-shadow var(--basalt-duration-fast) var(--basalt-ease-out);
+  }
+  .basalt-search-box[data-size="sm"] { --_h: var(--_basalt-control-sm, var(--basalt-size-control-sm)); }
+  .basalt-search-box[data-size="lg"] { --_h: var(--_basalt-control-lg, var(--basalt-size-control-lg)); border-radius: var(--_basalt-control-lg-radius, var(--basalt-radius-md)); }
+  .basalt-search-box-field {
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--basalt-space-2);
+    margin: 0;
+    padding-block: 0;
+    padding-inline: var(--basalt-space-2-5);
+    cursor: text;
+  }
+  .basalt-search-box:has(> .basalt-search-box-clear) > .basalt-search-box-field { padding-inline-end: var(--_seat); }
+  /* Only while empty: counts in the host's min- and max-content widths (Chromium counts the inline size, not a flex basis alone) and is shrunk to 0
+     once the host is laid out, the label taking the whole row. */
+  .basalt-search-box:not(:has(> .basalt-search-box-clear))::after { content: ""; flex: 0 1 var(--_give); inline-size: var(--_give); min-inline-size: 0; }
+  .basalt-search-box:not(:has(> .basalt-search-box-clear)) > .basalt-search-box-field { min-inline-size: 100%; }
+  .basalt-search-box-glyph { flex: none; color: var(--basalt-text-tertiary); }
+  /* The port: the input's own box chrome is dropped, above every .basalt-input rule that paints it (the touch minimums, the writing, invalid and disabled
+     states up to (0,3,0) and the forced-colours border), so these are (0,4,0). Its ink, its font (the density's, 13px at sm, 16px on a coarse pointer)
+     and its states' ink stay .basalt-input's. */
+  .basalt-search-box > .basalt-search-box-field > .basalt-input.basalt-search-box-input {
+    flex: 1 1 auto;
+    align-self: stretch;
+    min-width: 0;
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+    animation: none;
     -webkit-appearance: none;
     appearance: none;
   }
+  .basalt-search-box > .basalt-search-box-field > .basalt-input.basalt-search-box-input:is(:disabled, [data-disabled]) { color: var(--basalt-text-disabled); cursor: not-allowed; }
   .basalt-search-box-input::placeholder { color: var(--basalt-text-tertiary); opacity: 1; }
+  /* A placeholder wider than its room ends in an ellipsis, never a sliced glyph: it does not scroll, so it is not faded. */
+  .basalt-search-box-input:placeholder-shown { text-overflow: ellipsis; }
   .basalt-search-box-input::-webkit-search-cancel-button,
   .basalt-search-box-input::-webkit-search-decoration,
   .basalt-search-box-input::-webkit-search-results-button { -webkit-appearance: none; appearance: none; display: none; }
-  .basalt-search-box-clear { position: absolute; inset-inline-end: var(--basalt-space-1); }
+  /* Words wider than the field fade at each side that hides more while it is not focused (search.tsx runs the watcher while there are words); while it has
+     focus, by any means, there is no mask: a plain cut, at once and with no layout change. */
+  .basalt-search-box-input:focus { mask-image: none; }
+  /* Each state painted where it paints: the boundary, the fill, the pulse and the ring on the host; the ink on the port. */
+  .basalt-search-box:has(.basalt-search-box-input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .basalt-search-box:has(.basalt-search-box-input[data-invalid]) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
+  .basalt-search-box:has(.basalt-search-box-input:is(:disabled, [data-disabled])) { background: var(--basalt-surface-sunken); cursor: not-allowed; }
+  .basalt-search-box:has(.basalt-search-box-input:is(:disabled, [data-disabled])) > .basalt-search-box-field { cursor: not-allowed; }
+  .basalt-search-box:has(.basalt-search-box-input:is(:disabled, [data-disabled])) .basalt-search-box-glyph { color: var(--basalt-text-disabled); }
+  .basalt-search-box:has(.basalt-search-box-input[aria-busy="true"]),
+  .basalt-search-box:has(.basalt-search-box-input[aria-busy="true"]) > .basalt-search-box-field { cursor: progress; }
+  .basalt-search-box:has(.basalt-search-box-input[data-writing]) {
+    background: var(--basalt-surface-placeholder);
+    /* stylelint-disable-next-line unit-disallowed-list -- the skeleton's pulse period, the same literal as .basalt-input[data-writing]'s (a new token is design) */
+    animation: basalt-writing 2s var(--basalt-ease-in-out) infinite alternate;
+  }
+  .basalt-search-box:has(.basalt-search-box-input[data-writing]):not(:has(.basalt-search-box-input:focus-visible)) {
+    box-shadow: none;
+    outline: var(--basalt-size-hairline) dashed var(--basalt-border-field);
+    outline-offset: calc(-1 * var(--basalt-size-hairline));
+  }
+  :root[data-loops="held"] .basalt-search-box:has(.basalt-search-box-input[data-writing]) { animation: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .basalt-search-box:has(.basalt-search-box-input[data-writing]) { animation: none; }
+  }
+  /* Clear: drawn at 24, centred on the block axis, space-1 inside the end, over the label's end padding (never in flow, so the host's width never depends
+     on it). A part of a field: it keeps the colour step and never scales on press (motion.md). */
+  .basalt-search-box > .basalt-button.basalt-search-box-clear { position: absolute; inset-block: 0; inset-inline-end: var(--basalt-space-1); margin-block: auto; }
+  .basalt-button.basalt-search-box-clear:active:not([data-disabled]):not([data-busy]) { transform: none; }
+  .basalt-button.basalt-search-box-clear:active:not([data-disabled]):not([data-busy])::after { content: none; }
+  /* On touch and under 720: 44 tall, radius 8, 16px words; the seat is space-2-5, the 24px ×, space-2-5 (44), and the × keeps its 24 (radius 6) with a
+     44 × 44 hit area on ::before, flush with the host's top, bottom and end and ending on the text area's edge. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
+    .basalt-search-box { --_seat: calc(2 * var(--basalt-space-2-5) + var(--basalt-size-control-xs)); min-height: var(--basalt-size-tap-min); }
+    .basalt-search-box,
+    .basalt-search-box[data-size] { border-radius: var(--basalt-radius-md); }
+    /* The port's min-width and min-height of 0 are the base rule's, at (0,4,0): they outrank the touch minimums here too. */
+    .basalt-search-box > .basalt-button.basalt-search-box-clear { --_radius: var(--basalt-radius-sm); min-width: 0; min-height: 0; inset-inline-end: var(--basalt-space-2-5); }
+    .basalt-search-box > .basalt-button.basalt-search-box-clear::before { content: ""; position: absolute; inset: calc((var(--basalt-size-control-xs) - var(--basalt-size-tap-min)) / 2); }
+  }
+  @media (forced-colors: active) {
+    .basalt-search-box { border: var(--basalt-size-hairline) solid ButtonText; box-shadow: none; }
+    .basalt-search-box:has(.basalt-search-box-input:focus-visible) { outline-color: Highlight; }
+    .basalt-search-box:has(.basalt-search-box-input:is(:disabled, [data-disabled])) { border-color: GrayText; }
+    .basalt-search-box:has(.basalt-search-box-input:is(:disabled, [data-disabled])) .basalt-search-box-glyph { color: GrayText; }
+    .basalt-search-box:has(.basalt-search-box-input[data-writing]) { border-style: dashed; animation: none; }
+    .basalt-search-box:has(.basalt-search-box-input[data-writing]):not(:has(.basalt-search-box-input:focus-visible)) { outline: none; }
+    .basalt-search-box > .basalt-search-box-field > .basalt-input.basalt-search-box-input { border: 0; }
+    .basalt-search-box > .basalt-search-box-field > .basalt-input.basalt-search-box-input:is(:disabled, [data-disabled]) { color: GrayText; }
+    /* Clear keeps the button's ButtonText border, and never overflows a compact sm field's content box. */
+    .basalt-search-box > .basalt-button.basalt-search-box-clear { max-height: 100%; }
+  }
+  /* In forced colours the ×'s border moves its padding box in by a hairline: the hit area takes it back, so the target is 44 × 44 from the border box. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (forced-colors: active) and ((pointer: coarse) or (width < 720px)) {
+    .basalt-search-box > .basalt-button.basalt-search-box-clear::before { inset: calc((var(--basalt-size-control-xs) - var(--basalt-size-tap-min)) / 2 - var(--basalt-size-hairline)); }
+  }
 
   /* The results: an ordered list that keeps space-1-5 from its edges, so a ring at +2 is never cut by the panel that scrolls it. */
   .basalt-passages { margin: 0; padding: var(--basalt-space-1-5); list-style: none; }

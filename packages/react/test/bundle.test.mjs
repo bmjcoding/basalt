@@ -141,7 +141,10 @@ for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_100], ["Skeleto
 // cimip-gaps-3 E6 (G161, IconButton's `icon` as an element, told apart by React.isValidElement (a runtime React import in button.js, +25 in every graph that holds a
 // Button) and drawn inert in the glyph's place; this file's graph() on origin/main 1b4749df, again on d8c9ac79 with the same figures, and on the E6 head):
 // SearchDialog 98,748 on main, 98,879 with E6 (+131), so 98,771 to 98,902.
-for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 98_902]]) {
+// cimip-gaps-3 t8 (DECISIONS 407), measured with this file's graph() on origin/main 1b4749df and again on d8c9ac79 (the same figure), and on the t8 head: SearchDialog 98,748 to 99,313 (+565: the query's
+// fade at rest, the watcher started only while there are words and its refreshes on value, focus, blur and the fonts), so its limit rises by that alone, 98,771 to 99,336.
+// Combined on the merge of main (E6) into t8: 98,902 (E6) + 565 (t8) = 99,467.
+for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 99_467]]) {
   test(`${name} alone, with splitting, loads Base UI's dialog and the close button and no command panel (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes (limit ${limit})`);

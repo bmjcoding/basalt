@@ -9,7 +9,43 @@ import { Icon } from "./icon";
 import { isComposingKey } from "./keyboard";
 import type { FocusTarget } from "./types";
 import { Portless, useFadeRef } from "./fade-port";
+import { type ScrollFade, watchScrollFade } from "./scroll-fade";
 import { join } from "./utils";
+
+/**
+ * The fade on a search field's words (cimip-gaps-3 t8): the input is the port, watched on the inline axis only while it holds words (a placeholder is
+ * never masked); stopping clears what it wrote. A value change is neither a mutation nor a resize, so it measures again on each value, on focus and on
+ * blur (and on the next frame after blur, when the engine may scroll the text), and once the fonts are ready. The stylesheet drops the mask while the
+ * input has focus. `port` is the input itself, given as state so a field inside a popup is watched from the moment it mounts.
+ */
+function useWordsFade(port: HTMLInputElement | null, value: string) {
+  const words = value !== "";
+  const fade = React.useRef<ScrollFade | null>(null);
+  React.useLayoutEffect(() => {
+    if (!port || !words) return undefined;
+    const watcher = watchScrollFade(port, { axis: "inline" });
+    fade.current = watcher;
+    const view = port.ownerDocument.defaultView ?? window;
+    let frame = 0;
+    // A refresh after stop() writes nothing (the watcher checks), so a late frame or the fonts' promise needs no guard.
+    const refresh = () => watcher.refresh();
+    const onBlur = () => {
+      refresh();
+      frame = view.requestAnimationFrame(refresh);
+    };
+    port.addEventListener("focus", refresh);
+    port.addEventListener("blur", onBlur);
+    port.ownerDocument.fonts?.ready.then(refresh);
+    return () => {
+      view.cancelAnimationFrame(frame);
+      port.removeEventListener("focus", refresh);
+      port.removeEventListener("blur", onBlur);
+      watcher.stop();
+      fade.current = null;
+    };
+  }, [port, words]);
+  React.useLayoutEffect(() => { fade.current?.refresh(); }, [value]);
+}
 
 // ---- The search trigger: a button shaped like a field ----
 
@@ -63,6 +99,9 @@ export interface SearchDialogProps {
  * each a tab stop; there is no active row and no arrow-key movement, and Enter in the field sends the query to the app.
  */
 export function SearchDialog({ open, onOpenChange, title, label, placeholder, query, onQueryChange, onSubmit, count, closeLabel = "Close search", finalFocus, children }: SearchDialogProps) {
+  // The query fades at each side that hides more while the field is not focused, and is plain while it is (cimip-gaps-3 t8).
+  const [field, setField] = React.useState<HTMLInputElement | null>(null);
+  useWordsFade(open ? field : null, query);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* Its top is held where the full box has it and the box ends under what it shows (DECISIONS 336, Q3). */}
@@ -82,6 +121,7 @@ export function SearchDialog({ open, onOpenChange, title, label, placeholder, qu
             <Icon icon={SearchGlyph} size={16} />
             <span className="basalt-visually-hidden">{label}</span>
             <input
+              ref={setField}
               type="search"
               className="basalt-search-input"
               value={query}
@@ -189,19 +229,25 @@ export interface SearchFieldProps {
 }
 
 /**
- * A search field for a page or a panel: the core search glyph at its start, the words, and a clear button at its end while there are words (its seat
- * is padding, kept, so the words never move). It is a `role="search"` form. Esc empties it first and only the next Esc leaves (`onEscape`). The browser's
- * own clear × is hidden: the field has one ×.
+ * A search field for a page or a panel: the core search glyph at its start, the words 34px in, and while there are words a 24px clear button 4px inside
+ * its end (10px on touch, where it keeps its 24 with a 44 × 44 hit area and never scales on press). Its seat (32, or 44 on touch) is held only while it
+ * shows; with no words the end is 10px and a placeholder wider than that ends in an ellipsis. The words never move and the field's width never depends on
+ * the button. Words wider than the field fade at each side that hides more while it is not focused, and are plain while it is (cimip-gaps-3 t8). It is a
+ * `role="search"` form. Esc empties it first and only the next Esc leaves (`onEscape`). The browser's own clear × is hidden: the field has one ×.
  */
 export function SearchField({ label, value, onValueChange, placeholder, onSubmit, onOpen, onEscape, clearLabel = "Clear search", controlSize = "md", disabled, readOnly, inputRef, inputProps, className }: SearchFieldProps) {
   const off = Boolean(disabled ?? inputProps?.disabled);
   const fixed = off || Boolean(readOnly ?? inputProps?.readOnly);
   const own = React.useRef<HTMLInputElement | null>(null);
+  const [port, setPort] = React.useState<HTMLInputElement | null>(null);
   const setRef = (node: HTMLInputElement | null) => {
     own.current = node;
+    // The same node again is no update: a new ref function each render costs no render.
+    if (node) setPort(node);
     if (typeof inputRef === "function") inputRef(node);
     else if (inputRef) (inputRef as React.RefObject<HTMLInputElement | null>).current = node;
   };
+  useWordsFade(port, value);
   return (
     <form
       role="search"
@@ -212,41 +258,44 @@ export function SearchField({ label, value, onValueChange, placeholder, onSubmit
         onSubmit?.(value.trim());
       }}
     >
-      <Icon icon={SearchGlyph} size={16} className="basalt-search-box-glyph" />
-      <input
-        {...inputProps}
-        ref={setRef}
-        type="search"
-        className="basalt-input basalt-search-box-input"
-        data-size={controlSize}
-        aria-label={label}
-        disabled={off}
-        readOnly={fixed && !off ? true : undefined}
-        value={value}
-        placeholder={placeholder}
-        autoComplete="off"
-        enterKeyHint="search"
-        onChange={(event) => onValueChange(event.target.value)}
-        onKeyDown={(event) => {
-          inputProps?.onKeyDown?.(event);
-          if (event.defaultPrevented || isComposingKey(event.nativeEvent)) return;
-          // Enter goes on to submit the form (onSubmit); the open is said first.
-          if (event.key === "Enter" && !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) onOpen?.(value.trim());
-          // An input method's own Esc (cancelling a composition) is the input method's.
-          if (event.key !== "Escape") return;
-          if (value && !fixed) {
-            // The first Esc empties the words, and nothing round the field closes with it.
-            event.preventDefault();
-            event.stopPropagation();
-            onValueChange("");
-          } else if (onEscape) {
-            // The app takes the Esc: a dialog or sheet round the field does not close as well.
-            event.preventDefault();
-            event.stopPropagation();
-            onEscape();
-          }
-        }}
-      />
+      {/* The label is the box's layout and a native target for the input (a press on the glyph or a seat places the caret); the input is named by its aria-label. */}
+      <label className="basalt-search-box-field">
+        <Icon icon={SearchGlyph} size={16} className="basalt-search-box-glyph" />
+        <input
+          {...inputProps}
+          ref={setRef}
+          type="search"
+          className="basalt-input basalt-search-box-input"
+          data-size={controlSize}
+          aria-label={label}
+          disabled={off}
+          readOnly={fixed && !off ? true : undefined}
+          value={value}
+          placeholder={placeholder}
+          autoComplete="off"
+          enterKeyHint="search"
+          onChange={(event) => onValueChange(event.target.value)}
+          onKeyDown={(event) => {
+            inputProps?.onKeyDown?.(event);
+            if (event.defaultPrevented || isComposingKey(event.nativeEvent)) return;
+            // Enter goes on to submit the form (onSubmit); the open is said first.
+            if (event.key === "Enter" && !event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey) onOpen?.(value.trim());
+            // An input method's own Esc (cancelling a composition) is the input method's.
+            if (event.key !== "Escape") return;
+            if (value && !fixed) {
+              // The first Esc empties the words, and nothing round the field closes with it.
+              event.preventDefault();
+              event.stopPropagation();
+              onValueChange("");
+            } else if (onEscape) {
+              // The app takes the Esc: a dialog or sheet round the field does not close as well.
+              event.preventDefault();
+              event.stopPropagation();
+              onEscape();
+            }
+          }}
+        />
+      </label>
       {value ? (
         <IconButton
           icon={CloseGlyph}
