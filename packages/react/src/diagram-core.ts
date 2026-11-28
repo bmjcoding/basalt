@@ -363,8 +363,8 @@ export interface DiagramTypeExt {
   build?: (spec: DiagramSpec, kit: ExtBuildKit) => ExtBuilt;
   /** The engine's router lays it out (schedule). */
   routed?: boolean;
-  /** The noun the hint and the keys sentence use for one stop ("a task"). */
-  stop: string;
+  /** The noun the hint and the keys sentence use for one stop, both forms as written ("a task", "task"). */
+  stop: readonly [string, string];
   sentence?: (m: Model, n: MNode) => string;
   /** An architecture-read type's own sentences, after a card's detail. */
   sentenceMore?: (m: Model, n: MNode) => string[];
@@ -387,11 +387,8 @@ export interface DiagramTypeExt {
   sourceLead?: (m: Model) => string | undefined;
   /** A line of facts about the whole figure, under its source. */
   meta?: (P: string, m: Model) => VElement | null;
-  hint?: (m: Model, drawn: boolean) => Array<{ keys: string[]; words: string }>;
-  keys?: (m: Model, drawn: boolean) => string;
-  /** Whether a part traces (only where lines are drawn). */
-  traces?: (m: Model, drawn: boolean) => boolean;
-  hasStops?: (m: Model, dyn: Dyn) => boolean;
+  /** Where its layout traces (DECISIONS 392, read by `traces` alone): `"lines"` drawn or stacked, `"drawn"` drawn only, each with a line to draw. Unset never. */
+  traces?: "lines" | "drawn";
   keyTarget?: (m: Model, from: string, key: string, drawn: boolean, rtl: boolean) => string | null;
   /** A routed type's card: what goes inside the node in place of its kind, name and detail. */
   card?: (P: string, m: Model, n: MNode, dyn: Dyn) => VChild[];
@@ -990,26 +987,30 @@ function working(m: Model, n: MNode): string {
 }
 
 /**
- * What a tap does (DECISIONS 306, 1.5): a `click` from a touch or a pen pointer on a card traces it, on the same card or the drawing's ground clears it.
- * A linked card follows its link and is never traced. Returns the trace to show, or undefined where the tap changes nothing.
+ * What a click does (DECISIONS 392, 4): any click on a toggle card (a mouse, a pen, a touch or an assistive technology's) presses it, and a click on the
+ * drawing's ground releases a hold. Returns the card it presses, null for the ground with a hold up, or undefined where it does nothing: a layout that does
+ * not trace, a linked card (it follows its link and is never held), a click already handled (a viewer's pan), one outside the drawing or the ground with
+ * nothing held, and a click that ends a text selection in the card.
  */
-export function tapTrace(fig: HTMLElement, P: string, event: MouseEvent, current: string | null): string | null | undefined {
-  const type = (event as PointerEvent).pointerType;
-  if (type !== "touch" && type !== "pen") return undefined;
+export function pressTarget(fig: HTMLElement, P: string, m: Model, dyn: Dyn, event: MouseEvent): string | null | undefined {
   const drawing = fig.querySelector(`.${P}-drawing`);
   const target = event.target as Element | null;
-  if (!drawing || !target || !drawing.contains(target) || !fig.querySelector(`.${P}-edge`)) return undefined;
+  if (event.defaultPrevented || !traces(m, dyn) || !drawing || !target || !drawing.contains(target)) return undefined;
   const node = target.closest<HTMLElement>(`.${P}-node`);
-  if (node?.hasAttribute("href")) return undefined;
-  // A tap on the ground clears a trace; with none up it is nothing, so it never makes a figure "on touch" (Neon's P7 of the code review).
-  if (!node) return current === null ? undefined : null;
-  return node.dataset.node === current ? null : node.dataset.node ?? null;
+  if (!node) return dyn.held ? null : undefined;
+  if (node.hasAttribute("href")) return undefined;
+  const sel = getSelection();
+  if (sel && !sel.isCollapsed && sel.toString().trim() && sel.containsNode(node, true)) return undefined;
+  return node.dataset.node;
 }
 
-/** The noun the key hint and the keys sentence use for one stop. */
-function stopNoun(m: Model): string {
+/** The one function that toggles the hold (DECISIONS 392, 4): a press on the held card, or on the ground (null), releases it; on another card moves it there. */
+export const pressHold = (dyn: Dyn, id: string | null): Dyn => ({ ...dyn, held: id === null || dyn.held === id ? undefined : id });
+
+/** The noun the key hint and the keys sentence use for one stop, both forms written out ("a part", "part"). */
+function stopNoun(m: Model): readonly [string, string] {
   if (m.ext) return m.ext.stop;
-  return m.type === "architecture" ? "a part" : m.type === "sequence" ? "a participant" : m.type === "schema" ? "a table" : "a step";
+  return m.type === "architecture" ? ["a part", "part"] : m.type === "sequence" ? ["a participant", "participant"] : m.type === "schema" ? ["a table", "table"] : ["a step", "step"];
 }
 
 // ============================================================================================================================================
@@ -1061,8 +1062,10 @@ export interface Dyn {
    * every arrow (G17 of cimip-gaps-3). Cleared when focus leaves the drawing.
    */
   roved?: boolean;
-  /** A node that keeps focus (and tabindex -1) in a stack with no stops, until focus leaves it. */
+  /** A node that keeps focus (and tabindex -1, a picture) in a layout that does not trace, until focus leaves it (DECISIONS 392, 3). */
   keep?: string;
+  /** The held card (DECISIONS 392, 1): its trace stays up after the pointer and focus leave. One at most; released where the layout stops tracing. */
+  held?: string;
   /** A decision's measured height, by node id, in px. */
   heights?: Record<string, number>;
   /** A decision's words' box, widened from 62% of its track so the diamond is no taller than it is wide, by node id, in px (unset where 62% is). */
@@ -1138,12 +1141,39 @@ export function anonymousBase(value: string): string {
 }
 const idsOf = (base: string) => ({ title: `${base}-title`, summary: `${base}-summary`, keys: `${base}-keys`, list: `${base}-list`, toggle: `${base}-toggle` });
 
-/** Whether the figure's nodes are stops (a roving tab index) in this state. */
-export function hasStops(m: Model, dyn: Dyn): boolean {
-  if (m.ext?.hasStops) return m.ext.hasStops(m, dyn);
+/** Whether the layout's cards answer the pointer and focus (a hover lifts them): every measured layout with lines or a type's own, but a stacked sequence or schema. */
+export function hovers(m: Model, dyn: Dyn): boolean {
   if (!dyn.layout || dyn.bare) return false;
-  if (dyn.layout === "drawn") return true;
-  return m.type !== "sequence" && m.type !== "schema";
+  return Boolean(m.ext) || dyn.layout === "drawn" || (m.type !== "sequence" && m.type !== "schema");
+}
+/**
+ * Whether the layout traces (DECISIONS 392): it answers, as `hovers` says, and draws at least one line that ends on a card. The one predicate: the cards'
+ * role and roving stop, the keys sentence, both hints, a click and "Clear highlight" all read it. Architecture, flowchart, data flow, state and deployment
+ * trace drawn or stacked; sequence and schema drawn; a type of its own as its `traces` says (schedule and service blueprint drawn), the rest never.
+ */
+export function traces(m: Model, dyn: Dyn): boolean {
+  if (!hovers(m, dyn) || m.text) return false;
+  const rule = m.ext && !m.ext.as ? m.ext.traces : m.type === "sequence" || m.type === "schema" ? "drawn" : "lines";
+  if (!rule || (rule === "drawn" && dyn.layout !== "drawn")) return false;
+  return m.type === "sequence" ? m.steps.some((s) => "n" in s) : m.edges.length > 0;
+}
+/** The hints before script: shown where the drawn layout would trace, so a figure's hint does not arrive with the script. */
+const hinted = (m: Model, dyn: Dyn) => traces(m, dyn.layout ? dyn : { layout: "drawn" });
+/**
+ * A card's role, state and tab stop (DECISIONS 392, 1 and 3), the same for every type. Where the layout traces, a card is a toggle button (`aria-pressed`,
+ * `data-held` on the held one) and a link card a native link, both in one roving set. Elsewhere a card is a picture named by its sentence (`picture` false
+ * leaves a stacked sequence's or schema's as text, as before script) and a link card a native link in the page's tab order; a card that kept focus as its
+ * layout stopped tracing is a picture with tabindex -1 until focus leaves it.
+ */
+export function cardAttrs(m: Model, dyn: Dyn, n: MNode, label: string, picture = true): VAttrs {
+  const on = traces(m, dyn), kept = !on && dyn.keep === n.id, toggle = on && !n.href;
+  return {
+    role: n.href ? undefined : toggle ? "button" : picture || kept ? "img" : undefined,
+    "aria-label": n.href || toggle || picture || kept ? label : undefined,
+    "aria-pressed": toggle ? String(dyn.held === n.id) : undefined,
+    "data-held": toggle && dyn.held === n.id ? "" : undefined,
+    tabindex: on ? (dyn.stop === n.id ? 0 : -1) : kept && !n.href ? -1 : undefined,
+  };
 }
 /** Whether the nodes are images named by a sentence in this state (before script, the types whose stack has lines). */
 function nodesAreImages(m: Model, dyn: Dyn): boolean {
@@ -1483,8 +1513,6 @@ interface TreeContext { P: string; ids: ReturnType<typeof idsOf>; level?: number
 
 function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
   const { P } = ctx;
-  const images = nodesAreImages(m, dyn) || dyn.keep === n.id;
-  const stops = hasStops(m, dyn);
   // Where a schema's corridors are spacer tracks (1.1), the author's row r is track 2r.
   const spaced = dyn.layout === "drawn" && dyn.rows;
   const style: string[] = [`--_c:${n.col}`, `--_r:${spaced ? 2 * n.row : n.row}`, `--_r2:${spaced ? 2 * n.row2 + 1 : n.row2 + 1}`];
@@ -1506,8 +1534,8 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
   if (floor) style.push(`--_mh:${floor}px`);
   const wordsWidth = own(dyn.words, n.id);
   if (wordsWidth) style.push(`--_ww:${wordsWidth}px`);
-  const tabbable = stops ? (dyn.stop === n.id ? 0 : -1) : dyn.keep === n.id ? -1 : undefined;
-  // A link card is the link itself (1.4): its name is its sentence, read with the link role, and it begins with the card's visible name.
+  // A link card is the link itself (1.4): its name is its sentence, read with the link role, and it begins with the card's visible name. Every other card
+  // is a toggle button where its layout traces, else a picture (DECISIONS 392): cardAttrs.
   return h(n.href ? "a" : "div", {
     class: `${P}-node`,
     href: n.href,
@@ -1522,14 +1550,14 @@ function nodeTree(ctx: TreeContext, m: Model, n: MNode, dyn: Dyn): VElement {
     "data-mark": n.mark ? n.mark.id ?? "" : undefined,
     "data-level": ctx.level,
     style: style.join(";"),
-    role: images && !n.href ? "img" : undefined,
-    "aria-label": images || n.href ? nodeSentence(m, n) : undefined,
-    tabindex: tabbable,
+    ...cardAttrs(m, dyn, n, nodeSentence(m, n), nodesAreImages(m, dyn)),
   },
   n.shape === "decision" ? h("svg", { class: `${P}-diamond`, viewBox: "0 0 100 100", preserveAspectRatio: "none", "aria-hidden": "true", focusable: "false" }, h("path", { d: "M50 0L100 50L50 100L0 50Z" })) : null,
   // A mark (DECISIONS 292, 2.6): an empty span, the form a background image, so its colours cannot be restyled and nothing of the file reaches the page.
   n.mark ? h("span", { class: `${P}-mark`, "aria-hidden": "true", style: n.mark.onLight ? `--_ml:${cssUrl(n.mark.onLight)};--_md:${cssUrl(n.mark.onDark ?? n.mark.onLight)}` : undefined }) : null,
-  n.shape === "table" ? tableText(P, n, m) : m.ext?.card ? m.ext.card(P, m, n, dyn) : nodeText(P, m, n));
+  n.shape === "table" ? tableText(P, n, m) : m.ext?.card ? m.ext.card(P, m, n, dyn) : nodeText(P, m, n),
+  // A terminal's held mark is drawn by its cap, the padding box as a size container, so it can be inset by the capsule's radius (DECISIONS 392).
+  n.shape === "terminal" ? h("span", { class: `${P}-cap`, "aria-hidden": "true" }) : null);
 }
 
 function drawingChildren(ctx: TreeContext, m: Model, dyn: Dyn): VNode[] {
@@ -1757,21 +1785,27 @@ function buildList(P: string, m: Model): VNode[] {
   return out;
 }
 
-/** The keys sentence (hidden), which describes the drawing to a screen reader. Drawn, the arrows are spatial (DECISIONS 306, 1.5), unless they fall back. */
-export function keysSentence(m: Model, drawn = false): string {
-  if (m.ext?.keys) return m.ext.keys(m, drawn);
-  const noun = m.ext ? m.ext.stop.replace(/^an? /, "") : m.type === "architecture" ? "part" : m.type === "sequence" ? "participant" : m.type === "schema" ? "table" : "step";
+/**
+ * The keys sentence (hidden), which describes the drawing's tab stop to a screen reader. Drawn, the arrows are spatial (DECISIONS 306, 1.5), unless they
+ * fall back. Built for the viewer it says nothing of Escape, which closes the viewer (DECISIONS 392, the decider's answer 1): the viewer's keys follow it.
+ */
+export function keysSentence(m: Model, drawn = false, viewer = false): string {
+  const [one, noun] = stopNoun(m);
   const arrows = drawn && spatialTable(m) ? `Arrow keys move to the nearest ${noun} in that direction` : `Arrow keys move to the next or the previous ${noun}, in the author's order`;
-  // Where a card is a link (1.4), Enter follows it.
-  return `${arrows}; Home and End go to the ends; Escape clears the trace.${m.nodes.some((n) => n.href) ? " Enter opens a part that is a link." : ""}`;
+  // Where a card is a link (1.4), Enter follows it: "a part" for the engine's types and those read as an architecture, a type's own noun for the rest.
+  const link = m.nodes.some((n) => n.href) ? ` Enter opens ${m.ext && !m.ext.as ? one : "a part"} that is a link.` : "";
+  return `${arrows}; Home and End go to the ends; Enter or Space keeps the highlight on ${one}, and again releases it${viewer ? "" : "; Escape clears the highlight"}.${link}`;
 }
 
-/** The key hint's entries: the keys and their words. Four arrows where a drawn figure has more than one row and more than one column (1.5). */
-export function hintEntries(m: Model, drawn = false): Array<{ keys: string[]; words: string }> {
-  if (m.ext?.hint) return m.ext.hint(m, drawn);
-  const four = drawn && m.type !== "sequence" && spatialTable(m) && m.cols > 1 && m.rows > 1;
+/**
+ * The key hint's entries: the keys and their words, none where the layout does not trace (DECISIONS 392). Four arrows where a drawn figure has more than one
+ * row and more than one column (1.5).
+ */
+export function hintEntries(m: Model, dyn: Dyn): Array<{ keys: string[]; words: string }> {
+  if (!hinted(m, dyn)) return [];
+  const four = dyn.layout === "drawn" && m.type !== "sequence" && spatialTable(m) && m.cols > 1 && m.rows > 1;
   const open = m.nodes.some((n) => n.href) ? [{ keys: ["Enter"], words: "open" }] : [];
-  return [{ keys: four ? ["←", "↑", "↓", "→"] : ["←", "→"], words: stopNoun(m) }, { keys: ["Home", "End"], words: "the ends" }, ...open, { keys: ["Esc"], words: "clear" }];
+  return [{ keys: four ? ["←", "↑", "↓", "→"] : ["←", "→"], words: stopNoun(m)[0] }, { keys: ["Home", "End"], words: "the ends" }, ...open, { keys: ["Space"], words: "keep the highlight" }, { keys: ["Esc"], words: "clear" }];
 }
 
 // ---- The spatial arrow keys (DECISIONS 306, 1.5): on a card's column and rows, never on its measured centre ----
@@ -1875,7 +1909,7 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
   const plan = m.type === "sequence" || m.type === "schema" || (m.ext && !m.ext.routed) ? null : stackPlan(m, dyn.moved);
   const ctx: TreeContext = { P, ids, level: o.level, plan, hidden: o.hiddenClass };
   const drawn = dyn.layout === "drawn";
-  const stops = hasStops(m, dyn);
+  const stops = traces(m, dyn);
   const group = m.type === "sequence" || m.type === "schema" ? drawn : true;
   const Head = `h${m.heading}`;
   const style: string[] = [`--_cols:${columnCount(m)}`];
@@ -1942,15 +1976,16 @@ export function figureTree(m: Model, dyn: Dyn, o: FigureOptions): VElement {
     "data-stops": stops ? "" : undefined,
   }, stops && !dyn.roved ? describeStop(P, drawingChildren(ctx, m, dyn), ids.keys) : drawingChildren(ctx, m, dyn), m.text ? null : h("div", { class: `${P}-ink`, "aria-hidden": "true" }), h("span", { class: `${P}-ruler`, "aria-hidden": "true" })),
   keySeat(P, m, Boolean(dyn.bare)),
-  h("p", { class: `${P}-hint`, "data-kbd-hint": "", "aria-hidden": "true" }, { slot: "hint" }),
-  // On touch, where lines are drawn, a line in the hint's seat and type says how to trace (DECISIONS 306, 1.5); the stylesheet shows it only then.
-  (m.ext ? m.ext.traces?.(m, drawn) : hasStops(m, dyn) && m.type !== "sequence" || (drawn && m.type === "sequence")) ? h("p", { class: `${P}-tap-hint`, "aria-hidden": "true" }, `Tap ${stopNoun(m)} to highlight its lines. Tap it again to clear.`) : null,
+  // The key hint and the tap hint are there only where the layout traces (DECISIONS 392): a figure whose cards are pictures has no keys to show.
+  h("p", { class: `${P}-hint`, "data-kbd-hint": "", "aria-hidden": "true", hidden: !hinted(m, dyn) }, { slot: "hint" }),
+  // On touch, a line in the hint's seat and type says how to trace (DECISIONS 306, 1.5); the stylesheet shows it only then.
+  h("p", { class: `${P}-tap-hint`, "aria-hidden": "true", hidden: !stops }, `Tap ${stopNoun(m)[0]} to highlight its lines. Tap it again to clear.`),
   h("div", { class: `${P}-foot` }, { slot: "toggle" }),
   h("div", { id: ids.list, class: `${P}-list`, hidden: !dyn.open }, listTree(P, m)),
   // The keys sentence (G17 of the console's log) describes the drawing's tab stop (describeStop): hidden, so a page of figures does not read it in its
   // flow once a figure, and said as a reader tabs in (aria-describedby reads a hidden element it names). The key hint on screen is hidden from assistive
   // technology.
-  h("span", { id: ids.keys, class: o.hiddenClass, hidden: true }, o.viewer ? `${keysSentence(m, drawn)} ${o.viewer}` : keysSentence(m, drawn)),
+  h("span", { id: ids.keys, class: o.hiddenClass, hidden: true }, o.viewer ? `${keysSentence(m, drawn, true)} ${o.viewer}` : keysSentence(m, drawn)),
   h("figcaption", { id: ids.summary, class: `${P}-summary` }, { slot: "summary" }));
 }
 
@@ -3459,9 +3494,12 @@ export function measureFigure(fig: HTMLElement, m: Model, P: string, base: strin
   sizeTo?.(mins.least);
   const W = fig.clientWidth;
   const focusedId = (() => { const a = document.activeElement as HTMLElement | null; return a && drawing.contains(a) && a.dataset.node ? a.dataset.node : undefined; })();
+  // A layout that does not trace (DECISIONS 392, 3) keeps a focused card focused, as a picture, and releases a hold; one that traces makes the focused card its
+  // stop, so focus is never moved, and keeps a hold on a card still in the data.
   const stopOf = (d: Dyn): Dyn => {
-    if (!hasStops(m, d)) return { ...d, stop: d.stop ?? m.nodes[0]?.id, keep: focusedId && !(d.layout === "drawn") ? focusedId : undefined };
-    return { ...d, stop: d.stop && m.byId.has(d.stop) ? d.stop : m.nodes[0]?.id, keep: undefined };
+    if (!traces(m, d)) return { ...d, stop: d.stop ?? m.nodes[0]?.id, keep: focusedId, held: undefined };
+    const has = (id?: string) => (id && m.byId.has(id) ? id : undefined);
+    return { ...d, stop: has(focusedId) ?? has(d.stop) ?? m.nodes[0]?.id, keep: undefined, held: has(d.held) && !m.byId.get(d.held!)!.href ? d.held : undefined };
   };
   // A decision that is taller than it is wide at this width (call 1 of DECISIONS 306, section 4): the drawn layout is refused, as any fit failure is.
   let tall = false;
@@ -3726,7 +3764,7 @@ export function keyTarget(m: Model, from: string, key: string, drawn = false, rt
  * A tree element is paired with the next DOM element of its tag and class, so an element the tree does not hold (the HTML skill's JSON
  * script, first in the figure) is passed over, never mistaken for the heading.
  */
-const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "tabindex", "data-stops", "hidden", "data-art"];
+const MANAGED = ["data-layout", "data-measured", "role", "aria-roledescription", "aria-labelledby", "aria-describedby", "aria-label", "aria-pressed", "data-held", "tabindex", "data-stops", "hidden", "data-art"];
 // The figure's grid attributes follow the model too: an automatic figure's direction can change its columns after script (Neon's B8 of the code review).
 const ROOT_MANAGED = ["data-layout", "data-measured", "data-bare", "data-form", "data-contour", "data-motion", "data-first-visit", "data-rtl", "data-cols", "data-reach", "data-gutter", "data-marks"];
 // A type of its own (DECISIONS 359) writes its measured places as these: a timeline's card (--_tx, --_ty), its drawing's height (--_th), a gantt's or a

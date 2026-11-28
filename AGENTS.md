@@ -126,7 +126,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
 - **Selected is shown by shape or weight, never by colour alone:** one of many (a segment, a vertical or horizontal tab,
   the current page) is its label at 600 (from 400), its width reserved so nothing moves (the live words and icon keep their start edges in segments and tabs; a component is reserved too, but native or component labels holding a control, even a hidden input, a frame, media, canvas, script, style, dialog, template or slot, and words Basalt never sees, keep 400 and are not reserved), an icon in it taking its selected form, on the raised pill, the underline or
   the current page's plate; any of many, and on, is a check or a checked box. One state, one look, across components (tabs,
-  segments, pagination, table rows, choice cards and pressed toggle buttons). The pill's edge is its hairline and casts no
+  segments, pagination, table rows, choice cards and pressed toggle buttons); a held diagram card takes the horizontal tab's underline. The pill's edge is its hairline and casts no
   shadow. In forced colours the chosen segment, vertical tab and current page are `Highlight` with `HighlightText`, and the
   horizontal tab keeps its `Highlight` underline. **No state is ever marked by an outline** (selected, active, current and
   pressed never draw one), and **there is no vertical bar anywhere.** Focus is a 2px ring at +2 outside the control, drawn
@@ -263,7 +263,7 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   the next start on a critical path). A matrix's fit is measured on its content. An empty cell holds its track and says so. Stacked, a
   planning figure keeps every mark that fits, says the rest in words, and its key lists only what is drawn. A contour may say what a part
   is (critical, blocked), with its word; it is never a state. A card may be a link (the card is the stop; the arrow is the cue). A label breaks only where its
-  author breaks it (a state's, after its event). Arrow keys are spatial, on tracks. On touch a tap traces and "Clear highlight" clears. The foot's order is fixed ("View as list",
+  author breaks it (a state's, after its event). Arrow keys are spatial, on tracks. A card is a stop only where its layout traces: a toggle button whose press holds its highlight (the underline marks it; a second press, the ground or Esc releases it) or a link; elsewhere it is a picture. On touch "Clear highlight" clears too. The foot's order is fixed ("View as list",
   "Expand", the run button, "Draw again", "Pause animations", an app's `actions`, "Clear highlight") and it does not print; an app's actions are words-only secondary
   buttons, never a menu, and follow the figure into the viewer. In print a figure is untraced and light.
   Right to left mirrors the figure, not the words. Automatic layout asks elkjs for a column and a row and nothing else; Basalt routes, and a figure

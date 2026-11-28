@@ -219,6 +219,20 @@ describe("2. what a press does", () => {
     await p3.close();
   });
 
+  test("a held card (G18) is released as Esc releases it: its aria-pressed and data-held go with the trace", async () => {
+    const { page } = await replayPage();
+    await draw(page, [{ key: "kit", spec: `S.kit({ replay: true })` }]);
+    await atRest(page, "kit");
+    const card = page.locator(`#fig-kit .${P}-node`).first();
+    await card.click();
+    assert.equal(await card.getAttribute("aria-pressed"), "true");
+    await replayButton(page, "kit").click();
+    assert.equal(await entrance(page, "kit"), "running");
+    await until(page, () => !document.querySelector("#fig-kit [data-held]") && !document.getElementById("fig-kit").hasAttribute("data-tracing"));
+    assert.equal(await card.getAttribute("aria-pressed"), "false");
+    await page.close();
+  });
+
   test("it stores nothing: a first-visit figure's mark is written by its first entrance, and a replay that finishes or gives way writes none", async () => {
     const { page } = await replayPage();
     await draw(page, [{ key: "kit", spec: `S.kit({ replay: true, entrance: "first-visit" })` }]);

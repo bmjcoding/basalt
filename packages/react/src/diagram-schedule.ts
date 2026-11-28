@@ -212,13 +212,12 @@ export function scheduleType(): DiagramTypeExt {
     routed: true,
     stackBare: true,
     build,
-    stop: "a task",
+    stop: ["a task", "task"],
     sentence: writeSentence,
     card: (P, m, n, _dyn: Dyn) => card(P, m, n),
     meta,
     key,
     list,
-    traces: (m, drawn) => drawn && m.edges.length > 0,
-    keys: (m, drawn) => `${drawn ? "Arrow keys move to the nearest task in that direction" : "Arrow keys move to the next or the previous task, in the author's order"}; Home and End go to the ends; Escape clears the trace.${m.nodes.some((n) => n.href) ? " Enter opens a task that is a link." : ""}`,
+    traces: "drawn",
   });
 }

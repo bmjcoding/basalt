@@ -81,6 +81,17 @@ describe("Draw again", () => {
     }
   });
 
+  test("a press releases a held card (G18) as Esc does: aria-pressed and data-held go", async () => {
+    const { page: p } = await openHtml(browser, compose(page([figure({ ...kit(), replay: true }, "fig-kit")])).html);
+    await atRest(p, "fig-kit");
+    await p.click("#fig-kit .diagram-node");
+    assert.equal(await p.getAttribute("#fig-kit .diagram-node", "aria-pressed"), "true");
+    await p.click("#fig-kit .diagram-replay");
+    assert.equal(await entrance(p, "fig-kit"), "running");
+    assert.equal(await p.getAttribute("#fig-kit .diagram-node", "aria-pressed"), "false");
+    assert.equal(await p.evaluate(() => document.querySelectorAll("#fig-kit [data-held]").length), 0);
+  });
+
   test("the viewer draws none", async () => {
     const { page: p } = await openHtml(browser, compose(page([figure({ ...kit(), replay: true }, "fig-kit")])).html);
     await atRest(p, "fig-kit");

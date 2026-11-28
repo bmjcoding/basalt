@@ -207,7 +207,13 @@ export function Button({ variant = "secondary", size = "md", fullWidth, edge, ic
 
 export type IconButtonProps = BaseProps &
   Toggle & {
-    icon: IconComponent;
+    /**
+     * The glyph, as a component (`CopyGlyph`, a Phosphor icon), drawn at the control's glyph size. Or a node (G161): an element drawn as given in the
+     * glyph's place, centred in the square, hidden from assistive technology and inert (the button's name is `label`), with the same plate, ring, press and hit
+     * area; an `Avatar` at 24 in a 32px control is an account control in a bar. A node is the app's own drawing: `done`, `doneIcon`, `fillSafe` and a
+     * pressed toggle's selected form apply only to a component, and a ghost one's `edge` hangs by `--_glyph` (16), so set it to the node's size.
+     */
+    icon: IconComponent | React.ReactElement;
     /**
      * The "done" state: the glyph is replaced by `doneIcon` (the core check) in the button's own ink. A core pair the morphs allow (Copy and
      * Check) morphs; any other pair crossfades over 100ms, which stays under reduced motion. No fill, no
@@ -278,7 +284,11 @@ export function IconButton({ variant = "ghost", size = "md", fullWidth, edge, ic
       className={withClass("basalt-button", className)}
       onClick={wait.press}
     >
-      {done !== undefined ? (
+      {React.isValidElement(icon) ? (
+        // An element in the glyph's place (G161), centred as a glyph is. The button's name is its label, so the element is decoration: hidden from
+        // assistive technology and inert, so nothing focusable in it is a second tab stop (and a press on it lands on the button).
+        <span className="basalt-button-node" aria-hidden="true" inert>{icon}</span>
+      ) : done !== undefined ? (
         <DoneSeat icon={icon} doneIcon={doneIcon} done={done} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} />
       ) : (
         <ControlIcon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} eager={toggles} crossfade={toggles} />

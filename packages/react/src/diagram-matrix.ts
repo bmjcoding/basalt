@@ -3,7 +3,7 @@
 // DOM for both forms switched by the engine's --_drawn, an empty cell that holds its track and says so in words. Their components hand this module to the
 // engine on the spec, so an app that draws an architecture bundles none of it. Nothing runs at load. The implementation has not been reviewed.
 
-import { h, iso, lineSwatch, rectOf, sentence, svgA, txt } from "./diagram-core";
+import { cardAttrs, h, iso, lineSwatch, rectOf, sentence, svgA, txt } from "./diagram-core";
 import type { DiagramLineKind, DiagramSpec, DiagramTypeExt, Dyn, ExtBuildKit, ExtBuilt, ExtMeasureKit, Geo, GLine, Measured, MEdge, MNode, Model, Pt, Tokens, VAttrs, VChild, VElement, VNode } from "./diagram-core";
 
 // ============================================================================================================================================
@@ -48,13 +48,11 @@ const wordsOf = <T extends object>(spec: DiagramSpec, defaults: Labels<T>): Labe
   return out;
 };
 const linkAttrs = (href?: string, blank?: boolean): VAttrs => ({ href, target: href && blank ? "_blank" : undefined, rel: href && blank ? "noopener noreferrer" : undefined, "data-link": href ? (blank ? "external" : "") : undefined });
-const stopIndex = (dyn: Dyn, id: string) => (dyn.layout && !dyn.bare ? (dyn.stop === id ? 0 : -1) : dyn.keep === id ? -1 : undefined);
-
-/** A part that is a stop: the shipped node, named by its sentence. */
+/** A part: the shipped node, named by its sentence; a toggle button where its layout traces, else a picture (DECISIONS 392: cardAttrs). */
 function stop(P: string, m: Model, n: MNode, dyn: Dyn, level: number | undefined, extra: VAttrs, ...kids: VChild[]): VElement {
   return h(n.href ? "a" : "div", {
     class: `${P}-node`, ...linkAttrs(n.href, n.blank), "data-node": n.id, "data-focal": n.focal ? "" : undefined, "data-level": level,
-    role: n.href ? undefined : "img", "aria-label": m.ext!.sentence!(m, n), tabindex: stopIndex(dyn, n.id), ...extra,
+    ...cardAttrs(m, dyn, n, m.ext!.sentence!(m, n)), ...extra,
   }, ...kids);
 }
 /** A node's own words: its kind line, its name and its detail, as the shipped node writes them. */
@@ -113,8 +111,6 @@ function labelColumn(m: Model, tk: Tokens, measure: ExtMeasureKit["measure"]): n
   return Math.max(tk.lane, widestOf(measure, p.labelWords) + tk.space("3"));
 }
 
-const hintFour = (m: Model, drawn: boolean, noun: string) => [{ keys: drawn && m.cols > 1 && m.rows > 1 ? ["←", "↑", "↓", "→"] : drawn ? ["←", "→"] : ["↑", "↓"], words: `a ${noun}` }, { keys: ["Home", "End"], words: "the ends" }, ...(m.nodes.some((n) => n.href) ? [{ keys: ["Enter"], words: "open" }] : [])];
-const keysWords = (m: Model, drawn: boolean, noun: string) => `${drawn ? `Arrow keys move to the nearest ${noun} in that direction` : `Arrow keys move to the next or the previous ${noun}`}; Home and End go to the ends.${m.nodes.some((n) => n.href) ? ` Enter opens a ${noun} that is a link.` : ""}`;
 const rootPlace = (_m: Model, dyn: Dyn) => { const v = dyn.place?.[""]; return v ? [v] : []; };
 const listStrong = (s: string) => h("strong", null, iso(s));
 const focalWords = (m: Model, focal: boolean) => (focal && m.legend.focal ? ` ${sentence(m.legend.focal)}` : "");
@@ -739,36 +735,31 @@ function storyLeast(m: Model, tk: Tokens, measure: ExtMeasureKit["measure"]): nu
 // The four modules
 // ============================================================================================================================================
 
-const noTrace = () => false;
+// A kanban, a journey and a story map never trace, and their cards are pictures and links (DECISIONS 392, 3); a blueprint traces where arrows are drawn.
 const common = (noun: string) => ({
-  stop: `a ${noun}`,
-  hasStops: (_m: Model, dyn: Dyn) => Boolean(dyn.layout && !dyn.bare),
-  hint: (m: Model, drawn: boolean) => hintFour(m, drawn, noun),
-  keys: (m: Model, drawn: boolean) => keysWords(m, drawn, noun),
+  stop: [`a ${noun}`, noun] as const,
   rootStyle: rootPlace,
 });
 
 let kanban: DiagramTypeExt | undefined, journey: DiagramTypeExt | undefined, blueprint: DiagramTypeExt | undefined, story: DiagramTypeExt | undefined;
 /** The kanban's module, made at its first use. */
 export function kanbanType(): DiagramTypeExt {
-  return (kanban ??= { type: "kanban", build: buildKanban, sentence: kanbanSentence, key: kanbanKey, list: kanbanList, drawing: kanbanDrawing, least: kanbanLeast, layout: matrixLayout(), traces: noTrace, ...common("card") });
+  return (kanban ??= { type: "kanban", build: buildKanban, sentence: kanbanSentence, key: kanbanKey, list: kanbanList, drawing: kanbanDrawing, least: kanbanLeast, layout: matrixLayout(), ...common("card") });
 }
 /** The journey's module, made at its first use. Its arrows are ← → drawn and ↑ ↓ stacked; nothing traces. */
 export function journeyType(): DiagramTypeExt {
   return (journey ??= {
-    type: "journey", build: buildJourney, sentence: journeySentence, key: journeyKey, list: journeyList, meta: journeyMeta, drawing: journeyDrawing, least: journeyLeast, layout: matrixLayout(journeyInk), traces: noTrace, ...common("stage"),
-    hint: (m, drawn) => [{ keys: drawn ? ["←", "→"] : ["↑", "↓"], words: "a stage" }, { keys: ["Home", "End"], words: "the ends" }, ...(m.nodes.some((n) => n.href) ? [{ keys: ["Enter"], words: "open" }] : [])],
+    type: "journey", build: buildJourney, sentence: journeySentence, key: journeyKey, list: journeyList, meta: journeyMeta, drawing: journeyDrawing, least: journeyLeast, layout: matrixLayout(journeyInk), ...common("stage"),
   });
 }
 /** The service blueprint's module, made at its first use. A part traces only where arrows are drawn. */
 export function serviceBlueprintType(): DiagramTypeExt {
   return (blueprint ??= {
     type: "service-blueprint", build: buildBlueprint, sentence: blueprintSentence, key: blueprintKey, list: blueprintList, drawing: blueprintDrawing, least: blueprintLeast, layout: matrixLayout(blueprintInk), ...common("cell"),
-    traces: (m, drawn) => drawn && m.edges.length > 0,
-    hint: (m, drawn) => [...hintFour(m, drawn, "cell"), ...(drawn && m.edges.length ? [{ keys: ["Esc"], words: "clear" }] : [])],
+    traces: "drawn",
   });
 }
 /** The story map's module, made at its first use. */
 export function storyMapType(): DiagramTypeExt {
-  return (story ??= { type: "story-map", build: buildStoryMap, sentence: storySentence, key: storyKey, list: storyList, meta: storyMeta, drawing: storyDrawing, least: storyLeast, layout: matrixLayout(), traces: noTrace, ...common("story") });
+  return (story ??= { type: "story-map", build: buildStoryMap, sentence: storySentence, key: storyKey, list: storyList, meta: storyMeta, drawing: storyDrawing, least: storyLeast, layout: matrixLayout(), ...common("story") });
 }

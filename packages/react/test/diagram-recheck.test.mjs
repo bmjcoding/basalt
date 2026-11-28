@@ -98,12 +98,13 @@ test("the skill writes batch B's figures from the same engine: compose.mjs's mar
   }
 });
 
-test("a text sequence has no Clear highlight in React, as in the skill: the React figure mounts it only for a figure that is not text", () => {
+test("a text sequence has no Clear highlight in React, as in the skill: both mount it only where the layout traces (DECISIONS 392), which a text figure never does", () => {
   const figure = fs.readFileSync(path.join(pkg, "src", "diagram-figure.tsx"), "utf8");
-  assert.match(figure, /const clear = !viewer && !model\.text && \(onTouch \|\| touched\) && ink \?/);
-  // The skill mounts it only where the figure has an ink layer with lines in it, which a text figure never has.
+  assert.match(figure, /const clear = !viewer && \(onTouch \|\| touched\) && \(stops \|\| clearKept\) \?/);
+  assert.match(figure, /const stops = traces\(model, dyn\);/);
   const skill = fs.readFileSync(path.join(root, "tools", "html-skill", "src", "modules", "diagram.js"), "utf8");
-  assert.match(skill, /var want = touched && !viewer && ink && ink\.innerHTML !== '';/);
+  assert.match(skill, /var want = touched && !viewer && traces\(model, state\);/);
+  for (const layout of ["drawn", "stacked"]) assert.equal(core.traces(core.buildModel(B.textSequence), { layout }), false, `a text sequence does not trace ${layout}`);
   assert.doesNotMatch(html(B.textSequence), /class="basalt-diagram-ink"/, "a text figure's markup has no ink layer");
 });
 
