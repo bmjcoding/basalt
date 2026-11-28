@@ -1,8 +1,9 @@
 /* Basalt HTML script, toast module: Basalt.toast({ title, description?, status?, action?, group?, running?, home?, timeout? }) shows a toast and returns its
-   id; Basalt.toast.update(id, patch), .close(id) and .promise(work, { running, success, error }) are React's useToast. Toasts appear bottom right (under 720 hanging from the bar), stack three
+   id; Basalt.toast.update(id, patch), .close(id) and .promise(work, { running, success, error, showAfter?, minShown? }) are React's useToast. An action
+   whose onClick returns a promise waits on Basalt.wait, and the toast's clock and line pause while it does. Toasts appear bottom right (under 720 hanging from the bar), stack three
    deep with the ones behind peeking, expand on hover or focus, and pause their clocks while hovered, focused, in a blurred window or in a hidden tab.
    A toast with no `home` is the only copy of what it says and stays until dismissed; with a `home` ("centre", "row", "key" or "page") it closes after
-   5000ms. Results are announced once each: danger through an assertive live region, the rest through Basalt.announce. Needs the braille module (running).
+   5000ms. Results are announced once each: danger through an assertive live region, the rest through Basalt.announce. Needs the braille module (running) and the wait module.
    Source: tools/html-skill/src/modules/toast.js (do not edit the copy in the skill folder). */
 (function (B) {
   'use strict';
@@ -165,7 +166,8 @@
     var ms = lifetime(t.o);
     if (t.lap !== t.stamp + ':' + ms) { t.lap = t.stamp + ':' + ms; t.left = ms; t.running = 0; }
     if (t.running) { t.left = Math.max(0, t.left - (Date.now() - t.running)); t.running = 0; }
-    if (ms <= 0 || expanded() || away()) return;
+    // Its own action waiting for its answer holds it too, and it resumes with what was left.
+    if (ms <= 0 || expanded() || away() || t.actionBusy) return;
     t.running = Date.now();
     t.timer = setTimeout(function () { dismiss(t.id, true); }, t.left);
   }
@@ -197,12 +199,12 @@
 
   function focused(t) { return t.el.contains(document.activeElement); }
 
-  /** Room for one more: below the limit, or by closing the oldest toast that is not the only copy and is not focused. */
+  /** Room for one more: below the limit, or by closing the oldest toast that is not the only copy, is not focused and is not waiting on its action. */
   function makeRoom() {
     var onscreen = items.filter(function (t) { return !t.leaving; });
     if (onscreen.length < LIMIT) return true;
     for (var i = 0; i < onscreen.length; i++) {
-      if (lifetime(onscreen[i].o) > 0 && !focused(onscreen[i])) { dismiss(onscreen[i].id); return true; }
+      if (lifetime(onscreen[i].o) > 0 && !focused(onscreen[i]) && !onscreen[i].actionBusy) { dismiss(onscreen[i].id); return true; }
     }
     return false;
   }
@@ -211,29 +213,80 @@
     while (queue.length && items.filter(function (t) { return !t.leaving; }).length < LIMIT) enter(queue.shift());
   }
 
+  function part(tag, cls) { var el = document.createElement(tag); el.className = cls; return el; }
+  /** The parts, made once when the toast enters (before anything in it can hold focus), with their listeners: the text and Dismiss. `fill` writes into them. */
+  function build(t) {
+    var c = t.content;
+    c.innerHTML = '<div class="toast-text"><p class="toast-title" id="' + t.id + '-t"></p><p class="toast-description" id="' + t.id + '-d"></p></div>' +
+      '<button type="button" class="btn toast-close" data-variant="ghost" data-size="xs" data-icon-only aria-label="Dismiss">%glyph-svg:close%</button>';
+    t.title = c.firstChild.firstChild;
+    t.desc = t.title.nextSibling;
+    t.close = c.lastChild;
+    t.close.addEventListener('click', function () { dismiss(t.id); });
+    t.el.setAttribute('aria-labelledby', t.id + '-t');
+    t.el.setAttribute('aria-describedby', t.id + '-d');
+  }
+
+  /**
+   * The action's press reads the toast's options at press time and calls the handler once. A promise back is handed to Basalt.wait (whose guard
+   * stops every press until it settles), and the toast's clock and line hold until then; a handler that returns nothing gets no busy state.
+   */
+  function press(t) {
+    // The pressed button, taken before app code runs: a handler may update the toast and take its action away before it returns.
+    var button = t.act;
+    var a = t.o.action;
+    var r = a && a.onClick();
+    if (!r || typeof r.then !== 'function') return;
+    B.wait(button, r);
+    t.actionBusy = (t.actionBusy || 0) + 1;
+    t.el.setAttribute('data-action-busy', '');
+    clock(t);
+    var end = function () { if (--t.actionBusy) return; t.el.removeAttribute('data-action-busy'); clock(t); };
+    r.then(end, end);
+  }
+
+  /**
+   * Writes the toast's state into its parts in place. A control is never detached while it is there before and after (a detached node loses focus to
+   * the page and the region's way back with it), so focus on the action or Dismiss survives an update. An action that goes, while it holds focus,
+   * hands focus to the toast first.
+   */
   function fill(t) {
     var o = t.o;
     var st = status(o);
-    t.el.setAttribute('data-status', st);
-    t.el.toggleAttribute('data-running', !!o.running);
     var running = !!o.running;
-    var mark = !running && MARK[st] ? _.icon(MARK[st]) : '';
-    t.content.innerHTML =
-      (t.seat ? '<span class="toast-seat" aria-hidden="true">' + (running ? '<braille-spinner></braille-spinner>' : mark) + '</span>' : '') +
-      '<div class="toast-text"><p class="toast-title" id="' + t.id + '-t">' + _.esc(o.title) +
-      (t.count > 1 ? '<span class="toast-count" aria-hidden="true">×' + t.count + '</span><span class="visually-hidden">, ' + t.count + ' times</span>' : '') + '</p>' +
-      '<p class="toast-description" id="' + t.id + '-d">' + _.esc(o.description || '') + '</p></div>' +
-      (o.action ? '<button type="button" class="btn toast-action" data-size="xs"' + (o.action.keys ? ' aria-keyshortcuts="' + _.esc(String(o.action.keys).replace(/\bMod\b/g, /mac|ip(hone|ad|od)/i.test((navigator.userAgentData || navigator).platform || navigator.userAgent) ? 'Meta' : 'Control')) + '"' : '') + '><span>' + _.esc(o.action.label) + '</span></button>' : '') +
-      '<button type="button" class="btn toast-close" data-variant="ghost" data-size="xs" data-icon-only aria-label="Dismiss">' + '%glyph-svg:close%' + '</button>';
-    var action = t.content.querySelector('.toast-action');
-    if (action) action.addEventListener('click', function () { o.action.onClick(); });
-    t.content.querySelector('.toast-close').addEventListener('click', function () { dismiss(t.id); });
+    var c = t.content;
+    t.el.setAttribute('data-status', st);
+    t.el.toggleAttribute('data-running', running);
+    // The seat appears when it is first needed and, on screen, never goes (the title does not move when the mark does).
+    if (t.seat && !t.seatEl) {
+      t.seatEl = c.insertBefore(part('span', 'toast-seat'), c.firstChild);
+      t.seatEl.setAttribute('aria-hidden', 'true');
+    }
+    var mark = running ? '<braille-spinner></braille-spinner>' : MARK[st] ? _.icon(MARK[st]) : '';
+    if (t.seatEl && t.mark !== mark) { t.mark = mark; t.seatEl.innerHTML = mark; }
+    t.title.innerHTML = _.esc(o.title) +
+      (t.count > 1 ? '<span class="toast-count" aria-hidden="true">×' + t.count + '</span><span class="visually-hidden">, ' + t.count + ' times</span>' : '');
+    t.desc.textContent = o.description || '';
+    if (o.action && !t.act) {
+      t.act = c.insertBefore(part('button', 'btn toast-action'), t.close);
+      t.act.type = 'button';
+      t.act.setAttribute('data-size', 'xs');
+      t.act.appendChild(document.createElement('span'));
+      t.act.addEventListener('click', function () { press(t); });
+    } else if (!o.action && t.act) {
+      if (t.act.contains(document.activeElement)) t.el.focus(NOSCROLL);
+      t.act.remove();
+      t.act = null;
+    }
+    if (t.act) {
+      t.act.firstChild.textContent = o.action.label;
+      if (o.action.keys) t.act.setAttribute('aria-keyshortcuts', String(o.action.keys).replace(/\bMod\b/g, /mac|ip(hone|ad|od)/i.test((navigator.userAgentData || navigator).platform || navigator.userAgent) ? 'Meta' : 'Control'));
+      else t.act.removeAttribute('aria-keyshortcuts');
+    }
     var old = t.el.querySelector('.toast-drain');
     if (old) old.remove();
     var ms = lifetime(o);
     if (ms > 0) t.el.insertAdjacentHTML('afterbegin', '<span class="toast-drain" style="animation-duration:' + ms + 'ms"></span>');
-    t.el.setAttribute('aria-labelledby', t.id + '-t');
-    t.el.setAttribute('aria-describedby', t.id + '-d');
   }
 
   function enter(t) {
@@ -248,6 +301,9 @@
     t.content = document.createElement('div');
     t.content.className = 'toast-content';
     t.el.appendChild(t.content);
+    // The result of running work waits from here, not from when it was asked for: a toast that waited in the queue has not been seen.
+    t.shownAt = performance.now();
+    build(t);
     fill(t);
     t.el.setAttribute('data-starting-style', '');
     // It lives in the modal that holds focus, if there is one, and is raised above what has been opened since.
@@ -348,19 +404,25 @@
     return t.id;
   }
 
+  function assign(to, from) { Object.keys(from).forEach(function (k) { to[k] = from[k]; }); return to; }
+
+  /** A result is a new statement: it starts from the running toast's title, group and lifetime, not from its action. Every path to a result uses it. */
+  function result(prev, patch) {
+    var next = assign({ title: prev.title, group: prev.group, home: prev.home, timeout: prev.timeout }, patch);
+    next.running = false;
+    return next;
+  }
+
   function update(id, patch) {
     var t = find(id);
-    if (!t) return;
+    if (!t || t.leaving) return;
     var prev = t.o;
     var ends = !!prev.running && !patch.running;
-    // A result is a new statement: it starts from the title, the group and the lifetime, not from the running toast's action.
-    var base = ends ? { title: prev.title, group: prev.group, home: prev.home, timeout: prev.timeout } : prev;
-    var next = {};
-    Object.keys(base).forEach(function (k) { next[k] = base[k]; });
-    Object.keys(patch).forEach(function (k) { next[k] = patch[k]; });
+    var next = ends ? result(prev, patch) : assign(assign({}, prev), patch);
     next.running = patch.running || false;
     t.o = next;
-    t.seat = t.seat || status(next) !== 'neutral';
+    // On screen the seat is latched; a toast still queued enters as what it now is (a neutral result, no seat).
+    t.seat = !t.el ? !!next.running || status(next) !== 'neutral' : t.seat || status(next) !== 'neutral';
     if (!t.el) return;
     t.stamp = ++seq;
     fill(t);
@@ -374,16 +436,30 @@
     if (t.el) dismiss(id); else queue = queue.filter(function (x) { return x !== t; });
   }
 
+  /**
+   * Running work, then its result, on the wait's two timings: no running toast for work under showAfter (300ms), and once one is on screen it stays
+   * minShown (400ms) before its result, either way. At 0 the running toast shows in the call. The work is returned at once and never delayed.
+   */
   function promise(work, o) {
     var base = typeof o.running === 'string' ? { title: o.running } : o.running;
-    var run = {};
-    Object.keys(base).forEach(function (k) { run[k] = base[k]; });
+    var run = assign({}, base);
     run.running = true;
-    var id = show(run);
+    var after = o.showAfter == null ? B.wait.SHOW_AFTER : o.showAfter;
+    var min = o.minShown == null ? B.wait.MIN_SHOWN : o.minShown;
+    var id = null;
+    var timer = after <= 0 ? (id = show(run), 0) : setTimeout(function () { id = show(run); }, after);
     var patch = function (given) { return typeof given === 'string' ? { title: given } : given; };
+    var settle = function (p) {
+      // Quicker than the delay: the result alone, built as a slow one is (the same title, group, home and lifetime).
+      if (id === null) { clearTimeout(timer); show(result(run, p)); return; }
+      // Still queued (it enters as its result) or closed: at once. On screen: once it has been up minShown.
+      var t = find(id);
+      var wait = t && t.el ? Math.max(0, min - (performance.now() - t.shownAt)) : 0;
+      if (wait) setTimeout(function () { update(id, p); }, wait); else update(id, p);
+    };
     work.then(
-      function (value) { update(id, patch(typeof o.success === 'function' ? o.success(value) : o.success)); },
-      function (error) { var p = patch(typeof o.error === 'function' ? o.error(error) : o.error); var d = { status: 'danger' }; Object.keys(p).forEach(function (k) { d[k] = p[k]; }); update(id, d); }
+      function (value) { settle(patch(typeof o.success === 'function' ? o.success(value) : o.success)); },
+      function (error) { settle(assign({ status: 'danger' }, patch(typeof o.error === 'function' ? o.error(error) : o.error))); }
     );
     return work;
   }

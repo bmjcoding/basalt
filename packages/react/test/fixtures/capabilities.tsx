@@ -8,7 +8,7 @@ import {
   TabsList, TabsPanel, GlidePlate, Reserve, SkipLink, MenuTrigger, PopoverContent, PopoverTrigger, StatusLine, VisuallyHidden, createPopoverHandle, themeBootstrap, useMediaQuery, useTheme,
 } from "@srasyndicate/basalt";
 import { AccordionItem, CardTitle, FramedArt, PairedArt, Stepper, ToastProvider, Toolbar, ToolbarButton, ToolbarGroup, ToolbarIconButton, ToolbarInput, ToolbarLink, ToolbarSeparator } from "@srasyndicate/basalt";
-import type { CollisionAvoidance, ImageFetchPriority, PlacementAnchor, PlacementData, PopoverHandle, ThemeChoice } from "@srasyndicate/basalt";
+import type { CollisionAvoidance, ImageFetchPriority, PlacementAnchor, PlacementData, PopoverHandle, ThemeChoice, ToastAction } from "@srasyndicate/basalt";
 
 const focus = React.createRef<HTMLButtonElement>();
 const popupActions = React.createRef<{ unmount(): void; close(): void }>();
@@ -257,3 +257,10 @@ export const fetchPriority = (
     <FramedArt src="/c.jpg" alt="" fetchPriority="urgent" />
   </>
 );
+
+// A toast's action (micro-details m5, fix 1): a handler may return anything. A promise back makes the action wait; any other value (a sync handler written as an
+// arrow that returns what it calls) is ignored, as before m5 widened the type.
+const undoEvents: string[] = [];
+const syncAction: ToastAction = { label: "Undo", onClick: () => undoEvents.push("undo") };
+const asyncAction: ToastAction = { label: "Undo", keys: "Mod+Z", onClick: () => Promise.resolve(undoEvents.length) };
+export const toastActions = [syncAction, asyncAction];

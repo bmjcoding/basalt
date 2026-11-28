@@ -577,14 +577,39 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
     is pinned, and the part of the page an on-screen keyboard's view has panned past, so it stays under the bar while a keyboard is up. The front
     toast is at the top and the ones behind peek below it; a toast enters from the top edge it hangs from and leaves to it (opacity only under
     reduced motion), and a swipe up or to the side dismisses it. The bottom (the tab bar, a foot, a form's last action) is never under it. Cards behind peek at the shipped .05 scale and the frontmost toast's height, so they show
-    even behind a taller toast. It expands on hover and focus. A toast that is the only copy, and a focused one, is never
-    removed to make room: the newcomer waits in a queue and enters as room appears; a timed toast is closed instead,
+    even behind a taller toast. It expands on hover and focus. A toast that is the only copy, a focused one, and one whose action is waiting
+    for its answer, is never removed to make room: the newcomer waits in a queue and enters as room appears; a timed toast is closed instead,
     oldest first. Repeats group ("×3", on a `group` key) and errors never do. A drag of more than 40px dismisses it, by
-    distance alone. The line and the clock pause together on hover, on focus, in a blurred window and in a hidden tab.
+    distance alone. A pull the other way, on the axis the drag took, moves by its square root and springs back on `duration-slow` `ease-out` when
+    let go. A copy that follows the pointer during a drag (a drag proxy) is `aria-hidden` and `inert`, and so is the slot a reordered item leaves.
+    An element dragged itself (a toast's swipe) is never `inert`: it captures the pointer, starts no drag on a control inside it, and keeps its
+    focus. The line and the clock pause together on hover, on focus, in a blurred window, in a hidden tab and, for that toast alone, while its
+    action waits for its answer.
   - **On touch.** On touch Dismiss and the action keep their pointer size (24 and the action's own height,
     radius 6) and take their 44px as hit area inside the toast's padding, so a toast is one height on every pointer: Dismiss all round, the
     action above and below and, where its words are narrower, on its start side, away from Dismiss. A hit area drawn by a pseudo-element is
     a hairline larger on each side (46), so the press's .98 never takes it under 44.
+  - **Its action waits.** A toast's action is a Button: when its handler returns a promise it waits as every Button does (busy from the press,
+    a second press, Enter or Space calls nothing, the ring after 300ms and for at least 400ms, its label and width kept). Dismiss and a swipe
+    still close the toast; the work carries on, and its later update is a no-op. An update keeps the action's element whenever an action is
+    there before and after, and Dismiss always keeps its own, so focus on either survives it; an update that takes away the focused action
+    moves focus to the toast first, inside the stack, so F6's way back is kept.
+  - **Undo and changes shown before the answer.** Basalt ships no optimistic store, cache or rollback: the app owns its state, the snapshot,
+    the Undo and what lasts. Four cases:
+    1. **Reversible and low-risk** (archive, mute, pin, move to trash, a toggle): the app changes its state at once and keeps a snapshot; the
+       trigger does not wait (a handler that returns nothing, or `waitForAnswer={false}`). A toast says what changed and offers Undo
+       (`action: { label: "Undo", keys: "Mod+Z", onClick }`). It times out only when Undo lasts somewhere else (`home: "row"`, `"center"` or
+       `"key"`), as the lifetime rule says. **Undo succeeded:** close the toast when the restored item is back in view; otherwise update it to
+       the result with `action: undefined` (a settled toast's update keeps what it is not given, the action included). **The change failed:**
+       restore the snapshot and update the same toast to `status: "danger"` with what happened and Retry, no `home` (it stays and is announced
+       assertively); `show` a new one if it was closed. A rollback is never silent. **The app's key** (Mod+Z) and the action call the same
+       function, which returns the one Undo already under way instead of starting a second: the key does not pass through the button's guard.
+    2. **Irreversible or high-impact** (delete for good, revoke, billing, access): never shown before the answer. `AlertDialog` first; its
+       confirm waits on the answer.
+    3. **Confirmed in place** (copy, a quick toggle): the control confirms itself (`CopyButton`, `IconButton done`); no toast.
+    4. **Forms and sheets** wait on the answer (`Form`, the submit button) and keep what was typed on failure.
+
+    Status: decided by the council (micro-details m5, DECISIONS 405, 409); the implementation hasn't been reviewed.
 - **The notification centre** is the durable record the toasts point to: a bell IconButton (32px, a 6px ink dot while
   anything is unread, and the count in its accessible name and never drawn, so the button never changes width) that opens
   a popover at its opener's level plus one, below the bell with its end edge on the bell's, with a header band (title, count, "Mark all as read") and a footer ("View
@@ -825,7 +850,8 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   it is busy is ignored (the handler is never called twice, and a submit or a link is stopped too), and the control is `aria-busy` and
   `aria-disabled`, keeps its focus, its label and its width, and keeps its own `disabled` untouched. Its mark shows only once the wait has run
   300ms (`WAIT_SHOW_AFTER_MS`), so an answer inside that shows nothing and never flashes, and once shown it stays at least 400ms
-  (`WAIT_MIN_SHOWN_MS`), so it never blinks: the shaped skeleton's two timings (DECISIONS 247, 248), one rule for every wait. The minimum is
+  (`WAIT_MIN_SHOWN_MS`), so it never blinks: the shaped skeleton's two timings (DECISIONS 247, 248), one rule for every wait. `toast.promise`
+  keeps the same two timings: no running toast for work under 300ms, and once on screen it stays 400ms before its result, either way. The minimum is
   the mark's alone: presses, `aria-busy` and `aria-disabled` end with the answer, so a Retry pressed while the mark finishes goes through. A
   handler on the element given as `render` is guarded the same way. The cursor is `progress` from the press. A rejection ends the wait at once and is raised again, never swallowed: the app says why (a `StatusLine`, a
   toast, the field's error). The app's own `loading` still works and wins: it shows the mark at once. A `Form` whose `onSubmit` or
@@ -849,8 +875,9 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   flash), and an empty value while writing keeps the text shown until the next text arrives, so the field is never blanked between drafts;
   it never remounts. Under reduced motion and the hold the fill stands still at `surface-placeholder`, as a skeleton does; in forced colours
   its boundary is dashed in `ButtonText`, never `GrayText`. The state belongs to the control and not to `Field`, which also holds controls
-  nothing writes into (a segmented control, a select). The HTML skill's `.btn` already has `aria-busy`; the wait for a promise, TextButton's
-  mark and the written field are React's alone, because a skill page runs no app handlers and has no text button. Status: decided by Opus
+  nothing writes into (a segmented control, a select). The HTML skill's `.btn` has `aria-busy` (the mark at once, as `loading` draws it), and its
+  `wait` module gives it the wait for a promise on the same two timings (`Basalt.wait`), which the toast's action and `toast.promise` use;
+  TextButton's mark and the written field are React's alone, because the skill has no text button and no written field. Status: decided by Opus
   under the no-council path (DECISIONS 226, 260), with the owner's direction (DECISIONS 255); the implementation is reviewed by Astra.
 
 ### More contrast

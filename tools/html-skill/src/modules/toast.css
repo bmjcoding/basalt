@@ -93,9 +93,10 @@
   }
 
   /* The drain line is drawn on top of the bottom rim's straight part: it starts where the corner curve ends. It pauses exactly when every toast's
-     own clock does: the stack hovered or focused (it is then expanded), the window out of focus, or the tab hidden (data-away). */
+     own clock does: the stack hovered or focused (it is then expanded), the window out of focus, the tab hidden (data-away), or, for that toast
+     alone, its action waiting for its answer (data-action-busy). */
   .toast-drain { position: absolute; right: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); bottom: calc(-1 * var(--basalt-size-hairline)); left: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); height: var(--basalt-size-hairline); background: var(--basalt-text-tertiary); transform-origin: right center; pointer-events: none; animation: bh-drain linear forwards; }
-  .toast[data-expanded] .toast-drain, .toast-viewport[data-away] .toast-drain { animation-play-state: paused; }
+  .toast[data-expanded] .toast-drain, .toast-viewport[data-away] .toast-drain, .toast[data-action-busy] .toast-drain { animation-play-state: paused; }
   @keyframes bh-drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 
   /* Under 720 the stack hangs from the bar, space-2 below its line (space-4 from the top edge with no bar), so a form's last action, the tab bar
