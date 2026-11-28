@@ -41,8 +41,9 @@ function useState81(state: string, scroll: () => void) {
     const before = state.startsWith("before") || state.endsWith("-before");
     if (before) document.documentElement.setAttribute("data-fades", "off");
     else document.documentElement.removeAttribute("data-fades");
-    const timer = window.setTimeout(scroll, 120);
-    return () => { window.clearTimeout(timer); document.documentElement.removeAttribute("data-fades"); };
+    // Once laid out, and again once a popup has opened and placed itself (a menu positions after its first frame). The menu is 282 tall: 280 inside its rim, seven rows, so with its top edge through a row's middle its bottom edge runs through one too.
+    const timers = [window.setTimeout(scroll, 120), window.setTimeout(scroll, 600)];
+    return () => { timers.forEach((t) => window.clearTimeout(t)); document.documentElement.removeAttribute("data-fades"); };
   }, [state, scroll]);
 }
 const middle = (selector: string, axis: "x" | "y") => () => {
@@ -54,8 +55,24 @@ const middle = (selector: string, axis: "x" | "y") => () => {
 
 const NOTHING = () => {};
 const SCROLL_1 = middle(".basalt-code-pre", "x");
-const SCROLL_2 = middle(".basalt-menu-scroll, .basalt-command-list", "y");
-const SCROLL_3 = middle(".basalt-sheet-body, .basalt-sheet-scroll", "y");
+/**
+ * Scrolls each port so its top edge runs through the middle of a row (or of a paragraph's first line) near its middle: a row is actually cut at the top, and
+ * the bottom edge, which lands wherever the port's height puts it, cuts one too. A row's offsetTop is read from the port, which every port here is the offset
+ * parent of (or lines up with).
+ */
+const cut = (selector: string, rows: string) => () => {
+  for (const el of document.querySelectorAll<HTMLElement>(selector)) {
+    const mid = (el.scrollHeight - el.clientHeight) / 2;
+    const row = [...el.querySelectorAll<HTMLElement>(rows)].filter((r) => r.offsetTop <= mid).pop();
+    if (!row) continue;
+    // A paragraph is cut through a line; a row (one line of words in a taller box) through its middle.
+    const line = row.matches("p") ? parseFloat(getComputedStyle(row).lineHeight) || row.offsetHeight : row.offsetHeight;
+    const lines = Math.max(0, Math.min(Math.floor((mid - row.offsetTop) / line), Math.round(row.offsetHeight / line) - 1));
+    el.scrollTop = row.offsetTop + lines * line + line / 2;
+  }
+};
+const SCROLL_2 = cut(".basalt-menu-scroll, .basalt-command-list", ".basalt-menu-item, [cmdk-item]");
+const SCROLL_3 = cut(".basalt-sheet-body, .basalt-sheet-scroll", "p");
 
 // ---- Two unlike domains: a recipe box and a greenhouse ----
 
@@ -138,7 +155,7 @@ function Lists({ state }: { state: string }) {
     <div style={{ display: "flex", gap: "var(--basalt-space-6)", flexWrap: "wrap", alignItems: "flex-start" }}>
       <div style={{ width: 320 }}><p style={label}>The command list, scrolled down</p><CommandList label="Pantry" groups={PANTRY} /></div>
       <div><p style={label}>A menu held open: its rim is the popup's, the rows fade</p>
-        <Menu open modal={false}><MenuTrigger render={<Button>Benches</Button>} /><MenuContent side="bottom" style={{ maxHeight: 300 }}>{[...BENCHES, ...RECIPES].map((b) => <MenuItem key={b}>{b}</MenuItem>)}</MenuContent></Menu>
+        <Menu open modal={false}><MenuTrigger render={<Button>Benches</Button>} /><MenuContent side="bottom" style={{ maxHeight: 282 }}>{[...BENCHES, ...RECIPES].map((b) => <MenuItem key={b}>{b}</MenuItem>)}</MenuContent></Menu>
       </div>
     </div>
   );
@@ -152,13 +169,13 @@ function Sheets({ state }: { state: string }) {
       {held ? (
         <SheetContent side="right">
           <SheetTitle>Bench notes</SheetTitle>
-          {LOG.map((line) => <p key={line}>{line}</p>)}
+          {[0, 6, 12].map((at) => <p key={at}>{LOG.slice(at, at + 6).join(" ")}</p>)}
           <SheetActions><Button variant="secondary">Cancel</Button><Button>Save notes</Button></SheetActions>
         </SheetContent>
       ) : (
         <SheetContent side="right">
           <SheetHeader closeLabel="Close"><SheetTitle>Pastry</SheetTitle></SheetHeader>
-          <SheetBody>{LOG.map((line) => <p key={line}>{line.replace("Bench", "Step")}</p>)}</SheetBody>
+          <SheetBody>{[0, 6, 12].map((at) => <p key={at}>{LOG.slice(at, at + 6).map((line) => line.replace("Bench", "Step")).join(" ")}</p>)}</SheetBody>
         </SheetContent>
       )}
     </Sheet>

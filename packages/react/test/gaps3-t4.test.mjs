@@ -506,7 +506,7 @@ describe("Segments that scroll (t4 item 6)", () => {
       await page.keyboard.press("Enter");
       await settle(page);
       await page.waitForTimeout(400);
-      const got = await page.evaluate(() => { const port = document.querySelector(".basalt-segmented").getBoundingClientRect(); const chosen = document.querySelector(".basalt-segment[data-pressed]").getBoundingClientRect(); const pill = document.querySelector(".basalt-pill").getBoundingClientRect(); return { inside: chosen.left >= port.left - 0.5 && chosen.right <= port.right + 0.5, pill: Math.abs(pill.left - chosen.left) < 1 && Math.abs(pill.width - chosen.width) < 1 }; });
+      const got = await page.evaluate(() => { const port = document.querySelector(".basalt-segmented-scroll").getBoundingClientRect(); const chosen = document.querySelector(".basalt-segment[data-pressed]").getBoundingClientRect(); const pill = document.querySelector(".basalt-pill").getBoundingClientRect(); return { inside: chosen.left >= port.left - 0.5 && chosen.right <= port.right + 0.5, pill: Math.abs(pill.left - chosen.left) < 1 && Math.abs(pill.width - chosen.width) < 1 }; });
       assert.deepEqual(got, { inside: true, pill: true });
       await page.keyboard.press("Tab");
       assert.equal(await page.evaluate(() => document.activeElement.closest(".basalt-segmented")), null, "one tab stop");

@@ -338,7 +338,7 @@ const plateNow = (page, spec) => page.evaluate((host) => {
   const r = plate.getBoundingClientRect();
   const cs = getComputedStyle(plate);
   return {
-    top: r.top, height: r.height, left: r.left, width: r.width, opacity: Number(cs.opacity), display: cs.display, state: plate.dataset.state, glide: el.hasAttribute("data-glide"),
+    top: r.top, height: r.height, left: r.left, width: r.width, opacity: Number(cs.opacity), display: cs.display, state: plate.dataset.state, glide: el.hasAttribute("data-glide") || el.querySelector(":scope > .basalt-menu-scroll[data-glide]") !== null, // the popup's port is the glide's host (cimip-gaps-3 t7)
     running: plate.getAnimations().map((a) => ({ type: a.constructor.name, property: a.transitionProperty, duration: a.effect.getTiming().duration, easing: a.effect.getTiming().easing })),
   };
 }, spec.host);
