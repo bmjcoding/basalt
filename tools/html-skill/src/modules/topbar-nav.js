@@ -91,6 +91,15 @@
       nav.appendChild(list);
       d.appendChild(nav);
     }
+    // The account (React's SiteHeader account): the same control again, as a row of the menu under the links and above the action, on a divider.
+    var account = inner.querySelector('.topbar-account');
+    if (account) {
+      var accountRow = el('div', 'topbar-menu-account');
+      var mine = copy(account);
+      mine.classList.remove('topbar-account');
+      accountRow.appendChild(mine);
+      d.appendChild(accountRow);
+    }
     if (action) {
       var foot = el('div', 'topbar-menu-foot');
       var again = copy(action);

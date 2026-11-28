@@ -5,6 +5,7 @@ import { STATUS_MESSAGE_MS } from "./constants";
 import type { ButtonEdge } from "./button";
 import { StatusLine } from "./filter-result";
 import { Icon } from "./icon";
+import { usePinnedEdges } from "./pinned-edges";
 import { usePeekPlate } from "./use-peek";
 import { join } from "./utils";
 
@@ -48,6 +49,16 @@ export interface StatusBarProps extends Omit<React.ComponentProps<"footer">, "ch
   onMessageClear?: () => void;
   /** The theme control, or the like. */
   end?: React.ReactNode;
+  /**
+   * A bar outside `AppShell` (a page under a `SiteHeader`, say), pinned to the bottom of its column from 720: `position: sticky; bottom: 0`, so it
+   * spans exactly that column and never crosses a rail or a sidebar. Still 44px, solid, its divider on top, the bottom safe area as padding. **Its
+   * column must reach the bottom:** the bar's parent is a flex column at least as tall as what scrolls it, and the page above the bar grows
+   * (`flex: 1 0 auto`); `SitePage` is such a column. While pinned it opts into `usePinnedEdges`, so scroll padding and the toast stack clear it on the
+   * box it sticks in. Under 720 nothing changes (the fixed phone form); it is not drawn from 720 while an on-screen keyboard is up, and it is in the
+   * flow in a window under 480 tall and in print. In `AppShell`'s `foot` it is not needed: a status bar that is the foot's only child sits flush, and
+   * the foot holds it. Default false.
+   */
+  pinned?: boolean;
 }
 
 type Hangable = { variant?: string; edge?: ButtonEdge; label?: unknown; icon?: unknown; children?: React.ReactNode };
@@ -84,7 +95,8 @@ function hang(slot: React.ReactNode, side: ButtonEdge): React.ReactNode {
  * lifted into the page above the bar (DECISIONS 168 and 170; peek-plate.ts). The stop holds the words, so the live regions let go of them once they have said
  * them, and a screen reader meets them in one place.
  */
-export function StatusBar({ label = "Status", start, sources, message, onMessageClear, end, className, ...props }: StatusBarProps) {
+export function StatusBar({ label = "Status", start, sources, message, onMessageClear, end, pinned = false, className, ...props }: StatusBarProps) {
+  usePinnedEdges(pinned);
   const clear = React.useRef(onMessageClear);
   clear.current = onMessageClear;
   const logged = message?.logged;
@@ -137,7 +149,7 @@ export function StatusBar({ label = "Status", start, sources, message, onMessage
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` is the message's identity
   }, [key, error]);
   return (
-    <footer {...props} aria-label={label} data-pinned-edge="bottom" className={join("basalt-status-bar", className)}>
+    <footer {...props} aria-label={label} data-pinned-edge="bottom" data-pinned={pinned ? "" : undefined} className={join("basalt-status-bar", className)}>
       {start ? <div className="basalt-status-bar-start">{hang(start, "start")}</div> : null}
       {sources ? <div className="basalt-status-bar-sources">{start ? sources : hang(sources, "start")}</div> : null}
       <p

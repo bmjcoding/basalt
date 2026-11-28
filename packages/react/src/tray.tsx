@@ -15,12 +15,31 @@ import { join } from "./utils";
 // says how many and opens them in a bottom sheet; a row that only reports (`stay`: work under way, a connection) stays a row of the tray.
 // Focus is never lost to a row that leaves: it goes to the row that took its place, or the one before, and when none are left to the app's
 // field (`returnFocus`), and the sheet closes by itself.
+//
+// Rows hold still under a pointer (cimip-gaps-3 T5, item 11a): while a mouse or a pen is over the tray (its panel, or the sheet's rows), no drawn
+// row moves on screen and the row under the pointer is never replaced by another. A row that leaves keeps its seat (an empty box of its measured
+// height, inert, its dividers kept), unless no live row remains. A row that arrives is drawn where it belongs if that moves no drawn row; if it would,
+// at whichever end of the tray moves none; if neither is still (a tray scrolling at the foot's cap), it waits. It is measured on every change (the
+// tops of every drawn row and seat, read before the commit and again in a layout effect before paint), never assumed from where the tray is docked.
+// When the pointer leaves (or the window, or the page is hidden) seats close and every row takes its place in order, at once. Rows are keyed by the
+// app's keys and never remounted. Keyboard and touch hold nothing. Reports (`stay`) stand above the rows that wait; inside each kind the app's order holds.
 
 type FocusTarget = React.RefObject<HTMLElement | null> | (() => HTMLElement | null | undefined);
 
+/** What a tray holds, for a name that follows it: the rows that wait and the rows that report (`stay`). A held seat is not counted. */
+export interface TrayCounts {
+  waiting: number;
+  reporting: number;
+}
+
 export interface TrayProps extends Omit<React.ComponentProps<"section">, "children" | "aria-label"> {
-  /** The region's name, and the sheet's title on a phone: "Waiting on you", "Needs your review". */
-  label: string;
+  /**
+   * The region's name: "Waiting on you", "Needs your review"; or a function of what it holds, so a tray that holds only a report is not named for what
+   * waits: ({ waiting, reporting }) => (waiting ? "Waiting on you" : "Under way").
+   */
+  label: string | ((rows: TrayCounts) => string);
+  /** The phone's sheet's title and name. Default the resolved `label`. */
+  sheetLabel?: string;
   /** What the band says on a phone for the rows that wait, from their count: (n) => `${n} waiting on you`. */
   summary: (count: number) => string;
   /** The band's word for opening the sheet. Default "Show". */
@@ -42,7 +61,7 @@ export interface TrayProps extends Omit<React.ComponentProps<"section">, "childr
    * grown past 720 while it was open).
    */
   onOpenChange?: (open: boolean) => void;
-  /** `TrayRow`s, most pressing first, as direct children (a fragment is looked through). */
+  /** `TrayRow`s, most pressing first, as direct children (a fragment is looked through). Rows that report (`stay`) are drawn above the rows that wait. */
   children?: React.ReactNode;
 }
 
@@ -125,12 +144,15 @@ function useRowFocus(boxes: () => Array<HTMLElement | null>, keys: string, retur
  * `AppShell` `foot`), or at the head of a page. It names itself with `label`; it is not a live region: say a new row aloud through the app's
  * one `StatusLine`. With no rows it draws nothing.
  */
-export function Tray({ label, summary, showLabel = "Show", closeLabel = "Close", returnFocus, open: openProp, onOpenChange, className, children, ...props }: TrayProps) {
+export function Tray({ label: labelProp, sheetLabel, summary, showLabel = "Show", closeLabel = "Close", returnFocus, open: openProp, onOpenChange, className, onPointerEnter, onPointerLeave, children, ...props }: TrayProps) {
   const level = usePanelLevel();
   const phone = useMediaQuery(`(width < ${breakpoint.md}px)`);
-  const rows = rowsOf(children);
+  // Reports stand above the rows that wait (11d); inside each kind the app's order holds. Basalt never sorts by time or name.
+  const given = rowsOf(children);
+  const rows = [...given.filter((row) => row.props.stay), ...given.filter((row) => !row.props.stay)];
   const gathered = rows.filter((row) => !row.props.stay);
   const count = gathered.length;
+  const label = typeof labelProp === "function" ? labelProp({ waiting: count, reporting: rows.length - count }) : labelProp;
   const [own, setOwn] = React.useState(false);
   const controlled = openProp !== undefined;
   const open = controlled ? openProp : own;
@@ -143,13 +165,27 @@ export function Tray({ label, summary, showLabel = "Show", closeLabel = "Close",
   const panel = React.useRef<HTMLElement | null>(null);
   const sheet = React.useRef<HTMLDivElement | null>(null);
   // Each row carries its key, so the row that held focus is found by identity, not by place.
-  const keyed = (row: React.ReactElement<TrayRowProps>, i: number) => React.cloneElement(row as React.ReactElement<TrayRowProps & { [ROW_KEY]?: string }>, { [ROW_KEY]: String(row.key ?? i) });
-  const all = rows.map(keyed);
-  const keys = rows.map((row, i) => String(row.key ?? i)).join("\u0000");
+  const keyOf = (row: React.ReactElement<TrayRowProps>) => String(row.key ?? given.indexOf(row));
+  const keys = rows.map(keyOf).join("\u0000");
+  const live = new Map(rows.map((row) => [keyOf(row), row] as const));
+  const hold = useHold(panel, sheet, live, keyOf, rows);
+  const drawn = hold.items.map((item) => item.seat !== undefined
+    ? <div key={`seat:${item.key}`} className="basalt-tray-row basalt-tray-seat" data-tray-seat={item.key} data-stay={item.stay ? "" : undefined} inert aria-hidden="true" style={{ height: item.seat }} />
+    : React.cloneElement(live.get(item.key)! as React.ReactElement<TrayRowProps & { [ROW_KEY]?: string }>, { key: item.key, [ROW_KEY]: item.key }));
+  const stayDrawn = drawn.filter((_, i) => hold.items[i]!.stay);
+  const waitDrawn = drawn.filter((_, i) => !hold.items[i]!.stay);
   const band = React.useRef<HTMLButtonElement | null>(null);
   const fallback = React.useCallback(() => panel.current?.querySelector<HTMLElement>(focusable) ?? null, []);
   const boxes = React.useCallback(() => [panel.current, sheet.current], []);
   useRowFocus(boxes, keys, returnFocus, fallback);
+  // A row moved into its place (the pointer left, and the rows take their order) is moved, never remounted; a browser that lets focus go as it moves a
+  // node gets it back on the same element.
+  const focusedBefore = typeof document === "undefined" ? null : document.activeElement;
+  React.useLayoutEffect(() => {
+    const element = focusedBefore as HTMLElement | null;
+    if (!element || element === document.body || !element.isConnected || document.activeElement !== document.body) return;
+    if (panel.current?.contains(element) || sheet.current?.contains(element)) element.focus({ preventScroll: true });
+  });
   // The sheet closing because its last row left sends focus to the app's field; any other close (Esc, Close) returns to the band that opened it.
   const emptied = React.useRef(false);
   emptied.current = count === 0;
@@ -165,13 +201,27 @@ export function Tray({ label, summary, showLabel = "Show", closeLabel = "Close",
   const named = React.useId();
   const sectionId = props.id ?? named;
   if (rows.length === 0) return null;
+  // A mouse or a pen over the tray holds its rows still; a finger holds nothing.
+  const enter = (event: React.PointerEvent) => { if (event.pointerType !== "touch") hold.setHeld(true); };
+  const leave = (event: React.PointerEvent) => { if (event.pointerType !== "touch") hold.setHeld(false); };
   const finalFocus = () => (emptied.current ? resolve(returnFocus) : null) ?? (band.current?.isConnected ? band.current : true);
   return (
-    <section {...props} id={sectionId} ref={panel} aria-label={label} data-level={level} className={join("basalt-tray", className)}>
+    <section
+      {...props}
+      id={sectionId}
+      ref={panel}
+      aria-label={label}
+      data-level={level}
+      className={join("basalt-tray", className)}
+      onPointerEnter={(event) => { onPointerEnter?.(event); enter(event); }}
+      onPointerLeave={(event) => { onPointerLeave?.(event); leave(event); }}
+    >
       {/* The port (cimip-gaps-3 t7): docked in an app's foot at its cap, the rows scroll here and fade at each edge that hides more; the rim stays the tray's. */}
       <TrayPort labelledBy={sectionId}>
       {inLevel(level, (
         <>
+          {/* The rows that report, above the band under 720 (11d), and above the rows that wait from 720. */}
+          {stayDrawn}
           {/* Under 720 the rows that wait are this band, which opens them in a sheet; from 720 it is not drawn. */}
           {count > 0 ? (
             <button ref={band} type="button" className="basalt-tray-band" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
@@ -180,7 +230,7 @@ export function Tray({ label, summary, showLabel = "Show", closeLabel = "Close",
             </button>
           ) : null}
           {/* The server and the first render draw the wide form; under 720 the stylesheet hides the gathered rows until the script knows. */}
-          {phone ? all.filter((row) => row.props.stay) : all}
+          {phone ? null : waitDrawn}
         </>
       ))}
       </TrayPort>
@@ -188,16 +238,164 @@ export function Tray({ label, summary, showLabel = "Show", closeLabel = "Close",
         <Sheet open={shown} onOpenChange={setOpen}>
           <SheetContent side="bottom" ref={sheet} className="basalt-tray-sheet" finalFocus={finalFocus}>
             <SheetHeader closeLabel={closeLabel}>
-              <SheetTitle>{label}</SheetTitle>
+              <SheetTitle>{sheetLabel ?? label}</SheetTitle>
             </SheetHeader>
             <SheetBody>
-              <div className="basalt-tray-sheet-rows">{all.filter((row) => !row.props.stay)}</div>
+              <div className="basalt-tray-sheet-rows" onPointerEnter={enter} onPointerLeave={leave}>{waitDrawn}</div>
             </SheetBody>
           </SheetContent>
         </Sheet>
       ) : null}
     </section>
   );
+}
+
+/** One drawn place of the tray: a live row (by its key) or a held seat of a row that left (its measured height). */
+interface Place { key: string; stay: boolean; seat?: number }
+
+const sameOrder = (a: readonly Place[], b: readonly Place[]) => a.length === b.length && a.every((place, i) => place.key === b[i]!.key && place.seat === b[i]!.seat);
+
+/** The tops on screen of every drawn row and seat, by place key (a seat's is `seat:` and its row's key). */
+function tops(boxes: Array<HTMLElement | null>): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const box of boxes) {
+    for (const element of box?.querySelectorAll<HTMLElement>(`[${ROW_KEY}], [data-tray-seat]`) ?? []) {
+      const rect = element.getBoundingClientRect();
+      if (!rect.height) continue;
+      const seat = element.getAttribute("data-tray-seat");
+      out.set(seat !== null ? `seat:${seat}` : element.getAttribute(ROW_KEY) ?? "", rect.top);
+    }
+  }
+  return out;
+}
+
+/** A drawn row's height now, by its key, in the panel or the sheet. */
+function rowHeight(boxes: Array<HTMLElement | null>, key: string): number | undefined {
+  if (typeof document === "undefined") return undefined;
+  for (const box of boxes) {
+    for (const element of box?.querySelectorAll<HTMLElement>(`[${ROW_KEY}]`) ?? []) {
+      if (element.getAttribute(ROW_KEY) === key && element.offsetHeight) return element.offsetHeight;
+    }
+  }
+  return undefined;
+}
+
+/** Where an arrival is tried, in order: where it belongs, the tray's end, its start; then it waits until the pointer leaves. */
+type Step = "natural" | "end" | "start" | "wait";
+const STEPS: readonly Step[] = ["natural", "end", "start", "wait"];
+
+/**
+ * The hold (11a): what the tray draws, in order, while a pointer is over it, and the rows in their own order when none is. Departures keep their seat,
+ * arrivals are placed by measuring, and nothing is ever remounted: every live row keeps its key.
+ */
+function useHold(panel: React.RefObject<HTMLElement | null>, sheet: React.RefObject<HTMLElement | null>, live: Map<string, React.ReactElement<TrayRowProps>>, keyOf: (row: React.ReactElement<TrayRowProps>) => string, rows: React.ReactElement<TrayRowProps>[]) {
+  const [held, setHeldState] = React.useState(false);
+  const heldRef = React.useRef(false);
+  const setHeld = React.useCallback((on: boolean) => { heldRef.current = on; setHeldState(on); }, []);
+  // The places drawn at the last commit, each row's measured height, the arrivals being placed (their step, and the tops before the first try),
+  // and the arrivals that wait for the pointer to leave.
+  const committed = React.useRef<Place[]>([]);
+  const heights = React.useRef(new Map<string, number>());
+  const [trial, setTrial] = React.useState<{ keys: string; step: number } | null>(null);
+  // A seat corrected after a departure moved a row (a row that changed size since its last measure): drawn again before paint.
+  const [, setFixed] = React.useState(0);
+  // The departures of the change being drawn, keyed like the arrivals' batch, so the position check runs on every departure too.
+  let departing = "";
+  const before = React.useRef<{ keys: string; tops: Map<string, number> } | null>(null);
+  const waiting = React.useRef(new Set<string>());
+  const natural: Place[] = rows.map((row) => ({ key: keyOf(row), stay: Boolean(row.props.stay) }));
+  let items: Place[] = natural;
+  let batch = "";
+  if (held && live.size > 0) {
+    const kept: Place[] = [];
+    for (const place of committed.current) {
+      if (place.seat !== undefined) kept.push(place);
+      else if (live.has(place.key)) kept.push({ key: place.key, stay: Boolean(live.get(place.key)!.props.stay) });
+      else {
+        // The row that leaves is measured now, in render, while the DOM is still the one it is drawn in (it may have wrapped or grown since the
+        // last commit); the height from the last commit is only the fallback.
+        kept.push({ key: place.key, stay: place.stay, seat: rowHeight([panel.current, sheet.current], place.key) ?? heights.current.get(place.key) ?? 0 });
+        departing += `${place.key}\u0000`;
+      }
+    }
+    const drawnKeys = new Set(kept.filter((place) => place.seat === undefined).map((place) => place.key));
+    const arrivals = natural.filter((place) => !drawnKeys.has(place.key) && !waiting.current.has(place.key));
+    batch = arrivals.map((place) => place.key).join("\u0000");
+    const step = STEPS[trial?.keys === batch ? trial.step : 0]!;
+    // The tops before the first try, read in render while the DOM is still the last commit's: for an arrival, and for a departure alone.
+    const change = batch || (departing ? `-${departing}` : "");
+    if (change && before.current?.keys !== change && typeof document !== "undefined") before.current = { keys: change, tops: tops([panel.current, sheet.current]) };
+    items = kept;
+    if (arrivals.length > 0 && step !== "wait") {
+      if (step === "end") items = [...kept, ...arrivals];
+      else if (step === "start") items = [...arrivals, ...kept];
+      else {
+        // Where it belongs: after the nearest row before it in the app's order that is drawn, else before the first drawn row after it.
+        items = [...kept];
+        for (const arrival of arrivals) {
+          const at = natural.findIndex((place) => place.key === arrival.key);
+          const prior = natural.slice(0, at).reverse().find((place) => items.some((item) => item.key === place.key && item.seat === undefined));
+          const index = prior ? items.findIndex((item) => item.key === prior.key && item.seat === undefined) + 1 : 0;
+          items.splice(index, 0, arrival);
+        }
+      }
+    }
+  }
+  React.useLayoutEffect(() => {
+    // Every drawn row's height, for the seat it keeps if it leaves under the pointer.
+    for (const box of [panel.current, sheet.current]) for (const element of box?.querySelectorAll<HTMLElement>(`[${ROW_KEY}]`) ?? []) {
+      if (element.offsetHeight) heights.current.set(element.getAttribute(ROW_KEY) ?? "", element.offsetHeight);
+    }
+    if (!held) {
+      committed.current = items;
+      waiting.current.clear();
+      before.current = null;
+      if (trial) setTrial(null);
+      return;
+    }
+    if (batch && before.current?.keys === batch) {
+      const step = trial?.keys === batch ? trial.step : 0;
+      const now = tops([panel.current, sheet.current]);
+      const moved = [...before.current.tops].some(([key, top]) => now.has(key) && Math.abs(now.get(key)! - top) > 0.5);
+      if (moved && step < STEPS.length - 1) {
+        // Tried and moved a drawn row: try the next place, before paint.
+        setTrial({ keys: batch, step: step + 1 });
+        return;
+      }
+      if (STEPS[step] === "wait") for (const key of batch.split("\u0000")) waiting.current.add(key);
+      before.current = null;
+    } else if (!batch && departing && before.current?.keys === `-${departing}`) {
+      // A departure alone: the seat must hold every drawn row where it was. Where a row after a new seat moved, that seat takes the difference,
+      // and the tray is drawn again before paint.
+      const was = before.current.tops;
+      before.current = null;
+      const now = tops([panel.current, sheet.current]);
+      const left = new Set(departing.split("\u0000").filter(Boolean));
+      let corrected = false;
+      const fixed = items.map((place, i) => {
+        if (place.seat === undefined || !left.has(place.key)) return place;
+        const next = items.slice(i + 1).find((item) => item.seat === undefined && was.has(item.key) && now.has(item.key));
+        const delta = next ? now.get(next.key)! - was.get(next.key)! : 0;
+        if (Math.abs(delta) <= 0.5) return place;
+        corrected = true;
+        return { ...place, seat: Math.max(0, place.seat - delta) };
+      });
+      committed.current = fixed;
+      if (corrected) setFixed((n) => n + 1);
+      return;
+    }
+    if (!sameOrder(committed.current, items)) committed.current = items;
+  });
+  // The pointer leaving the window, or the page hidden, releases the hold as leaving the tray does.
+  React.useEffect(() => {
+    if (!held) return undefined;
+    const release = () => { if (heldRef.current) setHeld(false); };
+    const hidden = () => { if (document.visibilityState === "hidden") release(); };
+    window.addEventListener("blur", release);
+    document.addEventListener("visibilitychange", hidden);
+    return () => { window.removeEventListener("blur", release); document.removeEventListener("visibilitychange", hidden); };
+  }, [held, setHeld]);
+  return { items, setHeld };
 }
 
 /**

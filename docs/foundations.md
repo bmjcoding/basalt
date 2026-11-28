@@ -631,6 +631,9 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   those are the pairs the tests prove on every level. In forced colours the rim and the icon are `CanvasText`: the
   status is the icon's shape and the words. "Danger is text plus a hairline in the danger colour, never a red fill"
   stands, and the danger callout is an instance of it: a hairline on a panel.
+  **A fact beside the title** (`meta`, cimip-gaps-3 T5): a `Presence`, a `Badge` or a time after the title on its baseline, `space-2` from it,
+  moving whole to a line of its own before it shrinks; plain words in it at 13/18 in secondary. With `heading` the heading holds the title alone. The
+  status icon is never replaced. Status: decided by the council decider under DECISIONS 385 (a handoff; cimip-gaps-3 T5); the implementation not yet reviewed.
 - **Figures and transcripts** (decision 94; the council voted, the implementation has not been reviewed by the panel).
   - **Description list** (`DescriptionList`, `DescriptionItem`). Facts about one thing: a `dl` of `div` rows, each one `dt`
     and one or more `dd`, on the page with no rim and no level of its own; inside a card only when the card is the object
@@ -1321,6 +1324,11 @@ implementation hasn't been reviewed.
   no padding of the sheet's own; a `border-divider` under the head and above the foot; the head and the foot keep the safe areas. Motion is the sheet's own (300ms in,
   225ms out). A sheet that swaps its body in place (`step`) moves focus to its own title and scrolls the body to the top, so the new title is read out. A focused control's ring is never cut by the sheet: the scrolling body keeps `space-1-5` at each end, and a sheet's held actions keep
   `space-1-5` of clear room above their divider (B5 fix pass 1).
+- **A wide side sheet** (`SheetContent size="wide"`, cimip-gaps-3 T5; `size-sheet-width-wide`, 720): a record read while the list stays behind it. From
+  720 it is 720 at most the window less `space-12`, so a strip of scrim stays to press; its body (680) clears `size-breakpoint-container-lg`, so the
+  parts in it draw their wide forms. Under 720 the window's width. Its title takes the page's `h1` step, 18/26, and its sections follow at 16/24; **the
+  standard sheet and the form dialog keep 20/28.** First focus is its title, as a wide dialog's is. A form stays a form dialog; a whole workspace stays a
+  page. Status: decided by the council decider under DECISIONS 385 (a handoff; cimip-gaps-3 T5); the implementation not yet reviewed.
 - **The drawer** is a region in the flow with two titled halves: no portal, scrim, level reset, sheet motion, shadow, fill, rim or corner radius. Its top is a
   `border-divider` and nothing else (4 to 0; the prototype's brighter line broke the divider rule). Its height is the app's, in 24px rows. Under 720 it is a page that
   replaces the record, with a Back button, its halves stacked on a divider.
@@ -1514,6 +1522,11 @@ Under 720 the links and the primary action leave the bar; the brand, `LoopsToggl
   foot, full width, 44px.
 - **Focus:** on open, focus lands on Close. Escape, the scrim, Close or a link closes it, and focus goes back to Menu. Widening past
   720 closes it and focuses the current link in the bar.
+- **An account** (`SiteHeader account`, cimip-gaps-3 T5): for an app page under a site header, one ghost control (a `Button` or `IconButton` that opens a
+  `Menu`), named for the person. From 720 it is last in the bar (`loopsToggle`, `tools`, `action`, `account`), hung at the end. Under 720 with a narrow
+  menu it leaves the bar and is a row of the menu, under the links and above the foot's action: the same control, at the band's gutter, 44 tall, a
+  divider above it; with no narrow menu it stays in the bar in Menu's place. It is drawn in both places and the stylesheet shows one, so it takes no `id`
+  and mounts twice. The page under it: `SitePage` > `SiteHeader` > `AppPage` > `AppPageHead`, then `AppSections` > `SiteFooter`. Status: decided by the council decider under DECISIONS 385 (a handoff; cimip-gaps-3 T5); the implementation not yet reviewed.
 
 ### The site footer
 
@@ -1591,6 +1604,39 @@ only what overflows it, and the document still scrolls the page.
   details, a checklist, an outline), never the page itself.
 - **The foot** (`foot`): a band pinned to the content column's bottom that holds still (a message field, an action bar). See
   [The keyboard and what is pinned](#the-keyboard-and-what-is-pinned).
+- **The app page's rhythm and ladder** (`AppSections`, `AppSection`, `AppSectionHead`, `AppPageHead`, `Cluster`; cimip-gaps-3 T5). The heading ladder of
+  an app page: the `h1` at 18/26 and 600 (the bar's title, and `AppPageHead`'s), a section at 16/24 and 600, a sub-section at 14/20 and 600. **A head's size
+  comes from its position, never its outline level:** `level` sets the tag alone (2 at the top, 3 in a sub-section, one more per depth to 6; a record
+  sheet's sections pass `level={3}` and keep 16/24). Sections are `space-12` (48) apart from 720 and `space-8` (32) under it; inside a `TabsPanel`
+  `space-10` (40) from 720, by position; sub-sections `space-8` at every width. A section is its head then its body, `space-4` apart, and is named by its
+  head. A head's description is 14/20 at 400 in secondary, `space-1` under the title, at most the prose width. **A head's actions** are `sm` controls at
+  its end, a wrapping row whose every row takes its height in the flow (never a fixed height), so nothing reaches over the title, the description or the
+  body. The head answers its own width: under 480 the actions go under the text, at the start, `space-2` below; from 480 they are beside it (the text
+  keeps at least 340), their first row centred on the title's line by a margin that is never positive where controls are drawn at their own size (one
+  row adds 0px), and where they are drawn at 44 the head's first line is 44 and the title takes the difference above it. A top-level head in the
+  shell's `main` hangs a last ghost control with `edge="end"` on the page's line; in a `Card` it does not hang. The shell's `main` keeps its `space-6`
+  above and `space-16` below; nothing adds them twice. `AppPageHead` (the page's own head: its `h1`, its facts wrapping, its actions) is `space-8`
+  above the page from 720 and `space-6` under 720. `Cluster` is a wrapping row of controls, `space-2` apart. Status: decided by the council decider under DECISIONS 385 (a handoff; cimip-gaps-3 T5); the implementation not yet reviewed.
+- **A long page title on a phone** (`AppHeader phoneTitle="page"`). The bar never grows and never takes two lines. Under 720 the bar's `h1` and facts
+  are not drawn (it keeps its 56px and its actions) and the title is the page's: an `AppPageHead phoneOnly` the app puts first in the shell's `main`,
+  with the same title and facts, so the `h1` is inside the landmark, after the banner, where the skip link lands. The bar, `space-4`, the title and
+  facts, `space-6`, the page. Once the page's title has passed under the bar's real bottom edge the bar echoes it (the bar title's drawing, one line,
+  cut, hidden from assistive technology), fading in over `duration-fast` (opacity only, the same under reduced motion); with no script it stays
+  hidden. Both headings are in the markup and the stylesheet shows one, so one `h1` is exposed at every width with no change at hydration;
+  `shownHeading` gives `useRouteFocus` the one shown, and focus follows across 720. `title` is optional: without it the page gives its own `h1` with
+  `AppPageHead`. Status: decided by the council decider under DECISIONS 385 (a handoff; cimip-gaps-3 T5); the implementation not yet reviewed.
+- **The rail at every width** (`rail`): from 720 the 72px rail, never the sidebar, with everything the 720 to 1023 rail does; under 720 the tab bar.
+  Capped, the default cap is `size-rail-width` plus `size-page-width` (1224px); an app's own `--basalt-shell-width` wins. The skip link starts 14px
+  in from the shell's start. There is no collapse toggle. Status: decided by the council decider under DECISIONS 385 (a handoff; cimip-gaps-3 T5); the implementation not yet reviewed.
+- **A banner** (`banner`): a `ConnectionBar`, a direct child of the content column after the header and before `main`. See
+  [Logs, status and forms](#logs-status-and-forms).
+- **The lockup and a shared note** (`AppBrand`, `AppFootnote`, `footnote`). `AppBrand` is the mark in a square seat (36 with a second line, 32
+  without; Basalt draws no box, fill or rim round it), `space-2-5`, then the name at 14/20 and 600 over a second line at 12/16 in secondary (never
+  tertiary: it also sits on the smoked site bar), each one line, cut; the link's whole name is `brandLabel`. In the rail only the mark is drawn, at
+  32. The brand's 32px lockup in a header takes a minimum height of 32, so it draws as before. `AppFootnote` sits in the sidebar under the account
+  items and above the version, on the nav glyphs' start edge, a divider on top with `space-3` above and below it: a first line at 12/16 in
+  secondary, a `detail` at 12/16 in tertiary (secondary under more contrast), a ghost `sm` action at the end; in the rail its `railTrigger` alone (the
+  app's ghost `IconButton` opening its own `Popover`), centred above the version; under 720 a row of More's sheet. Status: decided by the council decider under DECISIONS 385 (a handoff; cimip-gaps-3 T5); the implementation not yet reviewed.
 - **Safe areas:** the page's viewport meta needs `viewport-fit=cover` for `env(safe-area-inset-*)` to work; without it the insets
   read 0 on a phone. (The HTML skill's compose writes `viewport-fit=cover` into the page's viewport meta whenever the page uses a module that needs the insets, such as the phone tab bar.)
 
@@ -1610,6 +1656,9 @@ only what overflows it, and the document still scrolls the page.
   reader, and the words say so ("3 unread, 1 for you"). It is separate from `current`: the filled glyph still means the current page.
 - **More than five destinations:** four, then More, a button that opens the bottom `Sheet` with the rest as `Nav` rows. More takes the
   current look while one of its pages is current, and its name says which.
+- **More's other rows** (cimip-gaps-3 T5). `TabBarMore before`: rows that are not destinations (the "Pause animations" Button), under the sheet's
+  title and above the `Nav`, a divider under them, each full width and 44 tall on the rows' inset, outside the `nav` landmark; a press on one leaves
+  the sheet open. The shell's `footnote` is a row above the version row: the same lines, at least 44 tall, the action at the end. Status: decided by the council decider under DECISIONS 385 (a handoff; cimip-gaps-3 T5); the implementation not yet reviewed.
 
 ### The keyboard and what is pinned
 
@@ -1627,7 +1676,8 @@ cimip-gaps-2 batch B5); not yet reviewed. Found by CIMIP and CoachStakk.
   keyboard covers, the field that raised it is brought out from under what is pinned, and a page scrolled to its end stays at its end. Popups
   anchored to a field (a select, a combobox, a menu) are Base UI's, whose placement reads the visual viewport: they flip or shrink above the keyboard.
   A page with `interactive-widget=resizes-content` never has one (the window itself shrinks). Nothing is written while no keyboard is up.
-- **Measured pinned sizes.** `--basalt-sticky-offset` and `--basalt-bottom-offset` are fixed values. A page that pins more (a strip under the bar,
+- **Measured pinned sizes.** `--basalt-sticky-offset` and `--basalt-bottom-offset` are fixed values. (The top of what sticks under the bar is
+  `--basalt-sticky-top`, below.) A page that pins more (a strip under the bar,
   a list's band from 720, a foot) opts into the measured form (`usePinnedEdges`; `AppShell` does when it has a foot): every element marked
   `data-pinned-edge="top"` or `"bottom"` that is sticky or fixed and drawn now is counted, and the root carries `data-pinned-measured`,
   `--basalt-pinned-top` and `--basalt-pinned-bottom`. They take the fixed values' place in the root's scroll padding (plus `space-4`, as before), so a
@@ -1644,6 +1694,26 @@ cimip-gaps-2 batch B5); not yet reviewed. Found by CIMIP and CoachStakk.
   hidden above what is seen, and how much of it is still seen, and is padded by them. Its share is written again when the page or any
   scroller scrolls, and when a scroll owner mounts or changes size while the keyboard is up. Custom properties inherit, so a part inside a scroll owner
   (a sticky foot, a band) reads that owner's values and needs no other source.
+- **Where things stick under the bar** (cimip-gaps-3 T5). `--basalt-sticky-offset` stays the bar's own height: the header and the sidebar's brand
+  band read it for theirs, so it is never zeroed or grown. `--basalt-banner-height` is written on the root by a `ConnectionBar` while it is drawn and
+  sticky, and `--basalt-sticky-top` (the offset plus the banner) is the `top` of anything that sticks under the bar: a list's band and its sentinel's
+  scroll margin, Back to top's dock, a pane's top and height, the foot's cap, the skip link's fallback and the unmeasured scroll padding. A rule that
+  re-declares the offset for a scroller re-declares this with it. Apps use it for their own strips under the bar. Both are derived, not tokens. Status: decided by the council decider under DECISIONS 385 (a handoff; cimip-gaps-3 T5); the implementation not yet reviewed.
+- **A short window** (cimip-gaps-3 T5; `size-breakpoint-short`, 480, a window's height). Under 480 CSS px of height **nothing is pinned to the window's
+  top or bottom**: a 56px bar, a 56px tab bar and one 44px foot row would be more than a third of the window (a phone held sideways, 320 by 225). The
+  header (`AppHeader`, `SiteHeader`, keeping its fill and height; one with `phase` stays in its slot), a page's own `.basalt-sticky-bar`, a
+  `ConnectionBar`, a list's band, the foot (no cap: it ends the column), the tab bar (in the flow at the end of the shell, still in the landmark
+  tree) and the status bar (its message band in the flow above it) all scroll with the page. `--basalt-sticky-top` and `--basalt-bottom-offset` are
+  0, so the scroll padding is `space-4` at both ends; the offset itself is untouched. The sidebar, the rail and a pane stay beside the page. The skip
+  link hangs under the bar while the bar is in view and `space-2` from the window's top otherwise; phone toasts hang `space-4` from the top once the
+  bar has gone. The rules win in every state (a keyboard, a foot, a banner, a phase) by specificity. An app that pins a bar of its own with its own
+  unlayered rule follows the same query. Status: decided by the council decider under DECISIONS 385 (a handoff; cimip-gaps-3 T5); the implementation not yet reviewed.
+- **A status bar outside the shell** (`StatusBar pinned`, cimip-gaps-3 T5). From 720 it sticks to the bottom of its column (`bottom: 0`), so it spans
+  exactly that column and never crosses a rail or a sidebar: still 44, solid, its divider on top, the bottom safe area as padding. **Its column must
+  reach the bottom:** the bar's parent is a flex column at least as tall as what scrolls it, the page above the bar growing (`flex: 1 0 auto`);
+  `SitePage` is one. What it covers is measured on the box it sticks in, never written on the root. In `AppShell`'s `foot` a status bar that is the
+  foot's only child sits flush (the foot drops its padding and its divider) and is counted once. Under 720 the fixed phone form, and one foot. From
+  720 a pinned bar is not drawn while an on-screen keyboard is up. Status: decided by the council decider under DECISIONS 385 (a handoff; cimip-gaps-3 T5); the implementation not yet reviewed.
 - **The foot** (`AppShell`'s `foot`) holds still: the content column is at least the window's height and the page takes the room between, so on a
   short page the foot rests at the window's bottom and on a long page it sticks in the same place. Under 720 it sits on the tab bar, and on the
   keyboard while one is up; at the page's end the page's last line is above it, never under it. It is a band, not a box: solid `surface-page` with a
@@ -1652,8 +1722,18 @@ cimip-gaps-2 batch B5); not yet reviewed. Found by CIMIP and CoachStakk.
   and a tray in it gives way first.
 - **The tray** (`Tray`, `TrayRow`) is the rows that wait on the reader (someone asking to join, a change to approve, a reply that is due), docked
   where they work: above a field in a foot, or at a page's head. From 720 it is one level-1 panel (the rim, radius 12), a row each on a divider:
-  a mark at the start (a pending `Badge`, an avatar), the words (14/20, primary; they wrap and are never cut) and the row's `sm` actions at the end,
-  on the first line's baseline, at least 40 tall (44 on touch and under 720). Under 720 the rows that wait are one band, the panel's whole width: a
+  a mark at the start (a pending `Badge`, an avatar), the words (13/18, `text-sm`, primary; they wrap and are never cut) and the row's `sm` actions at
+  the end, at least 40 tall (44 on touch and under 720). The parts share one first-line box (cimip-gaps-3 T5): the words' own line in a row without
+  actions, and the height its `sm` controls are drawn at in a row with them (28, 24 compact, 44 where Basalt draws them at 44); the words take the
+  difference at the top only, the actions centre in it and the mark is that tall and hangs evenly past it, so a glyph, a badge, a 24 avatar, the first
+  line and the buttons share one centre line, and a mark never makes a wrapped row taller. Rows that report (`stay`) stand above the rows that wait,
+  and inside each kind the app's order holds (Basalt never sorts by time or name); under 720 the reports are above the band. **Rows hold still under a
+  pointer:** while a mouse or a pen is over the tray (its panel, or the sheet's rows) no drawn row moves on screen and the row under the pointer is
+  never replaced: a row that leaves keeps its seat (an empty box of its measured height, inert, its dividers kept) unless no live row remains; a row
+  that arrives is drawn where it belongs if that moves no drawn row, else at whichever end moves none, else it waits; measured on every change, never
+  assumed from where the tray is docked. When the pointer leaves (or the window, or the page is hidden) seats close and every row takes its place,
+  at once. Rows are never remounted; keyboard and touch hold nothing. `label` may be a function of what the tray holds (`{ waiting, reporting }`), and
+  `sheetLabel` names the phone's sheet. Under 720 the rows that wait are one band, the panel's whole width: a
   button (`aria-haspopup="dialog"`) that says how many in the app's words at 500 and "Show" in secondary, with the hover wash and the flush −2 ring,
   which opens them in a bottom sheet titled with the tray's name; a row that only reports (work under way, a connection) stays a row of the tray.
   Focus is never lost to a row that leaves: the row now at its place takes it (or the one before); after the last the sheet closes by itself and
@@ -2423,6 +2503,8 @@ because no whole set had two of three votes; the owner is asked to look at them 
 | `size-breakpoint-container-sm` | 340px | A component's own width: from it up to `size-breakpoint-container` a two-line `Button`'s note shares the label's line |
 | `size-breakpoint-container` | 480px | A component's own width: a description list stacks and a chart goes narrow |
 | `size-breakpoint-container-lg` | 640px | A component's own width: under it the 56px tabs step to 48, stacked panels turn off and the period stepper takes its own row |
+| `size-breakpoint-short` | 480px | A window's height (cimip-gaps-3 T5): under it nothing is pinned to the window's top or bottom. `breakpoint.short` |
+| `size-sheet-width-wide` | 720px | A wide side sheet (cimip-gaps-3 T5): the large container breakpoint plus the body's two `space-5`, with room for a classic scrollbar |
 | `size-description-label` | 160px | The description list's label column |
 | `size-list-width` | 320px | The list column of a list with a preview pane; the pane is pushed instead below this + `space-4` + `size-breakpoint-container` (816px) |
 
@@ -2458,6 +2540,15 @@ because no whole set had two of three votes; the owner is asked to look at them 
   the compact size class is the phone, and measures are `@ScaledMetric` so a prose column grows with Dynamic Type.
 - **The HTML skill's build** substitutes these values instead of hand-writing 720 (DECISIONS 91, batch 7): its sources write `%bp-md%`,
   `%bp-lg%` and `%bp-container%` in range syntax, and the build reads them from the generated tokens.
+
+### App pages and a page before the app
+
+`AppPage` is the `main` of an app page under a `SiteHeader` (no shell): the page row with the shell main's block padding, `space-6` above and
+`space-16` below. `MessagePage` is one message on the page's surface when there is no app to show (signed out, no access, maintenance, a link that
+expired), never a loading screen (that is `PageWait`): the page's one `main`, at least `100svh`, a block of the prose width centred both ways by auto
+margins that fall to 0 when it is taller than the window, so its top is never cut; its lines start on its start edge, with no panel, rim, header, tab
+bar or smoke. A brand (`space-6` under it), the `h1` at 18/26, a description at 14/20 in secondary (`space-2` under the title), what the app adds
+(`space-4` above), then a `Cluster` of actions (`space-6` above). `Cluster` is layout only. Status: decided by the council decider under DECISIONS 385 (a handoff; cimip-gaps-3 T5); the implementation not yet reviewed.
 
 ### The page: the row, the sections and the columns
 
@@ -3248,6 +3339,21 @@ at it, as a `Terminal` does, and says what must be heard through `StatusLine`. B
   (a paragraph, a list, a quote, a disclosure row) stand `space-2` apart. The avatar is decoration (the name beside it is read). **Consecutive messages join** when
   the app says so (`joined`: the author, the minutes between and an edit are the app's rules, never a number in Basalt): no avatar and no head are
   drawn, and the name and time are said before the words. A new author starts `space-4` below the last entry, a joined message `space-1`.
+- **A quiet action and the time as the entry's link** (`quietActions`, `timeHref`, cimip-gaps-3 T5). `actions` are always drawn: **an action the
+  reader must not miss belongs there**, never only in `quietActions`. `quietActions` are one or two ghost `xs` (24) icon controls (more go in one menu),
+  the same nodes for a headed and a joined message. With a fine pointer from 720 they are at the head's end before `actions`, centred on the 20px line
+  (they add no height); at rest they are unseen but in the tab order and take no pointer, and they show while the message is hovered, holds focus or
+  holds an open popup (in at once, out over `duration-fast`; the same under reduced motion; always shown in forced colours). A message that draws no
+  head carries its time link and quiet actions in **a seat**: a float at the end of its words' first line, the line's height, `space-2` before it,
+  so the first line wraps short of it and it adds no height; it follows what is drawn, so a joined message that has arrived uses its head. A first
+  child that is a block (a quote, a card, a code block) clears the seat's line and costs 20px above it, so such a message carries these on a head
+  instead (a development warning says so). **Everywhere else** (touch, and under 720) the inline controls are not drawn and the message draws one
+  **More** control (an ellipsis at 16 in secondary, no plate at rest, `aria-haspopup="dialog"`) that opens them in a popover at 44, its opener's level
+  plus one; Esc and a press outside close it and focus returns to More. **Targets, a recorded exception to the 44px rule (DECISIONS 393):** More and
+  the time link are at least 44 wide and keep their line; their hit box is the line plus `space-3` above it in a head (32 tall) and the line plus
+  `space-1` above it in a joined entry (24 tall), never below the line, never over words or another hit box, never under WCAG 2.5.8's 24 by 24.
+  `timeHref` makes the time a link to the entry, named "Message from {author}, {time}": tertiary at rest, primary with the link's underline on hover and
+  focus with a pointer, underlined at rest on touch. A joined entry's hidden "author, time" prefix drops the time while the seat draws it. Status: decided by the council decider under DECISIONS 385 (a handoff; cimip-gaps-3 T5); the implementation not yet reviewed.
 - **A note** (`StreamNote`, "Lee joined", "Status set to Open") is a quieter row: a sentence at `text-sm` in secondary in the text column, its time
   after it, and an optional icon at 16 centred in the gutter. Two notes stand `space-2` apart. A day is `EventLogRule`.
 - **The other side of an exchange** (`StreamQuote`: what a person said to an assistant or a bot, the message a reply answers) is a fill one step from
@@ -3667,6 +3773,16 @@ implementation hasn't been reviewed by the panel). Candidates D14a, D14b, D15, X
   Its `time`'s `datetime` is the instant in UTC ("2026-11-24T21:55:17.000Z"), the drawn clock the zone's; `timeZoneName` writes the zone's name inside the
   `time`, after a no-break space ("github 18:52:07 CST"), so it is in the stamp's accessible name.
   **Waiting and unreachable** (`SourceStateWords`): words only, both sentences in one `Reserve` cell, the failure said once through `StatusLine`, "Ask again" a `TextButton`.
+- **The connection bar** (`ConnectionBar`, cimip-gaps-3 T5): a band stuck under the header that says the app's connection is not up; nothing is
+  drawn while it is up. In `AppShell` it is `banner`; without a shell it goes directly after the page's bar (`contained` puts its row on the page
+  row). It sticks under the bar, writes `--basalt-banner-height` while drawn, and **takes room in the flow**: the page moves by its height once when
+  it comes and once when it goes, and nothing animates height (it fades in over `duration-base` and out at 0.75, the same under reduced motion).
+  Level 1, a divider under it, no blur, no coloured edge; at least 40 (44 on touch and under 720); a 16px mark, the state's word at 13/18 and 500,
+  then `since` and `detail` in secondary, a ghost `sm` action at the end. "Reconnecting" (braille) waits 1000ms after a connection that was up
+  (DECISIONS 249b, rule 2), so an outage under a second draws and says nothing; "Offline" (`Warning`) and "Disconnected" (`XCircle`, danger ink,
+  said assertively) are drawn at once; back up while drawn, "Back online" (`CheckCircle`) for 5000ms, held while the pointer or focus is on it.
+  Any newer status cancels every pending timer. The bar is the one owner of what is said, each drawn state once. Basalt ships no sentence about
+  unsent work. In the flow in a short window; not drawn in print. Status: decided by the council decider under DECISIONS 385 (a handoff; cimip-gaps-3 T5); the implementation not yet reviewed.
 - **The status bar** (`StatusBar`; V7, R6, R7). A 44px foot from 720, fixed under it (56 plus the safe area). A message the app has also logged goes after 5000ms; any other stays until
   replaced or cleared with Esc. An error carries XCircle in a 16px seat and danger ink and is said through an assertive region that is in the page before the text. The slot reserves its
   line. **A page has one foot**: the status bar and a phone tab bar do not share it; a product that needs both is a later vote.

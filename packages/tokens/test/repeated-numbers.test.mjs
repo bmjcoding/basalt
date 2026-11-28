@@ -22,7 +22,7 @@ test("the breakpoint export is every size-breakpoint token, in pixels", () => {
   const tokens = Object.keys(json.primitives).filter((name) => name.startsWith("size-breakpoint-")).map((name) => name.slice("size-breakpoint-".length));
   assert.deepEqual(Object.keys(breakpoint).sort(), tokens.map(camel).sort(), "a breakpoint token is missing from the export, or the export has one the tokens do not");
   for (const name of tokens) assert.equal(breakpoint[camel(name)], px(`size-breakpoint-${name}`), `breakpoint.${camel(name)} is not size-breakpoint-${name}`);
-  assert.deepEqual(breakpoint, { md: 720, lg: 1024, container: 480, containerSm: 340, containerLg: 640 }, "a value moved");
+  assert.deepEqual(breakpoint, { md: 720, lg: 1024, container: 480, containerSm: 340, containerLg: 640, short: 480 }, "a value moved");
 });
 
 test("the duration export is every duration token with a name, in milliseconds", () => {
