@@ -4,6 +4,7 @@ import { DotSep } from "./dot-sep";
 import { formatReleaseDate } from "./release-date";
 import { join } from "./utils";
 import { RailTooltipContext, VersionPlaceContext } from "./version-place";
+import type { VersionPlace } from "./version-place";
 
 // The version with its ship date, as one link to the release notes at that version (DECISIONS 320, 1.2): "Version 1.4.0 · Nov 23, 2026". It
 // shows the version this session runs. It is the only way to the release notes (there is no "What's new" item), and nothing marks a release as
@@ -14,6 +15,9 @@ import { RailTooltipContext, VersionPlaceContext } from "./version-place";
 // Its place decides its form, set by the part that holds it: at the sidebar's foot under the account items; in the rail (720 to 1023) the
 // number alone, centred, the label and the date in its name and its tooltip; the last row of More's sheet on a phone, at 13/18; after the legal
 // line in a site's footer, at 13/18, labelled with the product. An app whose tab bar has no More draws it on its account or settings page.
+// Outside those parts (an app's own sidebar or rail, G160) `place` names the form. The rail's tooltip is whatever `RailTooltipContext` hands down (AppShell
+// hands its own, loaded on demand; an app's own rail gives Basalt's `Tooltip`); without one the number stands alone, with its whole line in its name.
+// The link never loads a tooltip itself, so a link in a footer or on an account page loads none.
 
 export interface VersionLinkProps extends Omit<React.ComponentProps<"a">, "children"> {
   /** SemVer without build metadata: "1.4.0", "2.0.0-rc.2". */
@@ -30,6 +34,13 @@ export interface VersionLinkProps extends Omit<React.ComponentProps<"a">, "child
   current?: boolean;
   /** Default "en-US". */
   locale?: string;
+  /**
+   * Where it is drawn, which decides its form: `"foot"` (a sidebar's foot), `"rail"` (the number alone, centred, the label and the date in its name and
+   * a tooltip to the right), `"more"` (the last row of More's sheet) or `"footer"` (a site's footer). Default: the place the part that holds it sets
+   * (`AppShell`, `TabBarMore`, `SiteFooter`), and the plain line anywhere else. Give it in an app's own sidebar or rail; it wins over the part's. In an
+   * app's own rail, hand the tooltip down too: `<RailTooltipContext.Provider value={Tooltip}>` (without one the number stands alone, its whole line in its name).
+   */
+  place?: VersionPlace;
 }
 
 /** The number, with a pre-release's hyphen kept with what follows it, so where the line is short it breaks before the hyphen. */
@@ -40,8 +51,9 @@ function VersionNumber({ version }: { version: string }) {
 }
 
 /** The version with its ship date, one link to the release notes at that version. See the module note. */
-export function VersionLink({ version, date, href, label = "Version", destinationLabel = "release notes", current = false, locale = "en-US", className, ...props }: VersionLinkProps) {
-  const place = React.useContext(VersionPlaceContext);
+export function VersionLink({ version, date, href, label = "Version", destinationLabel = "release notes", current = false, locale = "en-US", place: placeProp, className, ...props }: VersionLinkProps) {
+  const held = React.useContext(VersionPlaceContext);
+  const place = placeProp ?? held;
   const day = formatReleaseDate(date, locale);
   const rail = place === "rail";
   const RailTooltip = React.useContext(RailTooltipContext);

@@ -354,7 +354,8 @@
   .basalt-button[data-loading] > .basalt-button-lines,
   .basalt-button[data-loading] > .basalt-button-amount,
   .basalt-button[data-loading] > .basalt-button-count,
-  .basalt-button[data-loading] > .basalt-button-swap { opacity: 0; }
+  .basalt-button[data-loading] > .basalt-button-swap,
+  .basalt-button[data-loading] > .basalt-button-node { opacity: 0; }
   .basalt-button-spinner { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 
   /* The amount (DECISIONS 154, A8): after the label, in tabular figures and the label's own weight, in a seat as wide as the widest amount the app
@@ -416,6 +417,8 @@
 
   /* The done state (DECISIONS 154, D11c): rest and done glyphs share one cell of the glyph's size and swap by opacity over duration-fast. The swap is
      a glyph change, so it keeps its 100ms crossfade with or without reduced motion (DECISIONS 138, C10). No fill, no plate: the glyph is the cue. */
+  /* IconButton's node in the glyph's place (G161): drawn at its own size, centred in the square as a glyph is. */
+  .basalt-button-node { display: inline-flex; flex: none; align-items: center; justify-content: center; }
   .basalt-button-swap { display: grid; }
   .basalt-button-swap > .basalt-icon { grid-area: 1 / 1; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
   .basalt-button-swap > .basalt-icon:nth-child(2),
@@ -8542,8 +8545,16 @@
     .basalt-list-band-size { margin-inline-start: auto; }
     /* At one page or none (cimip-gaps-3 T3, 9) the pager is not drawn (no hidden arrows holding 44px seats): the band's own range starts the row, on the gutter, and the page
        size ends it, on one row. With onePage="size" the page size is alone. */
-    .basalt-list-band[data-whole] .basalt-list-band-row > .basalt-pagination { display: none; }
+    .basalt-list-band[data-whole]:not([data-hold]) .basalt-list-band-row > .basalt-pagination { display: none; }
     .basalt-list-band[data-whole]:not([data-one-page="size"]) .basalt-list-band-row > .basalt-list-band-range { display: block; }
+    /* A held seat (G144: keepFootRoom, or a total not known yet): the pager stays in the row, unseen (and inert), so the row wraps where it will with a second page; the range
+       is a box of no width at the row's start whose words overflow it onto the seat, and the pager takes back the gap after it, so the seat starts on the gutter. */
+    .basalt-list-band[data-whole][data-hold] .basalt-list-band-row > .basalt-pagination { visibility: hidden; }
+    .basalt-list-band[data-whole][data-hold]:not([data-one-page="size"]) .basalt-list-band-row > .basalt-list-band-range { flex: none; inline-size: 0; min-inline-size: 0; }
+    .basalt-list-band[data-whole][data-hold]:not([data-one-page="size"]) .basalt-list-band-row > .basalt-pagination { margin-inline-start: calc(-1 * var(--basalt-space-2)); }
+    /* A reader's paragraph spacing (WCAG 1.4.12, `p { margin-bottom: 2em !important }`) would make the held range's one line taller than the row and grow the
+       band; a layered !important wins over an unlayered one, so its block margin stays 0 and the held band keeps the height it has with more pages. */
+    .basalt-list-band[data-whole][data-hold] .basalt-list-band-row > .basalt-list-band-range { margin-block: 0 !important; }
   }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) {
@@ -8556,8 +8567,13 @@
       .basalt-list-band-row > .basalt-pagination .basalt-pagination-summary { display: inline-block; }
       /* At one page or none (cimip-gaps-3 T3, 9) the pager is not drawn (no hidden arrows holding 44px seats): the band's own range starts the row, on the gutter, and the page
          size ends it, on one row. With onePage="size" the page size is alone. */
-      .basalt-list-band[data-whole] .basalt-list-band-row > .basalt-pagination { display: none; }
+      .basalt-list-band[data-whole]:not([data-hold]) .basalt-list-band-row > .basalt-pagination { display: none; }
       .basalt-list-band[data-whole]:not([data-one-page="size"]) .basalt-list-band-row > .basalt-list-band-range { display: block; }
+      /* A held seat (G144), as above. */
+      .basalt-list-band[data-whole][data-hold] .basalt-list-band-row > .basalt-pagination { visibility: hidden; }
+      .basalt-list-band[data-whole][data-hold]:not([data-one-page="size"]) .basalt-list-band-row > .basalt-list-band-range { flex: none; inline-size: 0; min-inline-size: 0; }
+      .basalt-list-band[data-whole][data-hold]:not([data-one-page="size"]) .basalt-list-band-row > .basalt-pagination { margin-inline-start: calc(-1 * var(--basalt-space-2)); }
+      .basalt-list-band[data-whole][data-hold] .basalt-list-band-row > .basalt-list-band-range { margin-block: 0 !important; }
     }
   }
   /* onePage="size" in the wide form: the range and the pager keep their seats, unseen, and the page size stays where it is. */
