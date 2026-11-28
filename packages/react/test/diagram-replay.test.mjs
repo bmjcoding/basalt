@@ -423,14 +423,25 @@ describe("6. focus when a motion button leaves (the decider's answer 2)", () => 
   });
 
   test("Pause animations focused, then the layout narrowed to no lines: focus is on the control before it that stays", async () => {
+    // No shipped looping fixture loses its lines at 390 (the third render run's probe: the kit, the CIMIP architecture with its pulse or a packet, the data
+    // flow and a two-card figure all stack with their lines). This fan is built to: drawn at 1440 (the hub in the middle, one or two lines a side), and at
+    // 390 its five lines from the hub each skip the next card, so the stack would need a fifth end lane, and a stack that would is drawn with no lines (bare).
+    const fan = `{ type: "architecture", title: "A fan", summary: "One hub calls six parts.", legend: { plain: "Call" }, motion: "animated", replay: true,
+      nodes: [{ id: "a", kind: "hub", name: "Hub", col: 2, row: 2 }, { id: "b", kind: "part", name: "East", col: 3, row: 2 }, { id: "c", kind: "part", name: "West", col: 1, row: 2 },
+        { id: "d", kind: "part", name: "North", col: 2, row: 1 }, { id: "e", kind: "part", name: "South", col: 2, row: 3 }, { id: "f", kind: "part", name: "North east", col: 3, row: 1 },
+        { id: "g", kind: "part", name: "South west", col: 1, row: 3 }],
+      edges: [{ from: "a", to: "b", label: "stream", flow: true }, { from: "a", to: "c" }, { from: "a", to: "d" }, { from: "a", to: "e" }, { from: "a", to: "f" }, { from: "a", to: "g" }] }`;
     const { page } = await replayPage();
-    await draw(page, [{ key: "kit", spec: `S.kit({ replay: true })` }]);
-    await atRest(page, "kit");
-    await page.focus(`#fig-kit .${P}-pause`);
+    await draw(page, [{ key: "fan", spec: fan }]);
+    await atRest(page, "fan");
+    assert.equal(await page.evaluate(() => document.getElementById("fig-fan").dataset.layout), "drawn", "the fan is drawn at 1440");
+    await page.waitForSelector(`#fig-fan .${P}-pause`);
+    await page.focus(`#fig-fan .${P}-pause`);
     await page.setViewportSize({ width: 390, height: 900 });
     await frames(page, 8);
-    const lines = await page.locator(`#fig-kit .${P}-edge`).count();
-    if (lines) assert.fail("the kit keeps lines at 390: this test needs a figure that draws none when narrowed");
+    assert.equal(await page.locator(`#fig-fan .${P}-edge`).count(), 0, "the narrowed fan draws no lines (a bare stack)");
+    assert.ok(await page.evaluate(() => document.getElementById("fig-fan").hasAttribute("data-bare")));
+    assert.equal(await page.locator(`#fig-fan :is(.${P}-replay, .${P}-pause)`).count(), 0, "both left");
     assert.match(await focused(page), new RegExp(`${P}-expand`));
     await page.close();
   });
