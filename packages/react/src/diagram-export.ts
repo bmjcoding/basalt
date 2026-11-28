@@ -107,8 +107,9 @@ function svgOf(el: SVGSVGElement, origin: DOMRect, out: string[]) {
     const d = dst[k] as Element;
     for (const p of ["fill", "stroke", "stroke-width", "stroke-dasharray", "stroke-linecap", "stroke-linejoin", "opacity"]) d.setAttribute(p, cs.getPropertyValue(p));
     d.removeAttribute("class");
-    // An entrance's reveal is its own mask: a file is at rest, every line whole.
-    if (/-reveal-/.test(d.getAttribute("mask") ?? "")) d.removeAttribute("mask");
+    // An entrance's reveal is its own mask: a file is at rest, every line whole. Found by the suffix the motion module writes after the base
+    // (`<base>-reveal-<line>`, diagram-motion-core), never by "-reveal-" anywhere: a figure's id may hold it, and its crossing masks stay.
+    if (/-reveal-\d+\)$/.test(d.getAttribute("mask") ?? "")) d.removeAttribute("mask");
     if (stretched && k > 0) d.setAttribute("vector-effect", "non-scaling-stroke");
     if (cs.display === "none") d.setAttribute("display", "none");
   });

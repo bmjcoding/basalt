@@ -1,0 +1,7 @@
+/* Point 5: in basalt-lint only the reasoned, rule-specific next-line form excuses anything. */
+/* basalt-lint-disable */
+.app-a { color: #000; }
+/* basalt-lint-enable */
+.app-b { color: #111; } /* basalt-lint-disable-line color-no-hex -- not this form */
+/* basalt-lint-disable-next-line -- names no rule */
+.app-c { color: #222; }

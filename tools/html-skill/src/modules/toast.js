@@ -271,24 +271,59 @@
     if (!t.o.running) announce(t.o, t.count > 1 ? ', ' + t.count + ' times' : '');
   }
 
-  /** Swiping a toast to the right dismisses it; a short pull springs back. */
+  /**
+   * A swipe dismisses a toast, as React's Base UI swipe does: down or right from 720, up or right under 720 (toward the edge the stack hangs from).
+   * The first move picks the axis; a drag of more than 40px along it, in a direction that dismisses, dismisses it by distance alone. A shorter one, a
+   * change of mind (10px back) or a cancelled pointer springs it back; a pull the other way is damped (its square root). A press on a button, link or
+   * field is not a swipe. The gesture never moves focus: a focused toast keeps it throughout, and a spring back leaves it there.
+   */
+  var SWIPE = 40;
   function swipe(t) {
-    var x0 = null;
-    t.el.addEventListener('pointerdown', function (e) { t.keyboard = false; if (e.pointerType !== 'mouse' || e.button === 0) if (!e.target.closest('button')) x0 = e.clientX; });
-    t.el.addEventListener('pointermove', function (e) {
-      if (x0 === null) return;
-      var dx = Math.max(0, e.clientX - x0);
-      if (dx > 4) { t.el.setAttribute('data-swiping', ''); t.el.style.setProperty('--toast-swipe-movement-x', dx + 'px'); }
-    });
-    var end = function (e) {
-      if (x0 === null) return;
-      var dx = Math.max(0, e.clientX - x0);
-      x0 = null;
-      t.el.removeAttribute('data-swiping');
-      if (dx > 60) { t.el.setAttribute('data-swipe-direction', 'right'); dismiss(t.id); } else t.el.style.removeProperty('--toast-swipe-movement-x');
+    var g = null; // the gesture: pointer id, v (-1 up, 1 down), start, change-of-mind baseline, axis, intent, most, cancelled, written x and y
+    var el = t.el;
+    var put = function (x, y) {
+      var st = el.style, n = '--toast-swipe-movement-';
+      if (x == null) { st.removeProperty(n + 'x'); st.removeProperty(n + 'y'); } else { st.setProperty(n + 'x', x + 'px'); st.setProperty(n + 'y', y + 'px'); }
     };
-    t.el.addEventListener('pointerup', end);
-    t.el.addEventListener('pointercancel', end);
+    var end = function (e) {
+      if (!g || e.pointerId !== g.id) return;
+      var d = g;
+      g = null;
+      el.removeAttribute('data-swiping');
+      var dir = e.type === 'pointercancel' || d.no ? '' : d.x > SWIPE ? 'right' : d.v * d.y > SWIPE ? (d.v < 0 ? 'up' : 'down') : '';
+      if (dir) { el.setAttribute('data-swipe-direction', dir); dismiss(t.id); } else put();
+    };
+    el.addEventListener('pointerdown', function (e) {
+      t.keyboard = false;
+      if (e.button || t.leaving || e.target.closest('button,a,input,textarea,[role="button"]')) return;
+      g = { id: e.pointerId, v: matchMedia('(width < %bp-md%)').matches ? -1 : 1, b: [e.clientX, e.clientY], x: 0, y: 0 };
+      // Captured, so the pointer's up and cancel come here wherever it is let go.
+      el.setPointerCapture(e.pointerId);
+    });
+    el.addEventListener('pointermove', function (e) {
+      if (!g || e.pointerId !== g.id) return;
+      e.preventDefault(); // no text selection while dragging
+      var X = e.clientX, Y = e.clientY;
+      // The first move is the start: on iOS the press is reported late, and its distance is not the user's.
+      if (!g.s) g.s = [X, Y];
+      // The change-of-mind baseline follows the pointer back toward the start, on each axis.
+      if (e.movementX * (X - g.b[0]) < 0) g.b[0] = X;
+      if (e.movementY * (Y - g.b[1]) < 0) g.b[1] = Y;
+      var dx = X - g.s[0], dy = Y - g.s[1];
+      if (!g.ax && Math.hypot(dx, dy) >= 1) { g.ax = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'; el.setAttribute('data-swiping', ''); }
+      var along = function (a, b) { return g.ax === 'x' ? a : g.v * b; };
+      if (!g.ax) return;
+      if (!g.in) { if (along(dx, dy) > 0) { g.in = 1; g.most = along(dx, dy); } }
+      else { var now = along(X - g.b[0], Y - g.b[1]); if (now > SWIPE) g.no = false; else if (g.most - now >= 10) g.no = true; }
+      var damp = function (n) { return n < 0 ? -Math.sqrt(-n) : Math.sqrt(n); };
+      g.x = g.ax === 'x' ? (dx > 0 ? dx : damp(dx)) : 0;
+      g.y = g.ax === 'y' ? (g.v * dy > 0 ? dy : damp(dy)) : 0;
+      put(g.x, g.y);
+    });
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+    // On iOS a pointermove's preventDefault does not stop the page scrolling under a drag; a touchmove's does.
+    el.addEventListener('touchmove', function (e) { if (g) e.preventDefault(); }, { passive: false });
   }
 
   function find(id) {

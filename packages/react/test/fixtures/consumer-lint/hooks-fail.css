@@ -1,0 +1,4 @@
+/* Point 1: a measurement Basalt writes is not an app's to set. */
+.app-head {
+  --basalt-viewport-top: var(--basalt-space-0);
+}
