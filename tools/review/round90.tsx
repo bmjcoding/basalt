@@ -82,7 +82,7 @@ function Frame({ page, height, title, press }: { page: string; height: number; t
   const loaded = React.useRef<() => void>(() => {});
   React.useEffect(() => {
     const host = window as unknown as { __BASALT_READY__?: Promise<void> };
-    host.__BASALT_READY__ = new Promise<void>((resolve) => { loaded.current = () => { let n = 4; const step = () => (--n ? requestAnimationFrame(step) : resolve()); requestAnimationFrame(step); }; });
+    host.__BASALT_READY__ = new Promise<void>((resolve) => { loaded.current = () => { let n = 4; window.scrollTo(0, 0); const step = () => (--n ? requestAnimationFrame(step) : (window.scrollTo(0, 0), resolve())); requestAnimationFrame(step); }; });
   }, [source]);
   return (
     // sink: a page this round's build wrote at review-build time from synthetic data (round90-pages.mjs); the frame runs its own small script
