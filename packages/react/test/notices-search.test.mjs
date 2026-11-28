@@ -280,12 +280,14 @@ for (const theme of ["dark", "light"]) {
       const input = page.locator(".basalt-search-box-input");
       assert.equal(await page.getByRole("search").count(), 1);
       assert.equal(await input.getAttribute("aria-label"), "Search the handbook");
-      const pad = await input.evaluate((el) => getComputedStyle(el).paddingInlineStart);
+      // The words start 34px in (cimip-gaps-3 t8): the input's own box starts there, with or without words.
+      const start = () => input.evaluate((el) => Math.round(el.getBoundingClientRect().left - el.closest("form").getBoundingClientRect().left));
+      assert.equal(await start(), 34);
       await page.getByRole("button", { name: "Clear search" }).click();
       assert.equal(await input.inputValue(), "");
       assert.equal(await page.evaluate(() => document.activeElement?.classList.contains("basalt-search-box-input")), true);
       assert.equal(await page.getByRole("button", { name: "Clear search" }).count(), 0, "no words, no clear button");
-      assert.equal(await input.evaluate((el) => getComputedStyle(el).paddingInlineStart), pad, "the clear seat is padding, kept");
+      assert.equal(await start(), 34, "the words' start never moves when the clear button goes");
       await input.fill("charger");
       await page.keyboard.press("Escape");
       assert.equal(await input.inputValue(), "");
@@ -300,9 +302,9 @@ for (const theme of ["dark", "light"]) {
         return found;
       });
       assert.deepEqual(hidden, ["none"]);
-      // The glyph sits inside the field's start.
+      // The glyph sits inside the field's start (the form draws the field since cimip-gaps-3 t8).
       const glyph = await box(page.locator(".basalt-search-box-glyph"));
-      const field = await box(input);
+      const field = await box(page.locator("form.basalt-search-box"));
       assert.ok(glyph.x - field.x >= 9.5 && glyph.x - field.x <= 10.5, `the glyph is 10px in (${glyph.x - field.x})`);
       await page.close();
     });
