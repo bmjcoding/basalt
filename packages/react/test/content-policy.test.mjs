@@ -381,6 +381,7 @@ describe("the skill's Download PNG under img-src 'self' (ruling 2)", () => {
       assert.ok(got.last, "the note is the last thing in the foot");
       assert.equal(got.disabled, "true");
       assert.equal(got.describedBy, got.noteId);
+      assert.equal(got.noteId, "bd-one_dg-export-note", "the note's id is built on its figure's base (G146), not a counter");
       assert.ok(got.focused, "the button keeps focus");
       assert.equal(got.live, REFUSED_WORDS, "spoken through the page's announcer");
       assert.deepEqual(got.saved, [], "no file");

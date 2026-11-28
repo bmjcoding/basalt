@@ -115,6 +115,16 @@ describe("the module in a page", () => {
     await p.waitForFunction(() => document.querySelector("#fig-send .diagram-packet") && getComputedStyle(document.querySelector("#fig-send .diagram-packet")).display !== "none", null, { polling: "raf", timeout: 3000 });
   });
 
+  test("a figure given a new id is drawn again on its new base, never sent to as it is (G146)", async () => {
+    const spec = { ...animated("dataFlow"), packet: { path: ["send", "append", "row", "hear", "see"], send: 1 } };
+    const { page: p } = await openHtml(browser, compose(page([figure(spec, "fig-send")])).html);
+    await p.evaluate((spec) => { const f = document.getElementById("fig-send"); f.id = "fig-moved"; window.Basalt.diagram(f, { ...spec, packet: { ...spec.packet, send: 2 } }); }, spec);
+    await p.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    const ids = await p.evaluate(() => { const f = document.getElementById("fig-moved"); return [f.getAttribute("aria-labelledby"), ...[...f.querySelectorAll("[id]")].map((el) => el.id)]; });
+    assert.equal(ids[0], "bd-fig-moved_dg-title");
+    assert.ok(ids.slice(1).every((id) => id.startsWith("bd-fig-moved_dg-")), ids.join(" "));
+  });
+
   test("a mark with one form is written once and drawn on every card, the focal card too, in both themes", async () => {
     // CodeRabbit has one form for both grounds; on the focal card it takes the other theme's form, which falls back to its one.
     const spec = { ...kit(), nodes: kit().nodes.map((n) => (n.id === "coderabbit" ? { ...n, focal: true } : n)), legend: { ...kit().legend, focal: "The review" } };
