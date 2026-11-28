@@ -2194,7 +2194,7 @@ function minimums(m: Model, tk: Tokens, measure: ReturnType<typeof ruler>) {
     }
     const pad = n.shape === "terminal" ? 2 * s("5") : 2 * s("3");
     // The first line (the kind, or the name on a card with no kind) keeps space-6 clear of a mark, except in forced colours, where none is drawn. It is
-    // a width, the same on either side: the stylesheet puts it on the mark's side in both directions (its end, or right to left its start, as the card is set).
+    // on the line's end side in both directions, where the mark is (its top end corner).
     // A participant's head centres its words, so its first line keeps space-6 clear on both sides (1.6).
     const seat = n.mark && !forced() ? (n.shape === "participant" ? 2 : 1) * s("6") : 0;
     let widest = 0;
