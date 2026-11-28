@@ -10,6 +10,8 @@
 //
 // What it cannot decide statically it leaves alone: a spread (`{...props}`, `style={{ ...base }}`'s spread part), a value computed at run time (measured
 // geometry stays allowed), a wrapper in another file that forwards `className` or `style`, and what the cascade does to a class at run time.
+import path from "node:path";
+
 import { classify, HOOKS, kebab } from "./appearance.mjs";
 import { applyDisables, readDisables } from "./disables.mjs";
 import { restyleHint, sizeProp } from "./hints.mjs";
@@ -53,10 +55,11 @@ export function lintSource(file, text, context) {
   for (const statement of parsed.program.body) {
     if (statement.type !== "ImportDeclaration" || statement.importKind === "type") continue;
     const source = statement.source.value;
-    if (context.sources.has(source)) {
+    if (context.sources.has(source) || isSourceFile(file, source, context)) {
       for (const s of statement.specifiers) {
         if (s.importKind === "type") continue;
-        if (s.type === "ImportSpecifier") locals.set(s.local.name, s.imported.name ?? s.imported.value);
+        // Only a name the installed Basalt exports: an app's barrel (`sources`) may export its own components beside Basalt's.
+        if (s.type === "ImportSpecifier" && has(s.imported.name ?? s.imported.value)) locals.set(s.local.name, s.imported.name ?? s.imported.value);
         else if (s.type === "ImportNamespaceSpecifier") namespaces.add(s.local.name);
       }
       continue;
@@ -85,7 +88,7 @@ export function lintSource(file, text, context) {
   /** The Basalt export a JSX name is, or null. */
   const componentOf = (name) => {
     if (name.type === "JSXIdentifier") return locals.get(name.name) ?? null;
-    if (name.type === "JSXMemberExpression" && name.object.type === "JSXIdentifier" && namespaces.has(name.object.name)) return name.property.name;
+    if (name.type === "JSXMemberExpression" && name.object.type === "JSXIdentifier" && namespaces.has(name.object.name) && has(name.property.name)) return name.property.name;
     return null;
   };
 
@@ -181,6 +184,14 @@ export function lintSource(file, text, context) {
 
   const disables = readDisables(parsed.comments, (offset) => position(offset).line);
   return applyDisables(findings, disables, new Set([...SOURCE_RULES, "basalt/disable"]));
+}
+
+/** Whether a relative import reaches one of the app's own modules listed in `sources` (`./ui/basalt.ts`), with or without its extension or `/index`. */
+function isSourceFile(file, specifier, context) {
+  if (!context.sourceFiles?.size || !/^\.{1,2}\//.test(specifier)) return false;
+  const target = path.resolve(context.cwd ?? process.cwd(), path.dirname(file), specifier);
+  const bare = (p) => p.replace(/\.[mc]?[jt]sx?$/, "").replace(/\/index$/, "");
+  return context.sourceFiles.has(bare(target));
 }
 
 function walk(node, visit) {

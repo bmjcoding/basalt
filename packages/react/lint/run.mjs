@@ -35,7 +35,10 @@ export async function basaltLint(options = {}) {
     const stylelint = await loadModule("stylelint", cwd);
     styles = await lintStyles(styleFiles, { stylelint, vocabulary, hooks, cwd });
   }
-  const context = { oxc, vocabulary, sources: new Set(["@srasyndicate/basalt", ...(options.sources ?? [])]), classes: styles.classes, hooks: new Set([...HOOKS, ...vocabulary.hooks, ...hooks]), mentioned: styles.mentioned };
+  // A source is a package specifier, or (written as a path) one of the app's own modules that re-exports Basalt.
+  const relative = (options.sources ?? []).filter((s) => /^\.{0,2}\//.test(s));
+  const sourceFiles = new Set(relative.map((s) => path.resolve(cwd, s).replace(/\.[mc]?[jt]sx?$/, "").replace(/\/index$/, "")));
+  const context = { cwd, sourceFiles, oxc, vocabulary, sources: new Set(["@srasyndicate/basalt", ...(options.sources ?? []).filter((s) => !relative.includes(s))]), classes: styles.classes, hooks: new Set([...HOOKS, ...vocabulary.hooks, ...hooks]), mentioned: styles.mentioned };
   const findings = [];
   for (const [file, list] of styles.findings) for (const f of list) findings.push({ file: path.relative(cwd, file), ...f });
   for (const file of files.filter((f) => SOURCE_EXT.test(f))) {

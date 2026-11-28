@@ -729,6 +729,32 @@ would change the popup's corner pixels), so a checklist of 1,000 options still h
 These are the numbers on the day they were measured (the 1-minute load was 3 to 11, as said above), not a promise; they tell an app where to start
 paging. `docs/foundations.md` states no list-length budget.
 
+## Lint an app
+
+`basalt-lint` is an opt-in check for an app built on Basalt, run in the app's own lint (DECISIONS 404). It ships in this package, outside the components and
+the stylesheets, so an app that never runs it pays nothing. The app adds the two tools it uses as dev dependencies. `oxc-parser` is always needed;
+`stylelint` is needed for stylesheets, and `--no-css` skips them. Neither is a dependency of Basalt.
+
+```sh
+npm install --save-dev oxc-parser stylelint
+npx basalt-lint client          # or "client/**/*.tsx" client/app.css; --format json for one object per finding
+```
+
+| Rule | | What it reports |
+|---|---|---|
+| `basalt/no-restyle` | error | A `style` key that sets appearance on a Basalt component, a `className` whose rules in the checked CSS set appearance on one, a stylesheet rule that sets appearance on a `.basalt-*` class, and a `--basalt-*` token set by the app. Layout passes: margin, placement, width, `display: none` and the documented hooks. |
+| `basalt/raw-value` | error | A raw colour, length or time in a statically known `style` value (React's numbers included), in an SVG colour attribute, or in a custom property. In CSS, Basalt's Stylelint policy reports it under Stylelint's rule names. |
+| `basalt/class-on-component` | advice | A `className` on a Basalt component that the check cannot classify: it is computed, or the checked CSS has no rule for it. |
+| `basalt/primitive` | advice | Another library's part, or a native element (a plain `<button>`, `<select>` or checkbox), where Basalt has a proven part. It never applies to a `render` target, a row action or a hidden input. |
+| `basalt/disable` | error | An exception with no reason, with a rule that does not exist, or one that excuses nothing. |
+
+A component is known by its import binding: a named import, an alias or a namespace member. Every message names the fix. A restyle names the prop and its
+values (`Button`'s `size` prop, "xs" to "5xl"). A raw value names the token by role from the installed token release (`var(--basalt-space-4)` for 16px).
+An exception is a comment on the line before, with a reason: `// basalt-lint-disable-next-line basalt/no-restyle -- the reason`. In CSS the same form
+goes in a `/* */` comment. An app that already runs Stylelint can extend `@srasyndicate/basalt/stylelint-config` instead, for the stylesheet half;
+`@srasyndicate/basalt/lint` exports `basaltLint()` for scripts. [`docs/consumer-lint.md`](../../docs/consumer-lint.md) covers the config, every rule and
+what the check cannot decide statically.
+
 ## Test
 
 ```sh
