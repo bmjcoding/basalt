@@ -2370,7 +2370,9 @@ or a packet. Motion never carries a fact alone, and it runs only where lines are
   a send waits for its end. It plays under the hold, which never stops what the reader started, and the hold set while it plays settles it.
   There is no button under reduced motion, in forced colours or in a layout that draws no lines, and none in the viewer. Nothing but a press
   in the figure's own foot starts one: the button, or an app's action calling `replay()` inside its press (before its first `await`). An app
-  never presses it for the reader, and `data-entrance` is Basalt's own state, not an API. A motion
+  never presses it for the reader, and `data-entrance` is Basalt's own state, not an API. `replay()` on a figure without `replay` returns false with a
+  development error that says to set `replay` on the figure; under reduced motion, in forced colours or with no lines drawn it returns false and says
+  nothing. A motion
   button that leaves while it holds focus hands focus to the control before it in the foot.
 - **A sequence's run** (`run`): "Play the run" sends one packet through every message in order. It may pass five seconds; while it
   runs the button reads "Stop the run" and stops it. The hold does not stop it.

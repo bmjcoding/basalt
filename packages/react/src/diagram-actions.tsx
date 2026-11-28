@@ -49,7 +49,8 @@ function pressContext(base: Omit<DiagramActionContext, "replay">, start: (() => 
       if (viewer) return refuse("was called in the viewer, which draws no entrance");
       if (!press.live) return refuse("was called after the press ended: call it inside onSelect, before its first await");
       if (press.spent) return refuse("was called twice in one press: one press draws once");
-      if (!start) return refuse('was called on a figure that does not ask for it: set replay on an animated figure');
+      // The author's slip says how to fix it; the reader's modes (reduced motion, forced colours, no lines drawn) return false from `start` and say nothing.
+      if (!start) return refuse("was called on a figure without replay: set `replay` on the figure");
       const started = start();
       if (started) press.spent = true;
       return started;

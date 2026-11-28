@@ -108,7 +108,8 @@ export interface DiagramActionContext {
   /**
    * Draws the page's figure again, as its "Draw again" does (DECISIONS 405, G149), for a figure that sets `replay`. It works only inside the press: from the
    * start of `onSelect` until it returns, so an async handler calls it before its first `await`. True when a replay started. Called again after one started,
-   * after the press, or in the viewer, it returns false with a development error; under reduced motion or in forced colours it returns false.
+   * after the press, in the viewer, or on a figure without `replay`, it returns false with a development error that names the fix ("set `replay` on the
+   * figure" for the last). Under reduced motion, in forced colours or in a layout with no lines it returns false and says nothing: those are the reader's.
    */
   replay(): boolean;
 }

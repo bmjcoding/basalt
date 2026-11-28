@@ -320,6 +320,15 @@ describe("4. the modes", () => {
       await page.click(`#fig-kit .${P}-action`);
       assert.deepEqual((await page.evaluate(() => window.__replays)).at(-1).got, false);
       await page.close();
+      // And silently: the reader's mode is not the author's slip (the decider's picture review).
+      const { page: dev, said } = await replayPage({ dev: true });
+      await dev.emulateMedia(media);
+      await draw(dev, [{ key: "kit", spec: `S.kit({ replay: true })`, actions: [{ label: "Again", does: "now" }] }]);
+      await dev.waitForSelector(`#fig-kit .${P}-action`);
+      await dev.click(`#fig-kit .${P}-action`);
+      assert.equal((await dev.evaluate(() => window.__replays)).at(-1).got, false);
+      assert.ok(!said.some((s) => /replay\(\)/.test(s)), said.join("\n"));
+      await dev.close();
     }
     for (const media of [{ reducedMotion: "reduce" }, { forcedColors: "active" }]) {
       const { page } = await replayPage();
@@ -398,7 +407,7 @@ describe("5. an action's replay(): live inside the press alone", () => {
     await page.click(`#fig-kit .${P}-action`);
     assert.equal((await page.evaluate(() => window.__replays)).at(-1).got, false);
     assert.equal(await entrance(page, "kit"), "done");
-    assert.ok(said.some((s) => /does not ask for it/.test(s)));
+    assert.ok(said.some((s) => /without replay: set `replay` on the figure/.test(s)));
     await page.close();
   });
 });
