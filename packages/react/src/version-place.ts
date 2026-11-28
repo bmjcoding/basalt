@@ -8,6 +8,7 @@ import type { TooltipProps } from "./display";
 
 export type VersionPlace = "foot" | "rail" | "more" | "footer";
 
+/** Where the `VersionLink`s inside are drawn, for a part of an app's own that holds a version node (a `VersionLink`'s `place` wins over it). */
 export const VersionPlaceContext = /* @__PURE__ */ React.createContext<VersionPlace | null>(null);
 
 /** The app shell's `version`, for More's sheet to draw as its last row. */
@@ -18,6 +19,6 @@ export const FootnoteContext = /* @__PURE__ */ React.createContext<React.ReactNo
 
 /**
  * The rail's tooltip, handed down by `AppShell`, which already carries it for `Nav`. So a `VersionLink` in a site's footer or on an account page
- * loads no tooltip at all.
+ * loads no tooltip at all. An app's own rail (G160) provides it itself: `<RailTooltipContext.Provider value={Tooltip}>`, with `place="rail"` on the link.
  */
 export const RailTooltipContext = /* @__PURE__ */ React.createContext<React.ComponentType<TooltipProps> | null>(null);
