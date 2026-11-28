@@ -33,6 +33,8 @@ export interface ListBandProps extends Omit<React.ComponentProps<"div">, "childr
    * How many rows match now (after any search and filters). 0 blanks the count and hides the pager, keeping their room. `null` is a total not known yet (a list read from a
    * server before its first answer): the count is blank, as at 0, and the narrow band holds its pager's seat, unseen (G144), so a total that arrives with more than one page
    * draws the pager in its seat and moves nothing. Give `keepFootRoom` too when the list expects more than one page, so a total of one page keeps the seat after it arrives.
+   * The seat is only as wide as the band knows: with `null`, give `seatTotal` (or `maxTotal`), or the count's seat grows when the total arrives and the row can wrap then
+   * (a development warning says so). `null` is for the time before the first answer: while a later answer is on its way (a filter sent to a server), keep the last total.
    */
   total: number | null;
   /**
@@ -57,8 +59,8 @@ export interface ListBandProps extends Omit<React.ComponentProps<"div">, "childr
    * arrows and its count hidden, no landmark), since the band above already says the range. Use it for a list whose rows arrive after the first frame and that expects more
    * than one page. Opt-in: left out or `false`, the foot is as shipped (DECISIONS 227 removed this empty room under every short list). With it the narrow band also holds its
    * pager's seat at one page or none (G144): the pager is there, unseen and inert (no tab stop, nothing spoken), and the range is drawn over the start of its seat, on the
-   * gutter, so the band is the height it will be with a second page: where the pager and the page size cannot share a row (about 340 of the band's width on touch) the page
-   * size is the end of a second row at one page too, and a total that arrives later moves nothing.
+   * gutter, so the band is the height it will be with a second page: where the pager and the page size cannot share a row (a 343 band on touch needs about 340 for both)
+   * the page size is the end of a second row at one page too, and a total that arrives later moves nothing.
    */
   keepFootRoom?: boolean;
   /**
@@ -116,6 +118,9 @@ export interface ListBandProps extends Omit<React.ComponentProps<"div">, "childr
   filterKey?: string | number;
 }
 
+declare const process: { env: { NODE_ENV?: string } };
+let warnedSeat = false;
+
 const eights = (n: number) => String(Math.max(0, Math.floor(n))).replace(/\d/g, "8");
 
 /**
@@ -143,6 +148,11 @@ export function ListBand({ total, maxTotal, seatTotal, rangeTotal = true, keepFo
   const count = Math.max(0, Math.floor(total ?? 0) || 0);
   // The narrow band holds its pager's seat at one page or none (G144): while the total is not known, and always with `keepFootRoom`.
   const hold = keepFootRoom || total === null;
+  // A total not known yet with no seat to draw for (G144, the ruling's first addition): the count's seat is "8–8 of 8" until the total arrives, then grows, and the row can wrap.
+  if (process.env.NODE_ENV !== "production" && total === null && seatTotal === undefined && maxTotal === undefined && !warnedSeat) {
+    warnedSeat = true;
+    console.warn("Basalt ListBand: `total` is null with neither `seatTotal` nor `maxTotal`; give `seatTotal`, or the seat grows when the total arrives");
+  }
   const size = Math.max(1, Math.floor(pageSize) || 1);
   const pages = Math.max(1, Math.ceil(count / size));
   // The app's own page, and the page shown: clamped to the pages there are. A size change the app commits before its page shows a clamped page for a render.

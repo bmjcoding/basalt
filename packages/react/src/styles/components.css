@@ -8524,6 +8524,9 @@
     .basalt-list-band[data-whole][data-hold] .basalt-list-band-row > .basalt-pagination { visibility: hidden; }
     .basalt-list-band[data-whole][data-hold]:not([data-one-page="size"]) .basalt-list-band-row > .basalt-list-band-range { flex: none; inline-size: 0; min-inline-size: 0; }
     .basalt-list-band[data-whole][data-hold]:not([data-one-page="size"]) .basalt-list-band-row > .basalt-pagination { margin-inline-start: calc(-1 * var(--basalt-space-2)); }
+    /* A reader's paragraph spacing (WCAG 1.4.12, `p { margin-bottom: 2em !important }`) would make the held range's one line taller than the row and grow the
+       band; a layered !important wins over an unlayered one, so its block margin stays 0 and the held band keeps the height it has with more pages. */
+    .basalt-list-band[data-whole][data-hold] .basalt-list-band-row > .basalt-list-band-range { margin-block: 0 !important; }
   }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) {
@@ -8542,6 +8545,7 @@
       .basalt-list-band[data-whole][data-hold] .basalt-list-band-row > .basalt-pagination { visibility: hidden; }
       .basalt-list-band[data-whole][data-hold]:not([data-one-page="size"]) .basalt-list-band-row > .basalt-list-band-range { flex: none; inline-size: 0; min-inline-size: 0; }
       .basalt-list-band[data-whole][data-hold]:not([data-one-page="size"]) .basalt-list-band-row > .basalt-pagination { margin-inline-start: calc(-1 * var(--basalt-space-2)); }
+      .basalt-list-band[data-whole][data-hold] .basalt-list-band-row > .basalt-list-band-range { margin-block: 0 !important; }
     }
   }
   /* onePage="size" in the wide form: the range and the pager keep their seats, unseen, and the page size stays where it is. */

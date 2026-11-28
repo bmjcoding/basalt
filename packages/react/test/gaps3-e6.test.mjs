@@ -4,9 +4,11 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { createRequire } from "node:module";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { after, before, describe, test } from "node:test";
 
-import { fixturePage, launch, settle } from "./support.mjs";
+import { fixturePage, launch, pkg, settle } from "./support.mjs";
 
 const axeSource = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 let browser;
@@ -49,21 +51,21 @@ const nearParts = (a, b, what) => { for (const part of ["band", "row", "select"]
  * A list of loans whose total the app sets from outside (`window.setTotal`): `null` until "the server" answers. The band's own padding is 16 on each
  * side, so a 390 page is a 358 band and a 320 page a 288 band (the one where the pager and the page size cannot share a row).
  */
-const LOANS = ({ props = "", total = "null", dir = "ltr" } = {}) => `
+const LOANS = ({ props = "", total = "null", dir = "ltr", seat = "seatTotal={999}", size: firstSize = 10, width } = {}) => `
 function List() {
   const [total, setTotal] = React.useState(${total});
-  const [size, setSize] = React.useState(10);
+  const [size, setSize] = React.useState(${firstSize});
   const [page, setPage] = React.useState(1);
   window.setTotal = setTotal;
   window.setSize = setSize;
   const rows = Math.min(size, total ?? 0);
-  return <B.ListBand id="band" total={total} seatTotal={999} page={page} pageSize={size} pageSizes={[10, 25, 50]} onPageChange={setPage} onPageSizeChange={setSize} noun="Loans" ${props}>
+  return <B.ListBand id="band" total={total} ${seat} page={page} pageSize={size} pageSizes={[10, 25, 50]} onPageChange={setPage} onPageSizeChange={setSize} noun="Loans" ${props}>
     <B.PanelList aria-label="Loans">{Array.from({ length: rows }, (_, i) => <B.PanelRow key={i} href={"#l" + i} title={"Loan " + (i + 1)} />)}</B.PanelList>
   </B.ListBand>;
 }
 document.documentElement.dir = "${dir}";
 document.body.style.margin = "0";
-createRoot(document.getElementById("root")).render(<div style={{ padding: 16 }}><button type="button" id="before">Before</button><List /></div>);`;
+createRoot(document.getElementById("root")).render(<div style={{ padding: 16${width ? `, width: ${width}, boxSizing: "border-box"` : ""} }}><button type="button" id="before">Before</button><List /></div>);`;
 
 const SELECT = ".basalt-list-band-size .basalt-select-trigger";
 const PAGER = ".basalt-list-band-row > .basalt-pagination";
@@ -178,6 +180,119 @@ describe("ListBand holds its pager's seat in the narrow form (G144)", () => {
     assert.ok(row.height <= 60, `one row (${row.height})`);
     await page.close();
   });
+
+  // ---- Fable's ruling (DECISIONS 406), tests 1 to 8 ----
+
+  test("ruling 1, the stated limit: null without keepFootRoom, then a one-page total, at 288 on touch lets the seat go, once (48 shorter)", async () => {
+    const page = await open(LOANS(), { width: 320, height: 844, ...COARSE });
+    const held = await parts(page);
+    assert.equal(Math.round(held.band.width), 288);
+    assert.equal(await page.locator("#band").getAttribute("data-hold"), "");
+    await setTotal(page, 4);
+    assert.equal(await page.locator("#band").getAttribute("data-hold"), null, "the hold goes");
+    assert.equal(await page.locator(PAGER).evaluate((el) => getComputedStyle(el).display), "none", "the pager is not drawn");
+    const after = await parts(page);
+    assert.ok(Math.abs(held.band.height - after.band.height - 48) <= 0.5, `48 shorter (${held.band.height} to ${after.band.height})`);
+    assert.ok(after.row.height <= 60.5, `one row (${after.row.height})`);
+    const size = await box(page.locator(".basalt-list-band-size"));
+    assert.ok(Math.abs(size.x + size.width - (after.row.x + after.row.width)) <= 0.5, "the page size still ends its row");
+    await page.close();
+  });
+
+  test("ruling 2: null with seatTotal={9999} and the default \"of N\" at 358 on touch: 27 then 2140 move nothing", async () => {
+    const page = await open(LOANS({ seat: "seatTotal={9999}" }), { width: 390, height: 844, ...COARSE });
+    const before = await parts(page);
+    assert.equal(Math.round(before.band.width), 358);
+    for (const total of [27, 2140]) {
+      await setTotal(page, total);
+      nearParts(before, await parts(page), `at ${total}`);
+    }
+    await page.close();
+  });
+
+  test("ruling 3: the development warning, once, for null with neither seatTotal nor maxTotal; none with either", async () => {
+    const require = createRequire(import.meta.url);
+    const React = require("react");
+    const { renderToString } = require("react-dom/server");
+    const { ListBand } = await import(pathToFileURL(path.join(pkg, "dist", "list-band.js")).href);
+    const said = [];
+    const warn = console.warn;
+    console.warn = (...a) => said.push(a.join(" "));
+    const band = (props) => renderToString(React.createElement(ListBand, { page: 1, pageSize: 10, noun: "Loans", ...props }));
+    try {
+      band({ total: null, seatTotal: 999 });
+      band({ total: null, maxTotal: 400 });
+      band({ total: 4 });
+      assert.deepEqual(said.filter((m) => m.includes("ListBand")), [], "nothing with a seat to draw for, or a known total");
+      band({ total: null });
+      band({ total: null });
+      band({ total: null, keepFootRoom: true });
+    } finally { console.warn = warn; }
+    const warned = said.filter((m) => m.includes("ListBand"));
+    assert.equal(warned.length, 1, warned.join("\n"));
+    assert.match(warned[0], /give `seatTotal`, or the seat grows when the total arrives/);
+  });
+
+  test("ruling 4: keepFootRoom at a total of 0, at 288 on touch, is the three-page band's box; the range is blank and nothing is spoken", async () => {
+    const page = await open(LOANS({ props: "keepFootRoom", total: 0 }), { width: 320, height: 844, ...COARSE });
+    const empty = await parts(page);
+    assert.equal((await page.locator(".basalt-list-band-row > .basalt-list-band-range").innerText()).trim(), "");
+    assert.equal((await page.locator("#band [role=status]").textContent()).trim(), "");
+    await setTotal(page, 27);
+    nearParts(empty, await parts(page), "a total of 0 to three pages");
+    await page.close();
+  });
+
+  for (const width of [320, 390]) {
+    test(`ruling 5: at ${width - 32} the widest one-page range ends inside the pager's seat, never at the page size`, async () => {
+      // 50 a page and a total of 50: "1–50 of 50", the widest range one page can show at these sizes, drawn on seats for 999.
+      const page = await open(LOANS({ props: "keepFootRoom", total: 50, size: 50 }), { width, height: 844, ...COARSE });
+      const range = await box(page.locator(".basalt-list-band-row > .basalt-list-band-range [data-on]"));
+      const pager = await box(page.locator(PAGER));
+      const size = await box(page.locator(".basalt-list-band-size"));
+      assert.ok(range.x + range.width <= pager.x + pager.width + 0.5, `the range ends (${range.x + range.width}) inside the seat (${pager.x + pager.width})`);
+      if (Math.abs(size.y - pager.y) < pager.height) assert.ok(range.x + range.width < size.x, "short of the page size on a shared row");
+      await page.close();
+    });
+  }
+
+  for (const width of [320, 390]) {
+    test(`ruling 6: under a reader's text spacing (WCAG 1.4.12) at ${width - 32}, the held one-page band is the three-page band's box`, async () => {
+      const page = await open(LOANS({ props: "keepFootRoom", total: 4 }), { width, height: 844, ...COARSE });
+      await page.addStyleTag({ content: "* { line-height: 1.5 !important; letter-spacing: 0.12em !important; word-spacing: 0.16em !important; } p { margin-bottom: 2em !important; }" });
+      await settle(page);
+      const one = await parts(page);
+      await setTotal(page, 27);
+      nearParts(one, await parts(page), "one page to three, spaced");
+      await page.close();
+    });
+  }
+
+  test("ruling 7: a fine pointer in a narrow container (a 292 band in a 1024 window): held one page is three pages; without a hold it is one row", async () => {
+    const held = await open(LOANS({ props: "keepFootRoom", total: 4, width: 324 }), { width: 1024, height: 900 });
+    assert.equal(Math.round((await box(held.locator("#band"))).width), 292);
+    const one = await parts(held);
+    await setTotal(held, 27);
+    nearParts(one, await parts(held), "one page to three");
+    await held.close();
+    const plain = await open(LOANS({ total: 4, width: 324 }), { width: 1024, height: 900 });
+    const row = await box(plain.locator(".basalt-list-band-row"));
+    const range = await box(plain.locator(".basalt-list-band-row > .basalt-list-band-range"));
+    const size = await box(plain.locator(".basalt-list-band-size"));
+    assert.ok(Math.abs((range.y + range.height / 2) - (size.y + size.height / 2)) <= 1, "the range and the page size share one row");
+    assert.ok(row.height <= one.row.height, `the unheld band (${row.height}) is never taller than the held one (${one.row.height})`);
+    await plain.close();
+  });
+
+  for (const theme of THEMES) {
+    test(`ruling 8: axe finds nothing with a held band on the page, the inert pager included (${theme})`, async () => {
+      for (const body of [LOANS({ props: "keepFootRoom", total: 4 }), LOANS()]) {
+        const page = await open(body, { theme, width: 320, height: 844, ...COARSE });
+        assert.deepEqual(await axe(page), []);
+        await page.close();
+      }
+    });
+  }
 
   test("a total of null blanks the count, says nothing, and the foot stays out unless keepFootRoom holds it", async () => {
     const page = await open(LOANS(), { width: 390, height: 844, ...COARSE });
