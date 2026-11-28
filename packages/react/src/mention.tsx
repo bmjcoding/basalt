@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { isComposingKey } from "./keyboard";
 import { useFloatingLayer, usePopupLevel } from "./layers";
 import { GlidePlate } from "./plate";
+import { useScrollFade } from "./fade-port";
 import { join } from "./utils";
 
 // A mention, and the picker that writes one (cimip-gaps-2, B3). A mention is a name in running text that calls on someone: the trigger
@@ -395,16 +396,15 @@ export function MentionPicker({ field, options, trigger = "@", filter, onQueryCh
     };
   }, [mounted, place]);
 
-  // The row the keys moved to is scrolled into the list's view (the list alone: the page never moves).
+  // The row the keys moved to is brought clear of the fade in the list's view by the shared reveal (the list alone: the page never moves), and kept: a band
+  // never reaches it, even where it is taller than the list (cimip-gaps-3 t7). Focus stays in the field, so nothing waits for a focus event. Nothing is
+  // kept once the popup closes or no row is active.
+  const scroll = React.useRef<HTMLDivElement | null>(null);
+  const fade = useScrollFade(scroll, { axis: "block" }, [mounted]);
   React.useLayoutEffect(() => {
-    const list = popup.current;
-    const row = current >= 0 ? document.getElementById(optionId(current)) : null;
-    if (!list || !row || !list.contains(row)) return;
-    const top = row.offsetTop;
-    const bottom = top + row.offsetHeight;
-    if (top < list.scrollTop) list.scrollTop = top;
-    else if (bottom > list.scrollTop + list.clientHeight) list.scrollTop = bottom - list.clientHeight;
-  }, [current]);
+    const row = open && current >= 0 ? document.getElementById(optionId(current)) : null;
+    fade.current?.keep(row && scroll.current?.contains(row) ? row : null);
+  }, [current, open, mounted]);
 
   // The last rows drawn stay during the exit, so the popup fades with what it held.
   const drawn = React.useRef<readonly MentionOption[]>([]);
@@ -447,6 +447,7 @@ export function MentionPicker({ field, options, trigger = "@", filter, onQueryCh
         onPointerDown={(event) => event.preventDefault()}
         onMouseDown={(event) => event.preventDefault()}
       >
+        <div ref={scroll} className="basalt-menu-scroll">
         <GlidePlate />
         <div id={listId} role="listbox" aria-label={label}>
           {groups.map((group, g) =>
@@ -459,6 +460,7 @@ export function MentionPicker({ field, options, trigger = "@", filter, onQueryCh
               group.rows.map(row)
             ),
           )}
+        </div>
         </div>
       </div>
     </div>,

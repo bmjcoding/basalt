@@ -6,7 +6,7 @@ import { SearchGlyph } from "./glyphs/search";
 import { Icon } from "./icon";
 import { NewTabGlyph, NewTabWords, opensNewTab } from "./new-tab";
 import { safeHref } from "./safe-href";
-import { Portless } from "./fade-port";
+import { Portless, useFadeRef } from "./fade-port";
 import { join } from "./utils";
 
 // ---- A count and the names it counts (cimip-gaps-3 T2, item 10) ----
@@ -52,6 +52,8 @@ const defaultPartial = (shown: number, total: number) => `Showing ${shown} of ${
 
 /** A count that opens the names it counts. See the module note. */
 export function CountNames({ names, singular, plural, label, count, title, empty, partialLabel = defaultPartial, searchFrom = 10, footer, newTabLabel, className, ...props }: CountNamesProps) {
+  // The list fades at each edge that hides names (cimip-gaps-3 t7); a row's ring is at +2.
+  const listFade = useFadeRef<HTMLUListElement>({ axis: "block", ring: 4 });
   const items = names.map((entry): CountName => (typeof entry === "string" ? { name: entry } : entry));
   const total = count ?? items.length;
   const noun = total === 1 ? singular : plural;
@@ -97,7 +99,7 @@ export function CountNames({ names, singular, plural, label, count, title, empty
             </div>
           ) : null}
           {shown.length ? (
-            <ul className="basalt-count-names-list">
+            <ul ref={listFade} className="basalt-count-names-list">
               {shown.map((item, i) => {
                 const href = item.href !== undefined ? safeHref(item.href) : null;
                 const newTab = item.href !== undefined && opensNewTab(item.target);

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useKeptRow, useScrollFade } from "./fade-port";
 
 import { CheckGlyph } from "./glyphs/check";
 import { Icon } from "./icon";
@@ -41,6 +42,10 @@ const OPTIONS = '[role="option"]:not([aria-disabled="true"])';
  * An option whose name or detail is cut shows it whole on a plate (DECISIONS 168 and 170): see peek-plate.ts. On touch there is no hover to open one, so the options wrap at rest.
  */
 export function Listbox({ label, value, defaultValue, onValueChange, flush = false, className, children, onKeyDown, ...props }: ListboxProps) {
+  // The rows fade at each edge that hides more (cimip-gaps-3 t7). Focus stays on the list while the keys choose, so the chosen row is kept clear.
+  const scroll = React.useRef<HTMLDivElement | null>(null);
+  const fade = useScrollFade(scroll, { axis: "block" });
+  useKeptRow(scroll, fade, '[role="option"][aria-selected="true"]', ["aria-selected"]);
   const [inner, setInner] = React.useState(defaultValue);
   const chosen = value !== undefined ? value : inner;
   const root = React.useRef<HTMLDivElement>(null);
@@ -91,7 +96,6 @@ export function Listbox({ label, value, defaultValue, onValueChange, flush = fal
           // The active option is brought into view when focus arrives, as a key does; one already in view does not move the list.
           if (press) return;
           const option = chosen !== undefined ? optionOf(chosen) : root.current?.querySelector<HTMLElement>(OPTIONS) ?? undefined;
-          option?.scrollIntoView({ block: "nearest" });
         }}
         onBlur={(event) => {
           props.onBlur?.(event);
@@ -114,12 +118,11 @@ export function Listbox({ label, value, defaultValue, onValueChange, flush = fal
           if (to < 0) return;
           event.preventDefault();
           const option = options[to];
-          option?.scrollIntoView({ block: "nearest" });
           if (option?.dataset.value !== undefined && option.dataset.value !== chosen) choose(option.dataset.value);
         }}
       >
         {/* The list's own box carries the focus ring and its rounded corners and clips nothing; the rows scroll in the box inside it. */}
-        <div className="basalt-listbox-scroll">{children}</div>
+        <div ref={scroll} className="basalt-listbox-scroll">{children}</div>
       </div>
     </ListboxState.Provider>
   );

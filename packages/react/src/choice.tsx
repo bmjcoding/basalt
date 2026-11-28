@@ -15,6 +15,7 @@ import { useFieldsetDisabled } from "./fieldset-context";
 import { useMirrorRef } from "./mirror";
 import { Icon } from "./icon";
 import { GlidePlate } from "./plate";
+import { MenuPort } from "./fade-port";
 import { join, withClass } from "./utils";
 import { useFloatingLayer, usePopupLevel } from "./layers";
 
@@ -266,6 +267,7 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
       <BaseSelect.Portal>
         <BaseSelect.Positioner className="basalt-positioner" style={layer} sideOffset={6} alignItemWithTrigger={false}>
           <BaseSelect.Popup data-level={level} className="basalt-menu basalt-select-popup">
+            <MenuPort>
             <GlidePlate />
             <BaseSelect.List>
               {options.map((o) => (
@@ -281,6 +283,7 @@ export function Select({ options, placeholder = "Select…", controlSize = "md",
                 </BaseSelect.Item>
               ))}
             </BaseSelect.List>
+            </MenuPort>
           </BaseSelect.Popup>
         </BaseSelect.Positioner>
       </BaseSelect.Portal>

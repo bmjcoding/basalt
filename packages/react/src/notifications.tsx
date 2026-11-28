@@ -3,6 +3,7 @@ import { CircleIcon } from "@phosphor-icons/react/dist/csr/Circle";
 import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
 import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
+import { useFadeRef } from "./fade-port";
 
 import { Portless } from "./fade-port";
 import { Button, IconButton } from "./button";
@@ -221,6 +222,8 @@ function drawn(entries: readonly NotificationEntry[]): NotificationEntry[] {
  * with `NotificationsGlyph` and its `dot`), the same page "View all" opens.
  */
 export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, onClearAll, onViewAll, viewAllHref, label = "Notifications", open, defaultOpen, onOpenChange, side = "bottom", align = "end", edge, initialFocus, className, wrap, loading, loadingRows = 3, loadingLabel = "Loading notifications", empty = "Nothing yet.", directLabel = "for you", markAllReadReason, clearAllReason }: NotificationCenterProps) {
+  // The list fades at each edge that hides entries (cimip-gaps-3 t7); an entry's ring sits at 0 outside its plate.
+  const scrollFade = useFadeRef<HTMLDivElement>({ axis: "block", ring: 2 });
   const entries = drawn(given);
   const unread = unreadCount(entries);
   const direct = directCount(entries);
@@ -262,7 +265,7 @@ export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, on
         {/* Before the first answer the shape is the scroller; after it, the list in its own place, as without a loading state. */}
         {firstLoad.shown ? (
           <FirstLoad first={first} label={loadingLabel} rows={loadingRows} wrap={wrap} className="basalt-notifications-scroll" onDone={firstLoad.finish} />
-        ) : entries.length === 0 ? list : <div className="basalt-notifications-scroll">{list}</div>}
+        ) : entries.length === 0 ? list : <div ref={scrollFade} className="basalt-notifications-scroll">{list}</div>}
         <div className="basalt-notifications-foot">
           <ClearAll count={entries.length} onClearAll={onClearAll} edge="start" reason={clearReason} reasonId={`${ids}-clear`} />
           {viewAllHref ? (

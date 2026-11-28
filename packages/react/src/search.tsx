@@ -8,7 +8,7 @@ import { SearchGlyph } from "./glyphs/search";
 import { Icon } from "./icon";
 import { isComposingKey } from "./keyboard";
 import type { FocusTarget } from "./types";
-import { Portless } from "./fade-port";
+import { Portless, useFadeRef } from "./fade-port";
 import { join } from "./utils";
 
 // ---- The search trigger: a button shaped like a field ----
@@ -116,8 +116,10 @@ export interface SearchResultsProps extends React.ComponentProps<"ul"> {
  * scrolls inside past it; on a short window it is the room the dialog has. The dialog's top is held where the full box has it, so the field and
  * the count never move and the box ends under what it shows (DECISIONS 336).
  */
-export function SearchResults({ logoRows = 3, rows = 5, all = true, className, style, ...props }: SearchResultsProps) {
-  return <ul {...props} data-grows="" className={join("basalt-search-results", className)} style={{ "--_logos": logoRows, "--_packs": rows, "--_alls": all ? 1 : 0, ...style } as React.CSSProperties} />;
+export function SearchResults({ logoRows = 3, rows = 5, all = true, className, style, ref, ...props }: SearchResultsProps) {
+  // The area fades at each edge that hides results; a focused result and its ring are never under a band (cimip-gaps-3 t7).
+  const port = useFadeRef<HTMLUListElement>({ axis: "block", ring: 4 }, ref);
+  return <ul {...props} ref={port} data-grows="" className={join("basalt-search-results", className)} style={{ "--_logos": logoRows, "--_packs": rows, "--_alls": all ? 1 : 0, ...style } as React.CSSProperties} />;
 }
 
 export interface SearchResultProps extends Omit<React.ComponentProps<"a">, "children" | "media"> {
@@ -282,9 +284,11 @@ export interface SearchPassagesProps extends React.ComponentProps<"ol"> {
  * that scrolls inside, as the site search's results area has; the query, its paging and any grouping are the app's. While the first results are on their way,
  * draw it in a `LoadingShape` with stand-in passages; while a changed query runs, keep the last results on screen (`refreshing`).
  */
-export function SearchPassages({ rows, lines = 2, className, style, ...props }: SearchPassagesProps) {
+export function SearchPassages({ rows, lines = 2, className, style, ref, ...props }: SearchPassagesProps) {
+  // A budget scrolls inside and fades at each edge that hides passages (cimip-gaps-3 t7); the ring is at 0 outside the plate's box.
+  const port = useFadeRef<HTMLOListElement>({ axis: "block", ring: 2 }, ref);
   const budget = rows === undefined ? undefined : ({ "--_rows": rows, "--_lines": lines } as React.CSSProperties);
-  return <ol {...props} className={join("basalt-passages", className)} data-budget={rows === undefined ? undefined : ""} style={budget ? { ...budget, ...style } : style} />;
+  return <ol {...props} ref={port} className={join("basalt-passages", className)} data-budget={rows === undefined ? undefined : ""} style={budget ? { ...budget, ...style } : style} />;
 }
 
 export interface SearchPassageProps extends Omit<React.HTMLAttributes<HTMLElement>, "children"> {

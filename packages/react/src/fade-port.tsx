@@ -60,3 +60,82 @@ export function FadePort({ pinned, labelledBy, className, ref, ...props }: FadeP
   useScrollFade(box, { axis: "block", ring: 4, pinned: pinned ? () => (box.current ? pinned(box.current) : {}) : undefined });
   return <div {...stop.attributes} {...props} ref={stop.ref} className={className} />;
 }
+
+/**
+ * Gives the fade the row the keys are on in a list whose focus stays in its field (a combobox, the command menu and list): whenever `attributes` change under
+ * the port, the row matching `active` is passed to `keep()` while a key was the last input, and `null` after a pointer moved, so a hovered row is never
+ * scrolled to. On unmount nothing is kept.
+ */
+export function useKeptRow(port: React.RefObject<HTMLElement | null>, fade: React.RefObject<ScrollFade | null>, active: string, attributes: string[]) {
+  React.useLayoutEffect(() => {
+    const box = port.current;
+    if (!box) return undefined;
+    const doc = box.ownerDocument;
+    let keys = false;
+    const update = () => fade.current?.keep(keys ? box.querySelector(active) : null);
+    const onKey = () => { keys = true; };
+    const onPointer = () => { keys = false; };
+    const rows = new MutationObserver(update);
+    rows.observe(box, { subtree: true, attributes: true, attributeFilter: attributes });
+    doc.addEventListener("keydown", onKey, true);
+    doc.addEventListener("pointermove", onPointer, true);
+    return () => {
+      rows.disconnect();
+      doc.removeEventListener("keydown", onKey, true);
+      doc.removeEventListener("pointermove", onPointer, true);
+      fade.current?.keep(null);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+}
+
+/** The highlighted row of a Base UI popup or of the command list. */
+const ACTIVE_ROW = ".basalt-menu-item[data-highlighted], .basalt-menu-item[data-selected='true']";
+
+export interface MenuPortProps extends React.ComponentProps<"div"> {
+  /** Focus stays in a field while the keys move the active row (a combobox): the row is kept clear of the band. */
+  field?: boolean;
+}
+
+/**
+ * The scrolling part of a Menu, Select, Combobox or MentionPicker popup (cimip-gaps-3 t7): the popup (`.basalt-menu`) keeps its rim, radius, fill and shadow
+ * and clips; this holds the padding, the rows and the glide plate, scrolls and fades at each edge that hides more. The active row's plate is inside the row
+ * (no ring room), and its `scroll-padding-block` keeps the fade and space-0-5 clear.
+ */
+export function MenuPort({ field = false, className, ref, ...props }: MenuPortProps) {
+  const box = React.useRef<HTMLDivElement | null>(null);
+  const keep = React.useCallback((node: HTMLDivElement | null) => {
+    box.current = node;
+    if (typeof ref === "function") ref(node);
+    else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+  }, [ref]);
+  const fade = useScrollFade(box, { axis: "block" });
+  useKeptRow(field ? box : NONE, fade, ACTIVE_ROW, ["data-highlighted", "data-selected"]);
+  return <div {...props} ref={keep} className={className ? `basalt-menu-scroll ${className}` : "basalt-menu-scroll"} />;
+}
+
+/** A ref that holds nothing, for a hook that runs only when given a real one. */
+const NONE: React.RefObject<HTMLElement | null> = { current: null };
+
+/** A list of rows whose focus stays in its field (the command menu and the command list): the fade, with the active row kept while the keys drive it. */
+export function useRowsFade(port: React.RefObject<HTMLElement | null>) {
+  const fade = useScrollFade(port, { axis: "block" });
+  useKeptRow(port, fade, ACTIVE_ROW, ["data-highlighted", "data-selected"]);
+  return fade;
+}
+
+/**
+ * A ref that runs the fade on whatever element it is given, for a port that mounts and unmounts with its own condition (a list that shows only with rows):
+ * the watcher starts when the element attaches and stops when it detaches. `outer` is given the element too.
+ */
+export function useFadeRef<T extends HTMLElement>(options: ScrollFadeOptions = {}, outer?: React.Ref<T>): (node: T | null) => void {
+  const watcher = React.useRef<ScrollFade | null>(null);
+  const held = React.useRef(options);
+  held.current = options;
+  return React.useCallback((node: T | null) => {
+    watcher.current?.stop();
+    watcher.current = node ? watchScrollFade(node, held.current) : null;
+    if (typeof outer === "function") outer(node);
+    else if (outer) (outer as React.MutableRefObject<T | null>).current = node;
+  }, [outer]);
+}
