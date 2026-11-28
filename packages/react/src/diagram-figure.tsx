@@ -46,7 +46,7 @@ export interface DiagramFigureProps extends Omit<React.ComponentProps<"figure">,
    * keeps for Basalt, so two figures with different ids, and an id of the page's own, never meet one. Up to 64 characters an id is written whole; a longer
    * one is bounded by a hash. Give each figure in a document its own id, and none beginning `bd-`: in development, from the figure's mount on the client,
    * a second figure with the same id in the same document or shadow root is a warning (an iframe is a document of its own). Without one, the ids come from
-   * React's `useId` and follow the render order. `entrance="first-visit"` needs it too.
+   * React's `useId` (`bd-u…`, in the same namespace) and follow the render order. `entrance="first-visit"` needs it too.
    */
   id?: string;
   /** What the diagram shows. Required: it names the figure and its drawing. */
@@ -205,10 +205,11 @@ export interface DiagramFigureInternalProps extends DiagramFigureProps {
 let figureIds: WeakMap<Node, Map<string, number>> | undefined;
 
 export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, onLayout, actions, entrance: _entrance, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, id, ...props }: DiagramFigureInternalProps) {
-  // Every id inside is built on the base (G146): the viewer's, the figure's own id where it has one, else React's useId, which follows the render order.
+  // Every id inside is built on the base (G146), in Basalt's namespace: the viewer's, the figure's own id's where it has one (bd-…_dg), else React's useId,
+  // which follows the render order, as bd-u and its letters and digits (no underscore, so never a form an id gives).
   const reactId = React.useId();
   const ownId = !viewer && typeof id === "string" && id !== "" ? id : undefined;
-  const base = baseId ?? (ownId !== undefined ? idBase(ownId) : `dg${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}`);
+  const base = baseId ?? (ownId !== undefined ? idBase(ownId) : `bd-u${reactId.replace(/[^a-zA-Z0-9]/g, "")}`);
   const level = usePanelLevel();
   // The key hint is a data-kbd-hint legend, hidden on touch until a hardware key is pressed: this installs the listener that reveals it.
   useShortcutsVisible();

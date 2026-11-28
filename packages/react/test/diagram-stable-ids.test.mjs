@@ -109,7 +109,7 @@ describe("idBase", () => {
     }
   });
 
-  test(`an id of ${core.ID_BASE_WHOLE} characters is written whole; one longer is its first 32 and a hash, bounded whatever its length`, () => {
+  test(`an id of ${core.ID_BASE_WHOLE} characters is written whole, at most 518; one longer is its first 32 and a hash, at most 280 whatever its length`, () => {
     assert.equal(core.ID_BASE_WHOLE, 64);
     const whole = "a".repeat(64), emoji = "😀".repeat(64);
     assert.equal(core.idBase(whole), `bd-${whole}_dg`);
@@ -120,7 +120,11 @@ describe("idBase", () => {
     assert.equal(core.idBase("a".repeat(65)), long, "the same long id, the same base");
     const huge = core.idBase("😀".repeat(65_536));
     assert.match(huge, /^bd-(_1f600_){32}_h[0-9a-f]{16}_dg$/);
-    assert.ok(huge.length <= 280 && core.idBase("\u{10ffff}".repeat(100)).length <= 280, "a base is at most 280 characters");
+    assert.ok(huge.length <= 280, "the hashed form is at most 280 characters");
+    // The longest of each form: 64 and 65 copies of U+10FFFF, each written as its 8-character escape.
+    assert.equal(core.idBase("\u{10ffff}".repeat(64)).length, 518, "the whole form, at its limit");
+    assert.equal(core.idBase("\u{10ffff}".repeat(65)).length, 280, "the hashed form, just past it");
+    assert.equal(core.idBase("\u{10ffff}".repeat(65_536)).length, 280);
   });
 });
 
@@ -187,19 +191,36 @@ createRoot(document.getElementById("root")).render(<main style={{ width: 1104 }}
       assert.deepEqual(r.faults, [], "each figure's names are its own");
       const inside = await page.evaluate((P) => [...document.querySelectorAll(`figure.${P} [id]`)].map((el) => el.id), P);
       assert.ok(inside.every((id) => SAFE.test(id) && id.startsWith("bd-")), "every id inside is in the namespace and starts with a letter");
+      // The viewer of the figure whose id is a digit: every name in the dialog found inside it, by querySelector.
+      const viewer = await viewerIds(page, "1");
+      assert.ok(viewer.includes("aria-labelledby bd-1_dg-viewer-title") && viewer.includes("aria-labelledby bd-1_dg-v-title"), viewer.join(" "));
+      assert.deepEqual((await audit(page)).dupes, [], "and none twice once it has closed");
       assert.deepEqual(errors, []);
       await page.close();
     }
   });
 
-  test("a figure with no id keeps useId's ids", async () => {
-    const { page } = await fixturePage(browser, `
+  test("a figure with no id takes useId's in the namespace (bd-u), and an author id of the old form or the new one's words meets none of its ids", async () => {
+    // The old form was dg and useId's letters (React 19.1's «r1» gave dgr1): an author id written so, here added after the figures so their useId stays,
+    // met the figure's heading. So does the new form's words without bd-.
+    const { page, errors } = await fixturePage(browser, `
 import a from "./test/fixtures/cimip-diagrams-b.json";
-createRoot(document.getElementById("root")).render(<main style={{ width: 1104 }}><B.ArchitectureDiagram {...a.architecture} /></main>);`, VIEWPORT);
-    await page.waitForSelector(`figure.${P}[data-layout]`);
-    const label = await page.locator(`figure.${P}`).getAttribute("aria-labelledby");
-    assert.match(label, /^dg[A-Za-z0-9_-]+-title$/);
-    assert.ok(!label.startsWith("bd-"));
+const root = createRoot(document.getElementById("root"));
+window.__set = (extra) => root.render(<main style={{ width: 1104 }}><B.ArchitectureDiagram {...a.architecture} /><B.ArchitectureDiagram id="fig-x" {...a.architecture} />{extra.map((id) => <p key={id} id={id}>x</p>)}</main>);
+window.__set([]);`, VIEWPORT);
+    await drawn(page, 2);
+    await frames(page);
+    const labels = await page.evaluate((P) => [...document.querySelectorAll(`figure.${P}`)].map((f) => f.getAttribute("aria-labelledby")), P);
+    assert.match(labels[0], /^bd-u[A-Za-z0-9]+-title$/, "useId's letters and digits, after bd-u");
+    assert.equal(labels[1], "bd-fig-x_dg-title");
+    const old = `dg${labels[0].slice("bd-u".length)}`;
+    await page.evaluate((extra) => window.__set(extra), [old, labels[0].slice("bd-".length), "dg2-title"]);
+    await frames(page);
+    assert.equal(await page.evaluate((P) => document.querySelector(`figure.${P}`).getAttribute("aria-labelledby"), P), labels[0], "the figure kept its useId");
+    const r = await audit(page);
+    assert.deepEqual(r.dupes, [], `no id twice (the old form was ${old})`);
+    assert.deepEqual(r.faults, []);
+    assert.deepEqual(errors, []);
     await page.close();
   });
 

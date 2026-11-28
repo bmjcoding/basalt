@@ -1090,9 +1090,10 @@ export const ID_BASE_WHOLE = 64;
  * so it starts with a letter and no author id is one of them. Then the id: letters, digits and hyphens kept, any other character, the underscore
  * included, written `_<code point in hex>_`; then `_dg`. That writing is one to one and `_dg` can only be its end, so two different ids never give the
  * same id inside, and what it gives holds only `[A-Za-z0-9_-]`: safe in an attribute, in `querySelector` and in `url(#…)`. An id of up to
- * `ID_BASE_WHOLE` characters is written whole; a longer one is its first 32, then `_h` and 16 hex digits of a hash of the whole id, so a base is at most
- * 280 characters whatever the id (two long ids that share their first 32 characters part on the hash). A figure with no id takes React's `useId` (the
- * skill, its place on the page).
+ * `ID_BASE_WHOLE` characters is written whole, at most 518 characters (64 escapes of 8, as U+10FFFF takes, between `bd-` and `_dg`); a longer one is its
+ * first 32, then `_h` and 16 hex digits of a hash of the whole id, at most 280 characters whatever the id's length (two long ids that share their first 32
+ * characters part on the hash). A figure with no id is numbered in the same namespace, in a form with no underscore, which no id gives: `bd-u` and React's
+ * `useId`, or `bd-n` and its place in the skill.
  */
 export function idBase(id: string): string {
   const chars = Array.from(id);
