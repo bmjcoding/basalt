@@ -37,7 +37,7 @@
   @container (width < %bp-container-lg%) {
     .link-tabs[data-size="5xl"] .link-tab { --_h: var(--basalt-size-control-3xl); }
   }
-  .link-tab-line { position: absolute; inset-inline: var(--_px); bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-text-primary); opacity: 0; pointer-events: none; }
+  .link-tab-line { position: absolute; inset-inline: var(--_px); bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-chosen-line, var(--basalt-text-primary)); opacity: 0; pointer-events: none; }
   .link-tab[aria-current] { color: var(--basalt-text-primary); }
   /* The current link's label is 600 against 400 at rest and every label reserves its 600 width, as a tab's does (decisions 138 and 149): the script draws the label (the span before
      the underline) through reserve(), so the 600 is on the label and no link's box moves. With the script off, or on a label it left alone, the current link is 600 itself unless data-bare. */

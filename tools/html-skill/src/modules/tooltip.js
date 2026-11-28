@@ -35,6 +35,9 @@
     var fresh = !t.matches(':popover-open');
     if (trigger && trigger !== el) release(trigger);
     trigger = el;
+    // A tip built outside its opener keeps the opener's palette scope (cimip-gaps-3 T9).
+    var scope = el.closest('[data-palette]');
+    if (scope && scope !== document.documentElement) t.setAttribute('data-palette', scope.getAttribute('data-palette')); else t.removeAttribute('data-palette');
     var keys = el.getAttribute('data-tooltip-keys');
     var parts = keys && _.kbd ? keys.trim().split(/\s+/) : null;
     t.innerHTML = _.esc(el.getAttribute('data-tooltip')) + (parts ? _.kbd.kbdGroup(parts) + '<span class="visually-hidden"> (' + _.esc(_.kbd.keywords(parts)) + ')</span>' : '');

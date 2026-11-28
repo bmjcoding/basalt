@@ -34,6 +34,9 @@ import { attachZoom, drawnSize, measureViewerFigure, revealIn, VIEWER_KEYS, view
     d.setAttribute('aria-describedby', id + '-summary');
     d.setAttribute('aria-labelledby', id + '-title');
     page.__viewer = d;
+    // The viewer is built outside its figure, so it keeps the figure's palette scope (cimip-gaps-3 T9).
+    var scope = (opener || page).closest && (opener || page).closest('[data-palette]');
+    if (scope && scope !== document.documentElement) d.setAttribute('data-palette', scope.getAttribute('data-palette'));
     d.innerHTML =
       '<header class="sheet-head"><div class="sheet-head-text"><h2 class="dialog-title" id="' + id + '-title" tabindex="-1">' + esc(model.title) + '</h2>' +
         (spec.source ? '<p class="dialog-description diagram-viewer-source">' + esc(spec.source) + '</p>' : '') + '</div>' +

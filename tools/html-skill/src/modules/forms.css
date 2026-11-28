@@ -15,9 +15,9 @@
     margin: 0;
     padding: 0 var(--basalt-space-2-5);
     border: 0;
-    border-radius: var(--basalt-radius-sm);
+    border-radius: var(--basalt-field-radius, var(--basalt-radius-sm));
     background: var(--basalt-surface-1);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-field-edge, var(--basalt-border-field));
     color: var(--basalt-text-primary);
     font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / normal var(--basalt-font-family-sans);
     transition: box-shadow var(--basalt-duration-fast) var(--basalt-ease-out);
@@ -54,9 +54,9 @@
     width: 100%;
     height: var(--basalt-size-control-md);
     padding: 0 var(--basalt-space-2-5);
-    border-radius: var(--basalt-radius-sm);
+    border-radius: var(--basalt-field-radius, var(--basalt-radius-sm));
     background: var(--basalt-surface-1);
-    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-field-edge, var(--basalt-border-field));
     color: var(--basalt-text-primary);
     font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / normal var(--basalt-font-family-sans);
     cursor: pointer;
@@ -77,7 +77,7 @@
   .file-field[data-drag] { background: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 4%, var(--basalt-surface-1)), color-mix(in srgb, var(--basalt-neutral-100) 6%, var(--basalt-surface-1))); box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hover); }
   .file-field[data-drag] :is(.file-field-line[data-empty], .file-field-size) { color: var(--basalt-text-secondary); }
   @media (pointer: coarse), (width < %bp-md%) {
-    .file-field[data-ready] { height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); }
+    .file-field[data-ready] { height: var(--basalt-size-tap-min); border-radius: var(--basalt-field-radius-lg, var(--basalt-radius-md)); }
     .file-field-clear::before { content: ""; position: absolute; inset: calc((var(--basalt-size-control-xs) - var(--basalt-size-tap-min)) / 2 - var(--basalt-size-hairline)); }
   }
   @media (pointer: coarse) { .file-field[data-ready] { font-size: var(--basalt-text-md-size); } }
@@ -95,7 +95,7 @@
   input[type="file"]:disabled, input[type="file"]:disabled::file-selector-button { color: var(--basalt-text-disabled); cursor: not-allowed; }
   /* On touch and under 720 the field, the search field's clear button and the file button are 44px targets. */
   @media (pointer: coarse), (width < %bp-md%) {
-    .input { height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); }
+    .input { height: var(--basalt-size-tap-min); border-radius: var(--basalt-field-radius-lg, var(--basalt-radius-md)); }
     .input[type="search"]::-webkit-search-cancel-button { width: var(--basalt-size-tap-min); height: var(--basalt-size-tap-min); }
     input[type="file"]::file-selector-button { min-height: var(--basalt-size-tap-min); }
   }

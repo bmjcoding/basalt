@@ -48,6 +48,56 @@
     }
   }
 
+  // Palettes (cimip-gaps-3 T9, DECISIONS 403): a palette rides the environment (`.basaltPalette(.beryl)`); with no modifier it is `Basalt.Palettes.basalt`,
+  // every hook unset, so a control draws Basalt's own tokens. The resolver returns the palette's value or Basalt's token, and drops the hooks that stand in for
+  // a line that steps under Increase Contrast (`colorSchemeContrast == .increased`), as the web's more-contrast block does.
+  extension Basalt.Palette {
+    /// The hooks that stand in for a line that steps under more contrast: Basalt's own there.
+    static let steppingLines: [KeyPath<Basalt.Palette, Basalt.ThemedColor?>] = [
+      \.chosenEdge, \.buttonSecondaryEdge, \.buttonSecondaryEdgeHover, \.fieldEdge, \.fieldEdgeHover, \.fieldEdgeActive,
+    ]
+
+    /// The palette's colour for `hook`, or nil where it sets none (or where the hook is a stepping line and contrast is increased).
+    public func value(_ hook: KeyPath<Basalt.Palette, Basalt.ThemedColor?>, contrast: ColorSchemeContrast = .standard) -> Basalt.ThemedColor? {
+      if contrast == .increased && Self.steppingLines.contains(hook) { return nil }
+      return self[keyPath: hook]
+    }
+
+    /// The palette's colour for `hook`, or Basalt's `token`.
+    public func resolve(_ hook: KeyPath<Basalt.Palette, Basalt.ThemedColor?>, or token: Basalt.ThemedColor, contrast: ColorSchemeContrast = .standard) -> Basalt.ThemedColor {
+      value(hook, contrast: contrast) ?? token
+    }
+
+    /// A Button's corner where Basalt draws `basalt` (`Radius.sm` takes the first step, `Radius.md` the second).
+    public func buttonCorner(_ basalt: Double) -> Double {
+      basalt == Basalt.Radius.sm ? (buttonRadius ?? basalt) : basalt == Basalt.Radius.md ? (buttonRadiusLarge ?? basalt) : basalt
+    }
+
+    /// A field's corner where Basalt draws `basalt`, as `buttonCorner`.
+    public func fieldCorner(_ basalt: Double) -> Double {
+      basalt == Basalt.Radius.sm ? (fieldRadius ?? basalt) : basalt == Basalt.Radius.md ? (fieldRadiusLarge ?? basalt) : basalt
+    }
+  }
+
+  private struct BasaltPaletteKey: EnvironmentKey {
+    static let defaultValue = Basalt.Palettes.basalt
+  }
+
+  extension EnvironmentValues {
+    /// The palette the views here are drawn in. `Basalt.Palettes.basalt` (Basalt's own look) unless a view sets one.
+    public var basaltPalette: Basalt.Palette {
+      get { self[BasaltPaletteKey.self] }
+      set { self[BasaltPaletteKey.self] = newValue }
+    }
+  }
+
+  extension View {
+    /// Draws Basalt's controls here in `palette`: its fills, inks, edges, corners and press; never status colours, the focus ring or type.
+    public func basaltPalette(_ palette: Basalt.Palette) -> some View {
+      environment(\.basaltPalette, palette)
+    }
+  }
+
   extension Font {
     /// Geist at a Basalt type step. Scales with Dynamic Type relative to `textStyle`.
     /// Register the fonts first: `Basalt.Fonts.register()`.

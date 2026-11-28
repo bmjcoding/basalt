@@ -1,0 +1,43 @@
+/* The palettes' rule-4 paints in the skill (cimip-gaps-3 T9, DECISIONS 403, section 2, rule 4): the paints Basalt does not draw today (a primary's edge,
+   a checked control's edge, a field's hover and active edge and the number field's transition), only under a palette and never in forced colours.
+   compose.mjs adds this sheet, after the modules', only to a page composed with --palettes, so no other page pays for it. Every value is a hook whose
+   fallback is today's paint, so a basalt scope inside a palette draws today's pixels. */
+@layer basalt {
+  /* From core.css. */
+  /* A palette's primary edge (cimip-gaps-3 T9, rule 4): only under a palette, never in forced colours, only while the button is enabled; after the hover
+     rule it outranks (the doubled class). With the hook unset it is a transparent hairline: no pixel. */
+  @media (forced-colors: none) {
+    :where([data-palette]:not([data-palette="basalt"])) .btn.btn[data-variant="primary"]:not([disabled], [aria-disabled="true"]) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-button-primary-edge, transparent); }
+  }
+  /* From forms.css. */
+  /* A palette's field edge on hover and while active (cimip-gaps-3 T9, rule 4): only under a palette, never in forced colours, never on a disabled or
+     invalid field; active (focus, or a popup open) outranks hover. Each falls back to the resting edge, so a scope that sets neither paints today's. */
+  @media (forced-colors: none) {
+    @media (hover: hover) {
+      :where([data-palette]:not([data-palette="basalt"])) .input:not(.number-field > .input):hover:not(:disabled, [aria-invalid="true"]),
+      :where([data-palette]:not([data-palette="basalt"])) .file-field[data-ready]:hover:not([data-drag], :has(> input:is(:disabled, [aria-invalid="true"]))) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-field-edge-hover, var(--basalt-field-edge, var(--basalt-border-field))); }
+    }
+    :where([data-palette]:not([data-palette="basalt"])) .input:not(.number-field > .input):is(:focus, :open):not(:disabled, [aria-invalid="true"]),
+    :where([data-palette]:not([data-palette="basalt"])) .file-field[data-ready]:focus-within:not([data-drag], :has(> input:is(:disabled, [aria-invalid="true"]))) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-field-edge-active, var(--basalt-field-edge, var(--basalt-border-field))); }
+  }
+  /* From number.css. */
+  /* A palette's field edge on the group (cimip-gaps-3 T9, rule 4), with Input's box-shadow transition at the palette's own duration. */
+  @media (forced-colors: none) {
+    :where([data-palette]:not([data-palette="basalt"])) .number-field { transition: box-shadow var(--_basalt-palette-edge-duration, var(--basalt-duration-instant)) var(--basalt-ease-out); }
+    @media (hover: hover) { :where([data-palette]:not([data-palette="basalt"])) .number-field:hover:not(:has(> .input:is(:disabled, [aria-invalid="true"]))) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-field-edge-hover, var(--basalt-field-edge, var(--basalt-border-field))); } }
+    :where([data-palette]:not([data-palette="basalt"])) .number-field:focus-within:not(:has(> .input:is(:disabled, [aria-invalid="true"]))) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-field-edge-active, var(--basalt-field-edge, var(--basalt-border-field))); }
+  }
+  /* From choice.css. */
+  /* A palette's checked edge (cimip-gaps-3 T9, rule 4): an inset hairline on the checked fill, never disabled, never in forced colours. */
+  @media (forced-colors: none) {
+    :where([data-palette]:not([data-palette="basalt"])) :is(input[type="checkbox"]:is(:checked, :indeterminate), input[type="radio"]:checked):not(:disabled) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-checked-edge, transparent); }
+  }
+  /* From choice-card.css. */
+  @media (forced-colors: none) {
+    :where([data-palette]:not([data-palette="basalt"])) .choice-card:has(> .choice-card-input:checked:not(:disabled)) .choice-card-box { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-checked-edge, transparent); }
+  }
+  /* From option-chips.css. */
+  @media (forced-colors: none) {
+    :where([data-palette]:not([data-palette="basalt"])) .option-chip:is([data-checked], :has(> .option-chip-input:checked)):not([data-unavailable], :has(> .option-chip-input:is(:disabled, [aria-disabled="true"]))) .option-chip-seat { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-checked-edge, transparent); }
+  }
+}

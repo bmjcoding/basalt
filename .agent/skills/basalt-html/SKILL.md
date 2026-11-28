@@ -89,6 +89,7 @@ Markup your script builds (a `.row`) isn't seen: add `<!-- basalt:use rows -->` 
 - **ambient** `data-ambient`: one loop a page, in art only, opacity only; the page then needs the `loops` toggle.
 - **copy** `data-copy`: a button with an icon and a `<span>` label.
 - **theme** `.theme-choice`, `data-theme-menu`: the footer's three words, or an icon and a menu.
+- **palettes** `.palette-choice`, `data-palette-group`: compose with `--palettes basalt,beryl`; a palette never colours status or danger.
 - **popover** `popovertarget`: the popup goes right after its opener, titled; never for a decision.
 - **menu** `.menu`: rows are `button.menu-item` with a role; a radio sits in a `role="group"`.
 - **combobox** `.combobox`: an `input.input` and a `ul` of `li`; the script builds the popup, caret and value.

@@ -46,14 +46,14 @@
     height: var(--basalt-size-choice);
     border-radius: var(--basalt-radius-full);
     box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-input);
-    color: var(--basalt-action-primary-text);
+    color: var(--basalt-checked-ink, var(--basalt-action-primary-text));
     transition-property: background-color, box-shadow;
     transition-duration: var(--basalt-duration-fast);
     transition-timing-function: var(--basalt-ease-out);
   }
   .option-chip-seat > svg { width: var(--basalt-size-choice-mark); height: var(--basalt-size-choice-mark); opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
   .option-chip:is([data-checked], :has(> .option-chip-input:checked)) { background: var(--basalt-state-selected); color: var(--basalt-text-primary); }
-  .option-chip:is([data-checked], :has(> .option-chip-input:checked)) .option-chip-seat { background: var(--basalt-action-primary); box-shadow: none; }
+  .option-chip:is([data-checked], :has(> .option-chip-input:checked)) .option-chip-seat { background: var(--basalt-checked-fill, var(--basalt-action-primary)); box-shadow: none; }
   .option-chip:is([data-checked], :has(> .option-chip-input:checked)) .option-chip-seat > svg { opacity: 1; }
   .option-chip-note { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
   @media (hover: hover) {

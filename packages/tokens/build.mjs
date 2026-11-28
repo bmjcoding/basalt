@@ -407,12 +407,24 @@ extension Basalt {
     public let green: Double
     public let blue: Double
     public let alpha: Double
+
+    public init(red: Double, green: Double, blue: Double, alpha: Double) {
+      self.red = red
+      self.green = green
+      self.blue = blue
+      self.alpha = alpha
+    }
   }
 
   /// A colour with a value per theme.
   public struct ThemedColor: Sendable, Equatable {
     public let light: RGBA
     public let dark: RGBA
+
+    public init(light: RGBA, dark: RGBA) {
+      self.light = light
+      self.dark = dark
+    }
   }
 
   /// Semantic colours. Use these, never raw values.
@@ -463,6 +475,9 @@ ${palettesKit.SWIFT_COLOR_NAMES.map((n) => `      self.${n} = ${n}`).join("\n")}
       // Nothing below .98 and nothing above 1, as on the web.
       self.pressScale = min(max(pressScale, 0.98), 1)
     }
+
+    /// The shipped palettes as members of the type, so a modifier reads \`.basaltPalette(.beryl)\`.
+${["basalt", ...shipped.map((d) => d.id)].map((id) => `    public static var ${id}: Palette { Palettes.${id} }`).join("\n")}
   }
 
   /// The palettes Basalt ships. \`basalt\` is Basalt's own look (every hook unset); \`beryl\` proves the hooks in Basalt's own voice.

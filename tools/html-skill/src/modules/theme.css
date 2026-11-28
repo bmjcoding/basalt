@@ -16,7 +16,7 @@
   :root[data-theme-choice="system"] .theme-choice [data-value="system"],
   :root[data-theme-choice="light"] .theme-choice [data-value="light"],
   :root[data-theme-choice="dark"] .theme-choice [data-value="dark"],
-  :root:not([data-theme-choice]) .theme-choice [data-value="system"] { background: var(--pill-fill); color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); box-shadow: var(--pill-edge); }
+  :root:not([data-theme-choice]) .theme-choice [data-value="system"] { background: var(--basalt-chosen-fill, var(--pill-fill)); color: var(--basalt-chosen-ink, var(--basalt-text-primary)); font-weight: var(--basalt-font-weight-semibold); box-shadow: var(--pill-edge); }
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
     .theme-choice .segment[data-slide] button[data-value] { background: transparent; box-shadow: none; }
   }

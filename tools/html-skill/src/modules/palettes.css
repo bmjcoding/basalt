@@ -1,0 +1,18 @@
+@layer basalt {
+  @media print {
+    .palette-choice { display: none; }
+  }
+
+  /* The palette choice (React's PaletteChoiceControl, cimip-gaps-3 T9): the theme choice's contract word for word, for two to four palettes (a .segment with
+     role="radiogroup"). The chosen word is drawn from the root's data-palette (the head line writes it), so it is right in the first frame: compose writes each
+     palette's three rules (the chosen paint, its clear while the pill slides, the forced-colours form) with the palette's CSS. While the palette came from a
+     link, the line under it ([data-palette-note]) says so; the script shows it. */
+  .palette-choice { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-1) var(--basalt-space-3); max-width: 100%; font-family: var(--basalt-font-family-sans); }
+  .palette-choice-label { color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--bh-sm); letter-spacing: var(--basalt-text-sm-tracking); }
+  .palette-choice .segment { flex-wrap: wrap; max-width: 100%; }
+  .palette-choice .segment button { display: inline-flex; align-items: center; justify-content: center; height: auto; min-height: var(--basalt-size-control-sm); font-weight: var(--basalt-font-weight-regular); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
+  @media (pointer: coarse), (width < %bp-md%) { .palette-choice .segment button { min-height: var(--basalt-size-tap-min); min-width: var(--basalt-size-tap-min); } }
+  .palette-choice .segment button:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  .palette-choice-note { flex-basis: 100%; margin: 0; color: var(--basalt-text-tertiary); font: var(--basalt-font-weight-regular) var(--bh-sm); letter-spacing: var(--basalt-text-sm-tracking); }
+  [data-palette-note][hidden] { display: none; }
+}

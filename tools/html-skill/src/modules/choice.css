@@ -35,7 +35,7 @@
     border-radius: var(--basalt-radius-xs);
     background: var(--basalt-surface-raised);
     box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
-    color: var(--basalt-action-primary-text);
+    color: var(--basalt-checked-ink, var(--basalt-action-primary-text));
     cursor: inherit;
     transition-property: background-color, box-shadow;
     transition-duration: var(--basalt-duration-fast);
@@ -46,7 +46,7 @@
   input[type="checkbox"]::before, input[type="radio"]::before { content: ""; display: none; }
   input[type="checkbox"]:not([role="switch"])::before { width: var(--basalt-size-choice-mark); height: var(--basalt-size-choice-mark); background: currentColor; mask: url("%glyph-mask:check%") center / contain no-repeat; }
   input[type="checkbox"]:not([role="switch"]):indeterminate::before { mask-image: url("%glyph-mask:minus%"); }
-  input[type="checkbox"]:not([role="switch"]):is(:checked, :indeterminate), input[type="radio"]:checked { background: var(--basalt-action-primary); box-shadow: none; }
+  input[type="checkbox"]:not([role="switch"]):is(:checked, :indeterminate), input[type="radio"]:checked { background: var(--basalt-checked-fill, var(--basalt-action-primary)); box-shadow: none; }
   input[type="checkbox"]:not([role="switch"]):is(:checked, :indeterminate)::before { display: block; }
   input[type="radio"]::before { width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: currentColor; }
   input[type="radio"]:checked::before { display: block; }
@@ -72,8 +72,8 @@
     transition-timing-function: var(--basalt-ease-out);
   }
   /* On is a full fill and the thumb moves: shape and position, not only colour. The track fills from the inline start, so the thumb travels left in a right-to-left page. */
-  input[type="checkbox"][role="switch"]:checked { background: var(--basalt-action-primary); box-shadow: none; }
-  input[type="checkbox"][role="switch"]:checked::before { transform: translateX(calc(var(--basalt-size-switch-width) - var(--basalt-size-switch-thumb) - 2 * var(--basalt-space-0-5))); background: var(--basalt-action-primary-text); }
+  input[type="checkbox"][role="switch"]:checked { background: var(--basalt-checked-fill, var(--basalt-action-primary)); box-shadow: none; }
+  input[type="checkbox"][role="switch"]:checked::before { transform: translateX(calc(var(--basalt-size-switch-width) - var(--basalt-size-switch-thumb) - 2 * var(--basalt-space-0-5))); background: var(--basalt-checked-ink, var(--basalt-action-primary-text)); }
   input[type="checkbox"][role="switch"]:checked:dir(rtl)::before { transform: translateX(calc(-1 * (var(--basalt-size-switch-width) - var(--basalt-size-switch-thumb) - 2 * var(--basalt-space-0-5)))); }
 
   input[type="checkbox"]:disabled, input[type="radio"]:disabled { opacity: 0.5; }

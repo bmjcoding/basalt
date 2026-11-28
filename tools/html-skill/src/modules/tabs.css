@@ -32,7 +32,7 @@
   .tab [data-label] { display: inline-flex; flex-direction: column; align-items: flex-start; }
   .tab [data-label]::after { content: attr(data-label); height: 0; overflow: hidden; visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
   /* The underline is as wide as the tab's content, never its padding (DECISIONS 358). */
-  .tab[aria-selected="true"]::after { content: ""; position: absolute; inset-inline: var(--_px); bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-text-primary); }
+  .tab[aria-selected="true"]::after { content: ""; position: absolute; inset-inline: var(--_px); bottom: 0; height: var(--basalt-size-indicator); background: var(--basalt-chosen-line, var(--basalt-text-primary)); }
   @media (hover: hover) { .tab:hover { color: var(--basalt-text-primary); } }
   @media (pointer: coarse), (width < %bp-md%) { .tab { height: var(--basalt-size-tap-min); } }
   /* A label that is not plain text is drawn twice in one box, the second copy at 600, unseen (aria-hidden, inert): the box is the content's width at 600. */

@@ -23,6 +23,16 @@ extension View {
   }
 }
 
+/// A colour a control draws: a themed colour at an opacity, or nothing (`clear`). What a control's paint function returns, so a test can ask it.
+struct BasaltPaint: Equatable {
+  var color: Basalt.ThemedColor?
+  var opacity: Double = 1
+  static let clear = BasaltPaint(color: nil)
+  init(_ color: Basalt.ThemedColor?, opacity: Double = 1) { self.color = color; self.opacity = opacity }
+  init(color: Basalt.ThemedColor?) { self.color = color }
+  var swiftUI: Color { color.map { opacity == 1 ? $0.color : $0.color.opacity(opacity) } ?? .clear }
+}
+
 public enum BasaltButtonVariant: Sendable, CaseIterable {
   case primary, secondary, ghost, danger
 }
@@ -54,6 +64,90 @@ public enum BasaltControlSize: Sendable, CaseIterable {
     return self == .lg || self == .xl ? Basalt.Radius.md : Basalt.Radius.sm
     #endif
   }
+
+  /// A Button's corner in a palette: its first step where Basalt draws `Radius.sm`, its second where `Radius.md` (cimip-gaps-3 T9).
+  func buttonRadius(_ palette: Basalt.Palette) -> Double { palette.buttonCorner(radius) }
+  /// A field's corner in a palette, the same way.
+  func fieldRadius(_ palette: Basalt.Palette) -> Double { palette.fieldCorner(radius) }
+}
+
+/// What a Basalt button draws in one state (cimip-gaps-3 T9): its ink, fill, edge, corner and press scale, from the variant, the state, the palette and the
+/// contrast setting. Both colour schemes are in each themed colour. With `Basalt.Palettes.basalt` it is Basalt's own paint.
+struct BasaltButtonPaint: Equatable {
+  var text: BasaltPaint
+  var fill: BasaltPaint
+  var edge: BasaltPaint
+  var radius: Double
+  var pressScale: Double
+
+  static func of(_ variant: BasaltButtonVariant, size: BasaltControlSize, enabled: Bool, pressed: Bool, hovered: Bool, palette: Basalt.Palette, contrast: ColorSchemeContrast) -> BasaltButtonPaint {
+    let C = Basalt.Colors.self
+    let p = palette
+    var text: BasaltPaint
+    if !enabled {
+      text = BasaltPaint(variant == .primary ? p.resolve(\.buttonPrimaryInkDisabled, or: C.textDisabled) : C.textDisabled)
+    } else {
+      switch variant {
+      case .primary: text = BasaltPaint(p.resolve(\.buttonPrimaryInk, or: C.actionPrimaryText))
+      case .danger: text = BasaltPaint(C.statusDanger)
+      case .ghost: text = BasaltPaint(hovered ? p.resolve(\.buttonGhostInkHover, or: C.textPrimary) : p.resolve(\.buttonGhostInk, or: C.textSecondary))
+      case .secondary: text = BasaltPaint(p.resolve(\.buttonSecondaryInk, or: C.textPrimary))
+      }
+    }
+    var fill: BasaltPaint
+    if variant == .primary {
+      if !enabled { fill = BasaltPaint(p.resolve(\.buttonPrimaryFillDisabled, or: C.stateSelected)) }
+      else if pressed { fill = BasaltPaint(p.resolve(\.buttonPrimaryFillPress, or: C.actionPrimaryPress)) }
+      else { fill = BasaltPaint(hovered ? p.resolve(\.buttonPrimaryFillHover, or: C.actionPrimaryHover) : p.resolve(\.buttonPrimaryFill, or: C.actionPrimary)) }
+    } else if enabled && pressed {
+      fill = BasaltPaint(variant == .secondary ? p.resolve(\.buttonSecondaryFillPress, or: C.stateSelected) : C.stateSelected)
+    } else if enabled && hovered && variant != .secondary {
+      fill = BasaltPaint(C.stateHover)
+    } else {
+      fill = variant == .secondary ? BasaltPaint(p.resolve(\.buttonSecondaryFill, or: C.surfaceRaised)) : .clear
+    }
+    var edge: BasaltPaint
+    switch variant {
+    case .primary:
+      // A palette's primary edge is drawn only while the button is enabled.
+      edge = enabled ? BasaltPaint(p.value(\.buttonPrimaryEdge, contrast: contrast)) : .clear
+    case .ghost:
+      edge = .clear
+    case .danger:
+      edge = enabled ? BasaltPaint(C.statusDanger, opacity: hovered ? 0.7 : 0.45) : BasaltPaint(contrast == .increased ? C.lineContrast : C.borderHairline)
+    case .secondary:
+      if hovered && enabled {
+        edge = BasaltPaint(p.value(\.buttonSecondaryEdgeHover, contrast: contrast) ?? (contrast == .increased ? C.textSecondary : C.borderHover))
+      } else {
+        edge = BasaltPaint(p.value(\.buttonSecondaryEdge, contrast: contrast) ?? (contrast == .increased ? C.lineContrast : C.borderHairline))
+      }
+    }
+    return BasaltButtonPaint(text: text, fill: fill, edge: edge, radius: size.buttonRadius(palette), pressScale: palette.pressScale)
+  }
+}
+
+/// What a Basalt text field's boundary draws (cimip-gaps-3 T9): an error outranks the active edge, which outranks the resting one.
+struct BasaltFieldPaint: Equatable {
+  var edge: BasaltPaint
+  static func of(error: Bool, focused: Bool, palette: Basalt.Palette, contrast: ColorSchemeContrast) -> BasaltFieldPaint {
+    if error { return BasaltFieldPaint(edge: BasaltPaint(Basalt.Colors.statusDanger)) }
+    let resting = palette.value(\.fieldEdge, contrast: contrast) ?? (contrast == .increased ? Basalt.Colors.fieldContrast : Basalt.Colors.borderField)
+    return BasaltFieldPaint(edge: BasaltPaint(focused ? palette.value(\.fieldEdgeActive, contrast: contrast) ?? resting : resting))
+  }
+}
+
+/// What a Basalt switch draws (cimip-gaps-3 T9): on, the track is the checked fill, the thumb the checked ink, and the checked edge a hairline when set.
+struct BasaltTogglePaint: Equatable {
+  var track: BasaltPaint
+  var thumb: BasaltPaint
+  var edge: BasaltPaint
+  static func of(on: Bool, palette: Basalt.Palette, contrast: ColorSchemeContrast) -> BasaltTogglePaint {
+    let C = Basalt.Colors.self
+    if on {
+      return BasaltTogglePaint(track: BasaltPaint(palette.resolve(\.checkedFill, or: C.actionPrimary)), thumb: BasaltPaint(palette.resolve(\.checkedInk, or: C.actionPrimaryText)), edge: BasaltPaint(palette.value(\.checkedEdge, contrast: contrast)))
+    }
+    return BasaltTogglePaint(track: BasaltPaint(C.surfaceRaised), thumb: BasaltPaint(contrast == .increased ? C.inkContrast : C.textTertiary), edge: BasaltPaint(contrast == .increased ? C.fieldContrast : C.borderField))
+  }
 }
 
 /// Style any native SwiftUI Button with Basalt's variants. Hover is a colour step. A press is a colour step
@@ -79,34 +173,16 @@ public struct BasaltButtonStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reducedMotion
     @Environment(\.isFocused) private var focused
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.basaltPalette) private var palette
     @State private var hovered = false
 
-    var text: Color {
-      if !enabled { return Basalt.Colors.textDisabled.color }
-      switch variant {
-      case .primary: return Basalt.Colors.actionPrimaryText.color
-      case .danger: return Basalt.Colors.statusDanger.color
-      case .ghost: return hovered ? Basalt.Colors.textPrimary.color : Basalt.Colors.textSecondary.color
-      case .secondary: return Basalt.Colors.textPrimary.color
-      }
+    var paint: BasaltButtonPaint {
+      BasaltButtonPaint.of(variant, size: size, enabled: enabled, pressed: configuration.isPressed, hovered: hovered, palette: palette, contrast: contrast)
     }
 
-    var fill: Color {
-      if variant == .primary {
-        if !enabled { return Basalt.Colors.stateSelected.color }
-        if configuration.isPressed { return Basalt.Colors.actionPrimaryPress.color }
-        return hovered ? Basalt.Colors.actionPrimaryHover.color : Basalt.Colors.actionPrimary.color
-      }
-      if enabled && configuration.isPressed { return Basalt.Colors.stateSelected.color }
-      if enabled && hovered && variant != .secondary { return Basalt.Colors.stateHover.color }
-      return variant == .secondary ? Basalt.Colors.surfaceRaised.color : .clear
-    }
-
-    var edge: Color {
-      if variant == .primary || variant == .ghost { return .clear }
-      if variant == .danger && enabled { return Basalt.Colors.statusDanger.color.opacity(hovered ? 0.7 : 0.45) }
-      return hovered && enabled ? Basalt.Colors.borderHover.color(contrast, increased: Basalt.Colors.textSecondary) : Basalt.Colors.borderHairline.color(contrast, increased: Basalt.Colors.lineContrast)
-    }
+    var text: Color { paint.text.swiftUI }
+    var fill: Color { paint.fill.swiftUI }
+    var edge: Color { paint.edge.swiftUI }
 
     var body: some View {
       configuration.label
@@ -115,14 +191,14 @@ public struct BasaltButtonStyle: ButtonStyle {
         .padding(.horizontal, Basalt.Space.s3)
         .padding(.vertical, size == .xs ? Basalt.Space.s1 : Basalt.Space.s1_5)
         .frame(minWidth: size.minimumHeight, minHeight: size.minimumHeight)
-        .background(fill, in: RoundedRectangle(cornerRadius: size.radius))
-        .overlay(RoundedRectangle(cornerRadius: size.radius).strokeBorder(edge))
-        .basaltFocusRing(focused, radius: size.radius)
-        .scaleEffect(enabled && configuration.isPressed && !reducedMotion ? 0.98 : 1)
+        .background(fill, in: RoundedRectangle(cornerRadius: paint.radius))
+        .overlay(RoundedRectangle(cornerRadius: paint.radius).strokeBorder(edge))
+        .basaltFocusRing(focused, radius: paint.radius)
+        .scaleEffect(enabled && configuration.isPressed && !reducedMotion ? paint.pressScale : 1)
         .animation(reducedMotion ? nil : .basalt(Basalt.Duration.fast), value: configuration.isPressed)
         // The hit shape goes on after the scale: scaleEffect keeps the layout size, so the target stays its full rest size
         // (44pt on iOS) while the drawn surface shrinks, as the web's pressed ::after does.
-        .contentShape(RoundedRectangle(cornerRadius: size.radius))
+        .contentShape(RoundedRectangle(cornerRadius: paint.radius))
         .onHover { hovered = $0 }
     }
   }
@@ -169,6 +245,7 @@ public struct BasaltTextField: View {
   private let prompt: String?
   @Environment(\.isEnabled) private var enabled
   @Environment(\.colorSchemeContrast) private var contrast
+  @Environment(\.basaltPalette) private var palette
   @FocusState private var focused: Bool
 
   public init(_ title: String, text: Binding<String>, prompt: String? = nil, help: String? = nil, error: String? = nil) {
@@ -187,9 +264,9 @@ public struct BasaltTextField: View {
         .padding(.horizontal, Basalt.Space.s3)
         .padding(.vertical, Basalt.Space.s1_5)
         .frame(minHeight: BasaltControlSize.md.minimumHeight)
-        .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: BasaltControlSize.md.radius))
-        .overlay(RoundedRectangle(cornerRadius: BasaltControlSize.md.radius).strokeBorder(error == nil ? Basalt.Colors.borderField.color(contrast, increased: Basalt.Colors.fieldContrast) : Basalt.Colors.statusDanger.color))
-        .basaltFocusRing(focused, radius: BasaltControlSize.md.radius)
+        .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: BasaltControlSize.md.fieldRadius(palette)))
+        .overlay(RoundedRectangle(cornerRadius: BasaltControlSize.md.fieldRadius(palette)).strokeBorder(BasaltFieldPaint.of(error: error != nil, focused: focused, palette: palette, contrast: contrast).edge.swiftUI))
+        .basaltFocusRing(focused, radius: BasaltControlSize.md.fieldRadius(palette))
         .accessibilityLabel(Text(title))
         .accessibilityHint(Text(Self.hint(help: help, error: error) ?? ""))
       if let message = error ?? help {
@@ -211,6 +288,7 @@ public struct BasaltTextEditor: View {
   @Binding private var text: String
   @Environment(\.isEnabled) private var enabled
   @Environment(\.colorSchemeContrast) private var contrast
+  @Environment(\.basaltPalette) private var palette
   @FocusState private var focused: Bool
 
   /// The editor is at least 100 tall, a box of 36 and up, so its fill, boundary and ring are radius 8 on every platform (decision 149).
@@ -229,9 +307,9 @@ public struct BasaltTextEditor: View {
         .scrollContentBackground(.hidden)
         .padding(Basalt.Space.s2)
         .frame(minHeight: 100)
-        .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: Self.radius))
-        .overlay(RoundedRectangle(cornerRadius: Self.radius).strokeBorder(Basalt.Colors.borderField.color(contrast, increased: Basalt.Colors.fieldContrast)))
-        .basaltFocusRing(focused, radius: Self.radius)
+        .background(Basalt.Colors.surfaceRaised.color, in: RoundedRectangle(cornerRadius: palette.fieldCorner(Self.radius)))
+        .overlay(RoundedRectangle(cornerRadius: palette.fieldCorner(Self.radius)).strokeBorder(BasaltFieldPaint.of(error: false, focused: focused, palette: palette, contrast: contrast).edge.swiftUI))
+        .basaltFocusRing(focused, radius: palette.fieldCorner(Self.radius))
         .accessibilityLabel(Text(title))
     }
   }
@@ -249,7 +327,9 @@ public struct BasaltToggleStyle: ToggleStyle {
     @Environment(\.isEnabled) private var enabled
     @Environment(\.accessibilityReduceMotion) private var reducedMotion
     @Environment(\.colorSchemeContrast) private var systemContrast
+    @Environment(\.basaltPalette) private var palette
     private var contrast: ColorSchemeContrast { contrastOverride ?? systemContrast }
+    private var paint: BasaltTogglePaint { BasaltTogglePaint.of(on: configuration.isOn, palette: palette, contrast: contrast) }
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -258,10 +338,10 @@ public struct BasaltToggleStyle: ToggleStyle {
           configuration.label.basaltType(Basalt.TypeScale.base).foregroundStyle(enabled ? Basalt.Colors.textPrimary.color : Basalt.Colors.textDisabled.color)
           Spacer(minLength: Basalt.Space.s3)
           Capsule()
-            .fill(configuration.isOn ? Basalt.Colors.actionPrimary.color : Basalt.Colors.surfaceRaised.color)
+            .fill(paint.track.swiftUI)
             .frame(width: Basalt.Size.switchWidth, height: Basalt.Size.switchHeight)
-            .overlay(Capsule().strokeBorder(configuration.isOn ? .clear : Basalt.Colors.borderField.color(contrast, increased: Basalt.Colors.fieldContrast)))
-            .overlay(Circle().fill(configuration.isOn ? Basalt.Colors.actionPrimaryText.color : Basalt.Colors.textTertiary.color(contrast, increased: Basalt.Colors.inkContrast)).frame(width: Basalt.Size.switchThumb, height: Basalt.Size.switchThumb).offset(x: configuration.isOn ? 7 : -7))
+            .overlay(Capsule().strokeBorder(paint.edge.swiftUI))
+            .overlay(Circle().fill(paint.thumb.swiftUI).frame(width: Basalt.Size.switchThumb, height: Basalt.Size.switchThumb).offset(x: configuration.isOn ? 7 : -7))
             .opacity(enabled ? 1 : 0.5)
         }
         .frame(minHeight: BasaltControlSize.md.minimumHeight)

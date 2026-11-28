@@ -7,8 +7,8 @@
   .segment { --pill-fill: light-dark(var(--basalt-surface-top), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))); position: relative; display: inline-flex; gap: var(--basalt-space-0-5); padding: var(--basalt-space-0-5); border-radius: var(--basalt-radius-md); background: var(--basalt-surface-sunken-strong); }
   .segment button { position: relative; height: var(--basalt-size-control-sm); padding: 0 var(--basalt-space-2-5); margin: 0; border: 0; border-radius: var(--basalt-radius-sm); background: transparent; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / normal var(--basalt-font-family-sans); cursor: pointer; transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out), color var(--basalt-duration-fast) var(--basalt-ease-out), box-shadow var(--basalt-duration-fast) var(--basalt-ease-out); }
   @media (hover: hover) { .segment button:hover:not([aria-pressed="true"], [aria-checked="true"], :disabled) { color: var(--basalt-text-primary); } }
-  .segment { --pill-edge: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline); }
-  .segment button:is([aria-pressed="true"], [aria-checked="true"]) { background: var(--pill-fill); color: var(--basalt-text-primary); box-shadow: var(--pill-edge); }
+  .segment { --pill-edge: 0 0 0 var(--basalt-size-hairline) var(--basalt-chosen-edge, var(--basalt-border-hairline)); }
+  .segment button:is([aria-pressed="true"], [aria-checked="true"]) { background: var(--basalt-chosen-fill, var(--pill-fill)); color: var(--basalt-chosen-ink, var(--basalt-text-primary)); box-shadow: var(--pill-edge); }
   /* The 600 is on the label, not on the button (decision 149): words the script did not reserve keep their weight and move nothing. */
   .segment button[aria-pressed="true"] :is([data-label], [data-reserve] > :first-child) { font-weight: var(--basalt-font-weight-semibold); }
   /* Before the script has reserved a button (and with the script off) the chosen one is 600 itself; a button the script declined to copy (data-bare) keeps 400. */
@@ -65,7 +65,7 @@
      A new choice changes them, and the pill travels by transform and width on duration-slow, ease-out, whatever the distance. It is an
      enhancement over each button painting its own pill (above): drawn only once measured, and never under reduced motion or in forced colours,
      where each button paints its own (a short fade under reduced motion, Highlight and HighlightText in forced colours). */
-  :is(.segment, .segment-scroll) > .pill { display: none; position: absolute; top: 0; left: 0; box-sizing: border-box; width: var(--pill-w); height: var(--pill-h); transform: translate(var(--pill-x), var(--pill-y)); border-radius: var(--basalt-radius-sm); background: var(--pill-fill); box-shadow: var(--pill-edge); pointer-events: none; transition-property: transform, width, height; transition-duration: var(--basalt-duration-slow); transition-timing-function: var(--basalt-ease-out); }
+  :is(.segment, .segment-scroll) > .pill { display: none; position: absolute; top: 0; left: 0; box-sizing: border-box; width: var(--pill-w); height: var(--pill-h); transform: translate(var(--pill-x), var(--pill-y)); border-radius: var(--basalt-radius-sm); background: var(--basalt-chosen-fill, var(--pill-fill)); box-shadow: var(--pill-edge); pointer-events: none; transition-property: transform, width, height; transition-duration: var(--basalt-duration-slow); transition-timing-function: var(--basalt-ease-out); }
   :is(.segment, .segment-scroll)[data-snap] > .pill { transition: none; }
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
     :is(.segment, .segment-scroll)[data-slide] > .pill { display: block; }

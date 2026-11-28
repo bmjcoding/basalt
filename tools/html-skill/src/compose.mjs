@@ -1,6 +1,6 @@
 // Builds one standalone Basalt page from a body fragment.
 //
-//   node .agent/skills/basalt-html/compose.mjs <body.html> [--out <page.html>] [--no-fonts] [--lang <code>] [--all]
+//   node .agent/skills/basalt-html/compose.mjs <body.html> [--out <page.html>] [--no-fonts] [--lang <code>] [--all] [--palettes basalt,beryl,./own.mjs [--palette-url off]]
 //   node .agent/skills/basalt-html/compose.mjs --usage [NAME ...]
 //   node .agent/skills/basalt-html/compose.mjs --marks [PREFIX ...]
 //
@@ -31,11 +31,59 @@
 // Source: tools/html-skill/src/compose.mjs (do not edit the copy in the skill folder).
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import vm from "node:vm";
 import { MessageChannel, receiveMessageOnPort, Worker } from "node:worker_threads";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+
+// The palette's head line (cimip-gaps-3 T9, DECISIONS 403): the same resolution as React's paletteBootstrap, character for character (a parity test holds the two
+// together): a valid ?palette= (or a value the link left for this tab) when the URL policy is on, then a valid saved id, then the default. It writes
+// data-palette and data-palette-source on the root before the first frame. Written only for a page composed with --palettes.
+const PALETTE_RESOLVE =
+  'function(i,d,u){var r=document.documentElement,p=null,s="default",k=function(v){return!!v&&i.indexOf(v)>=0};' +
+  'if(u){try{p=new URLSearchParams(location.search).get("palette")}catch(e){}' +
+  'if(k(p)){s="url";try{sessionStorage.setItem("basalt-palette-url",p)}catch(e){}}' +
+  'else{p=null;try{p=sessionStorage.getItem("basalt-palette-url")}catch(e){}if(k(p))s="url";else p=null}}' +
+  'if(!p){try{p=localStorage.getItem("basalt-palette")}catch(e){}if(k(p))s="stored";else p=null}' +
+  'if(!p)p=d;r.setAttribute("data-palette",p);r.setAttribute("data-palette-source",s)}';
+/** The palette head line for these ids, default and URL policy: React's `paletteBootstrap(definePalettes(...))` exactly. */
+export const paletteInit = (ids, fallback, url) => `(${PALETTE_RESOLVE})(${JSON.stringify(ids)},${JSON.stringify(fallback)},${url ? "true" : "false"});`;
+/** The skill's names for the palette choice's first-frame rules (its segment's pill). */
+const SKILL_CHOICE = { choice: ".palette-choice", pill: "var(--pill-fill)", pillEdge: "var(--pill-edge)" };
+
+/**
+ * Loads the palettes `--palettes` names (`basalt`, a shipped id such as `beryl`, or a path to a module whose default export is a definition), proves each
+ * (a failure throws with every pair under its floor) and returns what compose writes: the ids (the first is the default), the URL policy, the CSS (Basalt's
+ * own block, each palette's block and its more-contrast reset, and the choice's first-frame rules per id) and the metas the palettes module reads.
+ */
+export async function loadPalettes(names, { url = true, parts = path.join(here, "parts"), baseDir = process.cwd() } = {}) {
+  if (!names.length) throw new Error("--palettes names no palette");
+  const kit = await import(pathToFileURL(path.join(parts, "palette-kit", "palettes.js")).href);
+  const defs = [];
+  const ids = [];
+  for (const name of names) {
+    let def = null;
+    if (name === "basalt") ids.push("basalt");
+    else if (/^[a-z][a-z0-9-]{0,31}$/.test(name)) {
+      const file = path.join(parts, "palette-kit", `${name}.js`);
+      if (!fs.existsSync(file)) throw new Error(`--palettes: "${name}" is not a palette Basalt ships (basalt, beryl); give a path to your own`);
+      def = (await import(pathToFileURL(file).href)).default;
+    } else def = (await import(pathToFileURL(path.resolve(baseDir, name)).href)).default;
+    if (def) {
+      kit.definePalette(def);
+      if (ids.includes(def.id)) throw new Error(`--palettes lists ${def.id} twice`);
+      ids.push(def.id);
+      defs.push(def);
+    }
+  }
+  if (new Set(ids).size !== ids.length) throw new Error("--palettes lists a palette twice");
+  // The rule-4 paints (parts/palette-rules.css) come first, then Basalt's own block, each palette's, and the choice's first-frame rules.
+  const css = `${read(parts, "palette-rules.css")}${kit.basaltPaletteCss()}${defs.length ? kit.paletteCss(defs, { chosenWord: SKILL_CHOICE }) : ""}@layer basalt {\n${kit.chosenWordCss("basalt", SKILL_CHOICE)}\n}\n`;
+  const advisories = defs.flatMap((def) => kit.verifyPalette(def).advisories.map((pair) => `${def.id} (advisory): ${kit.describePair(pair)}`));
+  const metas = [`<meta name="basalt-palettes" content="${ids.join(" ")}">`, `<meta name="basalt-palette-default" content="${ids[0]}">`, ...(url ? [] : ['<meta name="basalt-palette-url" content="off">'])];
+  return { ids, default: ids[0], url, css, metas, head: paletteInit(ids, ids[0], url), advisories };
+}
 
 // Sets the theme before first paint: the stored choice, else the system's; the browser chrome's live theme-color tag for it, first in the head (DECISIONS 420);
 // and a hardware key already seen this session.
@@ -617,7 +665,7 @@ function drawsMono(held, styles, modules, manifest, { all, scriptsDrawMono }) {
  * off that one rule, never the static ones. For a build that knows its scripts, not for an agent writing a page).
  * Returns { html, modules, icons, glyphs, built, external, mono, bytes } (mono: whether the Geist Mono face is inlined) (external: what the body references that leaves the file; built: { module: the module whose script builds it } for a module the body never triggers). Throws an Error with a plain message for input it can't use.
  */
-export function compose(body, { fonts = true, lang = "en", all = false, parts = path.join(here, "parts"), baseDir = process.cwd(), scriptsDrawMono = true } = {}) {
+export function compose(body, { fonts = true, lang = "en", all = false, parts = path.join(here, "parts"), baseDir = process.cwd(), scriptsDrawMono = true, palettes = null } = {}) {
   if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(lang)) throw new Error(`"${lang}" is not a language code`);
   const manifest = JSON.parse(read(parts, "manifest.json"));
   const iconFile = JSON.parse(read(parts, "icons.json"));
@@ -668,7 +716,8 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
 
   for (const id of marks.named) useMark(marks, id, null);
   const markCss = chosen.modules.includes("diagram") ? markRules(marks) : "";
-  const css = [read(parts, "core.css"), ...chosen.modules.filter((n) => exists(parts, `${n}.css`)).map((n) => read(parts, `${n}.css`)), markCss].join("");
+  // A page composed with --palettes (loadPalettes) carries their CSS after the modules', and its head line and metas after the theme's.
+  const css = [read(parts, "core.css"), ...chosen.modules.filter((n) => exists(parts, `${n}.css`)).map((n) => read(parts, `${n}.css`)), markCss, palettes ? palettes.css : ""].join("");
   const icons = Object.fromEntries(chosen.icons.map((n) => [n, iconFile.icons[n]]));
   const script = [
     read(parts, "core.js"),
@@ -696,6 +745,7 @@ export function compose(body, { fonts = true, lang = "en", all = false, parts = 
     `<title>${title}</title>`,
     ...headTags,
     `<script>${THEME_INIT}</script>`,
+    ...(palettes ? [...palettes.metas, `<script>${palettes.head}</script>`] : []),
     // Any page that draws a loop keeps a hold the reader stored on another page of the origin, not only a page with the toggle.
     ...(chosen.modules.some((n) => LOOPING.has(n)) ? [`<script>${LOOPS_INIT}</script>`] : []),
     ...(fonts ? ["<style data-basalt-fonts>", read(parts, "geist-sans.css").trim(), ...(mono ? [read(parts, "geist-mono.css").trim()] : []), "</style>"] : []),
@@ -1012,7 +1062,7 @@ export function marksText(prefixes = [], { parts = path.join(here, "parts") } = 
 }
 
 function usage() {
-  console.error("usage: node .agent/skills/basalt-html/compose.mjs <body.html> [--out <page.html>] [--no-fonts] [--lang <code>] [--all]\n       node .agent/skills/basalt-html/compose.mjs --usage [NAME ...]\n       node .agent/skills/basalt-html/compose.mjs --marks [PREFIX ...]");
+  console.error("usage: node .agent/skills/basalt-html/compose.mjs <body.html> [--out <page.html>] [--no-fonts] [--lang <code>] [--all] [--palettes LIST [--palette-url off]]\n       node .agent/skills/basalt-html/compose.mjs --usage [NAME ...]\n       node .agent/skills/basalt-html/compose.mjs --marks [PREFIX ...]");
   process.exit(2);
 }
 
@@ -1021,6 +1071,8 @@ const isMain = (() => { try { return Boolean(process.argv[1]) && fs.realpathSync
 if (isMain) {
   const args = process.argv.slice(2);
   const options = { fonts: true, lang: "en", all: false };
+  let paletteNames = null;
+  let paletteUrl = true;
   let input = null;
   let out = null;
   let usageNames = null;
@@ -1035,7 +1087,13 @@ if (isMain) {
       while (args[i + 1] !== undefined && !args[i + 1].startsWith("--")) markPrefixes.push(args[++i]);
     } else if (a === "--no-fonts") options.fonts = false;
     else if (a === "--all") options.all = true;
-    else if (a === "--out" || a === "--lang") {
+    else if (a === "--palettes") {
+      if (args[i + 1] === undefined || args[i + 1].startsWith("--")) usage();
+      paletteNames = args[++i].split(",").map((n) => n.trim()).filter(Boolean);
+    } else if (a === "--palette-url") {
+      if (args[i + 1] !== "off" && args[i + 1] !== "on") usage();
+      paletteUrl = args[++i] === "on";
+    } else if (a === "--out" || a === "--lang") {
       if (args[i + 1] === undefined || args[i + 1].startsWith("--")) usage();
       if (a === "--out") out = args[++i]; else options.lang = args[++i];
     } else if (a.startsWith("--") || input) usage();
@@ -1069,7 +1127,9 @@ if (isMain) {
         if (path.resolve(out) === path.resolve(input)) throw new Error(`${input} would be overwritten; name the page with --out`);
       }
       if (path.resolve(out) === path.resolve(input)) throw new Error("--out is the input file; name another file");
-      const result = compose(fs.readFileSync(input, "utf8"), { ...options, baseDir: path.dirname(path.resolve(input)) });
+      const palettes = paletteNames ? await loadPalettes(paletteNames, { url: paletteUrl }) : null;
+      for (const line of palettes?.advisories ?? []) console.log(line);
+      const result = compose(fs.readFileSync(input, "utf8"), { ...options, baseDir: path.dirname(path.resolve(input)), palettes });
       fs.writeFileSync(out, result.html);
       console.log(`${out}: ${(result.bytes / 1024).toFixed(1)} KB, core + ${result.modules.join(", ") || "no modules"}; icons: ${result.icons.join(", ") || "none"}${options.fonts ? `; Geist Mono: ${result.mono ? "included" : "left out (nothing on the page draws it)"}` : ""}`);
       // One line of warning for each module added: the mistake an agent makes with it. The full text is `--usage NAME`.

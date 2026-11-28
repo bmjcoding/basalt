@@ -486,7 +486,7 @@ describe("modules map to the index and the usage texts", () => {
   test("every usage text names only classes of its own module, the modules it requires, the core, or a mention listed here, and each brings its module", () => {
     // A usage may point at one class of another module, said here so it is on purpose (the theme choice is a .segment radio group and its icon form opens a .menu; the core's `.hint` is a forms class; a braille spinner sits in a `.status`).
     // The loop hold names the menu row it can be (a .menu-item). The app shell names the phone tab bar that goes in it; the tab bar names the sheet and the nav rows of its More cell (a page that uses them brings them by their own markup).
-    const mentions = { core: ["hint", "text-lead"], braille: ["status"], loops: ["btn-check", "menu-item", "menu-item-label"], "app-shell": ["tab-bar"], "tab-bar": ["sheet", "nav", "dialog-title"], stage: ["topbar"], ambient: ["stage-art", "framed-frame"], theme: ["segment", "menu", "menu-item", "menu-item-label"] };
+    const mentions = { core: ["hint", "text-lead"], braille: ["status"], loops: ["btn-check", "menu-item", "menu-item-label"], "app-shell": ["tab-bar"], "tab-bar": ["sheet", "nav", "dialog-title"], stage: ["topbar"], ambient: ["stage-art", "framed-frame"], theme: ["segment", "menu", "menu-item", "menu-item-label"], palettes: ["segment", "menu-item", "menu-text"] };
     const needed = (name) => {
       const set = new Set([name]);
       for (let grew = true; grew;) { grew = false; for (const n of [...set]) for (const r of manifest.modules[n]?.requires ?? []) if (!set.has(r)) { set.add(r); grew = true; } }
@@ -589,7 +589,7 @@ describe("budgets", () => {
     // soft, raised with a recorded reason, never a fix dropped to fit. The cap and the same reason are in modules.json (budgets.coreReason).
     // micro-details m2 (DECISIONS 419) adds tabular `time`, the ligature setting, the clamp's wrap, hanging quotes, theme smoothing and `.date-age-age`, which the
     // decision puts in core; the combined figure, measured on the merged tree, is in modules.json (budgets.coreReason), under the same soft-budget rule.
-    assert.ok(bytes < 43 * 1024, "well under 80 KiB");
+    assert.ok(bytes < 44 * 1024, "well under 80 KiB"); // cimip-gaps-3 T9: 43 to 44 KiB with the core cap (44,745 measured)
   });
 
   for (const name of modules) {

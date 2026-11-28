@@ -26,8 +26,8 @@
   :is(%panel%, .float) select.input { --_pop-bg: var(--panel-next); --_pop-next: var(--basalt-surface-3); }
   select.input[data-size="xs"] { height: var(--basalt-size-control-xs); --_font: var(--basalt-text-sm-size); }
   select.input[data-size="sm"] { height: var(--basalt-size-control-sm); --_font: var(--basalt-text-sm-size); }
-  select.input[data-size="lg"] { height: var(--basalt-size-control-lg); border-radius: var(--basalt-radius-md); }
-  select.input[data-size="xl"] { height: var(--basalt-size-control-xl); border-radius: var(--basalt-radius-md); --_font: var(--basalt-text-md-size); }
+  select.input[data-size="lg"] { height: var(--basalt-size-control-lg); border-radius: var(--basalt-field-radius-lg, var(--basalt-radius-md)); }
+  select.input[data-size="xl"] { height: var(--basalt-size-control-xl); border-radius: var(--basalt-field-radius-lg, var(--basalt-radius-md)); --_font: var(--basalt-text-md-size); }
   select.input:disabled { cursor: not-allowed; }
   select.input option { color: var(--basalt-text-primary); }
   .option-description { display: none; }
@@ -123,7 +123,7 @@
   }
 
   /* On touch the trigger is at least 44 and its text 16px (React's Select trigger), whatever its size. */
-  @media (pointer: coarse), (width < %bp-md%) { select.input { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
+  @media (pointer: coarse), (width < %bp-md%) { select.input { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-field-radius-lg, var(--basalt-radius-md)); } }
   @media (pointer: coarse) { select.input { font-size: var(--basalt-text-md-size); } }
 
   @media (forced-colors: active) {

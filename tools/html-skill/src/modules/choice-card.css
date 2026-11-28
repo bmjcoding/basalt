@@ -53,7 +53,7 @@
     border-radius: var(--basalt-radius-xs);
     background: var(--basalt-surface-raised);
     box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-border-field);
-    color: var(--basalt-action-primary-text);
+    color: var(--basalt-checked-ink, var(--basalt-action-primary-text));
     transition-property: background-color, box-shadow;
     transition-duration: var(--basalt-duration-fast);
     transition-timing-function: var(--basalt-ease-out);
@@ -63,7 +63,7 @@
   .choice-card-box::before { content: ""; opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); }
   .choice-card:has(> input[type="checkbox"]) .choice-card-box::before { width: var(--basalt-size-choice-mark); height: var(--basalt-size-choice-mark); background: currentColor; mask: url("%glyph-mask:check%") center / contain no-repeat; }
   .choice-card:has(> input[type="radio"]) .choice-card-box::before { width: var(--basalt-size-dot); height: var(--basalt-size-dot); border-radius: var(--basalt-radius-full); background: currentColor; }
-  .choice-card:has(> .choice-card-input:checked) .choice-card-box { background: var(--basalt-action-primary); box-shadow: none; }
+  .choice-card:has(> .choice-card-input:checked) .choice-card-box { background: var(--basalt-checked-fill, var(--basalt-action-primary)); box-shadow: none; }
   .choice-card:has(> .choice-card-input:checked) .choice-card-box::before { opacity: 1; }
   .choice-card:has(> .choice-card-input:disabled) .choice-card-box { opacity: 0.5; }
   /* The grid keeps space-4 between cards, which holds each +2 focus ring clear of its neighbours; the page keeps at least space-1-5 to any clipping edge. */

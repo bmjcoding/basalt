@@ -484,6 +484,10 @@ export function build() {
       else files[`parts/${name}.${ext}`] = ext === "css" ? minifyCss(tokens + fs.readFileSync(file, "utf8")) : minifyJs(fs.readFileSync(file, "utf8"));
     }
   }
+  // The palette kit (cimip-gaps-3 T9): the tokens package's verifier and emitter with Basalt's resolved colours, and the shipped palettes, so `compose.mjs
+  // --palettes` proves and writes a palette with no other file. Copied as built (each is already small and plain); compose imports them only for --palettes.
+  files["parts/palette-rules.css"] = minifyCss(src("palette-rules.css"));
+  for (const name of ["palettes.js", "palette-base.js", "beryl.js"]) files[`parts/palette-kit/${name}`] = fs.readFileSync(path.join(path.dirname(require.resolve("@srasyndicate/basalt-tokens/palettes")), name), "utf8");
   // The icon paths are Phosphor's (MIT), so a page that draws them carries Phosphor's whole notice, as a legal comment a minifier keeps.
   const notice = licenceComment(path.join(findPackage("@phosphor-icons/react"), "LICENSE"), "The icon paths below are from Phosphor Icons (@phosphor-icons/react):");
   files["parts/icons.json"] = `${JSON.stringify({ notice, icons: iconData(JSON.parse(src("icons.json"))) })}\n`;
