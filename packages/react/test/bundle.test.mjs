@@ -135,7 +135,9 @@ for (const [name, limit] of [["Spinner", 2_500], ["Sparkline", 9_100], ["Skeleto
 // SearchDialog 89,550 (main's) to 89,950 in DECISIONS 336: its top is held where a full result has it (DialogContent's held top for a dialog that is not a form), and Close is hung.
 // The stream's merge: SearchDialog was over its limit on main before this stream (89,981 against 89,950); with T4's FilterResult and Reserve it measures
 // 90,327 on the combined head (origin/main 6a78d57c: 89,981), so its limit is that figure and a small margin, 90,350.
-for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 98_771]]) {
+// cimip-gaps-3 E6 (G161, IconButton's `icon` as a node: the branch that draws an element in the glyph's place; this file's graph() on origin/main 1b4749df and on the E6 head):
+// SearchDialog 98,748 on main, 98,857 with E6 (+109), so 98,771 to 98,880.
+for (const [name, limit] of [["SheetHeader", 82_000], ["SearchDialog", 98_880]]) {
   test(`${name} alone, with splitting, loads Base UI's dialog and the close button and no command panel (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name}: ${bytes} bytes (limit ${limit})`);
@@ -436,7 +438,9 @@ test("command-panel.js keeps Phosphor's full MIT notice as a preserved legal com
 // c67926bf: main 153,260, the head 155,936; then 155,982 once the first load's fallback is busy (a held first paint waits for the shape's code), the limit
 // 155,950 to 156,000.
 // The stream's merge (T3 and T4 both raised it): NotificationCentre 153,260 on origin/main 6a78d57c, 156,110 on the combined head (+2,850), so main's 153,300 to 156,150.
-for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 164_995]]) {
+// cimip-gaps-3 E6 (G161, IconButton's `icon` as a node: the branch that draws an element in the glyph's place; this file's graph() on origin/main 1b4749df and on the E6 head):
+// NotificationCentre 164,955 on main, 165,064 with E6 (+109), so 164,995 to 165,104.
+for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["NotificationCentre", 165_104]]) {
   test(`${name} alone stays lean and loads no Shiki, cmdk or grammar`, async () => {
     // The static graph under splitting: what loads first. A control's glyph engine loads on demand and is not in it (and has a limit of its own, below).
     const { bytes, inputs } = await graph(name);
@@ -450,7 +454,9 @@ for (const [name, limit] of [["ToastProvider", 94_500], ["useToast", 4_000], ["N
 // DECISIONS 326: a text toggle's seat holds its glyph and hands over to the check (button.tsx), about 185 bytes on every Button: the toolbar parts 58,803 (58,650 to 58,850).
 // The toolbar's parts 58,950 (main's) to 59,200 in DECISIONS 336: Button's edge and done seat.
 // The stream's merge: the toolbar set 59,197 on origin/main 6a78d57c, 59,340 on the combined head (+143), so main's 59,200 to 59,343.
-for (const [name, limit] of [["Toolbar", 25_000], ["Toolbar, ToolbarButton, ToolbarIconButton, ToolbarLink, ToolbarInput, ToolbarGroup, ToolbarSeparator", 59_343]]) {
+// cimip-gaps-3 E6 (G161, IconButton's `icon` as a node: the branch that draws an element in the glyph's place; this file's graph() on origin/main 1b4749df and on the E6 head):
+// the whole toolbar set 59,340 on main, 59,448 with E6 (+108), so 59,343 to 59,451.
+for (const [name, limit] of [["Toolbar", 25_000], ["Toolbar, ToolbarButton, ToolbarIconButton, ToolbarLink, ToolbarInput, ToolbarGroup, ToolbarSeparator", 59_451]]) {
   test(`${name.length > 10 ? "Every toolbar part" : name} stays small and loads no Shiki, cmdk or grammar (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -485,7 +491,9 @@ test("Stats with Stat loads no Base UI and no Shiki up front, and of Phosphor on
 // cimip-gaps-3 E5: E1 had raised this limit to main's measure, because PR #143 built the lazy diagram-actions.js in the main build, so it imported
 // Button's dist chunk and an app's bundler put Button and Base UI's button in a chunk every root import loaded. diagram-actions is built on its own now
 // (build.mjs), and the limit is the measure on the E5 branch, rounded up to the next 50: PeriodStepper 21,274 on main, 18,285 (21,300 to 18,300; E1's quiet arrival is the 155 over the old 18,150).
-for (const [name, limit, plain] of [["AppTile", 1_500, true], ["CaptionedColumns, CaptionedColumn", 1_000, true], ["TableCall", 800, true], ["PeriodStepper", 18_300, false]]) {
+// cimip-gaps-3 E6 (G161, IconButton's `icon` as a node: the branch that draws an element in the glyph's place; this file's graph() on origin/main 1b4749df and on the E6 head):
+// PeriodStepper 18,284 on main, 18,392 with E6 (+108), so 18,300 to 18,408.
+for (const [name, limit, plain] of [["AppTile", 1_500, true], ["CaptionedColumns, CaptionedColumn", 1_000, true], ["TableCall", 800, true], ["PeriodStepper", 18_408, false]]) {
   test(`${name} alone is small and loads no Shiki or cmdk${plain ? ", no Base UI and no Phosphor" : ""} (${limit} bytes at most)`, async () => {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} bundle is ${bytes} bytes (limit ${limit})`);
@@ -554,7 +562,9 @@ test("Terminal does not pull in Shiki, cmdk or an unrelated Base UI part", async
   // origin/main ac962cec, again at 42,889 on origin/main c67926bf (merge prep), and 43,007 on the t6 head (+118), so the limit rises by the increase, 42,900 to 43,018.
   // The stream's merge (T1, T2 and T6 each raised it): 43,007 on origin/main 6a78d57c, 43,980 on the combined head (+973), so main's 43,018 to 43,991.
   // cimip-gaps-3 t7: the transcript fades (scroll-fade.ts): 43,980 on origin/main 4e438ecb and on 8b090549, 50,042 on the t7 head (+6,062), so 43,991 to 50,053.
-  assert.ok(bytes < 50_053, `Terminal bundle is ${bytes} bytes`);
+  // cimip-gaps-3 E6 (G161, IconButton's `icon` as a node: the branch that draws an element in the glyph's place; this file's graph() on origin/main 1b4749df and on the E6 head):
+  // Terminal 50,042 on main, 50,150 with E6 (+108), so 50,053 to 50,161.
+  assert.ok(bytes < 50_161, `Terminal bundle is ${bytes} bytes`);
   assert.deepEqual(inputs.filter((f) => /cmdk|@radix-ui|shiki/.test(f)), []);
   assert.ok(!inputs.some((f) => /@base-ui\/react\/(esm\/)?(menu|dialog|select|popover|tooltip)\//.test(f)));
 });

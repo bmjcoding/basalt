@@ -29,8 +29,12 @@ interface Asked {
 }
 
 export interface ListBandProps extends Omit<React.ComponentProps<"div">, "children" | "onChange"> {
-  /** How many rows match now (after any search and filters). 0 blanks the count and hides the pager, keeping their room. */
-  total: number;
+  /**
+   * How many rows match now (after any search and filters). 0 blanks the count and hides the pager, keeping their room. `null` is a total not known yet (a list read from a
+   * server before its first answer): the count is blank, as at 0, and the narrow band holds its pager's seat, unseen (G144), so a total that arrives with more than one page
+   * draws the pager in its seat and moves nothing. Give `keepFootRoom` too when the list expects more than one page, so a total of one page keeps the seat after it arrives.
+   */
+  total: number | null;
   /**
    * The most rows the list can ever hold (its unfiltered count). The count's seat is as wide as its widest form ("888–888 of 888") and the pager's slots as wide as the
    * widest page number at the smallest size, so a filter that narrows the list moves nothing. Default `total`: give it whenever `total` can change.
@@ -51,7 +55,10 @@ export interface ListBandProps extends Omit<React.ComponentProps<"div">, "childr
    * Under 720 the foot (Previous, the count and Next under the list) is drawn only with more than one page, so a list whose rows arrive after its first frame grows the
    * foot then, and what is under it moves. Set this to hold the foot's room from the first frame (G88): at one page or none the foot holds its room and draws nothing (its
    * arrows and its count hidden, no landmark), since the band above already says the range. Use it for a list whose rows arrive after the first frame and that expects more
-   * than one page. Opt-in: left out or `false`, the foot is as shipped (DECISIONS 227 removed this empty room under every short list).
+   * than one page. Opt-in: left out or `false`, the foot is as shipped (DECISIONS 227 removed this empty room under every short list). With it the narrow band also holds its
+   * pager's seat at one page or none (G144): the pager is there, unseen and inert (no tab stop, nothing spoken), and the range is drawn over the start of its seat, on the
+   * gutter, so the band is the height it will be with a second page: where the pager and the page size cannot share a row (about 340 of the band's width on touch) the page
+   * size is the end of a second row at one page too, and a total that arrives later moves nothing.
    */
   keepFootRoom?: boolean;
   /**
@@ -128,11 +135,14 @@ function returnToRest(sentinel: HTMLElement, owner: HTMLElement | null) {
  * to where the band rests, so the new page's first row shows under the band and Next stays under the pointer. Under 640px of its own width the numbers go (Previous, the count and Next),
  * and under 340px the page size moves to the end of a second row. Under 720, with more than one page, the band's Previous, count and Next are drawn again, centred under the list (its foot):
  * a press there changes the page, returns the scroller to where the band rests and moves focus to the band's own arrow (with `keepFootRoom`, its room is held at one page too,
- * drawing nothing). At one page or none the narrow band draws no pager: the range starts the row and the page size ends it (`onePage="size"` shows the page size alone). Back to top sits in a dock of zero height after the band.
+ * drawing nothing). At one page or none the narrow band draws no pager: the range starts the row and the page size ends it (`onePage="size"` shows the page size alone); with
+ * `keepFootRoom`, or while `total` is `null`, the pager keeps its seat there unseen, so the band is already the height it has with more pages. Back to top sits in a dock of zero height after the band.
  * The scroller is the window unless `scroller` names a pane.
  */
 export function ListBand({ total, maxTotal, seatTotal, rangeTotal = true, keepFootRoom = false, onePage = "band", page, pageSize, pageSizes = DEFAULT_SIZES, onPageChange, onPageSizeChange, noun, sizeLabel = "per page", pagerLabel, delay, heading, backToTop = true, footLabel = "Pagination, end of list", filterKey, scroller, children, className, ...props }: ListBandProps) {
-  const count = Math.max(0, Math.floor(total) || 0);
+  const count = Math.max(0, Math.floor(total ?? 0) || 0);
+  // The narrow band holds its pager's seat at one page or none (G144): while the total is not known, and always with `keepFootRoom`.
+  const hold = keepFootRoom || total === null;
   const size = Math.max(1, Math.floor(pageSize) || 1);
   const pages = Math.max(1, Math.ceil(count / size));
   // The app's own page, and the page shown: clamped to the pages there are. A size change the app commits before its page shows a clamped page for a render.
@@ -217,7 +227,7 @@ export function ListBand({ total, maxTotal, seatTotal, rangeTotal = true, keepFo
   return (
     <div className="basalt-list-band-wrap" data-scroller={scroller ? "" : undefined}>
       <div ref={sentinel} className="basalt-list-band-sentinel" aria-hidden="true" />
-      <div {...props} ref={band} data-stuck={stuck ? "" : undefined} data-whole={pages <= 1 ? "" : undefined} data-one-page={onePage === "size" ? "size" : undefined} data-pinned-edge="top" className={join("basalt-list-band", className)}>
+      <div {...props} ref={band} data-stuck={stuck ? "" : undefined} data-whole={pages <= 1 ? "" : undefined} data-hold={hold ? "" : undefined} data-one-page={onePage === "size" ? "size" : undefined} data-pinned-edge="top" className={join("basalt-list-band", className)}>
         <div className="basalt-list-band-row">
           <p className="basalt-list-band-range">{range}</p>
           <Pagination
@@ -227,6 +237,8 @@ export function ListBand({ total, maxTotal, seatTotal, rangeTotal = true, keepFo
             maxPages={maxPages}
             summary={range}
             keepRoom
+            // A held seat at one page or none is unseen (the stylesheet) and inert: no tab stop, nothing spoken, nothing a click reaches.
+            inert={hold && pages <= 1 ? true : undefined}
             onPageChange={(next) => { ask(true, next, size); onPageChange?.(next); }}
           />
           <div className="basalt-list-band-size">

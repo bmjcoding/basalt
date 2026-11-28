@@ -161,6 +161,8 @@ export type { ArrivalProps, StreamBlockProps, StreamEntryProps, StreamMessagePro
 // Versions and release notes (DECISIONS 320): each its own module, so an app that shows only the foot's link loads only that.
 export { VersionLink } from "./version-link";
 export type { VersionLinkProps } from "./version-link";
+export { RailTooltipContext, VersionPlaceContext } from "./version-place";
+export type { VersionPlace } from "./version-place";
 export { ReleaseNotes } from "./release-notes";
 export type { ReleaseAudience, ReleaseBuildRow, ReleaseBump, ReleaseEntryRecord, ReleaseEntryType, ReleaseNotesProps, ReleaseRecord, ReleaseWords } from "./release-notes";
 export { ReleaseIndex } from "./release-index";

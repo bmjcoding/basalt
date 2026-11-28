@@ -207,7 +207,13 @@ export function Button({ variant = "secondary", size = "md", fullWidth, edge, ic
 
 export type IconButtonProps = BaseProps &
   Toggle & {
-    icon: IconComponent;
+    /**
+     * The glyph, as a component (`CopyGlyph`, a Phosphor icon), drawn at the control's glyph size. Or a node (G161): an element drawn as given in the
+     * glyph's place, centred in the square, hidden from assistive technology (the button's name is `label`), with the same plate, ring, press and hit
+     * area; an `Avatar` at 24 in a 32px control is an account control in a bar. A node is the app's own drawing: `done`, `doneIcon`, `fillSafe` and a
+     * pressed toggle's selected form apply only to a component, and a ghost one's `edge` hangs by `--_glyph` (16), so set it to the node's size.
+     */
+    icon: IconComponent | React.ReactElement;
     /**
      * The "done" state: the glyph is replaced by `doneIcon` (the core check) in the button's own ink. A core pair the morphs allow (Copy and
      * Check) morphs; any other pair crossfades over 100ms, which stays under reduced motion. No fill, no
@@ -248,6 +254,12 @@ function DoneSeat({ icon, doneIcon, done, size, selected, fillSafe }: DoneSeatPr
   );
 }
 
+/**
+ * An element, not a component: only an element has `props` (a component is a function or, wrapped in `forwardRef` or `memo` as Phosphor's are, an object). Read without
+ * React's `isValidElement`, so this module keeps no runtime import of React for a bundle that takes only `Button`.
+ */
+const isElement = (icon: IconComponent | React.ReactElement): icon is React.ReactElement => (icon as { props?: unknown }).props !== undefined;
+
 /** A square button with only an icon. As a toggle it has no check: the plate, the ink step and the glyph's selected form say pressed. */
 export function IconButton({ variant = "ghost", size = "md", fullWidth, edge, icon, done, doneIcon = CheckGlyph, fillSafe, pressed, label, loading: loadingProp = false, waitForAnswer = true, disabled, onClick, className, newTabLabel, render, ref, ...props }: IconButtonProps) {
   // A handler on the rendered element is taken into the press, so the wait guards it too.
@@ -278,7 +290,10 @@ export function IconButton({ variant = "ghost", size = "md", fullWidth, edge, ic
       className={withClass("basalt-button", className)}
       onClick={wait.press}
     >
-      {done !== undefined ? (
+      {isElement(icon) ? (
+        // A node in the glyph's place (G161), centred as a glyph is; the button's name is its label.
+        <span className="basalt-button-node" aria-hidden="true">{icon}</span>
+      ) : done !== undefined ? (
         <DoneSeat icon={icon} doneIcon={doneIcon} done={done} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} />
       ) : (
         <ControlIcon icon={icon} size={iconSize(size)} selected={isPressed} fillSafe={fillSafe} eager={toggles} crossfade={toggles} />
