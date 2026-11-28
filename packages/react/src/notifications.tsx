@@ -4,6 +4,7 @@ import { WarningIcon } from "@phosphor-icons/react/dist/csr/Warning";
 import { XCircleIcon } from "@phosphor-icons/react/dist/csr/XCircle";
 import * as React from "react";
 
+import { Portless } from "./fade-port";
 import { Button, IconButton } from "./button";
 import type { ButtonEdge } from "./button";
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "./feedback";
@@ -249,6 +250,7 @@ export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, on
         data-direct={direct > 0 ? "" : undefined}
         render={<IconButton icon={NotificationsGlyph} label={name} edge={edge} className={className} />}
       />
+      <Portless.Provider value>
       <PopoverContent side={side} align={align} initialFocus={initialFocus} className="basalt-notifications">
         <div className="basalt-notifications-head">
           <PopoverTitle className="basalt-notifications-title">{label}</PopoverTitle>
@@ -273,6 +275,7 @@ export function NotificationCenter({ entries: given, onSelect, onMarkAllRead, on
           {clearReason ? <p id={`${ids}-clear`} className="basalt-notifications-reason">{clearReason}</p> : null}
         </div>
       </PopoverContent>
+      </Portless.Provider>
     </Popover>
   );
 }

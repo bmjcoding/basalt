@@ -7,6 +7,7 @@ import { ChosenLabel } from "./chosen";
 import { FieldGroupContext } from "./field-group";
 import { useMergedRef } from "./merged-ref";
 import { Pill } from "./pill";
+import { watchScrollFade } from "./scroll-fade";
 import { clipToColumn, revealIn } from "./scroll-reveal";
 import type { ChangeDetails, ChoiceValue, Orientation, PartProps } from "./types";
 import { join, withClass } from "./utils";
@@ -153,30 +154,28 @@ export function TabsList({ className, children, ref, ...props }: TabsListProps) 
     };
   }, [orientation, flips]);
   // A horizontal row scrolls in its own port (cimip-gaps-3 t4, item 6): a tab that takes focus, the chosen tab when the choice changes (a press, a key, a
-  // controlled value) and the chosen tab on first layout are brought whole into view, space-6 clear (their `scroll-margin-inline`), at once. The port's
-  // scroll is set by hand from the two boxes' rects, so the window never moves and no sign of `scrollLeft` is assumed (right to left included).
+  // controlled value) and the chosen tab on first layout are brought whole into view, clear of the fade with the ring's room (their `scroll-margin-inline`),
+  // at once, measured from the column's edges (the clip lines). The port's scroll is set by hand from the boxes' rects, so the window never moves and no sign
+  // of `scrollLeft` is assumed (right to left included). Each side that hides tabs fades inside its clip line (cimip-gaps-3 t7): the clip stays the bound and
+  // the hit-test edge, the band starts at it, and a focused tab with its ring is never under it.
   const port = React.useRef<HTMLDivElement | null>(null);
   React.useLayoutEffect(() => {
     const scroller = port.current;
     const element = list.current;
     if (!scroller || !element || orientation === "vertical") return undefined;
     const clip = () => clipToColumn(scroller, element);
-    const reveal = (tab: Element | null) => { revealIn(scroller, tab); clip(); };
+    const fade = watchScrollFade(scroller, { axis: "inline", content: element, insets: clip, ring: 4 });
+    const reveal = (tab: Element | null) => { revealIn(scroller, tab, clip()); fade.refresh(); };
     const chosen = () => element.querySelector('[role="tab"][aria-selected="true"]');
     reveal(chosen());
     const onFocus = (event: FocusEvent) => reveal((event.target as Element | null)?.closest('[role="tab"]') ?? null);
     element.addEventListener("focusin", onFocus);
-    scroller.addEventListener("scroll", clip, { passive: true });
-    const sizes = new ResizeObserver(clip);
-    sizes.observe(scroller);
-    sizes.observe(element);
     const choice = new MutationObserver(() => reveal(chosen()));
     choice.observe(element, { attributes: true, attributeFilter: ["aria-selected"], subtree: true });
     return () => {
       element.removeEventListener("focusin", onFocus);
-      scroller.removeEventListener("scroll", clip);
-      sizes.disconnect();
       choice.disconnect();
+      fade.stop();
       scroller.removeAttribute("data-clip");
     };
   }, [orientation]);
@@ -305,15 +304,20 @@ function segmentsOf(track: HTMLElement) {
 }
 
 /**
- * A horizontal track wider than its column scrolls in itself (cimip-gaps-3 t4, item 6). `data-overflow` is set while the segments, with the track's padding, are
- * wider than the track's box (held to the column by `max-width: 100%`, so setting it changes no width and cannot flip back); the stylesheet hangs the scroll and the
- * inset ring on it. Measured at once (a layout effect, so a client render never paints the unclipped form), when the track or a segment resizes, when segments
- * come or go and when fonts arrive. While it overflows, the chosen segment, and a segment that takes focus, are brought whole into view, space-6 clear, at once.
+ * A horizontal track wider than its column scrolls in itself (cimip-gaps-3 t4, item 6), split by t7 into a host and a port: the host (`.basalt-segmented`)
+ * keeps the track's fill and radius and is held to the column (`max-width: 100%`); the port (`.basalt-segmented-scroll`, always a real box) holds the pill, the
+ * padding and the segments. `data-overflow` is set on the host while the segments, with the port's padding, are wider than the host (so setting it changes no
+ * width and cannot flip back); the stylesheet then clips the host to its radius and lets the port scroll. Measured at once (a layout effect, so a client render
+ * never paints the unclipped form), when the host or a segment resizes, when segments come or go and when fonts arrive. While it overflows, the chosen segment,
+ * and a segment that takes focus, are brought whole into view, clear of the fade (their `scroll-margin-inline`), at once, and each side of the port that hides
+ * segments fades (the track itself is never masked).
  */
-function watchOverflow(track: HTMLElement): () => void {
+function watchOverflow(track: HTMLElement, port: HTMLElement): () => void {
   const sizes = new ResizeObserver(() => measure());
   let watched: HTMLElement[] = [];
+  const fade = watchScrollFade(port, { axis: "inline" });
   const chosen = () => segmentsOf(track).find((el) => el.hasAttribute("data-pressed") || el.getAttribute("aria-checked") === "true") ?? null;
+  const reveal = (item: Element | null) => { revealIn(port, item); fade.refresh(); };
   const measure = () => {
     const segments = segmentsOf(track);
     for (const el of watched) if (!segments.includes(el)) sizes.unobserve(el);
@@ -326,24 +330,25 @@ function watchOverflow(track: HTMLElement): () => void {
       lo = Math.min(lo, at.left);
       hi = Math.max(hi, at.right);
     }
-    const style = getComputedStyle(track);
+    const style = getComputedStyle(port);
     const need = segments.length ? hi - lo + (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0) : 0;
     const over = need > track.getBoundingClientRect().width + 0.5;
     if (over !== track.hasAttribute("data-overflow")) {
       if (over) track.setAttribute("data-overflow", "");
       else track.removeAttribute("data-overflow");
     }
-    if (over) revealIn(track, chosen());
+    if (over) reveal(chosen());
+    else fade.refresh();
   };
   measure();
   sizes.observe(track);
   const changes = new MutationObserver((records) => {
     if (records.some((record) => record.type === "childList")) measure();
-    else if (track.hasAttribute("data-overflow")) revealIn(track, chosen());
+    else if (track.hasAttribute("data-overflow")) reveal(chosen());
   });
   changes.observe(track, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-pressed", "aria-checked"] });
   const onFocus = (event: FocusEvent) => {
-    if (track.hasAttribute("data-overflow")) revealIn(track, (event.target as Element | null)?.closest(".basalt-segment") ?? null);
+    if (track.hasAttribute("data-overflow")) reveal((event.target as Element | null)?.closest(".basalt-segment") ?? null);
   };
   track.addEventListener("focusin", onFocus);
   let live = true;
@@ -352,6 +357,7 @@ function watchOverflow(track: HTMLElement): () => void {
     live = false;
     sizes.disconnect();
     changes.disconnect();
+    fade.stop();
     track.removeEventListener("focusin", onFocus);
     track.removeAttribute("data-overflow");
   };
@@ -428,10 +434,12 @@ export function SegmentedControl({ value, defaultValue, onValueChange, className
   };
   const checked = React.useMemo(() => (radio ? { value: current } : null), [radio, current]);
   const vertical = props.orientation === "vertical";
+  const scroll = React.useRef<HTMLDivElement | null>(null);
   React.useLayoutEffect(() => {
     const track = group.current;
-    if (!track || vertical) return undefined;
-    return watchOverflow(track);
+    const port = scroll.current;
+    if (!track || !port || vertical) return undefined;
+    return watchOverflow(track, port);
   }, [vertical]);
   return (
     <SegmentStop.Provider value={stop}>
@@ -458,8 +466,11 @@ export function SegmentedControl({ value, defaultValue, onValueChange, className
       }}
       className={withClass("basalt-segmented", className)}
     >
-      <Pill />
-      {children}
+      {/* The port (cimip-gaps-3 t7): the pill, the padding and the segments, scrolling while the host overflows; the host keeps the fill and the radius. */}
+      <div ref={scroll} className="basalt-segmented-scroll">
+        <Pill />
+        {children}
+      </div>
       {named && worded ? <span id={hidden} aria-hidden="true" className="basalt-visually-hidden">{`, ${word}`}</span> : null}
     </ToggleGroup>
     </SegmentRadio.Provider>

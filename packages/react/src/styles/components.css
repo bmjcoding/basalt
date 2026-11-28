@@ -953,6 +953,12 @@
      (DECISIONS 155): edge to edge, the head and foot held, the body scrolling. Its top is held where it opened (the script writes --_dialog-top), so what grows grows
      downward; the height is at most the window less space-4 above and below (the dialog's own max-height), and less its top once the top is held. */
   .basalt-dialog[data-form] { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  /* A dialog with a port (cimip-gaps-3 t7): the dialog is the host (rim, radius, fill, shadow) and clips; the port holds the padding and the children,
+     scrolls when the dialog is taller than the window and fades at each edge that hides more. While it is a keyboard stop of its own its ring is the
+     host's, at -2 (the host's ::after, above the port). A form has its body for a port, and a composed dialog (search) its own. */
+  .basalt-dialog:has(> .basalt-dialog-scroll) { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  .basalt-dialog-scroll { box-sizing: border-box; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--basalt-space-6); scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5)); outline: none; }
+  :is(.basalt-dialog, .basalt-sheet, .basalt-popover):has(> :is(.basalt-dialog-scroll, .basalt-sheet-scroll, .basalt-popover-scroll):focus-visible)::after { content: ""; position: absolute; inset: 0; border-radius: inherit; outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); pointer-events: none; }
   /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
   .basalt-dialog:is([data-form], .basalt-search)[data-held] { top: var(--_dialog-top); max-height: calc(100dvh - var(--_dialog-top) - var(--basalt-space-4)); transform: translateX(-50%); }
   .basalt-dialog:is([data-form], .basalt-search)[data-held][data-starting-style],
@@ -1019,7 +1025,8 @@
      column's edge (TabsList writes the two insets). A side with nothing past it is not clipped, so the ring at +2 keeps its room. */
   .basalt-tabs-scroll[data-clip] { clip-path: inset(0 var(--_clip-right, 0) 0 var(--_clip-left, 0)); }
   .basalt-tabs-scroll > .basalt-tabs-list { box-sizing: border-box; width: max-content; min-width: 100%; }
-  .basalt-tabs-scroll .basalt-tab { flex: none; scroll-margin-inline: var(--basalt-space-6); }
+  /* A tab brought into view keeps the fade and the ring's room clear of the column's edge (cimip-gaps-3 t7: 20 and 4, as t4's 24). */
+  .basalt-tabs-scroll .basalt-tab { flex: none; scroll-margin-inline: calc(var(--basalt-size-scroll-fade) + var(--_room)); }
   @media print { .basalt-tabs-scroll { overflow: visible; } }
   .basalt-tabs-list:not([data-orientation="vertical"])::before {
     content: "";
@@ -1329,9 +1336,9 @@
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
     [data-slide] > .basalt-pill { display: block; }
     /* The pill is the shared one: the chosen item paints no pill of its own, and only its ink changes. */
-    .basalt-segmented[data-slide] .basalt-segment,
+    :is(.basalt-segmented, .basalt-segmented-scroll)[data-slide] .basalt-segment,
     .basalt-tabs-list[data-slide][data-orientation="vertical"] .basalt-tab { transition-property: color; }
-    .basalt-segmented[data-slide] .basalt-segment[data-pressed],
+    :is(.basalt-segmented, .basalt-segmented-scroll)[data-slide] .basalt-segment[data-pressed],
     .basalt-tabs-list[data-slide][data-orientation="vertical"] .basalt-tab[data-active] { background: transparent; box-shadow: none; }
   }
 
@@ -1854,8 +1861,10 @@
     right: 0;
     /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
     max-height: 100dvh;
-    padding: 0;
-    padding-top: var(--_inset-top);
+    --_pad-block-start: var(--_inset-top);
+    --_pad-block-end: var(--basalt-space-0);
+    --_pad-inline-start: var(--basalt-space-0);
+    --_pad-inline-end: var(--basalt-space-0);
     overscroll-behavior: contain;
     border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-rim);
     border-radius: 0 0 var(--basalt-radius-xl) var(--basalt-radius-xl);
@@ -3998,6 +4007,10 @@
   .basalt-count-names-trigger { font-size: inherit; line-height: inherit; color: inherit; font-variant-numeric: tabular-nums; }
   .basalt-count-names-trigger > .basalt-icon { transition: transform var(--basalt-duration-fast) var(--basalt-ease-out); }
   .basalt-count-names-trigger[data-open] > .basalt-icon { transform: rotate(180deg); }
+  /* A popover with a port (cimip-gaps-3 t7), as a dialog's: the popover keeps the rim, radius, fill and shadow and clips; the port holds the padding and the
+     children, scrolls when the popover is taller than its room and fades at each edge that hides more. CountNames and the notification centre draw their own. */
+  .basalt-popover:has(> .basalt-popover-scroll) { position: relative; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  .basalt-popover-scroll { box-sizing: border-box; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--basalt-space-4); scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5)); outline: none; }
   .basalt-popover.basalt-count-names-panel { display: flex; flex-direction: column; min-width: var(--basalt-size-menu-min); padding: 0; overflow: hidden; }
   .basalt-count-names-title { flex: none; padding: var(--basalt-space-3) var(--basalt-space-4); border-bottom: var(--basalt-size-hairline) solid var(--basalt-border-divider); outline: none; }
   .basalt-popover.basalt-count-names-panel .basalt-count-names-band { flex: none; margin: 0; }
@@ -4469,7 +4482,9 @@
   .basalt-code-pre {
     margin: 0;
     padding-block: var(--basalt-space-3);
-    padding-inline: var(--basalt-space-4) var(--basalt-space-12);
+    /* An untitled block's end padding is the Copy button's inset, its drawn size (the small control, as density sets it) and the fade (cimip-gaps-3 t7):
+       54px at the default density, so a line that fits is never under the Copy rows' ramp. */
+    padding-inline: var(--basalt-space-4) calc(var(--basalt-space-1-5) + var(--_basalt-control-sm, var(--basalt-size-control-sm)) + var(--basalt-size-scroll-fade));
     overflow-x: auto;
     font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-size-code-line-height) var(--basalt-font-family-mono);
     white-space: pre;
@@ -4487,7 +4502,19 @@
   /* stylelint-disable-next-line unit-disallowed-list -- two characters of the code font, so the indent follows the font; no token holds a width in characters */
   .basalt-code-row { display: block; min-height: var(--basalt-size-code-line-height); padding-inline-start: 2ch; text-indent: -2ch; }
   .basalt-code-pre code { font: inherit; }
-  .basalt-code-pre:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* The pre is masked while it hides code (cimip-gaps-3 t7), and a mask erases the element's own outline: the ring is the figure's, at +2 round the whole
+     block (title and foot included). */
+  .basalt-code-pre:focus-visible { outline: none; }
+  .basalt-code:has(> .basalt-code-pre:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* On touch the Copy button is drawn at size-tap-min, so the untitled end padding is 70px. */
+  /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
+  @media (pointer: coarse), (width < 720px) {
+    .basalt-code:not([data-titled]) .basalt-code-pre { padding-inline-end: calc(var(--basalt-space-1-5) + var(--basalt-size-tap-min) + var(--basalt-size-scroll-fade)); }
+  }
+  /* Paper cannot scroll: in print a long line wraps, as the HTML skill's does. */
+  @media print {
+    .basalt-code-pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  }
   /* Copy sits top right: in the title row when there is one, else over the code's corner. */
   .basalt-code-copy { position: absolute; top: var(--basalt-space-1-5); inset-inline-end: var(--basalt-space-1-5); }
   .basalt-code-title { display: flex; align-items: center; justify-content: space-between; min-height: var(--basalt-size-control-sm); }
@@ -7255,12 +7282,15 @@
     z-index: var(--basalt-layer-dialog);
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    padding-block-start: max(var(--basalt-space-6), env(safe-area-inset-top));
-    padding-inline: max(var(--basalt-space-6), var(--_inset-start)) max(var(--basalt-space-6), var(--_inset-end));
+    /* The sheet is the host (cimip-gaps-3 t7): it keeps the rim, the fill and the shadow and clips; its port (.basalt-sheet-scroll) scrolls, with the
+       padding the sheet had (--_pad-*), and fades at each edge that hides more. */
+    overflow: hidden;
+    --_pad-block-start: max(var(--basalt-space-6), env(safe-area-inset-top));
+    --_pad-inline-start: max(var(--basalt-space-6), var(--_inset-start));
+    --_pad-inline-end: max(var(--basalt-space-6), var(--_inset-end));
     /* The bottom padding: space-6, or the home indicator's safe area where it is deeper. An on-screen keyboard covers the safe area, so there it is space-6. */
     --_sheet-floor: max(var(--basalt-space-6), env(safe-area-inset-bottom));
-    padding-block-end: var(--_sheet-floor);
+    --_pad-block-end: var(--_sheet-floor);
     background: var(--_surface, var(--basalt-surface-overlay));
     color: var(--basalt-text-primary);
     box-shadow: var(--basalt-shadow-modal);
@@ -7275,15 +7305,32 @@
   .basalt-sheet[data-side="right"] { right: 0; border-left: var(--basalt-size-hairline) solid var(--basalt-border-rim); }
   .basalt-sheet[data-side="left"] { left: 0; border-right: var(--basalt-size-hairline) solid var(--basalt-border-rim); }
   /* stylelint-disable-next-line unit-disallowed-list -- a height that follows the window (a viewport unit); a fixed-length token cannot say it */
-  .basalt-sheet[data-side="bottom"] { bottom: 0; left: 0; right: 0; max-height: 90dvh; border-radius: var(--basalt-radius-xl) var(--basalt-radius-xl) 0 0; border-top: var(--basalt-size-hairline) solid var(--basalt-border-rim-top); padding-bottom: var(--_sheet-floor); }
+  .basalt-sheet[data-side="bottom"] { bottom: 0; left: 0; right: 0; max-height: 90dvh; border-radius: var(--basalt-radius-xl) var(--basalt-radius-xl) 0 0; border-top: var(--basalt-size-hairline) solid var(--basalt-border-rim-top); }
+  /* The port: the sheet's content and its padding, scrolling. A sheet with a head, a body or a foot needs none (the body is the port, in its host), so there
+     it draws no box and the bands are the sheet's own column. */
+  .basalt-sheet-scroll {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-block: var(--_pad-block-start) var(--_pad-block-end);
+    padding-inline: var(--_pad-inline-start) var(--_pad-inline-end);
+    /* A focused control is brought clear of the fade with its ring's room. */
+    scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5));
+    outline: none;
+  }
+  .basalt-sheet-scroll:has(> :is(.basalt-sheet-head, .basalt-sheet-body-host, .basalt-sheet-foot)) { display: contents; }
   .basalt-sheet[data-side="right"][data-starting-style], .basalt-sheet[data-side="right"][data-ending-style] { transform: translateX(100%); }
   .basalt-sheet[data-side="left"][data-starting-style], .basalt-sheet[data-side="left"][data-ending-style] { transform: translateX(-100%); }
   .basalt-sheet[data-side="bottom"][data-starting-style], .basalt-sheet[data-side="bottom"][data-ending-style] { transform: translateY(100%); }
   /* Actions stay at the foot of the sheet, on a divider, however long the content scrolls: as
      the sheet's last child, or the last child of a Form that is the sheet's child. */
-  .basalt-sheet > .basalt-form { flex: 1 0 auto; }
-  .basalt-sheet > .basalt-dialog-actions,
-  .basalt-sheet > .basalt-form > .basalt-dialog-actions {
+  .basalt-sheet-scroll > .basalt-form { flex: 1 0 auto; }
+  .basalt-sheet-scroll > .basalt-dialog-actions,
+  .basalt-sheet-scroll > .basalt-form > .basalt-dialog-actions {
     position: sticky;
     bottom: calc(-1 * var(--_sheet-floor));
     margin-top: auto;
@@ -7315,7 +7362,13 @@
 
   /* A sheet with a head, a body and a foot (D10b): edge to edge, no padding of its own. The head and the foot keep the safe areas.
      The head is the title, a count and a 44px close on a divider; the body scrolls; the foot is fixed under it on a divider. */
-  .basalt-sheet:has(> .basalt-sheet-head, > .basalt-sheet-body, > .basalt-sheet-foot) { padding: 0; overflow: hidden; }
+  .basalt-sheet:has(> .basalt-sheet-scroll > :is(.basalt-sheet-head, .basalt-sheet-body-host, .basalt-sheet-foot)) { padding: 0; overflow: hidden; }
+  /* The body's host (cimip-gaps-3 t7) takes the body's place in the column; the body stays the port and fades. Its ring is the host's, at -2, drawn by its
+     ::after above the port, since a masked child paints over its parent's inset outline. */
+  .basalt-sheet-body-host { position: relative; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+  .basalt-sheet-body-host > .basalt-sheet-body { flex: 1 1 auto; scroll-padding-block: calc(var(--basalt-size-scroll-fade-block) + var(--basalt-space-1-5)); }
+  .basalt-sheet-body-host::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
+  .basalt-sheet-body-host:has(> .basalt-sheet-body:focus-visible)::after { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
   .basalt-sheet-head {
     box-sizing: border-box;
     flex: none;
@@ -7343,7 +7396,7 @@
     /* The body clips what it scrolls: space-1-5 at each end keeps a focused control's ring (2px at +2) whole against the head and the foot. */
     padding-block: var(--basalt-space-1-5);
   }
-  .basalt-sheet-body[tabindex]:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
+  .basalt-sheet-body[tabindex]:focus-visible { outline: none; }
   .basalt-sheet-foot {
     box-sizing: border-box;
     flex: none;
@@ -9229,18 +9282,30 @@
   :is(.basalt-field-description, .basalt-field-error) > .basalt-reserve { display: grid; grid-template-columns: minmax(0, 1fr); }
 
   /* A segmented control that fills its container: equal segments (a grid of equal columns, whatever the words), as Button's fullWidth fills it. The pill is absolute and slides as ever. */
+  /* SegmentedControl is a host and a port (cimip-gaps-3 t7): the host (.basalt-segmented) keeps the track's fill and radius and loses its padding; the port
+     (.basalt-segmented-scroll) is a real box at all times, never display: contents, and lays the track out as the track did (position, the 2px padding, the
+     gap, the direction, the full-width grid), so a control that fits is the size and place it was. The pill is the port's first child and measures it. The
+     theme choice draws the track without a port and keeps its rules. */
+  .basalt-segmented:has(> .basalt-segmented-scroll) { gap: 0; padding: 0; }
+  .basalt-segmented-scroll { position: relative; box-sizing: border-box; display: inline-flex; gap: var(--basalt-space-0-5); max-width: 100%; padding: var(--basalt-space-0-5); border-radius: inherit; }
+
+  /* A segmented control that fills its container: equal segments (a grid of equal columns, whatever the words), as Button's fullWidth fills it. The pill is absolute and slides as ever. */
   .basalt-segmented[data-full-width] { box-sizing: border-box; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(max-content, 1fr); width: 100%; }
+  .basalt-segmented[data-full-width]:has(> .basalt-segmented-scroll) { display: flex; }
+  .basalt-segmented[data-full-width] > .basalt-segmented-scroll { display: grid; flex: 1 1 auto; grid-auto-flow: column; grid-auto-columns: minmax(max-content, 1fr); width: 100%; }
 
   /* A segmented control wider than its column (cimip-gaps-3 t4, item 6) scrolls in its track and never wraps, narrows or cuts a label: the track is held to the column
      (max-width), its segments keep their width on one line, and a full-width control's columns are equal while every label fits its share (minmax above). While it
-     fits, the track is not a scrollport (overflow stays visible, so the ring at +2 is whole). While it overflows (data-overflow, set by the control's measure) it
-     scrolls with no scrollbar drawn, a segment brought into view keeps space-6 clear, and a segment's ring is drawn inside at -2, since at +2 the track would cut it.
+     fits, the port is not a scrollport (overflow stays visible, so the ring at +2 is whole). While it overflows (data-overflow on the host, set by the control's
+     measure) the host clips to its radius and the port scrolls with no scrollbar drawn; a segment brought into view keeps the fade and space-1 clear, and a
+     segment's ring is drawn inside at -2, since at +2 the track would cut it. Each side of the port that hides segments fades (t7); the track is never masked.
      The theme choice keeps its shipped wrap. Before script, the control is as it ships. */
   .basalt-segmented:not(.basalt-theme-choice .basalt-segmented) { box-sizing: border-box; max-width: 100%; }
   .basalt-segmented:not([data-orientation="vertical"], .basalt-theme-choice .basalt-segmented) .basalt-segment { flex: none; }
-  .basalt-segmented[data-overflow] { overflow-x: auto; scrollbar-width: none; overscroll-behavior-inline: contain; scroll-behavior: auto; }
-  .basalt-segmented[data-overflow]::-webkit-scrollbar { display: none; }
-  .basalt-segmented[data-overflow] .basalt-segment { scroll-margin-inline: var(--basalt-space-6); }
+  .basalt-segmented[data-overflow] { overflow: hidden; }
+  .basalt-segmented[data-overflow] > .basalt-segmented-scroll { flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; overscroll-behavior-inline: contain; scroll-behavior: auto; }
+  .basalt-segmented[data-overflow] > .basalt-segmented-scroll::-webkit-scrollbar { display: none; }
+  .basalt-segmented[data-overflow] .basalt-segment { scroll-margin-inline: calc(var(--basalt-size-scroll-fade) + var(--basalt-space-1)); }
   .basalt-segmented[data-overflow] .basalt-segment:focus-visible { outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
   /* In forced colours the chosen segment is a Highlight fill: a ring drawn inside it is HighlightText, so it shows. */
   @media (forced-colors: active) {
@@ -10042,5 +10107,86 @@
     .basalt-toast[data-starting-style],
     .basalt-toast[data-ending-style] { transform: var(--_rest); }
   }
+
+
+  /* ---- Cut content fades (cimip-gaps-3 t7, DECISIONS 395 to 399) ----
+     Where a scrollport's edge hides more, its content fades to nothing at that edge and is never sliced. The port's watcher (scroll-fade.ts) writes
+     data-fade (inline, block or both: the axes on which something is hidden; none while the content fits) and per physical side the band
+     (--_fade-t/-r/-b/-l), a clip inset (--_in-*), an opaque strip held at the edge (--_pin-*: a classic scrollbar, a sheet's held actions) and the band
+     before a protected item shortened it (--_reach-*). The mask paints no colour: the neutral supplies alpha only. Six stops from the edge inward (0% at 0,
+     18% at .15, 48% at .35, 78% at .6, 94% at .82, 100% at 1); alpha 0 from the edge to the line (the inset and the strip), the ramp inward from it. A pinned
+     strip is added back whole on top, so a scrollbar and a held bar keep full paint. Layers fold from the last up: each strip (add), the inline band
+     (intersect), the block band. The rules are :where(), so the mode rules below turn every one off; no clock is involved anywhere. */
+  :where([data-fade]) {
+    --_f0: var(--basalt-neutral-0);
+    --_f18: color-mix(in srgb, var(--basalt-neutral-0) 18%, transparent);
+    --_f48: color-mix(in srgb, var(--basalt-neutral-0) 48%, transparent);
+    --_f78: color-mix(in srgb, var(--basalt-neutral-0) 78%, transparent);
+    --_f94: color-mix(in srgb, var(--basalt-neutral-0) 94%, transparent);
+    --_lt: calc(var(--_in-t, var(--basalt-space-0)) + var(--_pin-t, var(--basalt-space-0)));
+    --_lr: calc(var(--_in-r, var(--basalt-space-0)) + var(--_pin-r, var(--basalt-space-0)));
+    --_lb: calc(var(--_in-b, var(--basalt-space-0)) + var(--_pin-b, var(--basalt-space-0)));
+    --_ll: calc(var(--_in-l, var(--basalt-space-0)) + var(--_pin-l, var(--basalt-space-0)));
+    --_ft: var(--_fade-t, var(--basalt-space-0));
+    --_fr: var(--_fade-r, var(--basalt-space-0));
+    --_fb: var(--_fade-b, var(--basalt-space-0));
+    --_fl: var(--_fade-l, var(--basalt-space-0));
+    --_mask-x: linear-gradient(to right,
+      transparent var(--_ll),
+      var(--_f18) calc(var(--_ll) + var(--_fl) * 0.15), var(--_f48) calc(var(--_ll) + var(--_fl) * 0.35), var(--_f78) calc(var(--_ll) + var(--_fl) * 0.6), var(--_f94) calc(var(--_ll) + var(--_fl) * 0.82),
+      var(--_f0) calc(var(--_ll) + var(--_fl)),
+      var(--_f0) calc(100% - var(--_lr) - var(--_fr)),
+      var(--_f94) calc(100% - var(--_lr) - var(--_fr) * 0.82), var(--_f78) calc(100% - var(--_lr) - var(--_fr) * 0.6), var(--_f48) calc(100% - var(--_lr) - var(--_fr) * 0.35), var(--_f18) calc(100% - var(--_lr) - var(--_fr) * 0.15),
+      transparent calc(100% - var(--_lr)));
+    --_mask-y: linear-gradient(to bottom,
+      transparent var(--_lt),
+      var(--_f18) calc(var(--_lt) + var(--_ft) * 0.15), var(--_f48) calc(var(--_lt) + var(--_ft) * 0.35), var(--_f78) calc(var(--_lt) + var(--_ft) * 0.6), var(--_f94) calc(var(--_lt) + var(--_ft) * 0.82),
+      var(--_f0) calc(var(--_lt) + var(--_ft)),
+      var(--_f0) calc(100% - var(--_lb) - var(--_fb)),
+      var(--_f94) calc(100% - var(--_lb) - var(--_fb) * 0.82), var(--_f78) calc(100% - var(--_lb) - var(--_fb) * 0.6), var(--_f48) calc(100% - var(--_lb) - var(--_fb) * 0.35), var(--_f18) calc(100% - var(--_lb) - var(--_fb) * 0.15),
+      transparent calc(100% - var(--_lb)));
+    --_strip: linear-gradient(var(--_f0), var(--_f0));
+    --_strips: var(--_strip), var(--_strip), var(--_strip), var(--_strip);
+    --_strip-size: 100% var(--_pin-t, var(--basalt-space-0)), var(--_pin-r, var(--basalt-space-0)) 100%, 100% var(--_pin-b, var(--basalt-space-0)), var(--_pin-l, var(--basalt-space-0)) 100%;
+    --_strip-at: 0 0, 100% 0, 0 100%, 0 0;
+    mask-repeat: no-repeat;
+  }
+  :where([data-fade="inline"]) { mask-image: var(--_mask-x); }
+  :where([data-fade="block"]) { mask-image: var(--_mask-y); }
+  :where([data-fade="both"]) { mask-image: var(--_mask-x), var(--_mask-y); mask-composite: intersect, add; }
+  :where([data-fade-pin][data-fade="inline"]) { mask-image: var(--_strips), var(--_mask-x); mask-size: var(--_strip-size), 100% 100%; mask-position: var(--_strip-at), 0 0; mask-composite: add; }
+  :where([data-fade-pin][data-fade="block"]) { mask-image: var(--_strips), var(--_mask-y); mask-size: var(--_strip-size), 100% 100%; mask-position: var(--_strip-at), 0 0; mask-composite: add; }
+  :where([data-fade-pin][data-fade="both"]) { mask-image: var(--_strips), var(--_mask-x), var(--_mask-y); mask-size: var(--_strip-size), 100% 100%, 100% 100%; mask-position: var(--_strip-at), 0 0, 0 0; mask-composite: add, add, add, add, intersect, add; }
+  /* An untitled CodeBlock's Copy rows (data-fade-copy, the button's physical side): the whole rows the button's box touches (--_copy-h, from the top) end their
+     band at the button's start edge (--_copy-in from the port's edge, alpha 0 under it), the ramp inward over what is hidden at that side (--_reach-*); the rows
+     under them fade at the edge. The two layers share no pixel and are joined with add, under the strips. */
+  :where([data-fade="inline"][data-fade-copy="right"]) {
+    --_mask-copy: linear-gradient(to right,
+      transparent var(--_ll),
+      var(--_f18) calc(var(--_ll) + var(--_fl) * 0.15), var(--_f48) calc(var(--_ll) + var(--_fl) * 0.35), var(--_f78) calc(var(--_ll) + var(--_fl) * 0.6), var(--_f94) calc(var(--_ll) + var(--_fl) * 0.82),
+      var(--_f0) calc(var(--_ll) + var(--_fl)),
+      var(--_f0) calc(100% - var(--_copy-in) - var(--_reach-r)),
+      var(--_f94) calc(100% - var(--_copy-in) - var(--_reach-r) * 0.82), var(--_f78) calc(100% - var(--_copy-in) - var(--_reach-r) * 0.6), var(--_f48) calc(100% - var(--_copy-in) - var(--_reach-r) * 0.35), var(--_f18) calc(100% - var(--_copy-in) - var(--_reach-r) * 0.15),
+      transparent calc(100% - var(--_copy-in)));
+  }
+  :where([data-fade="inline"][data-fade-copy="left"]) {
+    --_mask-copy: linear-gradient(to right,
+      transparent var(--_copy-in),
+      var(--_f18) calc(var(--_copy-in) + var(--_reach-l) * 0.15), var(--_f48) calc(var(--_copy-in) + var(--_reach-l) * 0.35), var(--_f78) calc(var(--_copy-in) + var(--_reach-l) * 0.6), var(--_f94) calc(var(--_copy-in) + var(--_reach-l) * 0.82),
+      var(--_f0) calc(var(--_copy-in) + var(--_reach-l)),
+      var(--_f0) calc(100% - var(--_lr) - var(--_fr)),
+      var(--_f94) calc(100% - var(--_lr) - var(--_fr) * 0.82), var(--_f78) calc(100% - var(--_lr) - var(--_fr) * 0.6), var(--_f48) calc(100% - var(--_lr) - var(--_fr) * 0.35), var(--_f18) calc(100% - var(--_lr) - var(--_fr) * 0.15),
+      transparent calc(100% - var(--_lr)));
+  }
+  :where([data-fade="inline"][data-fade-copy]) { mask-image: var(--_mask-copy), var(--_mask-x); mask-size: 100% var(--_copy-h), 100% calc(100% - var(--_copy-h)); mask-position: 0 0, 0 var(--_copy-h); mask-composite: add; }
+  :where([data-fade-pin][data-fade="inline"][data-fade-copy]) { mask-image: var(--_strips), var(--_mask-copy), var(--_mask-x); mask-size: var(--_strip-size), 100% var(--_copy-h), 100% calc(100% - var(--_copy-h)); mask-position: var(--_strip-at), 0 0, 0 var(--_copy-h); mask-composite: add; }
+  /* The modes: under more contrast, in forced colours (a mask survives them otherwise), under reduced transparency where the browser reports it, in print
+     and with data-fades="off" on the root (an app's own control, for a strict 1.4.3 audit), the edge is a plain cut. Reduced motion and the hold change
+     nothing: the band follows the reader's scroll and never a clock. Each is its own query, so a browser that does not know one keeps the others. */
+  :root[data-fades="off"] [data-fade] { mask-image: none; }
+  @media (prefers-contrast: more) { [data-fade] { mask-image: none; } }
+  @media (forced-colors: active) { [data-fade] { mask-image: none; } }
+  @media (prefers-reduced-transparency: reduce) { [data-fade] { mask-image: none; } }
+  @media print { [data-fade] { mask-image: none; } }
 
 }

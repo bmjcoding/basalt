@@ -8,6 +8,7 @@ import { SearchGlyph } from "./glyphs/search";
 import { Icon } from "./icon";
 import { isComposingKey } from "./keyboard";
 import type { FocusTarget } from "./types";
+import { Portless } from "./fade-port";
 import { join } from "./utils";
 
 // ---- The search trigger: a button shaped like a field ----
@@ -66,6 +67,7 @@ export function SearchDialog({ open, onOpenChange, title, label, placeholder, qu
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* Its top is held where the full box has it and the box ends under what it shows (DECISIONS 336, Q3). */}
       <DialogHoldsTop.Provider value>
+      <Portless.Provider value>
       <DialogContent className="basalt-search" finalFocus={finalFocus}>
         <DialogTitle className="basalt-visually-hidden">{title}</DialogTitle>
         <form
@@ -94,6 +96,7 @@ export function SearchDialog({ open, onOpenChange, title, label, placeholder, qu
         <FilterResult className="basalt-search-count">{count}</FilterResult>
         {children}
       </DialogContent>
+      </Portless.Provider>
       </DialogHoldsTop.Provider>
     </Dialog>
   );

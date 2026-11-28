@@ -1,6 +1,7 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import * as React from "react";
 
+import { FadePort, Portless } from "./fade-port";
 import { inLevel, MODAL_LEVEL, ModalDepth, ModalHost, useModalLayer } from "./layers";
 import { useModalOutside } from "./modal-outside";
 import type { FocusTarget, OpenChangeDetails, PartProps, PopupActions } from "./types";
@@ -162,6 +163,8 @@ export function DialogContent({ className, style, children, ref, size = "default
   }, [ref]);
   const popupRef = useModalOutside<HTMLDivElement>(keepRef, React.useContext(DialogModal));
   const holds = React.useContext(DialogHoldsTop);
+  // A composed dialog whose content has its own port (search) draws no second one (cimip-gaps-3 t7).
+  const portless = React.useContext(Portless);
   const top = useHeldTop(node, form, holds);
   // A form's state lives only while it is open: opened by whatever means, it starts with what its fields hold and no remembered input; when its box goes, both go (however it was closed).
   React.useLayoutEffect(() => {
@@ -185,12 +188,15 @@ export function DialogContent({ className, style, children, ref, size = "default
     <ModalHost.Provider value={popup}>
     <BaseDialog.Portal>
       <BaseDialog.Backdrop className="basalt-dialog-backdrop" style={{ zIndex: layer.backdrop }} />
-      <BaseDialog.Popup {...props} ref={popupRef} data-level={MODAL_LEVEL} data-size={size === "default" ? undefined : size} data-form={form ? "" : undefined} data-held={top === null ? undefined : ""} initialFocus={first} style={withStyle(top === null ? { zIndex: layer.popup } : { zIndex: layer.popup, "--_dialog-top": `${top}px` } as React.CSSProperties, style)} className={withClass("basalt-dialog", className)}>{inLevel(MODAL_LEVEL, children)}</BaseDialog.Popup>
+      <BaseDialog.Popup {...props} ref={popupRef} data-level={MODAL_LEVEL} data-size={size === "default" ? undefined : size} data-form={form ? "" : undefined} data-held={top === null ? undefined : ""} initialFocus={first} style={withStyle(top === null ? { zIndex: layer.popup } : { zIndex: layer.popup, "--_dialog-top": `${top}px` } as React.CSSProperties, style)} className={withClass("basalt-dialog", className)}>{form || portless ? inLevel(MODAL_LEVEL, children) : <FadePort className="basalt-dialog-scroll" labelledBy={titleOf}>{inLevel(MODAL_LEVEL, children)}</FadePort>}</BaseDialog.Popup>
     </BaseDialog.Portal>
     </ModalHost.Provider>
     </ModalDepth.Provider>
   );
 }
+
+/** The name of a dialog's port while it is a keyboard stop of its own: the dialog's title. */
+const titleOf = (box: HTMLElement) => box.closest('[role="dialog"], [role="alertdialog"]')?.getAttribute("aria-labelledby") ?? undefined;
 
 /** The first thing a person fills in: a text field, a select, a combobox or a text area that is not hidden or disabled. */
 const FIRST_FIELD = 'input:not([type="hidden"]):not([disabled]):not([type="checkbox"]):not([type="radio"]), textarea:not([disabled]), select:not([disabled]), [role="combobox"]:not([aria-disabled="true"]):not([disabled])';

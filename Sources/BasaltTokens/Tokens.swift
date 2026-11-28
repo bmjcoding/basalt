@@ -656,6 +656,10 @@ extension Basalt {
     public static let selectMin: Double = 160
     /// Maximum height of a scrolling popup list, such as the command list.
     public static let popupMaxHeight: Double = 360
+    /// The longest fade on an inline edge of a scrollport that hides more content (cimip-gaps-3 t7): the content fades to nothing at that edge over this, never more than a quarter of the port and never more than the distance hidden.
+    public static let scrollFade: Double = 20
+    /// The longest fade on a block edge of a scrollport that hides more content (cimip-gaps-3 t7): shorter than the inline fade, so a whole 32 to 40px row at a list's edge stays nearly opaque.
+    public static let scrollFadeBlock: Double = 16
     /// The list column of a list with a preview pane, fixed: a two-line row fits beside a 16px glyph. The pane takes the rest, space-4 away; below this plus that gap plus size-breakpoint-container the pane is pushed instead.
     public static let listWidth: Double = 320
     /// The sticky bar: its border box, with its hairline inside. The top safe area is padding above it, added by the layout CSS.

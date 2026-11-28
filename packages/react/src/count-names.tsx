@@ -6,6 +6,7 @@ import { SearchGlyph } from "./glyphs/search";
 import { Icon } from "./icon";
 import { NewTabGlyph, NewTabWords, opensNewTab } from "./new-tab";
 import { safeHref } from "./safe-href";
+import { Portless } from "./fade-port";
 import { join } from "./utils";
 
 // ---- A count and the names it counts (cimip-gaps-3 T2, item 10) ----
@@ -70,6 +71,7 @@ export function CountNames({ names, singular, plural, label, count, title, empty
           <span className="basalt-text-button-label">{words}</span>
           <Icon icon={ChevronDownGlyph} size={16} />
         </PopoverTrigger>
+        <Portless.Provider value>
         <PopoverContent
           side="bottom"
           align="start"
@@ -127,6 +129,7 @@ export function CountNames({ names, singular, plural, label, count, title, empty
             </div>
           ) : null}
         </PopoverContent>
+        </Portless.Provider>
       </Popover>
     </span>
   );
