@@ -361,6 +361,8 @@ export interface CodeBlockProps {
   lineNumbers?: boolean;
   /** The first line's number, an integer, read only with `lineNumbers`. 1 by default. */
   startLine?: number;
+  /** Whether a page translator may translate the code: `"no"` by default (code is left as written, m2 I3); `"yes"` to let it. */
+  translate?: "yes" | "no";
   className?: string;
 }
 
@@ -374,7 +376,7 @@ const COLOUR_LATER_FROM = 10_000;
 const noSubscription = () => () => {};
 
 /** Code, commands or logs, in mono on a sunken surface, scrolling sideways rather than wrapping (`wrap` breaks long lines at spaces instead). */
-export function CodeBlock({ code, language, title, copyable = true, prompt, wrap = false, lineNumbers = false, startLine = 1, className }: CodeBlockProps) {
+export function CodeBlock({ code, language, title, copyable = true, prompt, wrap = false, lineNumbers = false, startLine = 1, translate = "no", className }: CodeBlockProps) {
   // A well: level 1 on the page, one deeper inside a card, and so on up to 3.
   const level = usePanelLevel();
   // The code renders as plain text at once; colour follows when its grammar has loaded, with
@@ -500,7 +502,7 @@ export function CodeBlock({ code, language, title, copyable = true, prompt, wrap
       ) : null}
       {/* a scrollable region must be reachable by keyboard */}
       {/* The code is left as written by a page translator (m2 I3); the caption, the buttons and the state words still translate. */}
-      <pre ref={pre} className="basalt-code-pre" translate="no" tabIndex={0} role="region" aria-label={title ? `${title} code` : "Code"}>
+      <pre ref={pre} className="basalt-code-pre" translate={translate} tabIndex={0} role="region" aria-label={title ? `${title} code` : "Code"}>
         {lines && (prompt !== undefined || lineNumbers) ? (
           <code data-language={language} className="basalt-code-lines" data-numbered={lineNumbers ? "" : undefined} data-prompted={prompt !== undefined ? "" : undefined}>
             {lines.map((line, i) => (

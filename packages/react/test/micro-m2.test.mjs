@@ -194,6 +194,11 @@ describe("I3: formatAge's locale", () => {
       assert.equal(ago(86400 * 11, { locale, short: true }), "11d");
     }
   });
+  test("English is the language Intl resolves to, not the first tag: [\"zz\", \"en-US\"] writes Basalt's words", () => {
+    assert.equal(ago(86400 * 3, { locale: ["zz", "en-US"], short: true }), "3d");
+    assert.equal(ago(86400 * 3, { locale: ["zz", "en-US"] }), `3${NB}days ago`);
+    assert.equal(ago(30, { locale: ["zz", "en-US"] }), "just now");
+  });
   test("fr and ru go through Intl.RelativeTimeFormat, long and narrow, with the same branches", () => {
     for (const locale of ["fr", "ru"]) {
       for (const short of [false, true]) {
@@ -215,6 +220,10 @@ describe("I3: formatAge's locale", () => {
     assert.ok(ageSeat("id-ID").some((f) => f.includes("888")), "three-digit years are held");
     assert.ok(ageSeat("fr-FR").some((f) => /8\u202f888/.test(f)), "the locale's grouping is held");
     assert.equal(ageSeat("ar-EG"), ar, "made once per locale and kept");
+    // A numbering system whose digits are not \p{Nd} (hanidec's 三) folds from Intl's numeric parts: the same order as Arabic's 34 and Indonesian's 19.
+    const hanidec = ageSeat("zh-u-nu-hanidec");
+    assert.ok(hanidec.length < 60, `${hanidec.length} forms`);
+    assert.ok(hanidec.every((f) => !/[〇一二三四五六七九]/.test(f)), "every hanidec digit is the locale's 八");
   });
 });
 
@@ -226,9 +235,23 @@ after(async () => { await browser?.close(); });
 
 const DESKTOP = { viewport: { width: 1000, height: 800 } };
 const render = (jsx) => `createRoot(document.getElementById("root")).render(${jsx});`;
+// The fixture's stylesheet has no @font-face (styles.css never loads a font), so document.fonts.ready can resolve on a fallback. Both shipped faces are
+// embedded and loaded at each weight Basalt draws, and checked, before anything is measured.
+const font = (file) => fs.readFileSync(path.join(pkg, "dist", "fonts", file)).toString("base64");
+const FONTS = `@font-face{font-family:"Geist";src:url(data:font/woff2;base64,${font("Geist-Variable.woff2")}) format("woff2");font-weight:100 900}`
+  + `@font-face{font-family:"Geist Mono";src:url(data:font/woff2;base64,${font("GeistMono-Variable.woff2")}) format("woff2");font-weight:100 900}`;
+const FACES = ["400 12px Geist", "500 12px Geist", "600 12px Geist", "400 12px \"Geist Mono\"", "500 12px \"Geist Mono\"", "600 12px \"Geist Mono\""];
+async function loadFaces(page) {
+  const loaded = await page.evaluate(async (faces) => {
+    for (const face of faces) await document.fonts.load(face);
+    return faces.map((face) => document.fonts.check(face));
+  }, FACES);
+  assert.deepEqual(loaded, FACES.map(() => true), "both Geist faces are loaded at 400, 500 and 600 before measuring");
+}
 const open = async (body, options = DESKTOP, theme = "dark") => {
   const { page, errors } = await fixturePage(browser, body, { theme, standards: true, ...options });
-  await page.addStyleTag({ content: "body { background: var(--basalt-surface-page); color: var(--basalt-text-primary); margin: 0; padding: 24px; }" });
+  await page.addStyleTag({ content: `${FONTS} body { background: var(--basalt-surface-page); color: var(--basalt-text-primary); margin: 0; padding: 24px; }` });
+  await loadFaces(page);
   await settle(page);
   return { page, errors };
 };
@@ -278,7 +301,7 @@ for (const theme of ["dark", "light"]) {
 
     test("U+00A0 and U+0020 measure the same in Geist and Geist Mono, so a seat written with the glue is the width it was", async () => {
       const { page } = await open(render(`<div><span id="sans">12 min 34 s</span></div>`), DESKTOP, theme);
-      await page.evaluate(() => document.fonts.ready);
+      await loadFaces(page);
       const widths = await page.evaluate(() => {
         const c = document.createElement("canvas").getContext("2d");
         const out = {};
@@ -314,7 +337,7 @@ describe("I3: DateAge's short seat never moves the text after it", () => {
       test(`${locale}, ${precision}: the seat's width, the date's place and the following text's place stay put`, async () => {
         const rows = PAIRS.flatMap(([, ages], p) => ages.map((age, k) => `<div id="r${p}-${k}" style={{ display: "flex", alignItems: "baseline", gap: 8 }}><B.DateAge short locale="${locale}" precision="${precision}" timeZone="UTC" time={${time}} now={${time + age}} /><span className="after">Gauge 14</span></div>`)).join("");
         const { page } = await open(render(`<div>${rows}</div>`));
-        await page.evaluate(() => document.fonts.ready);
+        await loadFaces(page);
         const measure = (id) => page.evaluate((s) => {
           const row = document.getElementById(s);
           return { date: row.querySelector("time").getBoundingClientRect().x, seat: row.querySelector(".basalt-date-age-seat").getBoundingClientRect().width, after: row.querySelector(".after").getBoundingClientRect().x };
@@ -330,10 +353,11 @@ describe("I3: DateAge's short seat never moves the text after it", () => {
     }
   }
   test("ar-EG's seat is a few dozen alternatives, not hundreds; English keeps its approved 548mo", async () => {
-    const { page } = await open(render(`<div><B.DateAge id="ar" short locale="ar-EG" time={${time}} now={${time + 3 * DAY}} /><B.DateAge id="en" short time={${time}} now={${time + 3 * DAY}} /></div>`));
+    const { page } = await open(render(`<div><B.DateAge id="ar" short locale="ar-EG" time={${time}} now={${time + 3 * DAY}} /><B.DateAge id="en" short time={${time}} now={${time + 3 * DAY}} /><B.DateAge id="zz" short locale={["zz", "en-US"]} time={${time}} now={${time + 3 * DAY}} /></div>`));
     const counts = await page.evaluate(() => [...document.querySelectorAll(".basalt-date-age-seat")].map((s) => [s.children.length, [...s.children].map((c) => c.textContent)]));
     assert.ok(counts[0][0] < 60, `${counts[0][0]} alternatives`);
     assert.deepEqual(counts[1], [2, ["3d", "548mo"]]);
+    assert.deepEqual(counts[2], [2, ["3d", "548mo"]], "a request Intl resolves to en-US takes the English seat");
     await page.close();
   });
 });
@@ -369,6 +393,8 @@ describe('I3: translate="no"', () => {
     const { page } = await open(render(`<div>
       <B.CodeBlock title="Proof the dough" code="bake --loaves 12" language="text" />
       <B.Terminal title="Tide gauge" lines={[{ kind: "command", text: "gauge read --station 14" }]} />
+      <div id="code-yes"><B.CodeBlock title="Starter notes" code="feed the starter at nine" language="text" translate="yes" /></div>
+      <div id="term-yes"><B.Terminal title="Kitchen log" lines={[{ kind: "output", text: "oven reached 220" }]} translate="yes" /></div>
       <B.InlineCode id="inline">--resume</B.InlineCode>
       <B.InlineCode id="inline-yes" translate="yes">--resume</B.InlineCode>
       <B.CommandBlock id="cmd" command="oven set 220" status="allowed" />
@@ -376,7 +402,7 @@ describe('I3: translate="no"', () => {
       <B.Kbd id="kbd-node"><span>Esc</span></B.Kbd>
       <B.AppBrand id="brand" mark={<span />} title="Harbour Gauge" subtitle="North breakwater" />
       <table><tbody><tr><B.TableCell id="cell" mono>gauge-14</B.TableCell><B.TableCell id="cell-missing" mono notObserved /><B.TableCell id="cell-yes" mono translate="yes">gauge-15</B.TableCell></tr></tbody></table>
-      <B.DescriptionList><B.DescriptionItem id="dd" term="Station" mono>gauge-14</B.DescriptionItem><B.DescriptionItem id="dd-missing" term="Probe" mono missing /></B.DescriptionList>
+      <B.DescriptionList><B.DescriptionItem id="dd" term="Station" mono>gauge-14</B.DescriptionItem><B.DescriptionItem id="dd-missing" term="Probe" mono missing /><B.DescriptionItem id="dd-yes" term="Loaf" mono translate="yes">rye-12</B.DescriptionItem></B.DescriptionList>
     </div>`));
     const attr = (s) => page.evaluate((sel) => document.querySelector(sel)?.getAttribute("translate") ?? null, s);
     assert.equal(await attr(".basalt-code .basalt-code-pre"), "no");
@@ -395,6 +421,11 @@ describe('I3: translate="no"', () => {
     assert.equal(await attr("#cell-yes"), "yes");
     assert.equal(await attr("#dd .basalt-description-details"), "no");
     assert.equal(await attr("#dd-missing .basalt-description-details"), null);
+    // A caller's translate reaches the element that carries the default, not only the wrapper.
+    assert.equal(await attr("#code-yes .basalt-code-pre"), "yes", "CodeBlock translate=\"yes\" reaches its pre");
+    assert.equal(await attr("#term-yes .basalt-code-pre"), "yes", "Terminal translate=\"yes\" reaches its pre");
+    assert.equal(await attr("#dd-yes"), "yes");
+    assert.equal(await attr("#dd-yes .basalt-description-details"), "yes", "DescriptionItem translate=\"yes\" reaches each dd");
     await page.close();
   });
 });

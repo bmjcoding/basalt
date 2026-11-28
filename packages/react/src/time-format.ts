@@ -96,11 +96,6 @@ export function formatCountdown(to: Date | number, now: Date | number = new Date
   return { text: d > 0 ? `${d}d${NB}${clock}` : clock, dateTime: `P${d}DT${Math.floor((s % 86400) / 3600)}H${Math.floor((s % 3600) / 60)}M${s % 60}S`, days: d };
 }
 
-/** The locale's first tag is English (any region): then Basalt's own words are used. */
-export const english = (locale: string | string[] | undefined) => {
-  const tag = Array.isArray(locale) ? locale[0] : locale;
-  return !tag || /^en(?:[-_]|$)/i.test(tag);
-};
 
 let relatives: Map<string, Intl.RelativeTimeFormat> | undefined;
 function relativeFormatter(locale: string | string[], short: boolean) {
@@ -115,20 +110,28 @@ function relativeFormatter(locale: string | string[], short: boolean) {
   return found;
 }
 
+/**
+ * The locale resolves to English (any region): then Basalt's own words are used. It is the language Intl resolves the request to, never its first tag, so
+ * `["zz", "en-US"]` is English, as Intl writes it. `formatAge` and `DateAge`'s seat decide by the same test.
+ */
+export const english = (locale: string | string[] | undefined = "en-US") => /^en(?:-|$)/i.test(relativeFormatter(locale, false).resolvedOptions().locale);
+
 type AgeUnit = "minute" | "hour" | "day" | "month" | "year";
 
 /**
  * An age in a language other than English, as `Intl.RelativeTimeFormat` writes it (narrow for `short`), with the number glued to its unit: the breakable
  * space beside the number, on the unit's side, is a no-break space. `n` 0 is the locale's "now". The one helper `formatAge` and `DateAge`'s seat share.
  */
-export function relativeAge(locale: string | string[], n: number, unit: AgeUnit | "second", short: boolean) {
+export function relativeAge(locale: string | string[], n: number, unit: AgeUnit | "second", short: boolean, fold?: string) {
   const list = relativeFormatter(locale, short).formatToParts(n === 0 ? 0 : -n, unit);
   const number = (p?: Intl.RelativeTimeFormatPart) => !!p && p.type !== "literal";
   const first = list.findIndex(number);
   if (first < 0) return list.map((p) => p.value).join("");
   let last = first;
   while (number(list[last + 1])) last += 1;
-  const out = list.map((p) => p.value);
+  // `fold` (the seat's) writes every digit of the number as that one character, from Intl's own numeric parts, so a numbering system with digits outside
+  // \p{Nd} (hanidec's 三) folds as Latin and Arabic-Indic do. A group separator is kept.
+  const out = list.map((p) => (fold !== undefined && p.type === "integer" ? Array.from(p.value, () => fold).join("") : p.value));
   const after = list[last + 1];
   const before = list[first - 1];
   // The unit follows the number in most languages; where nothing follows it, it is before. A separator Intl wrote itself is kept.
@@ -186,10 +189,11 @@ export function ageSeat(locale: string | string[]): string[] {
   const kept = ageSeats.get(key);
   if (kept) return kept;
   const eight = new Intl.NumberFormat(locale).format(8);
-  const fold = (text: string) => text.replace(/\p{Nd}/gu, eight);
-  const seen = new Set([fold(relativeAge(locale, 0, "second", true))]);
-  for (const unit of ["minute", "hour", "day", "month", "year"] as const) for (let n = 1; n <= 99; n += 1) seen.add(fold(relativeAge(locale, n, unit, true)));
-  for (let d = 3; d <= 6; d += 1) for (let n = 10 ** (d - 1); n <= 10 ** (d - 1) + 99; n += 1) seen.add(fold(relativeAge(locale, n, "year", true)));
+  // The number's own parts are folded (relativeAge's `fold`), and any digit left in the words by the \p{Nd} pass, so every numbering system dedups.
+  const age = (n: number, unit: AgeUnit | "second") => relativeAge(locale, n, unit, true, eight).replace(/\p{Nd}/gu, eight);
+  const seen = new Set([age(0, "second")]);
+  for (const unit of ["minute", "hour", "day", "month", "year"] as const) for (let n = 1; n <= 99; n += 1) seen.add(age(n, unit));
+  for (let d = 3; d <= 6; d += 1) for (let n = 10 ** (d - 1); n <= 10 ** (d - 1) + 99; n += 1) seen.add(age(n, "year"));
   const forms = [...seen];
   if (ageSeats.size >= KEPT) ageSeats.clear();
   ageSeats.set(key, forms);

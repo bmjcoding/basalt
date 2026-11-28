@@ -29,12 +29,13 @@ export function keptNumberFormats() {
   return formatters?.size ?? 0;
 }
 
-const GLUED = new Set(["unit", "currency", "compact"]);
+/** A part a number is glued to. A comparison, not a set made at module scope: loading the module does nothing. */
+const glued = (type?: string) => type === "unit" || type === "currency" || type === "compact";
 
 /** A number in the locale given ("1,234.5" in `en-US`), with a unit, a currency or a compact suffix glued to it ("10 MB", "1.2 thousand"). */
 export function formatNumber(value: number, { locale = "en-US", ...options }: FormatNumberOptions = {}): string {
   const list = formatter(locale, options).formatToParts(value);
   return list
-    .map((part, i) => (part.type === "literal" && (GLUED.has(list[i - 1]?.type ?? "") || GLUED.has(list[i + 1]?.type ?? "")) ? part.value.replace(/ /g, "\u00a0") : part.value))
+    .map((part, i) => (part.type === "literal" && (glued(list[i - 1]?.type) || glued(list[i + 1]?.type)) ? part.value.replace(/ /g, "\u00a0") : part.value))
     .join("");
 }

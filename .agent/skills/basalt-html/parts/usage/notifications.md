@@ -12,7 +12,7 @@ var centre = Basalt.notifications('#bell', {
 </script>
 ```
 
-- The page owns the entries and read state; call `setEntries` after a change; `onClearAll` adds Clear all. Newest first; `href` makes a link, else a button. `time` is your words and absolute, as a stat's source is: the clock today ("4:41&nbsp;AM"), the date another day ("Nov&nbsp;7"); a relative age only when the entry opens a view that shows the date, never a `title`; `status`: `success`, `warning`, `danger`, `pending` (waiting; the title says it).
+- The page owns the entries and read state; call `setEntries` after a change; `onClearAll` adds Clear all. Newest first; `href` makes a link, else a button. `time` is absolute: today's clock, else the date (an age only if the entry opens the date; no `title`); `status`: `success`, `warning`, `danger`, `pending` (waiting; the title says it).
 - A group: `entries: [...]` on an entry, its title naming who and what; the row adds "×N" (`count`) and opens to them.
 - Home of a toast's `home: 'centre'`. In a bar's end, 32px; the unread count is in the button's name. Last in a bar: `edge: 'end'`.
 - `direct: true` on an entry addressed to the reader (a mention): the ringed dot, and "for you" in the words. `count` above 1 on any entry draws "×N". `wrap: true` for sentences that must be read whole (a page list, not the bell).

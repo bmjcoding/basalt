@@ -47,7 +47,8 @@
       "icon",
       "section-description"
     ],
-    "usage": 3800
+    "usage": 4354,
+    "usageReason": "micro-details m2 (DECISIONS 419; the owner's soft budgets: raised with the measured number, no rule dropped to fit): 3712 to 4354 bytes, measured after trimming, for the words line (quotes, the ellipsis, the glue, translate=\"no\", the locale), the figures line and the date-and-age markup, which the decision puts in core usage. Cap 3800 to 4354."
   },
   "modules": {
     "glyph": {
@@ -1679,7 +1680,8 @@
         "Circle"
       ],
       "budget": 16645,
-      "usage": 1650,
+      "usage": 1662,
+      "usageReason": "micro-details m2 (DECISIONS 419; the owner's soft budgets: raised with the measured number, no rule dropped to fit): 1585 to 1662 bytes, measured after trimming, for the absolute time in a row (the clock today, else the date; an age only beside a view of the date; no title). Cap 1650 to 1662.",
       "builds": [
         "popover",
         "glide"
