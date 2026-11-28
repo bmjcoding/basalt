@@ -6,6 +6,9 @@
 // The still engine (diagram-core.ts) draws every line and marks an animated figure pending in the frame its lines are first drawn (entranceDrawn).
 // This module plays that entrance when the figure comes into view, carries it across a re-measure on its one clock, settles it at once when the reader
 // acts or a mode turns on, and then runs the loops the data names while they may run. Every value is a token, read from the page.
+//
+// "Draw again" (DECISIONS 405, G149): a figure that asks for `replay` plays its entrance again from its first frame, on a press in its own foot (the button,
+// or an app's action calling the context's `replay()` inside its press). Nothing else starts one: there is no prop value, method or event for it.
 
 import { entranceBlocked, pathD, settleEntrance, visitKey } from "./diagram-core";
 import type { Geo, GLine, Model, Pt, Tokens } from "./diagram-core";
@@ -22,6 +25,8 @@ export interface MotionHost {
   /** The lines as last drawn. */
   geo: () => Geo | null;
   tokens: () => Tokens | null;
+  /** Clears the reader's trace (the host's: a focus, a hover or a tap), as a replay starts. */
+  clearTrace?: () => void;
 }
 
 export interface MotionState {
@@ -31,6 +36,8 @@ export interface MotionState {
   runShown: boolean;
   /** A run the reader started is going: the button reads "Stop the run". */
   running: boolean;
+  /** "Draw again" is shown (DECISIONS 405, G149): animated, asked for, lines drawn, and not under reduced motion or in forced colours. */
+  replayShown: boolean;
 }
 
 export interface MotionController {
@@ -42,6 +49,11 @@ export interface MotionController {
   sendValue: (value: number | string | undefined) => void;
   /** The run button: plays the run, or stops it. */
   toggleRun: () => void;
+  /**
+   * "Draw again" (DECISIONS 405, G149): plays the entrance again from its first frame, at once, wherever the figure is. Called only for a press in the
+   * figure's own foot (the button, or an app's action through its context). True when a replay started; false where none may (no button is shown).
+   */
+  replay: () => boolean;
   state: () => MotionState;
   subscribe: (notify: () => void) => () => void;
   destroy: () => void;
@@ -156,7 +168,7 @@ class Figure implements MotionController {
   private page: Page;
   private t: Timing;
   private listeners = new Set<() => void>();
-  private snapshot: MotionState = { canLoop: false, runShown: false, running: false };
+  private snapshot: MotionState = { canLoop: false, runShown: false, running: false, replayShown: false };
   private destroyed = false;
   // The entrance: one clock (t0), one stagger factor, the plan each line was last given, the animations on it.
   private t0 = 0;
@@ -189,6 +201,10 @@ class Figure implements MotionController {
   private waiting = false;
   private lastSend: { v: number | string | undefined } | null = null;
   private arrivals = new Map<Element, number>();
+  // A replay (DECISIONS 405, G149): the entrance that is running is the reader's, so it stores nothing and plays under the hold. `starting` is the press's
+  // own frame, while what it ends is ended, so a loop is not started in between.
+  private replaying = false;
+  private starting = false;
 
   constructor(host: MotionHost) {
     this.host = host;
@@ -213,10 +229,32 @@ class Figure implements MotionController {
       canLoop: m.motion.animated && loopsNamed && lines && !modes.reduce && !modes.forced,
       runShown: m.motion.animated && m.motion.run && lines,
       running: this.runAt >= 0,
+      replayShown: m.motion.animated && m.motion.replay && lines && !modes.reduce && !modes.forced,
     };
-    if (next.canLoop === this.snapshot.canLoop && next.runShown === this.snapshot.runShown && next.running === this.snapshot.running) return;
+    if (next.canLoop === this.snapshot.canLoop && next.runShown === this.snapshot.runShown && next.running === this.snapshot.running && next.replayShown === this.snapshot.replayShown) return;
+    this.handFocus(next);
     this.snapshot = next;
     for (const notify of this.listeners) notify();
+  }
+
+  /**
+   * A motion button that leaves the foot while it holds focus hands focus to the control before it that stays (DECISIONS 405, G149): the run button,
+   * else "Expand", else "View as list", with no scroll. Done before the hosts are told, so the button still holds focus when this runs; React and the
+   * skill draw the same classes in the same order, so one rule serves both.
+   */
+  private handFocus(next: MotionState) {
+    const { fig, P } = this.host;
+    const active = document.activeElement as HTMLElement | null;
+    const foot = fig.querySelector(`:scope > .${P}-foot`);
+    if (!active || !foot || !foot.contains(active)) return;
+    const shown: Record<string, boolean> = { [`${P}-play`]: next.runShown, [`${P}-replay`]: next.replayShown, [`${P}-pause`]: next.canLoop };
+    const leaves = (el: Element) => Object.keys(shown).some((c) => el.classList.contains(c) && !shown[c]);
+    if (!leaves(active)) return;
+    for (let at = active.previousElementSibling; at; at = at.previousElementSibling) {
+      if (!(at instanceof HTMLElement) || at.tagName !== "BUTTON" || at.hidden || leaves(at)) continue;
+      at.focus({ preventScroll: true });
+      return;
+    }
   }
 
   destroy = () => {
@@ -298,8 +336,9 @@ class Figure implements MotionController {
     const m = this.host.model();
     const modes = this.modes();
     const state = this.entrance();
-    // A mode that turns on settles (1.5): the hold, print, reduced motion, forced colours. Motion turned off is the host's: it destroys this figure.
-    if ((state === "pending" || state === "running") && (modes.held || modes.print || modes.reduce || modes.forced)) settleEntrance(fig);
+    // A mode that turns on settles (1.5): the hold, print, reduced motion, forced colours. Motion turned off is the host's: it destroys this figure. A
+    // replay plays under the hold (DECISIONS 405, G149): the hold set while it plays settles it (holdChanged), and one it started under does not.
+    if ((state === "pending" || state === "running") && ((modes.held && !(this.replaying && state === "running")) || modes.print || modes.reduce || modes.forced)) settleEntrance(fig);
     else if (state === "pending" && this.enough && !document.hidden && this.hasLines()) this.play();
     // A figure that came into view at rest stays at rest: a later release starts its loops, not an entrance.
     if (!state && this.enough && this.hasLines()) fig.setAttribute("data-entrance", "done");
@@ -311,11 +350,21 @@ class Figure implements MotionController {
 
   private onSettle = () => {
     // settleEntrance has already set data-entrance="done": every line whole, every label at rest, and then the loops may start. An entrance that played
-    // and gave way to the reader marks the first visit (1.5); one settled by a mode (the hold, print, reduced motion) does not.
-    if (this.played && !this.byMode()) this.markVisit();
+    // and gave way to the reader marks the first visit (1.5); one settled by a mode (the hold, print, reduced motion) does not, and a replay never does.
+    if (this.played && !this.byMode() && !this.replaying) this.markVisit();
+    this.replaying = false;
     this.clearIntro();
     this.sync();
+    this.release();
   };
+
+  /** A send that waited for an entrance to end goes when it has (DECISIONS 405, G149); a repeating packet's next self-send carries it, as in its rest. */
+  private release() {
+    if (this.starting || !this.waiting || this.inFlight || this.entrance() === "running") return;
+    if (this.looping && this.host.model().motion.packet?.repeat) return;
+    this.waiting = false;
+    this.send();
+  }
 
   private ordered(geo: Geo): GLine[] {
     const m = this.host.model();
@@ -446,10 +495,12 @@ class Figure implements MotionController {
 
   private finishIntro() {
     if (this.entrance() !== "running") return;
-    this.markVisit();
+    if (!this.replaying) this.markVisit();
+    this.replaying = false;
     this.host.fig.setAttribute("data-entrance", "done");
     this.clearIntro();
     this.sync();
+    this.release();
   }
 
   /**
@@ -553,7 +604,7 @@ class Figure implements MotionController {
 
   private syncLoops(m: Model, modes: ReturnType<Figure["modes"]>) {
     const settled = this.entrance() === "done";
-    const rest = !m.motion.animated || !settled || !this.hasLines() || modes.reduce || modes.forced || modes.print || modes.held || this.traced() || now() < this.resumeAt;
+    const rest = this.starting || !m.motion.animated || !settled || !this.hasLines() || modes.reduce || modes.forced || modes.print || modes.held || this.traced() || now() < this.resumeAt;
     if (rest) { if (this.looping) this.clearLoops(); return; }
     const freeze = !this.inView || document.hidden;
     if (!this.looping) {
@@ -811,8 +862,9 @@ class Figure implements MotionController {
     const m = this.host.model();
     const path = m.motion.packet?.path;
     if (!m.motion.animated || !path || !this.hasLines()) return;
+    // A send while any entrance runs (the first, or a replay) waits for its end, in the one waiting slot (DECISIONS 405, G149).
     // One mover a figure: a second send while a dot is in flight waits for it; one may wait, and further ones are dropped.
-    if (this.inFlight) { this.waiting = true; return; }
+    if (this.inFlight || this.entrance() === "running") { this.waiting = true; return; }
     const modes = this.modes();
     if (modes.held || modes.reduce) {
       // Nothing sends itself under the hold, and nothing travels under reduced motion: the last stop takes its arrival step for the rest.
@@ -830,6 +882,38 @@ class Figure implements MotionController {
       if (this.waiting && gen === this.runGen) { this.waiting = false; this.send(); }
     });
   }
+
+  replay = (): boolean => {
+    if (this.destroyed) return false;
+    const m = this.host.model();
+    const modes = this.modes();
+    // Where "Draw again" is not shown, nothing replays: still, not asked for, no lines drawn, reduced motion or forced colours.
+    if (!m.motion.animated || !m.motion.replay || !this.hasLines() || modes.reduce || modes.forced) return false;
+    const fig = this.host.fig;
+    this.starting = true;
+    try {
+      // In the frame of the press: a pending or running entrance settles (a first entrance given way to the reader marks the visit, as any control
+      // does); a run ends; a trace clears; a packet in flight is taken off and not sent again, the loops clear, and a send waiting is dropped.
+      settleEntrance(fig);
+      this.clearLoops();
+      this.stopRun();
+      this.inFlight = false;
+      this.waiting = false;
+      this.clearArrivals();
+      this.host.clearTrace?.();
+      // Then the entrance from its first frame, on the plan and tokens it has, inside duration-diagram-limit. It never waits to be in view and never
+      // scrolls; it stores nothing.
+      this.replaying = true;
+      this.play();
+    } finally {
+      this.starting = false;
+    }
+    const started = this.entrance() === "running";
+    if (!started) this.replaying = false;
+    this.sync();
+    this.publish();
+    return started;
+  };
 
   toggleRun = () => {
     if (this.runAt >= 0) { this.stopRun(); this.publish(); return; }

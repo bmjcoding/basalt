@@ -1,9 +1,10 @@
 // A deployment diagram (DECISIONS 359, Ops 3): read as an architecture and routed by the engine, with what is its own here: one environment a figure, the
-// first words of its source line; a host's copies (`× 3`); its artifacts as rows, which a line may name (it lands on the host in this build). A third group
+// first words of its source line; its artifacts as rows, which a line may name (it lands on the host in this build). A third group
 // level is not drawn in this build: it ships only with its label seat and line cut at every level. DeploymentDiagram hands this module to the engine on
-// the spec. Nothing runs at load. The implementation has not been reviewed.
+// the spec. A host's copies (`× 3`) are the engine's (DECISIONS 405, G151), as an architecture card's are: read, drawn, said, listed, keyed and measured in
+// diagram-core.ts. Nothing runs at load. The implementation has not been reviewed.
 
-import { h, iso, linkName, nodeText, txt } from "./diagram-core";
+import { copiesOf, h, iso, kindLine, linkName, nodeText, txt } from "./diagram-core";
 import type { DeploymentNode, DiagramFlowEdge, DiagramGroup, DiagramSpec, DiagramTypeExt, ExtBuildKit, MNode, Model, VChild, VElement, VNode } from "./diagram-core";
 
 function prepare(spec: DiagramSpec, kit: ExtBuildKit): DiagramSpec {
@@ -32,13 +33,11 @@ function prepare(spec: DiagramSpec, kit: ExtBuildKit): DiagramSpec {
   return { ...spec, groups: flat, edges };
 }
 
-function adopt(m: Model, spec: DiagramSpec, kit: ExtBuildKit) {
+function adopt(m: Model, spec: DiagramSpec) {
   m.plan = { environment: txt(spec.environment) };
   for (const raw of (spec.nodes ?? []) as DeploymentNode[]) {
     const n = m.byId.get(String(raw.id));
     if (!n) continue;
-    const r = raw.replicas;
-    n.replicas = r === undefined || r === null ? undefined : typeof r === "number" && Number.isInteger(r) && r >= 1 ? r : (kit.dev && kit.error(`${n.id}'s replicas is ${JSON.stringify(r)}, not a whole number: words such as "1 writer, 1 reader" are the detail's`), undefined);
     const rows = Array.isArray(raw.artifacts) ? raw.artifacts.map((a) => ({ id: String(a.id ?? ""), name: String(a.name ?? ""), detail: txt(a.detail) })) : [];
     n.artifacts = rows.length ? rows : undefined;
   }
@@ -50,10 +49,10 @@ function adopt(m: Model, spec: DiagramSpec, kit: ExtBuildKit) {
   }
 }
 
-/** A host: its kind line with its copies ("× 3", Geist with tabular figures), and with artifacts the node with no padding: a header band, then a row an artifact. */
+/** A host: its kind line with its copies (the engine's), and with artifacts the node with no padding: a header band, then a row an artifact. */
 function card(P: string, m: Model, n: MNode): VChild[] {
-  if ((n.replicas ?? 0) < 2 && !n.artifacts) return nodeText(P, m, n);
-  const kind = h("span", { class: `${P}-kind` }, n.kind ? iso(n.kind) : null, (n.replicas ?? 0) > 1 ? h("span", { class: `${P}-replicas` }, `× ${n.replicas}`) : null);
+  if (!copiesOf(n) && !n.artifacts) return nodeText(P, m, n);
+  const kind = kindLine(P, n);
   const words: VChild[] = [kind, h("span", { class: `${P}-name` }, linkName(P, n)), n.detail ? h("span", { class: `${P}-detail`, "data-mono": n.mono ? "" : undefined }, iso(n.detail)) : null];
   if (!n.artifacts) return words;
   return [
@@ -82,9 +81,8 @@ export function deploymentType(): DiagramTypeExt {
     adopt,
     card: (P, m, n) => card(P, m, n),
     nodeAttrs: (_m, n) => ({ "data-rows": n.artifacts ? "" : undefined }),
-    sentenceMore: (_m, n) => [(n.replicas ?? 0) > 1 ? `${n.replicas} copies.` : "", n.artifacts ? `Runs ${n.artifacts.map((a) => (a.detail ? `${a.name} ${a.detail}` : a.name)).join(", ")}.` : ""].filter(Boolean),
-    keyMore: (P, m) => (m.nodes.some((n) => (n.replicas ?? 0) > 1) ? [h("li", { class: `${P}-entry` }, h("span", { class: `${P}-key-letters`, "data-replicas": "", "aria-hidden": "true" }, "× 3"), h("span", null, "How many copies run"))] : []),
-    listPart: (P, _m, n) => [(n.replicas ?? 0) > 1 ? ` ${n.replicas} copies.` : "", n.artifacts ? [" Runs ", n.artifacts.flatMap((a, j) => [j ? ", " : "", h("code", { class: `${P}-code` }, iso(a.name)), a.detail ? [" ", iso(a.detail)] : ""]), "."] : ""],
+    sentenceMore: (_m, n) => (n.artifacts ? [`Runs ${n.artifacts.map((a) => (a.detail ? `${a.name} ${a.detail}` : a.name)).join(", ")}.`] : []),
+    listPart: (P, _m, n) => [n.artifacts ? [" Runs ", n.artifacts.flatMap((a, j) => [j ? ", " : "", h("code", { class: `${P}-code` }, iso(a.name)), a.detail ? [" ", iso(a.detail)] : ""]), "."] : ""],
     listLines,
     sourceLead: (m) => (m.plan as { environment?: string } | undefined)?.environment,
   });

@@ -71,7 +71,12 @@ export interface DiagramMark {
   /** The words the mark stands for (each bundled mark carries them): a development build warns when a card's words say none of them. */
   says?: readonly string[];
 }
-export type ArchitectureNode = DiagramNode & { group?: string; mark?: DiagramMark };
+/**
+ * An architecture's card. `replicas` (DECISIONS 405, G151): how many copies of one kind the card stands for, as a deployment's host has; 2 or more draws
+ * `× 3` at the end of its kind line, says "3 copies." and adds the key's entry. Every line drawn to or from the card is true of each copy, or of whichever
+ * copy answers; a line to one particular copy needs that copy as its own node, and a range or a rule ("2 to 6", "autoscales") is the detail's words.
+ */
+export type ArchitectureNode = DiagramNode & { group?: string; mark?: DiagramMark; replicas?: number };
 /** A line of an architecture or a data flow. `flow` marks a live stream (main or plain only): an animated figure marches it. */
 export type DiagramFlowEdge = DiagramEdge & { flow?: boolean };
 /** A packet (DECISIONS 292, 1.8): a dot that carries one message along `path`, a route of node ids. */
@@ -130,6 +135,8 @@ export interface DiagramSpec {
   stepLabel?: ((n: number) => string) | string;
   /** Default "still": the drawing as merged, with no motion code loaded (DECISIONS 292). */
   motion?: DiagramMotion;
+  /** An animated figure's "Draw again" in its foot (DECISIONS 405, G149): only a press on it, or an app's action calling `replay()`, plays the entrance again. */
+  replay?: boolean;
   pulse?: string[];
   packet?: DiagramPacket;
   run?: boolean;
@@ -261,7 +268,7 @@ export interface Model {
   stepWord: (n: number) => string;
   warnings: string[];
   /** Motion (DECISIONS 292). Read and ignored when still. */
-  motion: { animated: boolean; pulse?: string[]; packet?: { path: string[]; repeat: boolean; send?: number | string }; run: boolean; firstVisit?: boolean };
+  motion: { animated: boolean; pulse?: string[]; packet?: { path: string[]; repeat: boolean; send?: number | string }; run: boolean; firstVisit?: boolean; replay: boolean };
   /** Work that depends on the model alone, done once (see `memo`). */
   memo: Map<string, unknown>;
   /** Mirrored for a right-to-left figure (1.7). */
@@ -467,6 +474,8 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
         id, i: nodes.length, name: String(raw.name ?? ""), kind: shape === "decision" ? undefined : txt(raw.kind), detail: shape === "decision" ? undefined : txt(raw.detail), mono: Boolean(raw.detailMono),
         focal: Boolean(raw.focal), col: trackOf(raw.col, `the column of ${id}`), row, row2: row, branch: Boolean(raw.branch), shape, group: type !== "flowchart" ? txt(raw.group) : undefined,
         mark: type !== "flowchart" ? markOf((raw as { mark?: unknown }).mark, dev ? warn : undefined) : undefined,
+        // A card for several of one kind (DECISIONS 405, G151): an architecture's and a deployment's, never a state's.
+        replicas: type === "architecture" || type === "deployment" ? replicasOf(id, (raw as { replicas?: unknown }).replicas, dev ? error : undefined) : undefined,
       });
     }
     if (type !== "flowchart") {
@@ -705,7 +714,10 @@ export function buildModel(spec: DiagramSpec, options: BuildOptions = {}): Model
     packet: packetPath ? { path: packetPath, repeat: packetIn!.repeat === true, send: packetIn!.send } : undefined,
     run: type === "sequence" && spec.run === true,
     firstVisit: spec.entrance === "first-visit" || undefined,
+    // "Draw again" (DECISIONS 405, G149): opt-in, and only on an animated figure; on a still one it is a development warning and nothing is drawn.
+    replay: spec.motion === "animated" && spec.replay === true,
   };
+  if (dev && spec.replay === true && spec.motion !== "animated") warn('replay is set on a still figure: "Draw again" replays an entrance, so it needs motion: "animated". Nothing is drawn');
   if (checks) for (const n of nodes) {
     const says = n.mark?.says;
     if (!says?.length) continue;
@@ -947,6 +959,8 @@ function writeSentence(m: Model, n: MNode): string {
     const what = m.type === "data-flow" ? `${m.stepWord(n.step!)} of ${m.nodes.length}, ${n.laneLabel}${n.shape === "decision" ? `, ${m.shapeLabels.decision.toLowerCase()}` : ""}` : m.type === "flowchart" ? shapeWord(m, n) : n.kind;
     parts.push(sentence(what ? `${n.name}, ${what}` : n.name));
     if (n.detail) parts.push(sentence(n.detail));
+    const copies = copiesOf(n);
+    if (copies) parts.push(`${copies} copies.`);
     if (m.ext?.sentenceMore) parts.push(...m.ext.sentenceMore(m, n));
     // The chain, innermost first: "In Data & logs, in AWS · your account." (1.3)
     if (n.group) { const g = m.groups.find((x) => x.id === n.group); const outer = g?.parent ? m.groups.find((x) => x.id === g.parent) : undefined; if (g) parts.push(outer ? `In ${g.label}, in ${outer.label}.` : `In ${g.label}.`); }
@@ -1401,6 +1415,8 @@ function buildKey(P: string, m: Model): VElement | null {
     const ops = new Set(m.steps.flatMap((st) => ("open" in st ? [st.open] : [])));
     for (const op of ["opt", "loop", "alt"] as const) if (ops.has(op)) entries.push(h("li", { class: `${P}-entry` }, h("span", { class: `${P}-key-letters`, "data-op": "" , "aria-hidden": "true" }, op), h("span", null, m.frameWords[op])));
   }
+  // A card for several of one kind (DECISIONS 405, G151): one entry, an architecture's and a deployment's, built in because it is notation.
+  if (m.nodes.some((n) => copiesOf(n))) entries.push(h("li", { class: `${P}-entry` }, h("span", { class: `${P}-key-letters`, "data-replicas": "", "aria-hidden": "true" }, h("bdi", { dir: "ltr" }, "× 3")), h("span", null, "How many copies run")));
   if (m.ext?.keyMore) entries.push(...m.ext.keyMore(P, m));
   // The text art draws the focal participant in a double-line box: its key shows that glyph (P4 of the pixel review).
   if (m.nodes.some((n) => n.focal) && m.legend.focal) entry(m.text ? glyph("╔═╗", "focal") : boxSwatch(P, "focal"), m.legend.focal, { "data-focal": "" });
@@ -1442,12 +1458,35 @@ export function linkName(P: string, n: MNode): VChild {
   return [at < 0 ? "" : n.name.slice(0, at + 1), h("span", { class: `${P}-name-end` }, at < 0 ? n.name : n.name.slice(at + 1))];
 }
 
+/**
+ * A card's copies as the author wrote them (DECISIONS 405, G151), one reading for an architecture and a deployment: absent or null is nothing, 1 is
+ * valid and shows nothing, a safe whole number from 2 is drawn, and anything else is a development error and nothing.
+ */
+function replicasOf(id: string, r: unknown, error?: (s: string) => void): number | undefined {
+  if (r === undefined || r === null) return undefined;
+  if (typeof r === "number" && Number.isSafeInteger(r) && r >= 1) return r;
+  error?.(`${id}'s replicas is ${JSON.stringify(r)}, not a whole number: words such as "1 writer, 1 reader" are the detail's`);
+  return undefined;
+}
+/** A card's drawn count, with en-US grouping ("1,200"), where it stands for two copies or more. */
+export const copiesOf = (n: MNode): string | undefined => ((n.replicas ?? 0) > 1 ? n.replicas!.toLocaleString("en-US") : undefined);
+/**
+ * A card's kind line (DECISIONS 405, G151): its kind, then its count (`× 3`), space-2 after the kind's last word and never broken from it; with no kind,
+ * the count alone, on the name's edge. The count keeps its own order, isolated, right to left: its words are an ltr isolate inside the span, so the
+ * span's own margin stays on the kind's side in either direction. Null where there is neither.
+ */
+export function kindLine(P: string, n: MNode): VElement | null {
+  const count = copiesOf(n);
+  if (!n.kind && !count) return null;
+  return h("span", { class: `${P}-kind` }, n.kind ? iso(n.kind) : null, count ? h("span", { class: `${P}-replicas` }, h("bdi", { dir: "ltr" }, `× ${count}`)) : null);
+}
+
 export function nodeText(P: string, m: Model, n: MNode): VChild[] {
   // A data flow's decision (DECISIONS 359, Ops 5) writes its step line inside the diamond, above its name.
   if (n.shape === "decision") return [h("span", { class: `${P}-words` }, m.type === "data-flow" && n.kind ? h("span", { class: `${P}-kind` }, iso(n.kind)) : null, h("span", { class: `${P}-name` }, linkName(P, n)))];
   const kids: VNode[] = [];
   if (m.type === "data-flow") kids.push(h("span", { class: `${P}-kind` }, iso(n.kind!), h("span", { class: `${P}-lane-word` }, " · ", iso(n.laneLabel ?? ""))));
-  else if (n.kind) kids.push(h("span", { class: `${P}-kind` }, iso(n.kind)));
+  else { const kind = kindLine(P, n); if (kind) kids.push(kind); }
   kids.push(h("span", { class: `${P}-name` }, linkName(P, n)));
   // An identifier breaks only at its spaces: each run between them is kept whole (an ordinary hyphen stays, so a copy is exact).
   // The runs are held in one span, a single left-to-right run right to left (1.7).
@@ -1682,7 +1721,7 @@ function buildList(P: string, m: Model): VNode[] {
   const focal = (n: MNode) => (n.focal && m.legend.focal ? ` ${sentence(m.legend.focal)}` : "");
   if (grouped(m.type)) {
     const extra = (n: MNode): VChild[] => m.ext?.listPart?.(P, m, n) ?? [];
-    const part = (n: MNode) => h("li", null, named(n), n.kind ? [", ", iso(n.kind)] : "", n.detail ? [". ", n.mono ? code(n.detail) : iso(n.detail), /[.!?]$/.test(n.detail) ? "" : "."] : /[.!?]$/.test(n.kind ?? n.name) ? "" : ".", extra(n), focal(n));
+    const part = (n: MNode) => h("li", null, named(n), n.kind ? [", ", iso(n.kind)] : "", n.detail ? [". ", n.mono ? code(n.detail) : iso(n.detail), /[.!?]$/.test(n.detail) ? "" : "."] : /[.!?]$/.test(n.kind ?? n.name) ? "" : ".", copiesOf(n) ? ` ${copiesOf(n)} copies.` : "", extra(n), focal(n));
     const out: VNode[] = [H(m.ext?.listParts ?? "Parts")];
     const loose = m.nodes.filter((n) => !n.group);
     if (loose.length) out.push(h("ul", { class: `${P}-list-items` }, loose.map(part)));
@@ -2161,8 +2200,14 @@ function minimums(m: Model, tk: Tokens, measure: ReturnType<typeof ruler>) {
     // A link card's last word carries its cue, 16 and space-1-5 before it (1.4).
     const cue = n.href ? 16 + s("1-5") : 0;
     const nameWords = words(n.name);
-    nameWords.forEach((w, j) => { widest = Math.max(widest, measure(w, n.shape === "decision" ? "name-500" : "name") + (n.kind ? 0 : seat) + (j === nameWords.length - 1 ? cue : 0)); });
-    if (m.type !== "data-flow") for (const w of words(n.kind)) widest = Math.max(widest, measure(w, "mono") + seat);
+    // A count (DECISIONS 405, G151) is on the kind line, in its own face: after the kind's last word and space-2, never broken from it; with no kind, alone.
+    // Either way the kind line is first and takes the mark's seat, never the name.
+    const count = copiesOf(n);
+    const countWidth = count ? measure(`× ${count}`, "xs-500") : 0;
+    nameWords.forEach((w, j) => { widest = Math.max(widest, measure(w, n.shape === "decision" ? "name-500" : "name") + (n.kind || count ? 0 : seat) + (j === nameWords.length - 1 ? cue : 0)); });
+    const kindWords = m.type !== "data-flow" ? words(n.kind) : [];
+    kindWords.forEach((w, j) => { widest = Math.max(widest, measure(w, "mono") + (count && j === kindWords.length - 1 ? s("2") + countWidth : 0) + seat); });
+    if (count && !kindWords.length) widest = Math.max(widest, countWidth + seat);
     for (const w of words(n.detail)) widest = Math.max(widest, measure(w, n.mono ? "mono" : "sans"));
     const need = n.shape === "decision" ? widest / 0.62 : widest + pad + 2 * tk.hair;
     track = Math.max(track, Math.ceil(need));

@@ -2174,6 +2174,11 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   box and a lone run there is `space-4` from the card and from the edge. With less than `space-2` a lane the figure is stacked.
   A dependency figure (`dependents`) is an architecture: each card's count of dependents is the engine's, a line in a cycle is dashed in
   the direction it was written, and automatic layout ranks by longest path from the sources.
+  A card for several of one kind (`replicas`, DECISIONS 405) says how many copies run: `× 3` at the end of its kind line, in Geist with tabular
+  figures, `space-2` after the kind's last word and never broken from it; with no kind it is the kind line alone, on the name's edge. It is one
+  card with one rim, never a stacked shape, and a deployment's host draws the same. Every line drawn to or from the card is true of each copy,
+  or of whichever copy answers. A line to one particular copy needs that copy as its own node. A range or a rule ("2 to 6", "autoscales") is
+  the detail's words.
 - **Flowchart:** shape carries type: a step is the box, a start or end a capsule, a decision a diamond behind its words. **Every
   flowchart shape has a 1px `diagram-structure` contour** in place of the rim, because the shape has to be seen at 3:1. A decision is
   at least `space-16` tall and never flatter than 5:1. A decision is never taller than it is wide: a width at which one would be is not
@@ -2215,7 +2220,7 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   gap since the one before. A span is a gantt's.
 - **Deployment:** one environment a figure, named in the source line. Groups nest three deep, here only; the inner two are radius 8,
   and no line runs through a label at any level. An artifact is a row of its host card, as a schema's column is of its table, and a
-  line may land on it. `× 3` at the end of a host's kind line, in Geist, says how many copies run.
+  line may land on it. `× 3` at the end of a host's kind line, in Geist, says how many copies run, as on an architecture's card.
 - **Gantt:** a row a task on one time scale. The names are a `size-diagram-table` column; the scale is inset `space-2` at each end. A bar
   is 16 tall, `plate-0` under a 1px `diagram-edge` contour, square at both ends, because its ends are its dates. A milestone is a diamond
   of the same ink on its day. Tick lines are `chart-grid`; today is a 1px dashed `diagram-structure` line, named above the axis. No
@@ -2243,15 +2248,15 @@ card keeps its owner's colours ([Service marks](#service-marks)). One node may b
   cardinality shows each form drawn ("Exactly one", "Zero or one", "One or many", "Zero or many"), and a sequence each frame operator
   drawn, the letters set as the tab sets them ("Only if", "Repeats", "One of these"): built in, because they are notation.
   A state's key shows the start mark ("Starts here"), the final mark ("Ends here") and, where drawn, the order ("Tried in this order: the
-  first that holds is taken"); a timeline's the event ("An event, at its time") and a break ("Time left out of the scale"); a deployment's
-  count ("How many copies run"): built in, because they are notation. The words for the planning types' notation are built in and an app
+  first that holds is taken"); a timeline's the event ("An event, at its time") and a break ("Time left out of the scale"); an architecture's
+  and a deployment's count ("How many copies run"): built in, because they are notation. The words for the planning types' notation are built in and an app
   can replace them: a gantt's bar, milestone and today, a kanban's "Over its limit" and "Blocked", a blueprint's three rules, a story map's
   backbone, and a schedule's two lines, two contours and "ES, EF: earliest start and finish · LS, LF: latest start and finish". A
   journey's line and a story map's cut must have the author's words.
 - The summary is required. "View as list" opens the same facts as real lists in the same figure: the parts and connections, a
   flowchart's steps with each exit written once, a data flow's steps, a sequence's messages, a schema's tables.
 - **The foot** holds the figure's controls in one fixed order, `space-2` apart, wrapping from the start edge: "View as list", "Expand",
-  a sequence's run button, "Pause animations", the app's own actions, then "Clear highlight", which is last so that nothing moves when it
+  a sequence's run button, "Draw again", "Pause animations", the app's own actions, then "Clear highlight", which is last so that nothing moves when it
   mounts. Each is a secondary small button with words. **An app's own actions** (`actions`) are the author asking for a control: words
   only, in the order given, one press each and never a menu, three at most by intent (a development build warns past three, and past 24
   characters in a label, and draws them as written). Each is busy on its own until its promise settles. They exist once script runs, as
@@ -2338,7 +2343,7 @@ Decided by the council for the owner's handoff (DECISIONS 287 to 291 and 292). *
 Still is the default and is the drawing above, unchanged. Animated adds an entrance and, where the data names them, a flow line, a pulse
 or a packet. Motion never carries a fact alone, and it runs only where lines are drawn.
 
-- **The entrance plays when the figure comes into view** (two fifths of the drawing, or of the window for a taller one), once a figure
+- **The entrance plays when the figure comes into view** (two fifths of the drawing, or of the window for a taller one), by itself, once a figure
   a page load, on every figure that asks for it. It is not the page's one entrance and is not stored between visits, unless the figure
   asks for `entrance: "first-visit"`: then a mark is stored when an entrance that played finishes or gives way to the reader, and later
   visits are at rest. A visit at rest by mode stores nothing.
@@ -2375,6 +2380,15 @@ or a packet. Motion never carries a fact alone, and it runs only where lines are
   `duration-diagram-pause` after it ends. Neither motion button prints.
 - **A text sequence** builds by ink: a message's label and arrow lift to their resting ink at its turn. No line is hidden and there is
   no caret.
+- **Drawn again** (`replay`, DECISIONS 405): the author asks, and the foot draws "Draw again". A press plays the entrance from its first frame,
+  inside `duration-diagram-limit`, starting on the press; the lines are never hidden to wait. It ends a run, clears a trace and sends nothing;
+  a send waits for its end. It plays under the hold, which never stops what the reader started, and the hold set while it plays settles it.
+  There is no button under reduced motion, in forced colours or in a layout that draws no lines, and none in the viewer. Nothing but a press
+  in the figure's own foot starts one: the button, or an app's action calling `replay()` inside its press (before its first `await`). An app
+  never presses it for the reader, and `data-entrance` is Basalt's own state, not an API. `replay()` on a figure without `replay` returns false with a
+  development error that says to set `replay` on the figure; under reduced motion, in forced colours or with no lines drawn it returns false and says
+  nothing. A motion
+  button that leaves while it holds focus hands focus to the control before it in the foot.
 - **A sequence's run** (`run`): "Play the run" sends one packet through every message in order. It may pass five seconds; while it
   runs the button reads "Stop the run" and stops it. The hold does not stop it.
 - **Reduced motion:** the figure is still; a run steps through its messages by colour alone. **Forced colours:** the figure is still; a
