@@ -1402,8 +1402,8 @@
       "textWords": [
         "a call to Basalt.wait"
       ],
-      "budget": 1133,
-      "budgetReason": "Micro-details m5 (DECISIONS 405, 409): new, React's usePressWait for a .btn (the press guard, the ring after 300ms held 400ms, a bare label wrapped); script only, so a page that waits on nothing pays nothing. 1133 bytes measured after trimming (fix 1's own cleanup branch included), against the decision's estimate of 1100; cap 1133.",
+      "budget": 1178,
+      "budgetReason": "Micro-details m5 (DECISIONS 405, 409): new, React's usePressWait for a .btn (the press guard, the ring after 300ms held 400ms, a bare label wrapped); script only, so a page that waits on nothing pays nothing. 1133 bytes measured after trimming (fix 1's own cleanup branch included), against the decision's estimate of 1100; cap 1133. Lead's fix (28 Nov): the cleanup chained on the returned promise so a rejection nobody handles is still reported, as React's Button re-raises: 1133 to 1178 (+45); cap 1178.",
       "usage": 1000
     },
     "ambient": {

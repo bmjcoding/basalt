@@ -145,8 +145,23 @@ describe("8: Basalt.wait on a .btn", () => {
       });
       await run(page, 0);
       await page.waitForTimeout(50);
-      assert.equal(await page.evaluate(() => window.heard), "Synthetic refusal", "the returned promise is the work itself");
+      assert.equal(await page.evaluate(() => window.heard), "Synthetic refusal", "the returned promise carries the work's rejection");
       assert.deepEqual(await page.evaluate(() => window.unhandled), [], "the module's cleanup leaves nothing to reject unhandled");
+      assert.equal(await attr(page, "#publish", "aria-busy"), null);
+    } finally { await context.close(); }
+  });
+
+  test("fix 1: a rejection nobody handles is still reported, as React's Button re-raises (never swallowed)", async () => {
+    const { page, context } = await open();
+    try {
+      await page.evaluate(() => {
+        const b = document.getElementById("publish");
+        Basalt.wait(b, window.ask("publish"));
+        window.refuse("publish");
+      });
+      await run(page, 0);
+      await page.waitForTimeout(50);
+      assert.deepEqual(await page.evaluate(() => window.unhandled), ["Synthetic refusal"], "one unhandled rejection, the work's own");
       assert.equal(await attr(page, "#publish", "aria-busy"), null);
     } finally { await context.close(); }
   });
