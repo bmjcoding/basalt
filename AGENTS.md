@@ -64,6 +64,11 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   Never on controls or chips. A status callout's rim is the one coloured rim: its status colour
   at 45% mixed in sRGB over its own level, one solid colour on every side. Every other panel, a
   toast included, keeps the neutral rim. Under more contrast every side is the input boundary's value.
+- **Cut content fades.** A scrollport's edge that hides more fades its content (a mask, never an overlay) over `size-scroll-fade` (20) inline and
+  `size-scroll-fade-block` (16) on a block edge, at most a quarter of the port and never more than what is hidden; a port that fits has no mask. The mask is
+  never on a box that draws a rim, a shadow, a fill or a ring (a host round the port draws them); a classic scrollbar and held actions stay solid; a focused
+  item or the row the keys are on is never under a band. Off under more contrast, forced colours, reduced transparency, print and `data-fades="off"`. Not
+  faded: an ellipsis or clamp, a table scrolled sideways, a field being typed in, a diagram's stage, the window's edge (DECISIONS 397).
 - **One smoked surface: the sticky header.** `basalt-chrome` (`surface-chrome`: `#000` at 92.5%
   in dark, `#fafafa` at 96% in light; `blur-chrome`, 12px, no saturate) is the only translucent,
   blurred surface. Dialogs, sheets, menus, popovers, toasts and the command menu stay solid. The
