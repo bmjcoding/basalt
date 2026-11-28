@@ -583,7 +583,9 @@ describe("budgets", () => {
   test("the core (CSS and script every page gets) is well under the old 80 KiB", () => {
     const bytes = size("core");
     assert.ok(bytes <= manifest.budgets.core, `core is ${bytes} bytes of ${manifest.budgets.core}`);
-    assert.ok(bytes < 40 * 1024, "well under 80 KiB means under half");
+    // Under half of 80 KiB until micro-details m6 (DECISIONS 420) put the selected-text pair, the theme-switch window and the live theme-color sync in core
+    // (40899 to 42985 bytes); a soft line, raised with the cap and its reason in modules.json.
+    assert.ok(bytes < 42 * 1024, "well under 80 KiB");
   });
 
   for (const name of modules) {

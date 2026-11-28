@@ -159,6 +159,21 @@
         "$description": "Selected wash: the lit row's plate, the nav pill, a selected table row's band. A wash alone is about 1.2:1, so the state has a second cue: the ink step to primary, a check, a pill or a checked box."
       }
     },
+    "selection": {
+      "$description": "Selected text (DECISIONS 420). Web only: native text selection is the system's. The page base (base.css) and the HTML skill's core draw it; a component never repaints a page's selection. In forced colours it is Highlight and HighlightText, and more contrast does not step it.",
+      "fill": {
+        "$value": "{color.black.24}",
+        "$description": "Selected text's wash, on every surface but an inverse fill. Web only: native text selection is the system's."
+      },
+      "ink": {
+        "$value": "{color.text.primary}",
+        "$description": "Selected text's ink: every text lifts to primary while selected, so secondary, tertiary, status and syntax text read at this pair's contrast. Web only: native text selection is the system's."
+      },
+      "fill-inverse": {
+        "$value": "{color.white.24}",
+        "$description": "Selected text's wash on an inverse fill (a primary button, a focal diagram card), with that surface's own ink. Web only: native text selection is the system's."
+      }
+    },
     "plate": {
       "$description": "The lit row's plate as one opaque colour per level: the selected wash composited over that level, as a browser draws it. A plate never marks a state alone: it comes with the ink step to primary, a check or a weight. A test holds each to its recipe.",
       "0": {

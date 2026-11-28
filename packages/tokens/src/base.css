@@ -14,4 +14,19 @@
     line-height: var(--basalt-text-base-line-height);
     font-weight: var(--basalt-font-weight-regular);
   }
+
+  /* Selected text (DECISIONS 420): a wash with its ink lifted to primary, on every surface. var() resolves on the originating element, so an inverse fill
+     that sets its own pair (a primary button, a focal diagram card) and a nested theme root get theirs. Here and in the skill's core only: a component never
+     repaints a page's selection. */
+  ::selection {
+    background: var(--basalt-selection-fill);
+    color: var(--basalt-selection-ink);
+  }
+
+  @media (forced-colors: active) {
+    ::selection {
+      background: Highlight;
+      color: HighlightText;
+    }
+  }
 }

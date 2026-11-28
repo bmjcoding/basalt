@@ -187,12 +187,15 @@ test("the hold's hook adds nothing to a bundle that does not import it, and is s
 // The theme's state is opt-in, like the hold's: an app that never imports useTheme loads none of it. Measured:
 // themeBootstrap 379, StatusLine 504, VisuallyHidden 258, useMediaQuery 260 (limits sit just above). useTheme was 1,520 bytes; knowing who wrote the root's theme (a theme the app set by hand survives
 // a change of the system's scheme, DECISIONS 146 B) and writing data-theme-choice made it 1,889, with the head script in a module of its own so a bundle that imports only the hook does not carry it.
+// Micro-details m6 (DECISIONS 420), measured with this file's graph() on main (3a299f47) and on the branch: the live theme-color tag (theme-color.ts) and the
+// theme-switch window (theme-switch.ts) took useTheme from 1,889 to 2,964 bytes (+1,075; cap 2,000 to 3,000), and the head script's live tag took
+// themeBootstrap from 454 to 824 (+370; cap 600 to 850). themeColorMeta alone is 414.
 test("the theme's hook adds nothing to a bundle that does not import it, and is small on its own", async () => {
   for (const name of ["Spinner", "Badge", "Button", "Popover", "Menu", "FilterResult", "CommandMenu", "ToastProvider", "useLoops"]) {
     const { inputs } = await graph(name);
     assert.deepEqual(inputs.filter((f) => /\/dist\/theme\.js$/.test(f)), [], `${name} loads the theme's state`);
   }
-  for (const [name, limit] of [["useTheme", 2_000], ["themeBootstrap", 600], ["StatusLine", 1_000], ["VisuallyHidden", 600], ["useMediaQuery", 600]]) {
+  for (const [name, limit] of [["useTheme", 3_000], ["themeBootstrap", 850], ["themeColorMeta", 600], ["StatusLine", 1_000], ["VisuallyHidden", 600], ["useMediaQuery", 600]]) {
     const { bytes, inputs } = await graph(name);
     assert.ok(bytes < limit, `${name} alone: ${bytes} bytes (limit ${limit})`);
     assert.deepEqual(inputs.filter((f) => /@base-ui|@phosphor-icons|cmdk|shiki|\/dist\/(keyboard|kbd|icon|spinner|display)\.js$/.test(f)), [], `${name} loads more than it is`);
