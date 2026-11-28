@@ -117,7 +117,7 @@ function SkillSelection({ state }: { state: string }) {
       <p style={label}>{before ? "Before (main): the skill's core drew the selected wash (white at 9%, black at 7%) and left the ink alone" : "This build: the same pair as React's page base, from the core"}</p>
       {/* sink: a page compose.mjs built at review-build time from this round's synthetic body (round85-skill.mjs); the frame runs the page's own script */}
       {/* oxlint-disable-next-line react/iframe-missing-sandbox -- a page compose.mjs built at review-build time from a synthetic body; the frame runs the page's own script */}
-      <iframe title="The HTML skill's selected text" srcDoc={source} style={{ width: "100%", height: 360, border: 0, display: "block" }} />
+      <iframe title="The HTML skill's selected text" srcDoc={source} style={{ width: "100%", height: 280, border: 0, display: "block" }} />
     </div>
   );
 }
@@ -125,8 +125,8 @@ function SkillSelection({ state }: { state: string }) {
 // ---- H4: a theme switch ----
 
 /**
- * A nested theme root of controls that transition their colours. "switch-before-fade" flips it as main did (a plain attribute write: every colour eases over
- * duration-fast) and "switch-after-fade" through the shipped window; either way the running transitions are then held 12ms in, so the shot is the frame a
+ * A nested theme root of controls that transition their colours. "switch-before" flips it as main did (a plain attribute write: every colour eases over
+ * duration-fast) and "switch-after" through the shipped window; either way the running transitions are then held 12ms in, so the shot is the frame a
  * reader sees just after the switch. The buttons do it live.
  */
 function SwitchBox({ state }: { state: string }) {
@@ -143,13 +143,13 @@ function SwitchBox({ state }: { state: string }) {
   React.useEffect(() => {
     if (!state.startsWith("switch-")) return;
     const timer = window.setTimeout(() => {
-      flip(state === "switch-after-fade");
+      flip(state === "switch-after");
       for (const a of box.current?.getAnimations({ subtree: true }) ?? []) { a.pause(); a.currentTime = 12; }
     }, 400);
     return () => window.clearTimeout(timer);
   }, [state, flip]);
-  const before = state === "switch-before-fade";
-  const after = state === "switch-after-fade";
+  const before = state === "switch-before";
+  const after = state === "switch-after";
   return (
     <div style={stack}>
       <p style={label}>{before ? "Before (main): 12ms after the switch, every control still easing from the old theme's colours while the ground has changed" : after ? "This build: 12ms after the switch, every colour already the new theme's" : "A theme root of its own: switch it either way"}</p>
@@ -159,7 +159,7 @@ function SwitchBox({ state }: { state: string }) {
           <Button variant="secondary">Change the time</Button>
           <Button variant="ghost">Cancel</Button>
         </div>
-        <SegmentedControl defaultValue="dinner" aria-label="Sitting"><Segment value="lunch">Lunch</Segment><Segment value="dinner">Dinner</Segment><Segment value="late">Late</Segment></SegmentedControl>
+        <div><SegmentedControl defaultValue="dinner" aria-label="Sitting"><Segment value="lunch">Lunch</Segment><Segment value="dinner">Dinner</Segment><Segment value="late">Late</Segment></SegmentedControl></div>
         <div style={{ display: "flex", gap: "var(--basalt-space-6)", flexWrap: "wrap", alignItems: "center" }}>
           <Switch defaultChecked>Window seat</Switch>
           <Checkbox defaultChecked>Remind me</Checkbox>
@@ -210,6 +210,7 @@ export const ROUND_85: Round = {
       decisions: [
         "On the primary button and the focal card the wash is the other theme's (selection-fill-inverse) and the ink the surface's own: with the page's pair a selected label would be about 1.05:1.",
         "The disabled primary button and the focal Gantt row take the fill away, so they give the page's pair back (inherit).",
+        "React's Button label is not selectable (it keeps user-select: none), so its inverse pair shows on a selectable label on the fill; the focal card shows it here.",
         "In forced colours it is the system's Highlight and HighlightText. More contrast does not step it.",
         "\"Before\" reverts the selection to the browser's own: React's page base drew none on main.",
         NOT_REVIEWED,
@@ -217,8 +218,8 @@ export const ROUND_85: Round = {
       tryIt: ["Select across the paragraph, the buttons and the cards: one band, primary ink.", "Select the focal Gantt row's name, then the bar beside it."],
       states: ["before-selected", "selected", "selected-forced-colours", "selected-reduced-motion"],
       widths: [1440, 390],
-      height: 1500,
-      heights: { "before-selected@390": 2100, "selected@390": 2100, "selected-forced-colours@390": 2100, "selected-reduced-motion@390": 2100 },
+      height: 1280,
+      heights: { "before-selected@390": 1460, "selected@390": 1460, "selected-forced-colours@390": 1460, "selected-reduced-motion@390": 1460 },
       demo: ({ state }) => <Selection state={state} />,
     },
     {
@@ -229,7 +230,8 @@ export const ROUND_85: Round = {
       tryIt: ["Select the frame's text."],
       states: ["before-selected", "selected"],
       widths: [1440, 390],
-      height: 480,
+      height: 360,
+      heights: { "default@390": 520, "before-selected@390": 520, "selected@390": 520 },
       demo: ({ state }) => <SkillSelection state={state} />,
     },
     {
@@ -243,10 +245,10 @@ export const ROUND_85: Round = {
         NOT_REVIEWED,
       ],
       tryIt: ["Press \"Switch (as main)\" and then \"Switch (this build)\" and watch the buttons and the switch."],
-      states: ["switch-before-fade", "switch-after-fade"],
+      states: ["switch-before", "switch-after"],
       widths: [1440, 390],
-      height: 560,
-      heights: { "switch-before-fade@390": 640, "switch-after-fade@390": 640, "default@390": 720 },
+      height: 470,
+      heights: { "switch-before@390": 600, "switch-after@390": 600, "default@390": 680 },
       demo: ({ state }) => <SwitchBox state={state} />,
     },
     {
