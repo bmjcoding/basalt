@@ -184,6 +184,7 @@
     -webkit-tap-highlight-color: transparent;
     transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
+  .site-footer-links-host a { -webkit-user-select: none; user-select: none; }
   .site-footer-links-host a::before {
     content: "";
     position: absolute;
@@ -202,7 +203,9 @@
   .site-footer-links-host a:is(:active, :focus-visible) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
   .site-footer-links-host a:active::before { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
   .site-footer-links-host a:focus-visible::before { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
+  /* stylelint-disable-next-line basalt/hover-gate -- removes the hover paint while the keys are in use; it leaves no paint a finger could keep */
   .site-footer-links-host[data-keys] a:is(:hover, :active)::before { background-color: transparent; }
+  /* stylelint-disable-next-line basalt/hover-gate -- removes the hover paint while the keys are in use; it leaves no paint a finger could keep */
   .site-footer-links-host[data-keys] a:hover:not([aria-current], :focus-visible) { color: var(--basalt-text-secondary); }
   .site-footer-links-host > .plate { --panel-plate: var(--basalt-state-selected); border-radius: var(--basalt-radius-full); }
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
@@ -218,11 +221,17 @@
   .site-footer[data-form="line"] .site-footer-base { margin-top: var(--basalt-space-4); }
   .site-footer-legal { margin: 0; max-width: var(--basalt-size-prose-width); color: var(--basalt-text-tertiary); }
   .site-footer-toggle { display: none; align-items: center; justify-content: space-between; box-sizing: border-box; width: 100%; height: var(--basalt-size-tap-min); margin: 0; padding: 0; border: 0; background: transparent; color: var(--basalt-text-primary); font: inherit; letter-spacing: inherit; text-align: start; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .site-footer-toggle { -webkit-user-select: none; user-select: none; }
   .site-footer-toggle:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .site-footer-toggle > svg { color: var(--basalt-text-secondary); transition: transform var(--basalt-duration-slow) var(--basalt-ease-out), color var(--basalt-duration-fast) var(--basalt-ease-out); }
   @media (hover: hover) { .site-footer-toggle:hover > svg { color: var(--basalt-text-primary); } }
+  /* A press is the hover step (m1, P8): the chevron lifts. */
+  .site-footer-toggle:active > svg { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-slow), var(--basalt-duration-instant); }
   .site-footer-group[data-open] .site-footer-toggle > svg { transform: rotate(180deg); }
-  @media (prefers-reduced-motion: reduce) { .site-footer-toggle > svg { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); } }
+  @media (prefers-reduced-motion: reduce) {
+    .site-footer-toggle > svg { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+    .site-footer-toggle:active > svg { transition-duration: var(--basalt-duration-instant); }
+  }
   @media (width < %bp-lg%) {
     .site-footer { --_above: var(--basalt-space-12); }
     .site-footer-id, .site-footer-links { grid-column: 1 / -1; }
@@ -257,9 +266,15 @@
     /* The header is Canvas with a real border and no filter or alpha fill. */
     .topbar, .app-header { background: Canvas; color: CanvasText; border-bottom-color: CanvasText; -webkit-backdrop-filter: none; backdrop-filter: none; }
     .site-footer-body, .site-footer[data-wired] .site-footer-group + .site-footer-group { border-color: CanvasText; }
-    .site-footer-links-host a:hover, .site-footer-links-host a:active { forced-color-adjust: none; color: HighlightText; }
-    .site-footer-links-host a:hover::before, .site-footer-links-host a:active::before { background-color: Highlight; }
+    @media (hover: hover) {
+      .site-footer-links-host a:hover { forced-color-adjust: none; color: HighlightText; }
+      .site-footer-links-host a:hover::before { background-color: Highlight; }
+    }
+    .site-footer-links-host a:active { forced-color-adjust: none; color: HighlightText; }
+    .site-footer-links-host a:active::before { background-color: Highlight; }
+    /* stylelint-disable-next-line basalt/hover-gate -- removes the hover paint while the keys are in use; it leaves no paint a finger could keep */
     .site-footer-links-host[data-keys] a:is(:hover, :active) { forced-color-adjust: auto; color: inherit; }
+    /* stylelint-disable-next-line basalt/hover-gate -- removes the hover paint while the keys are in use; it leaves no paint a finger could keep */
     .site-footer-links-host[data-keys] a:is(:hover, :active)::before { background-color: transparent; }
   }
   @media print {
@@ -298,8 +313,13 @@
   /* The number reserves its 600 width, so being the current page moves nothing. */
   .version-link-number { display: inline-flex; flex-direction: column; max-width: 100%; }
   .version-link-number::after { content: attr(data-label); height: 0; overflow: hidden; visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
-  .version-link:hover { color: var(--basalt-text-primary); }
-  .version-link:hover :is(.version-link-words, .version-link-date > time) { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  @media (hover: hover) {
+    .version-link:hover { color: var(--basalt-text-primary); }
+    .version-link:hover :is(.version-link-words, .version-link-date > time) { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .version-link:active { color: var(--basalt-text-primary); }
+  .version-link:active :is(.version-link-words, .version-link-date > time) { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
   .version-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .version-link[aria-current="page"] { color: var(--basalt-text-primary); }
   .version-link[aria-current="page"] .version-link-number { font-weight: var(--basalt-font-weight-semibold); }

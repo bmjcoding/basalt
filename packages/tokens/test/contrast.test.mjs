@@ -1375,3 +1375,55 @@ for (const theme of THEMES) {
     assert.deepEqual(color(theme, "selection-fill-inverse"), color(theme, other));
   });
 }
+
+// ---- micro-details m1 (DECISIONS 405, 409): the press pairs ----
+// A press is the next rung on a control's own ladder, so no new token: each pair a press paints is proved where it can stand, in both themes and under
+// more contrast. The surfaces are every role and well, and levels 0 to 3; the wash grounds are state-selected over each of them.
+const PRESS_GROUNDS = (theme) => [...surfaces(theme), ...LEVELS.map((level) => [level, color(theme, level)])];
+const selectedOver = (theme) => PRESS_GROUNDS(theme).map(([n, s]) => [`state-selected over ${n}`, over(color(theme, "state-selected"), s)]);
+/** The select trigger's and the file input's press: the selected wash over the raised fill as one colour (7% black in light, 9% white in dark). */
+const raisedPress = (theme) => over({ ...color(theme, theme === "dark" ? "neutral-100" : "neutral-0"), alpha: theme === "dark" ? 0.09 : 0.07 }, color(theme, "surface-raised"));
+
+for (const theme of THEMES) {
+  for (const [mode, ink] of CONTRASTS) {
+    test(`${theme}${mode}: a pressed checked box's own edge (action-primary-press) holds 3:1 against every surface, and its mark 4.5:1 on it`, () => {
+      const press = ink(theme, "action-primary-press");
+      for (const [n, s] of PRESS_GROUNDS(theme)) assert.ok(ratio(press, s) >= 3, `${theme}${mode}: action-primary-press against ${n} is ${fmt(ratio(press, s))}:1`);
+      assert.ok(ratio(ink(theme, "action-primary-text"), press) >= 4.5, `${theme}${mode}: action-primary-text on action-primary-press`);
+    });
+
+    test(`${theme}${mode}: an unchecked box's pressed edge (text-secondary) holds 3:1 against every surface and against the selected wash it sits on`, () => {
+      for (const [n, s] of [...PRESS_GROUNDS(theme), ...selectedOver(theme), ["the raised press fill", raisedPress(theme)]]) {
+        const edge = over(ink(theme, "text-secondary"), s);
+        assert.ok(ratio(edge, s) >= 3, `${theme}${mode}: the pressed edge against ${n} is ${fmt(ratio(edge, s))}:1`);
+      }
+    });
+
+    test(`${theme}${mode}: a pressed page link, in-flow listbox option, choice card and notification entry keep 4.5:1 for primary and secondary ink on the selected wash over every surface and level`, () => {
+      for (const [n, bg] of selectedOver(theme)) {
+        for (const t of ["text-primary", "text-secondary"]) {
+          const r = ratio(over(ink(theme, t), bg), bg);
+          assert.ok(r >= 4.5, `${theme}${mode}: ${t} on ${n} is ${fmt(r)}:1`);
+        }
+      }
+    });
+
+    test(`${theme}${mode}: a pressed option row's plate holds 4.5:1 for primary ink, its description at secondary and danger, at levels 1 to 3`, () => {
+      for (const level of [1, 2, 3]) {
+        const plate = plateOf(theme, level);
+        for (const t of ["text-primary", "text-secondary", "status-danger"]) {
+          const r = ratio(over(ink(theme, t), plate), plate);
+          assert.ok(r >= 4.5, `${theme}${mode}: ${t} on the level ${level} plate is ${fmt(r)}:1`);
+        }
+      }
+    });
+
+    test(`${theme}${mode}: a pressed select trigger and file input (the selected wash over the raised fill, one colour) hold 4.5:1 for primary and secondary ink`, () => {
+      const fill = raisedPress(theme);
+      for (const t of ["text-primary", "text-secondary"]) {
+        const r = ratio(over(ink(theme, t), fill), fill);
+        assert.ok(r >= 4.5, `${theme}${mode}: ${t} on the raised press fill is ${fmt(r)}:1`);
+      }
+    });
+  }
+}

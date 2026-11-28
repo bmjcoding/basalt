@@ -61,13 +61,15 @@
     -webkit-tap-highlight-color: transparent;
     transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
+  .sort { -webkit-user-select: none; user-select: none; }
   /* A numeric (end-aligned) column: the label rests over the empty seat, on the numbers' edge, and moves aside by a transform while the indicator shows (over
      duration-base on ease-out, back at 0.75x on ease-in); on a fine pointer the indicator waits for it and fades in. Only the label moves. On touch, and under
      reduced motion, it stays aside and the indicator swaps at once. */
   th[data-numeric] .sort { justify-content: flex-end; }
   th[data-numeric] .sort-label { --_a: calc(var(--basalt-size-icon-sm) + var(--basalt-space-1)); transform: translateX(var(--_a)); transition: transform calc(var(--basalt-duration-base) * .75) var(--basalt-ease-in); }
   th[data-numeric]:dir(rtl) .sort-label { --_a: calc(-1 * (var(--basalt-size-icon-sm) + var(--basalt-space-1))); }
-  th[data-numeric]:is([aria-sort], :has(.sort:is(:hover, :focus-visible))) .sort-label { transform: none; transition: transform var(--basalt-duration-base) var(--basalt-ease-out); }
+  th[data-numeric]:is([aria-sort], :has(.sort:focus-visible)) .sort-label { transform: none; transition: transform var(--basalt-duration-base) var(--basalt-ease-out); }
+  @media (hover: hover) { th[data-numeric]:has(.sort:hover) .sort-label { transform: none; transition: transform var(--basalt-duration-base) var(--basalt-ease-out); } }
   @media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) { th[data-numeric] .sort-label { transform: none; transition: none; } }
   @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) { th[data-numeric]:is([aria-sort], :has(.sort:is(:hover, :focus-visible))) .sort-seat > svg { transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out) calc(var(--basalt-duration-base) - var(--basalt-duration-fast)); } }
   .sort-label { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -87,6 +89,7 @@
   /* ---- The empty row: one cell across every column, under the unchanged header ----
      Not a pinned or hoverable row; its sentence sticks to the container's start edge so a scrolled table does not carry it out of view. */
 
+  /* stylelint-disable-next-line basalt/hover-gate -- resets the row wash on the empty row; it adds no paint */
   table tbody tr[data-empty]:hover { background: transparent; }
   table tr[data-empty] > td { height: auto; padding: var(--basalt-space-6) var(--basalt-space-4); white-space: normal; overflow: visible; color: var(--basalt-text-secondary); }
   .table-empty { position: sticky; inset-inline-start: var(--basalt-space-4); display: flex; flex-direction: column; align-items: flex-start; gap: var(--basalt-space-2); max-width: var(--basalt-size-popover-max); }

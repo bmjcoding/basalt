@@ -35,6 +35,7 @@
     text-align: start;
     text-decoration: none;
     cursor: default;
+    -webkit-user-select: none;
     user-select: none;
     outline: none;
     transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
@@ -48,6 +49,10 @@
   /* Danger keeps its colour, on the plate too. */
   .menu-item[data-danger], .menu-item[data-danger][data-highlighted] { color: var(--basalt-status-danger); }
   .menu-item:is([disabled], [aria-disabled="true"]) { color: var(--basalt-text-disabled); }
+  /* A press (m1, P8): everything the lit row has. On :active (a mouse, a pen, a browser that sets it under a finger) and on data-pressing, which
+     _.glide writes under a still finger (glide.js). It moves no highlight; where the shared plate is live it covers the same solid colour. */
+  .menu-item:is(:active, [data-pressing]):not([disabled], [aria-disabled="true"]):not([data-danger]) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+  .menu-item:is(:active, [data-pressing]):not([disabled], [aria-disabled="true"])::before { background-color: var(--panel-plate); transition-duration: var(--basalt-duration-instant); }
 
   /* The check and the radio's dot sit in a 16px seat, shown only while the row is checked; the seat is always there, so a choice moves nothing. */
   .menu-check { display: inline-flex; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); flex: none; color: var(--basalt-text-primary); }
@@ -81,6 +86,7 @@
   .menu-item-description { min-width: 0; white-space: normal; overflow-wrap: break-word; text-wrap: pretty; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
   .menu-item[data-highlighted] .menu-item-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
   .menu-item:is([disabled], [aria-disabled="true"]) .menu-item-description { color: var(--basalt-text-disabled); }
+  .menu-item:is(:active, [data-pressing]):not([disabled], [aria-disabled="true"]) .menu-item-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
   /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
   .menu:has(.menu-item-description, .menu-text) { width: max-content; max-width: min(var(--basalt-size-popover-max), calc(100vw - 2 * var(--basalt-space-4))); }
   @media (pointer: coarse), (width < %bp-md%) {
@@ -109,6 +115,10 @@
     .menu-item[data-highlighted] :is(svg, .menu-item-label, .menu-item-description, .menu-check) { color: HighlightText; }
     .menu-item[data-highlighted] .kbd { background: Highlight; border-color: HighlightText; color: HighlightText; }
     .menu-item[data-danger][data-highlighted] { color: HighlightText; }
+    .menu-item:is(:active, [data-pressing]):not([disabled], [aria-disabled="true"]) { forced-color-adjust: none; color: HighlightText; }
+    .menu-item:is(:active, [data-pressing]):not([disabled], [aria-disabled="true"])::before { background-color: Highlight; }
+    .menu-item:is(:active, [data-pressing]):not([disabled], [aria-disabled="true"]) :is(svg, .menu-item-label, .menu-item-description, .menu-check) { color: HighlightText; }
+    .menu-item:is(:active, [data-pressing]):not([disabled], [aria-disabled="true"]) .kbd { background: Highlight; border-color: HighlightText; color: HighlightText; }
     .menu-radio-dot { box-sizing: border-box; border: calc(var(--basalt-size-dot) / 2) solid; background: none; }
   }
 }

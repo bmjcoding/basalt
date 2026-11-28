@@ -3,13 +3,21 @@
   /* ---- Disclosure: a button[data-disclosure] with the element it controls, or a native <details><summary> drawn the same ---- */
 
   .disclosure, details > summary { display: flex; align-items: center; gap: var(--basalt-space-2); width: 100%; min-height: var(--basalt-size-control-lg); padding: 0; border: 0; background: transparent; color: var(--basalt-text-primary); font: var(--basalt-font-weight-medium) var(--bh-base); text-align: start; cursor: pointer; }
+  /* A disclosure never paints a selection (m1, P1; summary's is in core). */
+  .disclosure { -webkit-user-select: none; user-select: none; }
   /* The browser's own marker (a triangle) gives way to the chevron. */
   details > summary { list-style: none; }
   details > summary::-webkit-details-marker { display: none; }
   /* The chevron is the core set's, 16px, drawn as a mask in the ink of the row, and turned 180 degrees when open, as React's accordion does (DECISIONS 167, Q7a). */
-  .disclosure::after, details > summary::after { content: ""; flex: none; margin-inline-start: auto; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); background: currentColor; mask: url("%glyph-mask:chevron-down%") center / contain no-repeat; transition: transform var(--basalt-duration-base) var(--basalt-ease-out); }
+  /* It rests in secondary ink, as every icon outside a sidebar or rail does, and lifts to primary on a press (m1, P8), as the footer toggle's does:
+     the row has no hover step of its own. A disabled row's chevron follows its disabled ink and takes no press. */
+  .disclosure::after, details > summary::after { content: ""; flex: none; margin-inline-start: auto; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); background: var(--basalt-text-secondary); mask: url("%glyph-mask:chevron-down%") center / contain no-repeat; transition: transform var(--basalt-duration-base) var(--basalt-ease-out), background-color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  .disclosure:active:not(:disabled, [data-prose])::after, details:not([data-prose]) > summary:active::after { background: var(--basalt-text-primary); transition-duration: var(--basalt-duration-base), var(--basalt-duration-instant); }
+  .disclosure:disabled::after { background: currentColor; }
+  .disclosure:disabled { cursor: not-allowed; }
   .disclosure[aria-expanded="true"]::after, details[open] > summary::after { transform: rotate(180deg); }
-  @media (forced-colors: active) { .disclosure::after, details > summary::after { forced-color-adjust: none; } }
+  /* In forced colours the chevron is CanvasText, pressed or not, as the prose form's is (its forced-color-adjust: none would paint the theme's ink). */
+  @media (forced-colors: active) { .disclosure::after, details > summary::after { forced-color-adjust: none; background: CanvasText; } .disclosure:disabled::after { background: GrayText; } }
   @media (pointer: coarse), (width < %bp-md%) { .disclosure, details > summary { min-height: var(--basalt-size-tap-min); } }
 
   /* ---- The prose form (React's Disclosure, cimip-gaps-3 T3, 7a): data-prose on button.disclosure or on details ----
@@ -25,6 +33,9 @@
     :is(.disclosure[data-prose], details[data-prose] > summary):hover { text-decoration-color: currentColor; }
     :is(.disclosure[data-prose], details[data-prose] > summary):hover::after { background: var(--basalt-text-primary); }
   }
+  /* A press is the hover step (m1, P8). */
+  :is(.disclosure[data-prose]:not(:disabled), details[data-prose] > summary):active { text-decoration-color: currentColor; }
+  :is(.disclosure[data-prose]:not(:disabled), details[data-prose] > summary):active::after { background: var(--basalt-text-primary); }
   .disclosure[data-prose] + * { margin-block-start: var(--basalt-space-2); padding-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-2)); }
   details[data-prose] > :not(summary) { padding-inline-start: calc(var(--basalt-size-icon-sm) + var(--basalt-space-2)); }
   details[data-prose] > summary + * { margin-block-start: var(--basalt-space-2); }
@@ -44,7 +55,9 @@
   .reveal-foot { display: flex; padding-block-start: var(--basalt-space-4); border-block-start: var(--basalt-size-hairline) solid var(--basalt-border-divider); }
 
   @media (prefers-reduced-motion: reduce) {
-    .disclosure::after, details > summary::after { transition: none; }
+    /* The chevron keeps its colour step (m1, P8): opacity and colour are what this mode keeps. */
+    .disclosure::after, details > summary::after { transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out); }
+    .disclosure:active:not(:disabled, [data-prose])::after, details:not([data-prose]) > summary:active::after { transition-duration: var(--basalt-duration-instant); }
     .reveal, .reveal-clip { transition: none; }
   }
 }

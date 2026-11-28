@@ -29,6 +29,11 @@
   select.input[data-size="lg"] { height: var(--basalt-size-control-lg); border-radius: var(--basalt-radius-md); }
   select.input[data-size="xl"] { height: var(--basalt-size-control-xl); border-radius: var(--basalt-radius-md); --_font: var(--basalt-text-md-size); }
   select.input:disabled { cursor: not-allowed; }
+  /* The trigger is a control (m1, P1). A press (P8): the selected wash over the fill as one colour, the edge at secondary ink (an invalid one keeps
+     its danger edge), and the empty choice's words at secondary on it. Where it opens on pointer-down, the opening is the response. */
+  select.input { -webkit-user-select: none; user-select: none; }
+  select.input:active:not(:disabled) { background: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-1)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-1))); transition-duration: var(--basalt-duration-instant); }
+  select.input:active:not(:disabled, [aria-invalid="true"]) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-text-secondary); }
   select.input option { color: var(--basalt-text-primary); }
   .option-description { display: none; }
 
@@ -36,6 +41,7 @@
   .select::after { content: ""; position: absolute; inset-inline-end: var(--basalt-space-2); top: 50%; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); margin-top: calc(var(--basalt-size-icon-sm) / -2); background: var(--basalt-text-secondary); mask: var(--_caret) center / contain no-repeat; pointer-events: none; }
   select.input { appearance: none; }
   select.input:has(> option:checked[value=""]) { color: var(--basalt-text-tertiary); }
+  select.input:active:not(:disabled):has(> option:checked[value=""]) { color: var(--basalt-text-secondary); }
 
   @supports (appearance: base-select) {
     .select:has(> select.input)::after { display: none; }
@@ -88,17 +94,26 @@
       transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
     }
     select.input option::before { content: ""; position: absolute; inset: var(--_inset) 0; z-index: -1; border-radius: var(--basalt-radius-md); background-color: transparent; transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out); }
-    select.input option:is(:hover, :focus-visible) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
-    select.input option:is(:hover, :focus-visible)::before { background-color: var(--_pop-plate); transition-duration: var(--basalt-duration-instant); }
+    select.input option:focus-visible { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+    select.input option:focus-visible::before { background-color: var(--_pop-plate); transition-duration: var(--basalt-duration-instant); }
+    @media (hover: hover) {
+      select.input option:hover { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+      select.input option:hover::before { background-color: var(--_pop-plate); transition-duration: var(--basalt-duration-instant); }
+    }
+    /* A press is the lit row (m1, P8): its plate and its description's lift. The rows are the browser's, so :active is the only cause. */
+    select.input option:active:not(:disabled) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+    select.input option:active:not(:disabled)::before { background-color: var(--_pop-plate); transition-duration: var(--basalt-duration-instant); }
     select.input option:disabled { color: var(--basalt-text-disabled); }
     /* The lit row is the one under the pointer or the one the keys are on (not the chosen row's plain focus), and one row at a time: whichever input came
        last wins, as React's Select does. select.js writes data-input="key" or "pointer" on the select; before any input the pointer wins. */
-    select.input:not([data-input="key"]):has(option:hover) option:focus-visible:not(:hover),
-    select.input[data-input="key"] option:hover:not(:focus-visible) { color: var(--basalt-text-secondary); }
-    select.input:not([data-input="key"]):has(option:hover) option:focus-visible:not(:hover)::before,
-    select.input[data-input="key"] option:hover:not(:focus-visible)::before { background-color: transparent; }
-    select.input:not([data-input="key"]):has(option:hover) option:focus-visible:not(:hover) .option-description,
-    select.input[data-input="key"] option:hover:not(:focus-visible) .option-description { color: var(--basalt-text-tertiary); }
+    @media (hover: hover) {
+      select.input:not([data-input="key"]):has(option:hover) option:focus-visible:not(:hover),
+      select.input[data-input="key"] option:hover:not(:focus-visible) { color: var(--basalt-text-secondary); }
+      select.input:not([data-input="key"]):has(option:hover) option:focus-visible:not(:hover)::before,
+      select.input[data-input="key"] option:hover:not(:focus-visible)::before { background-color: transparent; }
+      select.input:not([data-input="key"]):has(option:hover) option:focus-visible:not(:hover) .option-description,
+      select.input[data-input="key"] option:hover:not(:focus-visible) .option-description { color: var(--basalt-text-tertiary); }
+    }
     /* The chosen value's check sits in a 16px slot at the row's start, reserved on every row so labels align. */
     select.input option::checkmark { content: ""; grid-area: 1 / 1; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); background: var(--basalt-text-primary); mask: url("%glyph-mask:check%") center / contain no-repeat; }
     select.input option:not(:checked)::checkmark { visibility: hidden; }
@@ -110,7 +125,8 @@
       padding-block: calc(var(--_inset) + (var(--_h) - var(--basalt-text-base-line-height)) / 2);
     }
     select.input option .option-description { display: block; grid-column: 2; grid-row: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
-    select.input option:is(:hover, :focus-visible) .option-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
+    select.input option:is(:focus-visible, :active:not(:disabled)) .option-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
+    @media (hover: hover) { select.input option:hover .option-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); } }
     select.input option:disabled .option-description { color: var(--basalt-text-disabled); }
     @media (pointer: coarse), (width < %bp-md%) {
       select.input option { min-height: max(calc(var(--_h) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); }
@@ -133,10 +149,16 @@
     @supports (appearance: base-select) {
       select.input::picker-icon { forced-color-adjust: none; background: ButtonText; }
       select.input::picker(select) { border-color: CanvasText; }
-      select.input option:is(:hover, :focus-visible) { forced-color-adjust: none; color: HighlightText; }
-      select.input option:is(:hover, :focus-visible)::before { background-color: Highlight; }
-      select.input option:is(:hover, :focus-visible)::checkmark { background: HighlightText; }
-      select.input option:is(:hover, :focus-visible) .option-description { color: HighlightText; }
+      select.input option:is(:focus-visible, :active:not(:disabled)) { forced-color-adjust: none; color: HighlightText; }
+      select.input option:is(:focus-visible, :active:not(:disabled))::before { background-color: Highlight; }
+      select.input option:is(:focus-visible, :active:not(:disabled))::checkmark { background: HighlightText; }
+      select.input option:is(:focus-visible, :active:not(:disabled)) .option-description { color: HighlightText; }
+      @media (hover: hover) {
+        select.input option:hover { forced-color-adjust: none; color: HighlightText; }
+        select.input option:hover::before { background-color: Highlight; }
+        select.input option:hover::checkmark { background: HighlightText; }
+        select.input option:hover .option-description { color: HighlightText; }
+      }
     }
   }
 

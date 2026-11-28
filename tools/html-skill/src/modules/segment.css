@@ -6,6 +6,10 @@
 
   .segment { --pill-fill: light-dark(var(--basalt-surface-top), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-top))); position: relative; display: inline-flex; gap: var(--basalt-space-0-5); padding: var(--basalt-space-0-5); border-radius: var(--basalt-radius-md); background: var(--basalt-surface-sunken-strong); }
   .segment button { position: relative; height: var(--basalt-size-control-sm); padding: 0 var(--basalt-space-2-5); margin: 0; border: 0; border-radius: var(--basalt-radius-sm); background: transparent; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / normal var(--basalt-font-family-sans); cursor: pointer; transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out), color var(--basalt-duration-fast) var(--basalt-ease-out), box-shadow var(--basalt-duration-fast) var(--basalt-ease-out); }
+  /* A segment never paints a selection (m1, P1). A press is the hover step (P8): primary ink, no wash (a wash in the track reads as a second pill). Disabled shows not-allowed (P6). */
+  .segment button { -webkit-user-select: none; user-select: none; }
+  .segment button:active:not([aria-pressed="true"], [aria-checked="true"], :disabled) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+  .segment button:disabled { cursor: not-allowed; }
   @media (hover: hover) { .segment button:hover:not([aria-pressed="true"], [aria-checked="true"], :disabled) { color: var(--basalt-text-primary); } }
   .segment { --pill-edge: 0 0 0 var(--basalt-size-hairline) var(--basalt-border-hairline); }
   .segment button:is([aria-pressed="true"], [aria-checked="true"]) { background: var(--pill-fill); color: var(--basalt-text-primary); box-shadow: var(--pill-edge); }

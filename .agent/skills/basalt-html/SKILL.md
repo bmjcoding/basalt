@@ -31,7 +31,7 @@ Markup your script builds (a `.row`) isn't seen: add `<!-- basalt:use rows -->` 
 - **number** `.number-field`: wraps `input.input.num`; a bare number input has no steppers.
 - **range** `type="range"`: styled bare; no wrapper, no class.
 - **select** `<select>`: wrap in `.select`, class `input`; a second line is `.option-description`.
-- **choice** `type="checkbox"`, `role="switch"`: bare inputs in a `label.choice`; radios in `.radio-group`.
+- **choice** `type="checkbox"`, `role="switch"`: inputs in a `label.choice` (never a bare `label`); radios in `.radio-group`.
 - **choice-card** `.choice-card`: a `label.panel` around a hidden radio or checkbox; words only, no link or control inside.
 - **toggle** `aria-pressed`: secondary or ghost `.btn` only; your script flips it; its glyph's `.btn-check` seat comes first.
 - **rows** `.rows`, `.row`: `.input-row` is a panel's first child; `data-active` is the lit row's fill, never a bar.

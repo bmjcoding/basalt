@@ -104,6 +104,7 @@ const skillPages = {
   ...(!wanted.length || wanted.includes("83") ? (await import("./round83-skill.mjs")).skillPages83() : {}),
   ...(!wanted.length || wanted.includes("84") ? (await import("./round84-skill.mjs")).skillPages84() : {}),
   ...(!wanted.length || wanted.includes("85") ? (await import("./round85-skill.mjs")).skillPages85() : {}),
+  ...(!wanted.length || wanted.includes("87") ? (await import("./round87-skill.mjs")).skillPages87() : {}),
   ...(!wanted.length || wanted.includes("88") ? (await import("./round88-skill.mjs")).skillPages88() : {}),
   ...(!wanted.length || wanted.includes("90") ? await (await import("./round90-pages.mjs")).skillPages90() : {}),
 };
@@ -395,7 +396,8 @@ for (const id of rounds) {
           }
           // Round 34: every element that marks itself `data-wt-force="hover"` or `"focus"` is held in that state with Chromium's forced
           // pseudo-classes (no pointer or key is needed), so one page can show many parts hovered and focused at once.
-          // Round 56 (and any later round) marks its own held rows the same way.
+          // Round 56 (and any later round) marks its own held rows the same way. Round 87 adds `"active"`: a press held the same way, so one page shows
+          // every pressed control at once with the real :active rules.
           if (id === "34" || (Number(id) >= 56 && (await page.locator("[data-wt-force]").count()) > 0)) {
             await page.waitForTimeout(700);
             // The movement readouts click each control through in turn: the shot waits until every one has written its answer.
@@ -406,16 +408,30 @@ for (const id of rounds) {
             await client.send("CSS.enable");
             // The walk goes into frames (the skill's table is drawn in one), so a part marks itself in either document.
             const { root } = await client.send("DOM.getDocument", { depth: -1, pierce: true });
-            const marked = { hover: [], focus: [] };
+            const marked = { hover: [], focus: [], active: [] };
             const walk = (node) => {
               const attrs = node.attributes ?? [];
               const at = attrs.indexOf("data-wt-force");
-              if (at >= 0 && marked[attrs[at + 1]]) marked[attrs[at + 1]].push(node.nodeId);
+              if (at >= 0) for (const kind of attrs[at + 1].split(/\s+/)) if (marked[kind]) marked[kind].push(node.nodeId);
               for (const child of [...(node.children ?? []), ...(node.shadowRoots ?? []), ...(node.contentDocument ? [node.contentDocument] : [])]) walk(child);
             };
             walk(root);
-            for (const kind of ["hover", "focus"]) for (const nodeId of marked[kind]) await client.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: kind === "hover" ? ["hover"] : ["focus", "focus-visible"] });
+            // A node may hold more than one ("hover active", a mouse press: the pointer is over what it presses), so its classes are gathered and forced at once.
+            const held = new Map();
+            for (const kind of ["hover", "focus", "active"]) for (const nodeId of marked[kind]) held.set(nodeId, [...(held.get(nodeId) ?? []), ...(kind === "focus" ? ["focus", "focus-visible"] : [kind])]);
+            for (const [nodeId, forcedPseudoClasses] of held) await client.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses });
             await page.waitForTimeout(300);
+          }
+          // Round 87 (micro-details m1), "finger": a still finger on the row that marks itself `data-wt-finger`, a real touch through the protocol, held 250ms and
+          // never lifted before the shot, so the row shows what the touch mark (data-pressing) paints under it.
+          if (state === "finger" || state.startsWith("finger-")) {
+            const client = await page.context().newCDPSession(page);
+            await client.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
+            const b = await page.locator("[data-wt-finger]").first().boundingBox();
+            if (!b) throw new Error(`${step.id}/${state}: no [data-wt-finger] to touch`);
+            await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: b.x + b.width / 2, y: b.y + b.height / 2 }] });
+            await page.waitForTimeout(250);
+            if (!(await page.locator("[data-pressing]").count())) throw new Error(`${step.id}/${state}: the touched row took no data-pressing`);
           }
           // Round 48 (the peek plate), "touch": a phone is emulated (build.mjs turns `isMobile` on, so the page has a coarse pointer and no hover), and a finger is put down on the row that
           // marks itself `data-wt-hold` and held for 800ms, longer than the 500ms the open list waits before it opens its plate. The release is left to the page: it opens nothing.

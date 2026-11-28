@@ -165,7 +165,7 @@
     if (clear) clear.addEventListener('click', function () { if (clear.getAttribute('aria-disabled') !== 'true') o.onClearAll(); });
     viewAll.addEventListener('click', function () { if (o.onViewAll) o.onViewAll(); leave(); });
     pop.addEventListener('toggle', function (ev) {
-      if (ev.newState === 'open') unglide = _.glide(scroll, scroll.firstElementChild, { active: '.notification[data-hovered]', item: '.notification' });
+      if (ev.newState === 'open') unglide = _.glide(scroll, scroll.firstElementChild, { active: '.notification[data-hovered]', item: '.notification', press: '.notification' });
       else if (unglide) { unglide(); unglide = null; }
     });
     render();

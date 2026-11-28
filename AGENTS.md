@@ -177,6 +177,9 @@ Basalt has one owner (Bailey) and a design panel of two independent design revie
   hovered edge (`border-hover`) to `text-secondary`, and a field's boundary (`border-field`, equal to `border-input` outside the
   mode) to `text-secondary`, and a diagram card's arrival rim (`diagram-hit`) to `text-primary`; the input boundary itself, and so a progress or slider track and a link's underline, does not step. It works in both themes and under a theme chosen with the toggle, and the contrast
   tests prove every text pair at 4.5:1 and every boundary at 3:1 in the mode.
+- **Pointer and touch:** hover paint sits under `@media (hover: hover)` (the lint `basalt/hover-gate`; `:active` and `:focus-visible` never
+  gated); a pressable shows the hand and `not-allowed` when it can't run, an option row keeps the arrow, and the cursor never replaces the words
+  that say why. See foundations, "Pointer and touch".
 - **Motion** comes from the duration and easing tokens. Entries ease out; exits run at
   0.75× with ease-in. A press is a colour step, and Button and IconButton also scale to .98
   (100ms, ease-out; none under reduced motion, never on rows, cards, menu items, command rows,

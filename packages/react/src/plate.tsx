@@ -21,6 +21,12 @@ import * as React from "react";
 // row; and the first key hides it instead of moving it (the focus ring shows), until the next pointer move. The notification
 // center's list is the third: its entries are links and buttons, so it follows the pointer the same way, with the entry's own
 // plate as its shape (40 or 58 tall, whatever the entry holds).
+//
+// The touch mark (m1, P8). A still finger sets no :active on a row (two council seats measured it in Chromium), so a popup's row and a
+// notification entry under a finger would show nothing until release. The glide marks the row `data-pressing` from a touch pointerdown,
+// at once, until pointerup, pointercancel, a scroll of the list, or 8px of travel, one row at a time, and the stylesheet paints it as the
+// lit row. It moves no highlight, calls no preventDefault and leaves activation to the click; its listeners are passive and it reaches no
+// assistive technology. It works whatever the media state, so exactly where the glide is off. Navigation has no mark: its press is :active.
 
 /** What a glide follows: the host that holds the rows, which row is lit, and the shape to hug. */
 interface Kind {
@@ -33,6 +39,8 @@ interface Kind {
   hideOnKey?: boolean;
   /** The box to hug, if not the row's own plate (its ::before). */
   shape?: string;
+  /** The rows a still finger marks `data-pressing`. */
+  press?: string;
 }
 
 const POPUP: Kind = {
@@ -40,6 +48,7 @@ const POPUP: Kind = {
   host: ".basalt-menu-scroll, .basalt-menu, .basalt-command-list",
   active: ".basalt-menu-item[data-highlighted], .basalt-menu-item[data-selected='true']",
   attributes: ["data-highlighted", "data-selected", "data-idle"],
+  press: ".basalt-menu-item",
 };
 // The site header's row of links is the same glide laid on its side: its own host, links and pills, the same rules.
 const NAVIGATION: Kind = {
@@ -56,11 +65,63 @@ const NOTIFICATIONS: Kind = {
   attributes: ["data-hovered"],
   item: ".basalt-notification",
   hideOnKey: true,
+  press: ".basalt-notification",
 };
 /** No shared plate: the hand can't hover (touch), or motion or colour is the user's. The stylesheet repeats this. */
 const OFF = "(prefers-reduced-motion: reduce), (forced-colors: active), (hover: none), (pointer: coarse)";
 
 type Modality = "pointer" | "keyboard" | "touch";
+
+/** A row that can't run takes no press: disabled (cmdk writes data-disabled="false" on a live row) or unavailable. */
+const UNPRESSABLE = '[disabled], [aria-disabled="true"], [data-disabled]:not([data-disabled="false"]), [data-unavailable]';
+/** The travel that ends a press: the finger is scrolling or dragging, not pressing (space-2's 8px; script can't read the token). */
+const PRESS_SLOP = 8;
+
+/** Marks the row under a still finger `data-pressing` (see the header). Returns the teardown. */
+function attachPress(host: HTMLElement, rows: string): () => void {
+  let pressed: HTMLElement | null = null;
+  let id = -1;
+  let x = 0;
+  let y = 0;
+  const release = () => {
+    pressed?.removeAttribute("data-pressing");
+    pressed = null;
+    id = -1;
+  };
+  const down = (event: PointerEvent) => {
+    if (event.pointerType !== "touch" || !event.isPrimary) return;
+    release();
+    const row = event.target instanceof Element ? event.target.closest<HTMLElement>(rows) : null;
+    if (!row || !host.contains(row) || row.matches(UNPRESSABLE)) return;
+    pressed = row;
+    id = event.pointerId;
+    x = event.clientX;
+    y = event.clientY;
+    row.setAttribute("data-pressing", "");
+  };
+  const move = (event: PointerEvent) => {
+    if (pressed && event.pointerId === id && Math.hypot(event.clientX - x, event.clientY - y) >= PRESS_SLOP) release();
+  };
+  const end = (event: PointerEvent) => {
+    if (event.pointerId === id) release();
+  };
+  const doc = host.ownerDocument;
+  const pass = { capture: true, passive: true } as const;
+  host.addEventListener("pointerdown", down, pass);
+  doc.addEventListener("pointermove", move, pass);
+  doc.addEventListener("pointerup", end, pass);
+  doc.addEventListener("pointercancel", end, pass);
+  // A scroll does not bubble; a capturing listener on the host hears its own and its ports'.
+  host.addEventListener("scroll", release, pass);
+  return () => {
+    host.removeEventListener("pointerdown", down, pass);
+    doc.removeEventListener("pointermove", move, pass);
+    doc.removeEventListener("pointerup", end, pass);
+    doc.removeEventListener("pointercancel", end, pass);
+    host.removeEventListener("scroll", release, pass);
+    release();
+  };
+}
 
 function attachPlate(plate: HTMLElement, kind: Kind): (() => void) | undefined {
   const host = plate.closest<HTMLElement>(kind.host);
@@ -221,7 +282,9 @@ function attachPlate(plate: HTMLElement, kind: Kind): (() => void) | undefined {
   off.addEventListener("change", settle);
   const doc = host.ownerDocument;
   for (const type of ["pointermove", "pointerdown", "keydown"]) doc.addEventListener(type, input, { capture: true, passive: true });
+  const unpress = kind.press ? attachPress(host, kind.press) : undefined;
   return () => {
+    unpress?.();
     clearTimeout(leaving);
     changes.disconnect();
     resizes.disconnect();

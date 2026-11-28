@@ -78,7 +78,9 @@
       e.preventDefault();
       if (next) light(menu, next);
     });
+    // A finger moving over the list scrolls it: it lights and focuses nothing (the touch mark is glide.js's), as the combobox's rows do.
     menu.addEventListener('pointermove', function (e) {
+      if (e.pointerType === 'touch') return;
       var it = e.target.closest(ITEM);
       if (it && it !== current(menu)) light(menu, it, true);
     });
@@ -102,7 +104,7 @@
     menu.insertBefore(plate, menu.firstChild);
     // The rows and the plate move into the menu's port, which scrolls and fades (cimip-gaps-3 t7); the glide follows the rows there.
     var list = _.port(menu, 'menu-scroll', { axis: 'block' });
-    menu.__glide = function () { return _.glide(list, plate, { active: '[data-highlighted]', attr: 'data-highlighted' }); };
+    menu.__glide = function () { return _.glide(list, plate, { active: '[data-highlighted]', attr: 'data-highlighted', press: '.menu-item' }); };
   }
 
   function wire() {

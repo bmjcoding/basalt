@@ -446,6 +446,19 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   and the search dialog's top is held while its box ends under its results. A window that its content scrolls in (a live transcript,
   `SearchPassages`' `rows`, `TabsPanels stacked`, `StageList`'s `reserveDetail`, a pane) is a field, not a seat: it is for the open
   page or a work area, never inside a card or a panel, where it would leave the box empty.
+- **An optical correction belongs to one lockup** (micro-details m1, T4). It lives in that component's CSS as a token or a value derived
+  from the lockup's own sizes, carries a comment saying what it corrects, and is looked at enlarged in both themes; a glyph's correction is
+  drawn in the glyph (`glyphs/source.mjs`), never faked with a margin. There is no ±1px utility, class, prop or token, and an app never
+  writes a raw nudge against a Basalt part. The Callout's icon sits `(text-sm line − icon-sm) / 2` below its title's line top.
+- **A wrapped choice's mark sits on its first line.** A choice label is one grid row of mark and words, centred in any spare height,
+  with the mark at the row's top and a margin that makes its box one line tall (`(1lh − the mark's size) / 2`, the mark taking the
+  label's font), so a one-line choice is where it was and a wrapped one keeps its mark beside its first line, at raised line spacing
+  too (WCAG 1.4.12). `SelectableItem` and `ChoiceCard` keep their own first-line margin.
+- **A capsule that leads with a glyph centres the glyph's box on its cap:** its start inset is half the height it is drawn at, less half
+  the glyph's box, derived from the height in force. `Nav size="sm"` is 8 at 32, 6 compact and 14 at 44 on touch; its end, gap and
+  glyphless form keep their padding. The default Nav keeps `space-3` at every density: that start is the 18px line the app footnote,
+  the version and the More sheet's rows stand on, so the compact default pill (a 24px glyph box 12 from its start) is the recorded
+  exception. Text-only pills (the site pill, a count) keep their padding: the gap lost at their ink is under a pixel.
 - **A ghost control at an edge.** A ghost `Button` or `IconButton` that starts or ends a head, a bar, a band or a row puts what it
   shows on the box's content line: its glyph, or its words. Its own box hangs past the line into the head's padding by its inset (its
   inline padding with words; half the size it is drawn at, less its glyph's own size, when icon-only: 6 at 28, 8 at 32, 14 at the 44
@@ -879,6 +892,65 @@ kept as a rule so both themes behave alike (DECISIONS 166). Four text levels wer
   `wait` module gives it the wait for a promise on the same two timings (`Basalt.wait`), which the toast's action and `toast.promise` use;
   TextButton's mark and the written field are React's alone, because the skill has no text button and no written field. Status: decided by Opus
   under the no-council path (DECISIONS 226, 260), with the owner's direction (DECISIONS 255); the implementation is reviewed by Astra.
+
+#### Pointer and touch
+
+Decided by the council (micro-details m1, DECISIONS 405 and 409; Fable decided, the implementation hasn't been reviewed).
+
+- **The pressable set.** A pressable is an element whose whole box does one thing on press: Button, IconButton and an anchor Button,
+  TextButton; a tab, a link tab, a segment and a page link; a choice label and the label-less checkbox, radio and switch, a choice card, a
+  chip, an option chip and a switch row; a popup's option rows (Menu, Select, Combobox, CommandMenu, the filter checklist, mentions) and an
+  in-flow listbox option; the select, menu and search triggers, the file input, a sort header, an accordion trigger and the disclosures; a
+  nav item, a site link, a tab bar cell and a notification entry; and the button-rooted parts (a stat's hint, a stream's More, a tray's
+  band, a run stage's line and node, an open row's button, a share item that acts, the footer's toggle). Never in it: a text field, prose,
+  code, a table cell or a linked row's cells, a static panel row, a field's label, description, hint or error, a scrollport, and a gesture
+  surface (the slider, a chart, the heatmap, the diagram stage, a toast). React writes these rules on its classes, never on a bare
+  `button` or `a`; the skill's core may name elements, because it owns its page. Content links (`Link`, rich text's anchors,
+  breadcrumbs, link cards, directory and big link rows, tiles, social, profile, version and back links, the skip link) are a second list.
+- **No selection on a control.** Every pressable computes `-webkit-user-select: none` and `user-select: none`, both, always: a click, a
+  double click or a drag that starts on a control never paints its label. A choice card's description and body stay selectable (a
+  time, a price): its title is the control. Content links, field labels and descriptions, a switch's description, table data and
+  linked rows, `PanelRow`, passages, `menu-text` and a `Kbd` in prose stay selectable. No `-webkit-touch-callout` is added: a link's
+  long-press menu is the platform's.
+- **Hover only where a pointer hovers.** Hover paint (a wash, an ink lift, an edge lift, an underline brightening, an arrow's 2px travel)
+  is written under `@media (hover: hover)`. Hover travel (the plate and pill glides, the numeric sort label's slide, the tab bar's
+  circle) keeps the stricter `(prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine)`.
+  `:active` and `:focus-visible` are never gated: a rule that joins hover with focus or press is split. Both queries describe the
+  primary input, so on a mouse-primary laptop with a touch screen a finger can leave hover paint until the pointer next moves; it
+  carries no state, so that is accepted. The lint `basalt/hover-gate` fails a `:hover` outside the gate in React's and the skill's
+  sheets; a rule that only removes or pins paint carries its exception with a reason.
+- **Cursors.** A pressable shows the hand (`pointer`), and `not-allowed` when it is disabled or unavailable; the label-less checkbox, radio
+  and switch take the hand too, and inside a choice label take the label's. An option row (a popup's rows, a listbox option, the
+  skill's `.menu-item`, `.combobox-option`, `.filter-row` and `.row[role="option"]`) keeps the arrow whether it can run or not: it is
+  pointed at, and its lit plate is the pointer's answer; a row's peek plate takes its row's. A real link shows the browser's own; a
+  linked row's cells the hand. A filtered-out open row is `not-allowed` (DECISIONS 168). Busy is `progress`, a text field the text
+  cursor, the pannable stage `grab`. No cursor reaches assistive technology, and **the cursor never replaces the words that say why an
+  action can't run.**
+- **A second tap presses again.** Every pressable and content link declares `touch-action: manipulation`, so a double tap on a stepper,
+  Next or a sort header presses twice instead of zooming. Panning and pinch zoom are untouched and page zoom is never disabled. It does
+  not apply to a non-replaced inline box (Pointer Events 3), so a link inside a sentence gets no promise and keeps its wrap. Never on a
+  field, a scrollport, a table cell, a static row or the page.
+- **A press.** Every pressable and content link computes `-webkit-tap-highlight-color: transparent`, in both themes, never a themed
+  tint, and the highlight is removed only where a press is visible. A press is the next rung on the control's own ladder: where hover is
+  a wash, the selected wash; where the control is words only, its hover step (a tab, a segment, a link, TextButton, the disclosures),
+  so a finger sees what a pointer sees. A page link presses to primary on the selected wash. An unchecked choice box presses as a
+  secondary Button (the selected wash, its edge at secondary ink); a checked or mixed checkbox and a checked switch as a primary Button
+  (`action-primary-press`); a checked radio and a selected radio card change nothing. An unselected choice card's wash steps to the
+  selected one; the select trigger and the file input (from its native input, never from Clear) press to the selected wash over their
+  raised fill as one colour, the edge at secondary ink unless invalid. The accordion's caret and the skill's plain disclosure chevron
+  lift from secondary to primary. A popup's option row and a notification entry press to everything the lit row has; an in-flow
+  listbox option steps its own box (the chosen option's plate) from the hover wash to the selected one. Colour only, in at `duration-instant` and out over the control's own
+  `duration-fast`, kept under reduced motion; never a scale (the .98 is Button's and IconButton's) and never on a disabled, read-only,
+  unavailable or busy control. A pressed control keeps every ink promotion its lit, hovered or selected state has, and tertiary text
+  on a press fill is secondary for the press.
+- **The touch mark.** A still finger sets no `:active` on a popup's row, so the glide (`attachPlate` in React, `_.glide` in the skill)
+  marks the row `data-pressing` from a touch `pointerdown` until release, cancel, a scroll of the list or 8px of travel, one row at a
+  time, and the row paints as the lit row. It moves no highlight and leaves activation to the click. The skill's core adds one empty,
+  passive `touchstart` listener so WebKit paints `:active` under a finger (not checked on a phone).
+- **Forced colours.** No press paint is drawn: an unchecked choice stays `Canvas` with its `ButtonText` edge and a checked one stays
+  `Highlight` with `HighlightText` through the press, as a selected choice card's box does; a pressed page link takes no `Highlight`;
+  the washes drop and the ink lifts are system text; the two chevrons are `CanvasText`. A pressed option row is `Highlight` with
+  `HighlightText`, by `:active` and by `data-pressing`, and a pressed notification entry is as its hovered one.
 
 ### More contrast
 
@@ -1428,7 +1500,7 @@ implementation hasn't been reviewed.
   full bleed and lifts no ink (the name and the detail both keep their ink: tertiary passes 4.5:1 on the wash over the dialog's level, 6.00:1 in dark and 4.88:1 in light, secondary 9.12:1 and 7.74:1, so no step is needed); there is no active row (3 to 1; one member wanted options in a listbox with arrow keys). The field's mark is a real 2px outline at −2
   round its band (no majority, the vote's first option stands). The browser's own clear × is hidden: the band has one ×. The count is `FilterResult`'s debounced line.
 - **The listbox and the opening list.** A listbox is a single choice that stays in the page, with one tab stop, `aria-activedescendant`, and a choice that follows
-  the arrow keys; the chosen option has the core check in its gutter (the open list keeps its cursor chevron; DECISIONS 167) and primary ink, and its weight does not change. Rows that open have the name as a button stretched
+  the arrow keys; the chosen option has the core check in its gutter (the open list keeps its cursor chevron; DECISIONS 167) and primary ink, and its weight does not change. Hover and press fill the option's own box, the chosen option's plate: the hover wash, and the selected wash on a press. The option answers across the list's full width (the decider's ruling in micro-details m1, 28 Nov 2026, applying DECISIONS 48). Rows that open have the name as a button stretched
   over the row, one cursor row with the one tab stop, a `↵` chip on it only (`aria-hidden`, hidden on touch, 4 to 0), and a filter that leaves every row in place: a
   non-match steps to tertiary ink, hides its cells, and the cursor skips it (4 to 0; no match mark). Rows are 24 (radius 6), two lines 48 and a coarse pointer's 44
   (radius 8), by the drawn-box rule. Focus is the control ring on the listbox's own box: 2px at +2 with corners of radius 8 (DECISIONS 159, the owner, on a 2 to 2 deadlock in DECISIONS 157, Q2; not square), the list 6px from a clipping edge, or the same ring inside at −2 where the list is flush (its outer curve is the box's corner, 8, its inner 6). The list has no fill or border, so the radius draws nothing at rest, and the rows scroll in a box inside it, so the rounded corners clip no row.

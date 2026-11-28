@@ -7,5 +7,13 @@
 import stylelint from "stylelint";
 
 import { basaltStylelintConfig } from "./packages/react/lint/stylelint-policy.mjs";
+import { basaltRules } from "./packages/react/lint/stylelint-rules.mjs";
 
-export default basaltStylelintConfig(stylelint);
+// basalt/hover-gate is Basalt's own (not in an app's config): hover paint in React's and the skill's sheets sits under @media (hover: hover)
+// (foundations, "Pointer and touch"). The sites' sheets are their own and are not swept this round.
+const policy = basaltStylelintConfig(stylelint);
+export default {
+  ...policy,
+  plugins: [...policy.plugins, basaltRules(stylelint).hoverGate],
+  overrides: [{ files: ["packages/react/src/styles/**/*.css", "tools/html-skill/src/**/*.css"], rules: { "basalt/hover-gate": true } }],
+};

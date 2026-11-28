@@ -44,6 +44,7 @@
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
   }
+  .nav-item { -webkit-user-select: none; user-select: none; }
   .nav-pill {
     box-sizing: border-box;
     display: inline-flex;
@@ -90,7 +91,8 @@
   /* The second size (data-size="sm" on the .nav; React's Nav size="sm"): a quieter list under the main one, a 32px pill at 13/18 with the glyph at 16. */
   .nav[data-size="sm"] { --_nav-height: var(--basalt-size-control-md); }
   .nav + .nav[data-size="sm"] { margin-top: var(--basalt-space-4); }
-  .nav[data-size="sm"] .nav-pill { gap: var(--basalt-space-2); padding-inline: var(--basalt-space-2) var(--basalt-space-3); }
+  /* The start inset centres the glyph's box on the cap (m1, B2): half the height in force less half the glyph, so 8 at 32 and 14 at 44. */
+  .nav[data-size="sm"] .nav-pill { gap: var(--basalt-space-2); padding-inline: calc((var(--_nav-height) - var(--basalt-size-icon-sm)) / 2) var(--basalt-space-3); }
   .nav[data-size="sm"] .nav-item:not(:has(.icon, [data-glyph])) .nav-pill { padding-inline: var(--basalt-space-3); }
   .nav[data-size="sm"] .nav-label { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); letter-spacing: var(--basalt-text-sm-tracking); }
   .nav[data-size="sm"] :is(.nav-count, .nav-dot) { margin-inline-start: 0; }
@@ -109,6 +111,7 @@
   .nav-item:active .nav-pill { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
   .nav-item:focus-visible .nav-pill { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* The first key hides the hover, shared pill and fallback alike: focus is the cue, until the pointer moves again. */
+  /* stylelint-disable-next-line basalt/hover-gate -- removes the hover pill while the keys are in use; it leaves no paint a finger could keep */
   .nav[data-keys] .nav-item:hover .nav-pill,
   .nav[data-keys] .nav-item:active .nav-pill { background-color: transparent; }
 
@@ -127,10 +130,13 @@
   /* Forced colours: the hovered item is Highlight on HighlightText, with no backplate behind the text; the current page keeps its selected glyph and its 600
      label. The shared pill is not drawn. */
   @media (forced-colors: active) {
-    .nav-item:hover .nav-pill,
+    @media (hover: hover) {
+      .nav-item:hover .nav-pill { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
+      .nav-item:hover .nav-count { color: HighlightText; }
+    }
     .nav-item:active .nav-pill { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
-    .nav-item:hover .nav-count,
     .nav-item:active .nav-count { color: HighlightText; }
+    /* stylelint-disable-next-line basalt/hover-gate -- removes the Highlight while the keys are in use; it leaves no paint a finger could keep */
     .nav[data-keys] .nav-item:hover .nav-pill,
     .nav[data-keys] .nav-item:active .nav-pill { forced-color-adjust: auto; background-color: transparent; color: inherit; }
   }

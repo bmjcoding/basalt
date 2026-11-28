@@ -202,6 +202,32 @@
   }
   .basalt-tooltip-positioner { z-index: var(--basalt-layer-tooltip); }
 
+  /* ---- Pointer and touch (foundations, "Pointer and touch"; DECISIONS 405, 409, m1) ----
+     The pressable set: an element whose whole box does one thing on press. Its label never paints a selection (both lines, always), a second
+     tap presses again instead of zooming, and the tap highlight is transparent because each has its own press paint. Written early and in
+     :where(), so any part's own rule wins (a choice card's description, which stays selectable). Never a field, prose, a table cell, a linked row's
+     cells, a static row, a scrollport or a gesture surface. Content links take the last two and stay selectable. A link inside a sentence is a
+     non-replaced inline box, which `touch-action` does not apply to (Pointer Events 3, 8.1): Basalt promises nothing there and keeps its wrap. */
+  :where(.basalt-button, .basalt-text-button, .basalt-tab, .basalt-link-tab, .basalt-segment, .basalt-page-link,
+    .basalt-choice, .basalt-checkbox, .basalt-radio, .basalt-switch, .basalt-choice-card, .basalt-chip, .basalt-option-chip, .basalt-switch-row,
+    .basalt-menu-item, .basalt-listbox-option, .basalt-mention-option,
+    .basalt-select-trigger, .basalt-menu-trigger, .basalt-search-trigger, .basalt-file-input, .basalt-sort, .basalt-accordion-trigger,
+    .basalt-disclosure-row, .basalt-prose-disclosure-trigger,
+    .basalt-nav-item, .basalt-site-link, .basalt-tabbar-item, .basalt-notification,
+    .basalt-stat-hint, .basalt-stream-more, .basalt-tray-band, button.basalt-run-stage-line, .basalt-run-stage-node, .basalt-open-button,
+    .basalt-share-item[data-acts], .basalt-site-footer-toggle) {
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  :where(.basalt-link, .basalt-rich-text a[href], .basalt-link-card, .basalt-directory-row, .basalt-big-link, .basalt-link-tile-link,
+    .basalt-social-link, .basalt-profile-link, .basalt-version-link, .basalt-back-link a, .basalt-skip-link,
+    .basalt-panel-row:not([data-split], [data-static]), .basalt-panel-row-trigger) {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   /* ---- Button ---- */
 
   .basalt-button {
@@ -482,7 +508,7 @@
 
   /* ---- TextButton (DECISIONS 154, D5d) ----
      A button that reads as running text: no box and no height, the text's own font, primary ink and a 1px underline in the input boundary that
-     goes to the ink on hover, as Link's does. Radius 4 is only the focus ring's corner. No pressed state. The icon after the words is
+     goes to the ink on hover, as Link's does, and on a press (m1). Radius 4 is only the focus ring's corner. The icon after the words is
      not underlined. The quiet form is secondary ink at rest. On touch a button on a line of its own has a 44px hit box with no change to layout
      (a box with no content, centred and at least 44 wide, like Link's); one inside a sentence keeps its line. */
   .basalt-text-button {
@@ -512,8 +538,13 @@
     transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
   .basalt-text-button > .basalt-icon { align-self: center; flex: none; color: var(--basalt-text-secondary); }
-  .basalt-text-button:hover:not([data-disabled], [data-loading]) .basalt-text-button-label { text-decoration-color: currentColor; }
-  .basalt-text-button[data-quiet]:hover:not([data-disabled], [data-loading]) { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .basalt-text-button:hover:not([data-disabled], [data-loading]) .basalt-text-button-label { text-decoration-color: currentColor; }
+    .basalt-text-button[data-quiet]:hover:not([data-disabled], [data-loading]) { color: var(--basalt-text-primary); }
+  }
+  /* A press is the hover step (m1, P8): words only, so a finger sees what a pointer sees. In at once, out over the transition. Never busy. */
+  .basalt-text-button:active:not([data-disabled], [data-loading], [data-busy]) .basalt-text-button-label { text-decoration-color: currentColor; transition-duration: var(--basalt-duration-instant); }
+  .basalt-text-button[data-quiet]:active:not([data-disabled], [data-loading], [data-busy]) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
   .basalt-text-button:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-text-button[data-disabled] { color: var(--basalt-text-disabled); cursor: not-allowed; }
   .basalt-text-button[data-disabled] > .basalt-icon { color: inherit; }
@@ -844,6 +875,13 @@
   .basalt-command .basalt-command-list:not([data-idle]) .basalt-menu-item[data-selected="true"] .basalt-menu-item-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
   .basalt-menu-item[data-disabled]:not([data-disabled="false"]) .basalt-menu-item-description,
   .basalt-menu-item[aria-disabled="true"] .basalt-menu-item-description { color: var(--basalt-text-disabled); }
+  /* A press (m1, P8): everything the lit row has, its own plate, primary ink and the description at secondary. On :active (a mouse, a pen, a browser
+     that sets it under a finger) and on data-pressing, which attachPlate (plate.tsx) writes from a touch pointerdown until release, cancel, a
+     scroll or 8px of travel, because a still finger sets no :active on a row. It moves no highlight. Where the shared plate is live it covers the
+     same solid colour, so a press there changes nothing. Danger keeps its colour; a disabled or unavailable row takes none. */
+  .basalt-menu-item:is(:active, [data-pressing]):not([data-disabled]:not([data-disabled="false"]), [aria-disabled="true"], [data-unavailable]):not([data-danger]) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+  .basalt-menu-item:is(:active, [data-pressing]):not([data-disabled]:not([data-disabled="false"]), [aria-disabled="true"], [data-unavailable])::before { background-color: var(--_plate); transition-duration: var(--basalt-duration-instant); }
+  .basalt-menu-item:is(:active, [data-pressing]):not([data-disabled]:not([data-disabled="false"]), [aria-disabled="true"], [data-unavailable]) .basalt-menu-item-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
   /* The push's arrow, drawn only while a list with a preview is narrower than its split. */
   .basalt-menu-item-chevron { display: none; flex: none; margin-inline-start: var(--basalt-space-2); color: var(--basalt-text-secondary); }
   .basalt-menu-item-chevron:dir(rtl) { transform: scaleX(-1); }
@@ -1101,6 +1139,8 @@
   @media (hover: hover) {
     .basalt-tab:hover:not([data-disabled]) { color: var(--basalt-text-primary); }
   }
+  /* A press is the hover step (m1, P8): the label and glyph to primary, no wash. Never on the chosen tab or a disabled one. */
+  .basalt-tab:active:not([data-active], [data-disabled]) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
 
   /* The chosen tab is its label at 600 in primary ink; a resting one is 400 in secondary. Its width is the 600's at rest too
      (ChosenLabel: the text carries a copy of itself laid out at 600), so choosing moves nothing. */
@@ -1261,6 +1301,8 @@
   @media (hover: hover) {
     .basalt-link-tab:hover { color: var(--basalt-text-primary); }
   }
+  /* A press is the hover step (m1, P8): primary ink, no wash. Never on the current page. */
+  .basalt-link-tab:active:not([aria-current]) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
   .basalt-link-tab:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) {
@@ -1321,6 +1363,9 @@
   @media (hover: hover) {
     .basalt-segment:hover:not([data-pressed]):not([data-disabled]) { color: var(--basalt-text-primary); }
   }
+  /* A press is the hover step (m1, P8): primary ink, no wash (a wash in the track would read as a second pill). A disabled segment shows not-allowed. */
+  .basalt-segment:active:not([data-pressed], [data-disabled]) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+  .basalt-segment[data-disabled] { cursor: not-allowed; }
 
   /* Chosen is the label at 600 in primary ink (decisions 138 and 139), against 400 in secondary at rest: the weight is the cue, which does
      not rest on colour (WCAG 1.4.1, technique G182). The raised pill with its hairline and the ink step support it. */
@@ -1516,10 +1561,11 @@
   .basalt-nav[data-collapsed] .basalt-nav-item { justify-content: center; }
 
   /* The second size (size="sm"): a quieter list under the main one. The same item, hover, glide, current page and ring, a step
-     smaller: a 32px pill (control-md, so compact gives 28 and touch 44), the label at 13/18 (text-sm), the glyph at 16, 8 before the
-     glyph and 12 after the label, 8 between; a count at 12/16. Each row still carries 2px above and below its pill. */
+     smaller: a 32px pill (control-md, so compact gives 28 and touch 44), the label at 13/18 (text-sm), the glyph at 16, its box centred on
+     the cap (8 before it at 32, 6 at 28, 14 at 44) and 12 after the label, 8 between; a count at 12/16. Each row still carries 2px above and below its pill. */
   .basalt-nav[data-size="sm"] { --_nav-height: var(--_basalt-control-md, var(--basalt-size-control-md)); }
-  .basalt-nav[data-size="sm"] .basalt-nav-pill { gap: var(--basalt-space-2); padding-inline: var(--basalt-space-2) var(--basalt-space-3); }
+  /* The start inset centres the glyph's box on the cap (m1, B2): half the height in force less half the glyph, so 8 at 32, 6 compact, 14 at 44. */
+  .basalt-nav[data-size="sm"] .basalt-nav-pill { gap: var(--basalt-space-2); padding-inline: calc((var(--_nav-height) - var(--basalt-size-icon-sm)) / 2) var(--basalt-space-3); }
   .basalt-nav[data-size="sm"] .basalt-nav-item[data-glyphless] .basalt-nav-pill { padding-inline: var(--basalt-space-3); }
   .basalt-nav[data-size="sm"] .basalt-nav-label {
     font-size: var(--basalt-text-sm-size);
@@ -1539,6 +1585,7 @@
   .basalt-nav-item:active .basalt-nav-pill { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
   .basalt-nav-item:focus-visible .basalt-nav-pill { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* The first key hides the hover, shared pill and fallback alike: focus is the cue, until the pointer moves again. */
+  /* stylelint-disable-next-line basalt/hover-gate -- removes the hover pill while the keys are in use; it leaves no paint a finger could keep */
   .basalt-nav[data-keys] .basalt-nav-item:hover .basalt-nav-pill,
   .basalt-nav[data-keys] .basalt-nav-item:active .basalt-nav-pill { background-color: transparent; }
 
@@ -1559,10 +1606,13 @@
   /* Forced colours: the hovered item is Highlight on HighlightText, with no backplate behind the text; the current
      page keeps its selected glyph and its 600 label. The shared pill is not drawn. */
   @media (forced-colors: active) {
-    .basalt-nav-item:hover .basalt-nav-pill,
+    @media (hover: hover) {
+      .basalt-nav-item:hover .basalt-nav-pill { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
+      .basalt-nav-item:hover .basalt-nav-count { color: HighlightText; }
+    }
     .basalt-nav-item:active .basalt-nav-pill { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
-    .basalt-nav-item:hover .basalt-nav-count,
     .basalt-nav-item:active .basalt-nav-count { color: HighlightText; }
+    /* stylelint-disable-next-line basalt/hover-gate -- removes the Highlight while the keys are in use; it leaves no paint a finger could keep */
     .basalt-nav[data-keys] .basalt-nav-item:hover .basalt-nav-pill,
     .basalt-nav[data-keys] .basalt-nav-item:active .basalt-nav-pill { forced-color-adjust: auto; background-color: transparent; color: inherit; }
   }
@@ -1685,7 +1735,10 @@
   /* Unseen is clipped, not moved: a moved link would show over the bar on its way out. It stays a stop and is still announced. */
   .basalt-skip-link:not(:focus) { box-shadow: none; }
   :root:has(.basalt-site-header, .basalt-app-header, .basalt-sticky-bar) .basalt-skip-link:not(:focus) { clip-path: inset(50%); }
-  .basalt-skip-link:hover { text-decoration-color: currentColor; }
+  @media (hover: hover) {
+    .basalt-skip-link:hover { text-decoration-color: currentColor; }
+  }
+  .basalt-skip-link:active { text-decoration-color: currentColor; }
   .basalt-skip-link:focus { transform: none; }
   .basalt-skip-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
@@ -1870,7 +1923,9 @@
   .basalt-site-link:active .basalt-site-pill { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
   .basalt-site-link:focus-visible .basalt-site-pill { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* The first key hides the hover (shared pill and fallback alike): focus is the cue, until the pointer moves again. */
+  /* stylelint-disable-next-line basalt/hover-gate -- removes the hover pill while the keys are in use; it leaves no paint a finger could keep */
   .basalt-site-links[data-keys] .basalt-site-link:is(:hover, :active) .basalt-site-pill { background-color: transparent; }
+  /* stylelint-disable-next-line basalt/hover-gate -- pins the resting ink while the keys are in use; it leaves no paint a finger could keep */
   .basalt-site-links[data-keys] .basalt-site-link:hover:not([aria-current], :focus-visible) { color: var(--basalt-text-secondary); }
   /* The glide: Nav's rules, on the links. The links' own pills step aside only while the shared one is live. */
   .basalt-site-links > .basalt-plate { --_plate: var(--basalt-state-selected); border-radius: var(--basalt-radius-full); }
@@ -2073,8 +2128,13 @@
   .basalt-site-footer-toggle:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-site-footer-toggle > .basalt-icon { color: var(--basalt-text-secondary); transition: transform var(--basalt-duration-slow) var(--basalt-ease-out), color var(--basalt-duration-fast) var(--basalt-ease-out); }
   @media (hover: hover) { .basalt-site-footer-toggle:hover > .basalt-icon { color: var(--basalt-text-primary); } }
+  /* A press is the hover step (m1, P8): the chevron lifts. */
+  .basalt-site-footer-toggle:active > .basalt-icon { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-slow), var(--basalt-duration-instant); }
   .basalt-site-footer-group[data-open] > .basalt-site-footer-label .basalt-site-footer-toggle > .basalt-icon { transform: rotate(180deg); }
-  @media (prefers-reduced-motion: reduce) { .basalt-site-footer-toggle > .basalt-icon { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); } }
+  @media (prefers-reduced-motion: reduce) {
+    .basalt-site-footer-toggle > .basalt-icon { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+    .basalt-site-footer-toggle:active > .basalt-icon { transition-duration: var(--basalt-duration-instant); }
+  }
   @media (forced-colors: active) {
     .basalt-site-footer-body, .basalt-site-footer[data-wired] .basalt-site-footer-group + .basalt-site-footer-group { border-color: CanvasText; }
   }
@@ -2547,6 +2607,7 @@
   .basalt-tabbar-item:active .basalt-tabbar-glyph { background-color: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
   /* The first key hides the circle: the ring is the cue. The ring is the control ring inset by its own width on the full cell
      (the flush-field rule), because the cell meets the screen's edge. */
+  /* stylelint-disable-next-line basalt/hover-gate -- removes the hover circle while the keys are in use; it leaves no paint a finger could keep */
   .basalt-tabbar[data-keys] .basalt-tabbar-item:is(:hover, :active) .basalt-tabbar-glyph { background-color: transparent; }
   .basalt-tabbar-item:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
   /* More's bottom sheet: a title and Close, then Nav rows. */
@@ -2554,14 +2615,21 @@
   .basalt-tabbar-sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-2); margin-bottom: var(--basalt-space-2); --basalt-edge-room-end: calc(max(var(--basalt-space-6), var(--_inset-end)) - var(--_inset-end)); --basalt-edge-room: initial; --basalt-edge-room-start: initial; }
 
   @media (forced-colors: active) {
-    .basalt-site-link:hover .basalt-site-pill,
+    @media (hover: hover) {
+      .basalt-site-link:hover .basalt-site-pill { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
+    }
     .basalt-site-link:active .basalt-site-pill { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
+    /* stylelint-disable-next-line basalt/hover-gate -- removes the Highlight while the keys are in use; it leaves no paint a finger could keep */
     .basalt-site-links[data-keys] .basalt-site-link:is(:hover, :active) .basalt-site-pill { forced-color-adjust: auto; background-color: transparent; color: inherit; }
     .basalt-site-menu-band { border-bottom-color: CanvasText; }
     .basalt-app-sidebar { border-inline-end-color: CanvasText; }
     .basalt-tabbar { background: Canvas; border-top-color: CanvasText; }
     .basalt-tabbar-item { color: LinkText; }
-    .basalt-tabbar-item:is(:hover, :active) .basalt-tabbar-glyph { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
+    @media (hover: hover) {
+      .basalt-tabbar-item:hover .basalt-tabbar-glyph { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
+    }
+    .basalt-tabbar-item:active .basalt-tabbar-glyph { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
+    /* stylelint-disable-next-line basalt/hover-gate -- removes the Highlight while the keys are in use; it leaves no paint a finger could keep */
     .basalt-tabbar[data-keys] .basalt-tabbar-item:is(:hover, :active) .basalt-tabbar-glyph { forced-color-adjust: auto; background-color: transparent; color: inherit; }
     .basalt-tabbar-dot { forced-color-adjust: none; background-color: CanvasText; }
   }
@@ -2759,11 +2827,17 @@
   .basalt-choice-card:has(> .basalt-choice-card-input:checked) .basalt-text[data-tone="tertiary"] { color: var(--basalt-text-secondary); }
   .basalt-choice-card:has(> .basalt-choice-card-input:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-choice-card:has(> .basalt-choice-card-input:disabled) { color: var(--basalt-text-disabled); cursor: not-allowed; }
+  /* A press (m1, P8). Not selected: the wash steps to the selected one, the box does not, and tertiary words go to secondary on it. Selected, as a
+     checkbox: the box steps as a primary Button does and the plate stays. Selected, as a radio: nothing. */
+  .basalt-choice-card:active:not(:has(> .basalt-choice-card-input:checked, > .basalt-choice-card-input:disabled))::before { background: var(--basalt-state-selected); opacity: 1; transition-duration: var(--basalt-duration-instant); }
+  .basalt-choice-card:active:not(:has(> .basalt-choice-card-input:checked, > .basalt-choice-card-input:disabled)) .basalt-text[data-tone="tertiary"] { color: var(--basalt-text-secondary); }
+  .basalt-choice-card[data-type="checkbox"]:active:has(> .basalt-choice-card-input:checked:not(:disabled)) .basalt-choice-card-box { background: var(--basalt-action-primary-press); transition-duration: var(--basalt-duration-instant); }
   .basalt-choice-card-input { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; margin: 0; opacity: 0; pointer-events: none; }
   .basalt-choice-card-head { display: flex; align-items: flex-start; gap: var(--basalt-space-3); padding: var(--basalt-space-4) var(--basalt-space-4) 0; }
   .basalt-choice-card-title { flex: 1 1 auto; min-width: 0; }
-  .basalt-choice-card-description { display: block; padding-inline: var(--basalt-space-4); }
-  .basalt-choice-card-body { display: block; padding: var(--basalt-space-4) var(--basalt-space-4) 0; }
+  /* The title is the control; the description and body are words a reader may copy (a time, a price), so they stay selectable (m1, P1). */
+  .basalt-choice-card-description { display: block; padding-inline: var(--basalt-space-4); -webkit-user-select: text; user-select: text; }
+  .basalt-choice-card-body { display: block; padding: var(--basalt-space-4) var(--basalt-space-4) 0; -webkit-user-select: text; user-select: text; }
   .basalt-choice-card-box {
     box-sizing: border-box;
     display: inline-flex;
@@ -3028,6 +3102,7 @@
     transition: opacity var(--basalt-duration-base) var(--basalt-ease-out);
   }
   .basalt-peek[data-kind="row"] { cursor: pointer; }
+  .basalt-peek[data-kind="row"][data-option] { cursor: default; }
   .basalt-peek[data-chosen] { background: var(--basalt-plate); }
   .basalt-peek[data-focus] { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-peek-text { display: block; }
@@ -3144,6 +3219,7 @@
 
   /* The empty row: one cell across every column, under the unchanged header. It is not a pinned or hoverable row; its
      sentence sticks to the container's start edge so a scrolled table does not carry it out of view. */
+  /* stylelint-disable-next-line basalt/hover-gate -- resets the row wash on the empty row; it adds no paint */
   .basalt-table tbody tr[data-empty]:hover { background: transparent; }
   .basalt-table tr[data-empty] > td { height: auto; padding: var(--basalt-space-6) var(--basalt-space-4); white-space: normal; overflow: visible; color: var(--basalt-text-secondary); }
   .basalt-table-empty {
@@ -3500,10 +3576,18 @@
 
   /* ---- Checkbox, Switch, Radio ---- */
 
+  /* The mark sits on the label's first line (m1, T4): one grid row of mark and words, centred in any spare height (min-height 28, 32 in a form
+     grid, 44 on touch), with the mark at the row's top and a margin that makes its box one line tall, whatever the line is. A one-line choice
+     is where the flex row drew it; a wrapped label keeps its mark beside its first line, at raised line spacing too (1lh is the label's line,
+     which the mark inherits). Column flow keeps a bare text node, or a link after the words, laid out as the flex row did. */
   .basalt-choice {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--basalt-space-2);
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: auto;
+    justify-content: start;
+    align-content: center;
+    align-items: start;
+    column-gap: var(--basalt-space-2);
     min-height: var(--_basalt-control-sm, var(--basalt-size-control-sm));
     font: var(--basalt-font-weight-regular) var(--_basalt-control-font, var(--basalt-text-base-size)) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans);
     color: var(--basalt-text-primary);
@@ -3511,6 +3595,9 @@
   }
 
   .basalt-choice:has([data-disabled]) { color: var(--basalt-text-disabled); cursor: not-allowed; }
+  .basalt-choice > :is(.basalt-checkbox, .basalt-radio, .basalt-switch) { font-size: inherit; line-height: inherit; }
+  .basalt-choice > :is(.basalt-checkbox, .basalt-radio) { margin-block: calc((1lh - var(--basalt-size-choice)) / 2); }
+  .basalt-choice > .basalt-switch { margin-block: calc((1lh - var(--basalt-size-switch-height)) / 2); }
 
   .basalt-checkbox,
   .basalt-radio {
@@ -3596,6 +3683,24 @@
   .basalt-radio[data-disabled],
   .basalt-switch[data-disabled] { opacity: 0.5; }
 
+  /* A label-less root (a box in a table cell) shows the hand, and not-allowed when disabled (m1, P6); inside a choice label it takes the label's. */
+  :is(.basalt-checkbox, .basalt-radio, .basalt-switch):not(.basalt-choice > *) { cursor: pointer; }
+  :is(.basalt-checkbox, .basalt-radio, .basalt-switch)[data-disabled]:not(.basalt-choice > *) { cursor: not-allowed; }
+
+  /* A press (m1, P8): an unchecked box (the switch's track too) steps as a secondary Button does, to the selected wash with its edge at
+     secondary ink (7.4:1 or better as a boundary, so it only gets stronger); a checked checkbox or switch steps as a primary Button does. A
+     checked radio changes nothing. In at once, out over the transition, kept under reduced motion; never a scale. The guard reads the root's own
+     data-disabled and data-readonly, where Base UI puts them. Choosing still happens on release, natively. */
+  :is(.basalt-checkbox, .basalt-radio, .basalt-switch):not([data-disabled], [data-readonly]):not([data-checked], [data-indeterminate]):is(:active, .basalt-choice:active > *) {
+    background: var(--basalt-state-selected);
+    box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-text-secondary);
+    transition-duration: var(--basalt-duration-instant);
+  }
+  :is(.basalt-checkbox, .basalt-switch):not([data-disabled], [data-readonly]):is([data-checked], [data-indeterminate]):is(:active, .basalt-choice:active > *) {
+    background: var(--basalt-action-primary-press);
+    transition-duration: var(--basalt-duration-instant);
+  }
+
   .basalt-checkbox:focus-visible,
   .basalt-radio:focus-visible,
   .basalt-switch:focus-visible,
@@ -3659,6 +3764,15 @@
   .basalt-select-icon { display: flex; color: var(--basalt-text-secondary); }
   .basalt-select-trigger[data-disabled] { color: var(--basalt-text-disabled); background: var(--basalt-surface-sunken); cursor: not-allowed; }
   .basalt-select-trigger[data-invalid] { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-status-danger); }
+  /* A press (m1, P8): the selected wash over the raised fill as one colour (state-selected's own 7% and 9%, written as the file input's drag
+     state writes its hover wash), the edge to secondary ink, and the placeholder to secondary on it. An invalid trigger keeps its danger edge.
+     Where opening happens on pointer-down the trigger loses :active at once and the opening is the response. */
+  .basalt-select-trigger:active:not([data-disabled]) { background: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-raised)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-raised))); transition-duration: var(--basalt-duration-instant); }
+  .basalt-select-trigger:active:not([data-disabled], [data-invalid]) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-text-secondary); }
+  .basalt-select-trigger:active:not([data-disabled]) .basalt-select-value[data-placeholder] { color: var(--basalt-text-secondary); }
+  @supports not (color: light-dark(white, black)) {
+    .basalt-select-trigger:active:not([data-disabled]) { background: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-raised)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-raised))); }
+  }
 
   .basalt-select-popup { min-width: var(--anchor-width); }
   .basalt-select-check { display: flex; }
@@ -3887,13 +4001,19 @@
     transition: background-color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
   /* In a popover the plate is its level's; in the page (NotificationList, no level of its own) it is the page's solid plate. */
-  .basalt-notification:hover::before { background-color: var(--_plate, var(--basalt-plate)); transition-duration: var(--basalt-duration-instant); }
+  @media (hover: hover) {
+    .basalt-notification:hover::before { background-color: var(--_plate, var(--basalt-plate)); transition-duration: var(--basalt-duration-instant); }
+  }
+  /* A press is the hovered entry (m1, P8): the plate, the title at primary, the line and time at secondary. On :active, and on data-pressing, which
+     attachPlate writes under a still finger in the notification centre (plate.tsx). */
+  .basalt-notification:is(:active, [data-pressing])::before { background-color: var(--_plate, var(--basalt-plate)); transition-duration: var(--basalt-duration-instant); }
   /* The hover glide, navigation's rules: one shared plate follows the pointer between entries (40 or 58 tall); the first key hides it
      and the resting hover, so only the ring shows, until the pointer moves again. Off on touch, under reduced motion and in forced
      colours, where each entry paints its own. */
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
     .basalt-notifications-scroll[data-glide] .basalt-notification::before { background-color: transparent; }
   }
+  /* stylelint-disable-next-line basalt/hover-gate -- removes the hover plate while the keys are in use; it leaves no paint a finger could keep */
   .basalt-notifications-scroll[data-keys] .basalt-notification:hover::before { background-color: transparent; }
   /* A focusable row takes the control ring at +2, measured from the plate: the row's own box already holds the plate's 2px inset. */
   .basalt-notification:focus-visible {
@@ -3923,12 +4043,19 @@
   .basalt-notification-title,
   .basalt-notification-line { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .basalt-notification[data-unread] .basalt-notification-title,
-  .basalt-notification:hover .basalt-notification-title { color: var(--basalt-text-primary); }
+  .basalt-notification:is(:active, [data-pressing]) .basalt-notification-title { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .basalt-notification:hover .basalt-notification-title { color: var(--basalt-text-primary); }
+  }
   /* A hint (the line and the time) is tertiary at rest and lifts to secondary on the plate, which tertiary would fail. */
   .basalt-notification-line { font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); }
   .basalt-notification-time { margin-top: calc(var(--basalt-space-0-5) / 2); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--basalt-text-tertiary); }
-  .basalt-notification:hover .basalt-notification-line,
-  .basalt-notification:hover .basalt-notification-time { color: var(--basalt-text-secondary); }
+  @media (hover: hover) {
+    .basalt-notification:hover .basalt-notification-line,
+    .basalt-notification:hover .basalt-notification-time { color: var(--basalt-text-secondary); }
+  }
+  .basalt-notification:is(:active, [data-pressing]) .basalt-notification-line,
+  .basalt-notification:is(:active, [data-pressing]) .basalt-notification-time { color: var(--basalt-text-secondary); }
   /* The entry for the page on screen (a list in a sidebar): its title at 600 from 400. It is one cut line, so nothing moves. */
   .basalt-notification[data-current] .basalt-notification-title { color: var(--basalt-text-primary); font-weight: var(--basalt-font-weight-semibold); }
 
@@ -3958,7 +4085,10 @@
     .basalt-tabbar-dot[data-kind="direct"],
     .basalt-notification[data-direct] .basalt-notification-dot::before { forced-color-adjust: none; color: CanvasText; border: var(--basalt-size-hairline) solid CanvasText; background-color: CanvasText; }
     .basalt-notification[data-direct] .basalt-notification-dot { border: 0; }
-    .basalt-notification[data-direct]:hover .basalt-notification-dot::before { color: HighlightText; border-color: HighlightText; background-color: HighlightText; }
+    @media (hover: hover) {
+      .basalt-notification[data-direct]:hover .basalt-notification-dot::before { color: HighlightText; border-color: HighlightText; background-color: HighlightText; }
+    }
+    .basalt-notification[data-direct]:is(:active, [data-pressing]) .basalt-notification-dot::before { color: HighlightText; border-color: HighlightText; background-color: HighlightText; }
   }
 
   /* `wrap` (8a): the title and the line wrap whole; the dot, the mark, the time and a count stay on the title's first line. */
@@ -4059,7 +4189,8 @@
   /* Rows are Menu rows with a taller plate: 40 (36 when compact), a 44px hit area, and 12px between the glyph and
      the label. Rest ink, the plate and the lift are shared with Menu, above. cmdk keeps the plate when the pointer
      leaves a row, as it does everywhere. */
-  .basalt-command .basalt-menu-item { --_plate-height: var(--_basalt-control-xl, var(--basalt-size-control-xl)); --_gap: var(--basalt-space-3); cursor: pointer; }
+  /* An option row keeps the arrow (m1, P6): it is pointed at, and its lit plate is the pointer's answer. */
+  .basalt-command .basalt-menu-item { --_plate-height: var(--_basalt-control-xl, var(--basalt-size-control-xl)); --_gap: var(--basalt-space-3); }
 
   /* A row that cannot run (`unavailable`): it stays in the order, is lit and reached like any row, and runs nothing. The title and glyph are disabled
      ink, at rest and lit; the reason is the second line in the description's inks (tertiary at rest, secondary on the plate), never disabled ink. The
@@ -4137,8 +4268,9 @@
 
   /* Not in use, the list shows no plate and no lit row: a page at rest with one row lit reads as a selection that isn't there,
      and ↵ would do nothing. The shared plate fades; each row's own plate (touch, reduced motion, forced colours) is cleared here. */
-  .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-fast); }
-  .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]::before { background-color: transparent; transition-duration: var(--basalt-duration-fast); }
+  /* A row held by a press or a still finger is not reset (m1, P8): the press paints it, as on any row. */
+  .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]:not(:active, [data-pressing]) { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-fast); }
+  .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]:not(:active, [data-pressing])::before { background-color: transparent; transition-duration: var(--basalt-duration-fast); }
   .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-danger][data-selected="true"] { color: var(--basalt-status-danger); }
 
   /* List plus preview: two level-1 panels space-4 apart, the list a fixed size-list-width and the pane the rest, equal in height,
@@ -4291,8 +4423,7 @@
     /* stylelint-disable-next-line unit-disallowed-list -- a width that follows the window (a viewport unit), less the margins; a fixed-length token cannot say it */
     max-width: min(var(--basalt-size-popover-max), calc(100vw - 2 * var(--basalt-space-2)));
   }
-  .basalt-mention-option { cursor: pointer; }
-  .basalt-mention-option[aria-disabled="true"] { cursor: default; }
+  /* A mention option is a menu row and keeps its arrow (m1, P6). */
 
   /* ---- Popover ---- */
 
@@ -4379,7 +4510,8 @@
   .basalt-callout[data-status="warning"],
   .basalt-callout[data-status="danger"] { border-color: color-mix(in srgb, var(--_rim-status) 45%, var(--_surface, var(--basalt-surface-raised))); }
 
-  .basalt-callout-icon { margin-top: calc(var(--basalt-space-0-5) / 2); /* optical alignment */ color: var(--basalt-text-secondary); }
+  /* The 16px glyph centred on the title's 18px line (m1, T4): half the line less half the glyph, the lockup's own sizes. */
+  .basalt-callout-icon { margin-top: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-icon-sm)) / 2); color: var(--basalt-text-secondary); }
   .basalt-callout[data-status="success"] .basalt-callout-icon { color: var(--basalt-status-success); }
   .basalt-callout[data-status="warning"] .basalt-callout-icon { color: var(--basalt-status-warning); }
   .basalt-callout[data-status="danger"] .basalt-callout-icon { color: var(--basalt-status-danger); }
@@ -5016,13 +5148,21 @@
   .basalt-stat-link:focus-visible::after { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-stat-cue { display: inline-grid; place-items: center; margin-inline-start: var(--basalt-space-2); color: var(--basalt-text-secondary); vertical-align: middle; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
   .basalt-stat[data-linked] .basalt-stat-label { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
-  .basalt-stat[data-linked]:hover :is(.basalt-stat-label, .basalt-stat-cue) { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .basalt-stat[data-linked]:hover :is(.basalt-stat-label, .basalt-stat-cue) { color: var(--basalt-text-primary); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-stat[data-linked]:active :is(.basalt-stat-label, .basalt-stat-cue) { color: var(--basalt-text-primary); }
   /* A value not observed: the words at text-base, 400, tertiary, on the figure's baseline inside its 30px line, so notes and sources stay level across a row. */
   .basalt-stat-missing { color: var(--basalt-text-tertiary); font-weight: var(--basalt-font-weight-regular); font-size: var(--basalt-text-base-size); letter-spacing: normal; }
   /* The hint: Phosphor Info at 16 in a 20px seat, space-1 after the label's words, secondary at rest and primary on hover, the control ring at +2. The label's
      line stays 18px (the seat overhangs it by a pixel each way); on touch a 44 by 44 hit box with no change to layout. Above the stretched link. */
   .basalt-stat-hint { position: relative; z-index: 1; display: inline-grid; place-items: center; inline-size: var(--basalt-size-icon-md); block-size: var(--basalt-size-icon-md); margin-block: calc((var(--basalt-text-sm-line-height) - var(--basalt-size-icon-md)) / 2); margin-inline-start: var(--basalt-space-1); padding: 0; border: 0; border-radius: var(--basalt-radius-xs); background: none; color: var(--basalt-text-secondary); vertical-align: top; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
-  .basalt-stat-hint:hover { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .basalt-stat-hint:hover { color: var(--basalt-text-primary); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-stat-hint:active { color: var(--basalt-text-primary); }
   .basalt-stat-hint:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) {
@@ -5286,9 +5426,15 @@
   .basalt-run-stage-chevron { display: inline-grid; flex: none; place-items: center; inline-size: var(--basalt-size-icon-sm); block-size: var(--basalt-size-icon-sm); color: var(--basalt-text-secondary); }
   button.basalt-run-stage-line { inline-size: 100%; margin: 0; padding-inline: 0; border: 0; border-radius: var(--basalt-radius-sm); background: none; color: inherit; font: inherit; letter-spacing: inherit; text-align: start; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   button.basalt-run-stage-line :is(.basalt-run-stage-name, .basalt-run-stage-word, .basalt-run-stage-meta, .basalt-run-timer, .basalt-run-clock, .basalt-run-stage-chevron) { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
-  button.basalt-run-stage-line:hover :is(.basalt-run-stage-name, .basalt-run-stage-chevron) { color: var(--basalt-text-primary); }
-  button.basalt-run-stage-line:hover :is(.basalt-run-stage-meta, .basalt-run-timer, .basalt-run-clock) { color: var(--basalt-text-secondary); }
-  .basalt-run-stage:is([data-state="queued"], [data-state="skipped"], [data-state="canceled"]) button.basalt-run-stage-line:hover .basalt-run-stage-word { color: var(--basalt-text-secondary); }
+  @media (hover: hover) {
+    button.basalt-run-stage-line:hover :is(.basalt-run-stage-name, .basalt-run-stage-chevron) { color: var(--basalt-text-primary); }
+    button.basalt-run-stage-line:hover :is(.basalt-run-stage-meta, .basalt-run-timer, .basalt-run-clock) { color: var(--basalt-text-secondary); }
+    .basalt-run-stage:is([data-state="queued"], [data-state="skipped"], [data-state="canceled"]) button.basalt-run-stage-line:hover .basalt-run-stage-word { color: var(--basalt-text-secondary); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  button.basalt-run-stage-line:active :is(.basalt-run-stage-name, .basalt-run-stage-chevron) { color: var(--basalt-text-primary); }
+  button.basalt-run-stage-line:active :is(.basalt-run-stage-meta, .basalt-run-timer, .basalt-run-clock) { color: var(--basalt-text-secondary); }
+  .basalt-run-stage:is([data-state="queued"], [data-state="skipped"], [data-state="canceled"]) button.basalt-run-stage-line:active .basalt-run-stage-word { color: var(--basalt-text-secondary); }
   button.basalt-run-stage-line:focus-visible, .basalt-run-stage-node:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) {
@@ -5302,8 +5448,13 @@
   .basalt-run-rail > .basalt-run-stage[data-collapsible] > .basalt-run-stage-link { inset-block-start: calc(var(--basalt-space-6) / 2); }
   .basalt-run-stage-node { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: start; inline-size: 100%; min-inline-size: 0; margin: 0; padding: 0; border: 0; border-radius: var(--basalt-radius-sm); background: none; color: inherit; font: inherit; letter-spacing: inherit; text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .basalt-run-stage-node .basalt-run-stage-label { text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out); }
-  .basalt-run-stage-node:hover .basalt-run-stage-label { text-decoration-color: currentColor; }
-  .basalt-run-stage-node:hover .basalt-run-stage-name { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .basalt-run-stage-node:hover .basalt-run-stage-label { text-decoration-color: currentColor; }
+    .basalt-run-stage-node:hover .basalt-run-stage-name { color: var(--basalt-text-primary); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-run-stage-node:active .basalt-run-stage-label { text-decoration-color: currentColor; }
+  .basalt-run-stage-node:active .basalt-run-stage-name { color: var(--basalt-text-primary); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) {
     .basalt-run-stage-node { min-block-size: var(--basalt-size-tap-min); min-inline-size: min(100%, var(--basalt-size-tap-min)); }
@@ -5535,7 +5686,9 @@
       .basalt-run-steps > .basalt-run-step[data-depth="4"] > .basalt-run-step-line { opacity: var(--basalt-opacity-recede-4); }
       .basalt-run-steps > .basalt-run-step[data-depth="5"] > .basalt-run-step-line { opacity: var(--basalt-opacity-recede-5); }
       /* Hover and focus lift every tail row to the first step, over duration-fast: a convenience; the toggle is the way back that counts. */
+      /* stylelint-disable-next-line basalt/hover-gate -- left for the run steps' own round (m1, P4): the lift shows which row is which, and a tap is the only way a finger can ask today */
       .basalt-run-steps-window:is(:hover, :focus-within) .basalt-run-steps > .basalt-run-step[data-tail] > .basalt-run-step-line { opacity: 1; color: var(--basalt-text-tertiary); transition-duration: var(--basalt-duration-fast); }
+      /* stylelint-disable-next-line basalt/hover-gate -- left for the run steps' own round (m1, P4), as the rule above */
       .basalt-run-steps-window:is(:hover, :focus-within) .basalt-run-steps > .basalt-run-step[data-tail][data-state="failed"] :is(.basalt-run-step-mark, .basalt-run-step-word) { color: color-mix(in srgb, var(--basalt-status-danger) calc(var(--basalt-opacity-recede-danger) * 100%), transparent); }
       /* The top edge (DECISIONS 337): the window's top edge fades the one tail row it cuts, over the part that shows (--_cut, measured), from
          transparent at the edge to opaque at the row's bottom. The mask is in that row's own box, so it moves with the row and never reaches
@@ -6038,9 +6191,14 @@
   }
   .basalt-diagram-node[data-link="external"] .basalt-diagram-name-end::after { mask-image: url("%glyph-mask:external%"); }
   .basalt-diagram-node[data-link][data-focal] .basalt-diagram-name-end::after { background: var(--basalt-diagram-focal-ink); opacity: var(--basalt-opacity-amount); }
-  .basalt-diagram-node[data-link]:is(:hover, :focus-visible) .basalt-diagram-name-end::after { background: var(--basalt-text-primary); transform: translateX(var(--basalt-space-0-5)); }
-  .basalt-diagram-node[data-link][data-focal]:is(:hover, :focus-visible) .basalt-diagram-name-end::after { background: var(--basalt-diagram-focal-ink); opacity: 1; }
-  .basalt-diagram-node[data-link]:is(:hover, :focus-visible) :is(.basalt-diagram-name, .basalt-diagram-tname) { text-decoration: underline var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  .basalt-diagram-node[data-link]:focus-visible .basalt-diagram-name-end::after { background: var(--basalt-text-primary); transform: translateX(var(--basalt-space-0-5)); }
+  .basalt-diagram-node[data-link][data-focal]:focus-visible .basalt-diagram-name-end::after { background: var(--basalt-diagram-focal-ink); opacity: 1; }
+  .basalt-diagram-node[data-link]:focus-visible :is(.basalt-diagram-name, .basalt-diagram-tname) { text-decoration: underline var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  @media (hover: hover) {
+    .basalt-diagram-node[data-link]:hover .basalt-diagram-name-end::after { background: var(--basalt-text-primary); transform: translateX(var(--basalt-space-0-5)); }
+    .basalt-diagram-node[data-link][data-focal]:hover .basalt-diagram-name-end::after { background: var(--basalt-diagram-focal-ink); opacity: 1; }
+    .basalt-diagram-node[data-link]:hover :is(.basalt-diagram-name, .basalt-diagram-tname) { text-decoration: underline var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  }
   /* The press: the card's fill under state-hover's wash, one colour from color-mix at the token's own alpha (black 4% in light, white 6% in dark), as the
      still table's pinned cells take theirs. */
   .basalt-diagram-node[data-link]:active { background: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 4%, var(--_surface, var(--basalt-surface-1))), color-mix(in srgb, var(--basalt-neutral-100) 6%, var(--_surface, var(--basalt-surface-1)))); }
@@ -6049,9 +6207,15 @@
   }
   .basalt-diagram-node[data-link][data-focal]:active { background: var(--basalt-action-primary-press); }
   .basalt-diagram-node[data-link]:dir(rtl) .basalt-diagram-name-end::after { scale: -1 1; }
-  .basalt-diagram-node[data-link]:dir(rtl):is(:hover, :focus-visible) .basalt-diagram-name-end::after { transform: translateX(calc(-1 * var(--basalt-space-0-5))); }
+  .basalt-diagram-node[data-link]:dir(rtl):focus-visible .basalt-diagram-name-end::after { transform: translateX(calc(-1 * var(--basalt-space-0-5))); }
+  @media (hover: hover) {
+    .basalt-diagram-node[data-link]:dir(rtl):hover .basalt-diagram-name-end::after { transform: translateX(calc(-1 * var(--basalt-space-0-5))); }
+  }
   @media (prefers-reduced-motion: reduce) {
-    .basalt-diagram-node[data-link]:is(:hover, :focus-visible) .basalt-diagram-name-end::after, .basalt-diagram-node[data-link]:dir(rtl):is(:hover, :focus-visible) .basalt-diagram-name-end::after { transform: none; }
+    .basalt-diagram-node[data-link]:focus-visible .basalt-diagram-name-end::after, .basalt-diagram-node[data-link]:dir(rtl):focus-visible .basalt-diagram-name-end::after { transform: none; }
+    @media (hover: hover) {
+      .basalt-diagram-node[data-link]:hover .basalt-diagram-name-end::after, .basalt-diagram-node[data-link]:dir(rtl):hover .basalt-diagram-name-end::after { transform: none; }
+    }
   }
   /* A card that answers a tap is at least size-tap-min tall on touch (1.5). */
   @media (pointer: coarse) {
@@ -7287,7 +7451,9 @@
   /* Which stretch is which: on hover of an item or of its segment, and on focus of an item, a 2px text-primary line shows space-1 under that segment,
      as long as it, inside the space-2 gap (it takes no room), fading over duration-fast; the item's name lifts to primary. No other segment dims. */
   .basalt-share[data-form="legend"] .basalt-share-bar::after { content: ""; position: absolute; inset-inline: 0; inset-block-start: calc(100% + var(--basalt-space-1)); block-size: var(--basalt-size-indicator); border-radius: var(--basalt-radius-full); background: var(--basalt-text-primary); opacity: 0; transition: opacity var(--basalt-duration-fast) var(--basalt-ease-out); pointer-events: none; }
+  /* stylelint-disable-next-line basalt/hover-gate -- left for the share legend's own round (m1, P4): it shows which part is which, and a tap is the only way a finger can ask today */
   .basalt-share[data-form="legend"] > .basalt-share-part:is(:hover, :focus-within) .basalt-share-bar::after { opacity: 1; }
+  /* stylelint-disable-next-line basalt/hover-gate -- left for the share legend's own round (m1, P4), as the rule above */
   .basalt-share[data-form="legend"] > .basalt-share-part:is(:hover, :focus-within) .basalt-share-name { color: var(--basalt-text-primary); }
 
   /* Parts that act: the name carries TextButton's underline at rest (1px border-input at size-underline-offset), so the target is seen without hover;
@@ -7296,7 +7462,11 @@
      decoration. The control ring: 2px at +2, radius 6. */
   .basalt-share-item[data-acts] { cursor: pointer; -webkit-tap-highlight-color: transparent; outline: none; }
   .basalt-share-item[data-acts] .basalt-share-name { text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); transition: color var(--basalt-duration-fast) var(--basalt-ease-out), text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out); }
-  .basalt-share-item[data-acts]:hover .basalt-share-name { color: var(--basalt-text-primary); text-decoration-color: currentColor; }
+  @media (hover: hover) {
+    .basalt-share-item[data-acts]:hover .basalt-share-name { color: var(--basalt-text-primary); text-decoration-color: currentColor; }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-share-item[data-acts]:active .basalt-share-name { color: var(--basalt-text-primary); text-decoration-color: currentColor; }
   .basalt-share-item[data-acts] .basalt-external { color: var(--basalt-text-secondary); }
   .basalt-share-item[data-acts]::before { content: ""; position: absolute; inset: 0; border-radius: var(--basalt-radius-sm); }
   .basalt-share-item[data-acts]:focus-visible::before { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
@@ -7412,7 +7582,10 @@
   }
 
   .basalt-accordion-trigger:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); border-radius: var(--basalt-radius-xs); }
-  .basalt-accordion-caret { color: var(--basalt-text-secondary); transition: transform var(--basalt-duration-slow) var(--basalt-ease-out); }
+  .basalt-accordion-caret { color: var(--basalt-text-secondary); transition: transform var(--basalt-duration-slow) var(--basalt-ease-out), color var(--basalt-duration-fast) var(--basalt-ease-out); }
+  /* A press (m1, P8): the caret lifts to primary, as the footer toggle's chevron does; no wash and no band. A disabled trigger shows not-allowed. */
+  .basalt-accordion-trigger:active:not([data-disabled]) .basalt-accordion-caret { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-slow), var(--basalt-duration-instant); }
+  .basalt-accordion-trigger[data-disabled] { cursor: not-allowed; }
   .basalt-accordion-trigger[data-panel-open] .basalt-accordion-caret { transform: rotate(180deg); }
 
   .basalt-accordion-panel {
@@ -7608,6 +7781,14 @@
     .basalt-file-input[data-drag] { background: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 6%, var(--basalt-surface-raised)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 4%, var(--basalt-surface-raised))); }
   }
   .basalt-file-input[data-drag] :is(.basalt-file-input-line[data-empty], .basalt-file-input-size) { color: var(--basalt-text-secondary); }
+  /* A press (m1, P8), from the native input only, so pressing Clear presses Clear and not the field: the select trigger's one colour, its edge
+     at secondary ink (an invalid box keeps its danger edge), and the empty line and the size at secondary on it. */
+  .basalt-file-input:has(> .basalt-file-input-native:active:not([data-disabled], :disabled)) { background: light-dark(color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-raised)), color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-raised))); }
+  .basalt-file-input:has(> .basalt-file-input-native:active:not([data-disabled], :disabled, [data-invalid])) { box-shadow: inset 0 0 0 var(--basalt-size-hairline) var(--basalt-text-secondary); }
+  .basalt-file-input:has(> .basalt-file-input-native:active:not([data-disabled], :disabled)) :is(.basalt-file-input-line[data-empty], .basalt-file-input-size) { color: var(--basalt-text-secondary); }
+  @supports not (color: light-dark(white, black)) {
+    .basalt-file-input:has(> .basalt-file-input-native:active:not([data-disabled], :disabled)) { background: color-mix(in srgb, color-mix(in srgb, var(--basalt-neutral-100) 9%, var(--basalt-surface-raised)) var(--_dkp), color-mix(in srgb, var(--basalt-neutral-0) 7%, var(--basalt-surface-raised))); }
+  }
   /* On touch Clear keeps its 24 and takes its 44 as hit area (46: a hairline more on each side, so the press's .98 never takes it under 44), so the box never grows. */
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) {
@@ -7880,11 +8061,14 @@
   .basalt-search-trigger-word { display: none; }
   .basalt-search-trigger:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   @media (hover: hover) { .basalt-search-trigger:hover { background: var(--basalt-state-hover); } }
+  /* A press (m1, P8): under 720 the square button's next rung, the selected wash; from 720 the field-shaped button's ink lift, as its hover. */
+  .basalt-search-trigger:active { background: var(--basalt-state-selected); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; from it the trigger is a field-shaped button with the word */
   @media (width >= 720px) {
     .basalt-search-trigger { width: var(--basalt-size-search-trigger); justify-content: flex-start; padding-inline: var(--basalt-space-3-5); border: var(--basalt-size-hairline) solid var(--basalt-border-field); color: var(--basalt-text-secondary); }
     .basalt-search-trigger-word { display: inline; }
     @media (hover: hover) { .basalt-search-trigger:hover { background: transparent; color: var(--basalt-text-primary); } }
+    .basalt-search-trigger:active { background: transparent; color: var(--basalt-text-primary); }
   }
 
   /* The search dialog (D13a, V3; DECISIONS 336, Q3): its top is held where the full box has it (DialogContent writes --_dialog-top), and its results area is
@@ -8205,7 +8389,8 @@
   @media (width >= 720px) { .basalt-notice-bar-in { flex-wrap: nowrap; padding-block-start: 0; } }
 
   /* The listbox (D13c): a single-select list in the page. Rest ink is secondary; the chosen option is primary with the core check in its gutter and
-     a plate. A row is 24 (6 radius), two lines 48 (8), and 44 at least on a coarse pointer. The hover wash runs full bleed. */
+     a plate. A row is 24 (6 radius), two lines 48 (8), and 44 at least on a coarse pointer. Hover and press fill the option's own box, the chosen
+     option's plate (m1's listbox ruling, DECISIONS 48: a choose-one list uses the plate); the option answers across the list's full width. */
   .basalt-listbox { box-sizing: border-box; display: flex; flex-direction: column; min-width: 0; border-radius: var(--basalt-radius-md); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); outline: none; }
   /* The ring is on the list's own box, which has no fill, border or clip: radius 8 draws nothing at rest. The rows scroll in the box inside it, so the corners clip nothing. */
   /* The rows fade at each edge that hides more (cimip-gaps-3 t7); a row brought into view keeps the fade and space-0-5 clear. */
@@ -8226,10 +8411,12 @@
     min-height: var(--basalt-size-control-xs);
     padding-inline: var(--basalt-space-1-5);
     border-radius: var(--basalt-radius-sm);
-    cursor: pointer;
+    /* An option row keeps the arrow (m1, P6): it is pointed at, and its band is the pointer's answer. */
+    cursor: default;
     user-select: none;
   }
   .basalt-listbox-option[data-detail] { min-height: var(--basalt-space-12); border-radius: var(--basalt-radius-md); }
+  /* The hit area only, never filled: it reaches the list's own edge (the list's inset, space-1-5), so the option answers across the full width. */
   .basalt-listbox-option::before { content: ""; position: absolute; z-index: -1; inset-block: 0; inset-inline: calc(-1 * var(--basalt-space-1-5)); }
   .basalt-listbox-gutter { grid-column: 1; display: flex; align-items: center; justify-content: center; color: var(--basalt-text-primary); }
   .basalt-listbox-name { grid-column: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -8237,11 +8424,16 @@
   .basalt-listbox-detail { grid-column: 2 / -1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--basalt-text-tertiary); }
   .basalt-listbox-option[aria-selected="true"] { background: var(--basalt-state-selected); color: var(--basalt-text-primary); }
   .basalt-listbox-option[aria-selected="true"] :is(.basalt-listbox-trailing, .basalt-listbox-detail, .basalt-listbox-leading .basalt-event-time) { color: var(--basalt-text-secondary); }
-  .basalt-listbox-option[aria-disabled="true"] { color: var(--basalt-text-disabled); cursor: default; }
+  .basalt-listbox-option[aria-disabled="true"] { color: var(--basalt-text-disabled); }
   @media (hover: hover) {
-    .basalt-listbox-option:not([aria-selected="true"], [aria-disabled="true"]):hover::before { background: var(--basalt-state-hover); }
+    .basalt-listbox-option:not([aria-selected="true"], [aria-disabled="true"]):hover { background: var(--basalt-state-hover); }
     .basalt-listbox-option:not([aria-selected="true"], [aria-disabled="true"]):hover :is(.basalt-listbox-trailing, .basalt-listbox-detail, .basalt-listbox-leading .basalt-event-time) { color: var(--basalt-text-secondary); }
   }
+  /* A press (m1, P8): the option's own box steps from the hover wash to the selected one, the name to primary and the slots to secondary, so hover,
+     press and the chosen option are one shape. A selected or disabled option takes none. After the hover rule, which it ties (both (0,3,0), the same
+     property on the same element): a mouse press is hovered too, and the press must win. */
+  .basalt-listbox-option:active:not([aria-selected="true"], [aria-disabled="true"]) { color: var(--basalt-text-primary); background: var(--basalt-state-selected); }
+  .basalt-listbox-option:active:not([aria-selected="true"], [aria-disabled="true"]) :is(.basalt-listbox-trailing, .basalt-listbox-detail, .basalt-listbox-leading .basalt-event-time) { color: var(--basalt-text-secondary); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) { .basalt-listbox-option { min-height: var(--basalt-size-tap-min); border-radius: var(--basalt-radius-md); } }
   /* The listbox on touch has no hover to open a plate, so its options show whole at rest: the name and the detail wrap, and the gutter's mark and the trailing
@@ -8309,7 +8501,11 @@
 
   /* The underline is the link cue: input-boundary colour (3:1), brightening to the text on hover. */
   .basalt-link, .basalt-rich-text a[href] { color: var(--basalt-text-primary); text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-underline-offset: var(--basalt-size-underline-offset); text-decoration-thickness: var(--basalt-size-hairline); font-family: inherit; transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out); }
-  .basalt-link:hover, .basalt-rich-text a[href]:hover { text-decoration-color: currentColor; }
+  @media (hover: hover) {
+    .basalt-link:hover, .basalt-rich-text a[href]:hover { text-decoration-color: currentColor; }
+  }
+  /* A press is the hover step (m1, P8): the underline to the ink, never a step down (that is the busy sign). */
+  .basalt-link:active, .basalt-rich-text a[href]:active { text-decoration-color: currentColor; }
   .basalt-link:focus-visible, .basalt-page-link:focus-visible, .basalt-rich-text a[href]:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); border-radius: var(--basalt-radius-xs); }
   /* The new-tab cue (target="_blank"): the core external glyph after the label, never underlined (an inline-block is not
      decorated). It adds no space of its own: the glyph's side bearing is the gap, a word joiner in front and nowrap keep it with
@@ -8319,7 +8515,12 @@
   .basalt-external { white-space: nowrap; color: var(--basalt-text-secondary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
   /* stylelint-disable-next-line unit-disallowed-list -- an optical alignment of the new-tab arrow with the text beside it, in that text's own em */
   .basalt-external > .basalt-icon { display: inline-block; vertical-align: -0.15em; margin-block: calc(-1 * var(--basalt-space-1)); }
-  .basalt-link:is(:hover, :focus-visible) > .basalt-external { color: inherit; }
+  .basalt-link:focus-visible > .basalt-external { color: inherit; }
+  @media (hover: hover) {
+    .basalt-link:hover > .basalt-external { color: inherit; }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-link:active > .basalt-external { color: inherit; }
   /* Beside text of 20px and up the arrow is 20px: Text and Heading at xl or larger set --_external-size for what they hold. It is
      read by links only; a Button's arrow follows the Button's own size. */
   .basalt-link > .basalt-external > .basalt-icon { width: var(--_external-size, var(--basalt-size-icon-sm)); height: var(--_external-size, var(--basalt-size-icon-sm)); }
@@ -8333,7 +8534,11 @@
   .basalt-breadcrumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: var(--basalt-space-2); margin: 0; padding: 0; list-style: none; }
   .basalt-breadcrumbs li { display: inline-flex; align-items: center; gap: var(--basalt-space-2); min-width: 0; overflow-wrap: anywhere; }
   .basalt-breadcrumbs .basalt-link { color: var(--basalt-text-secondary); text-decoration: none; }
-  .basalt-breadcrumbs .basalt-link:hover { color: var(--basalt-text-primary); text-decoration: underline; }
+  @media (hover: hover) {
+    .basalt-breadcrumbs .basalt-link:hover { color: var(--basalt-text-primary); text-decoration: underline; }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-breadcrumbs .basalt-link:active { color: var(--basalt-text-primary); text-decoration: underline; }
   .basalt-breadcrumbs [aria-current="page"] { color: var(--basalt-text-primary); }
   .basalt-breadcrumbs:dir(rtl) .basalt-icon { transform: rotate(180deg); }
 
@@ -8347,18 +8552,35 @@
   .basalt-go-arrow[data-side="start"] { --_travel: -1; }
   .basalt-go-arrow:dir(rtl) { --_flip: -1; }
   .basalt-go-arrow:dir(rtl) > .basalt-icon { transform: rotate(180deg); }
-  :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link, .basalt-link-go, .basalt-back-link a):is(:hover, :focus-visible) .basalt-go-arrow { color: var(--basalt-text-primary); transform: translateX(calc(var(--_travel) * var(--_flip) * var(--basalt-space-0-5))); }
-  :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link):is(:hover, :focus-visible) .basalt-external { color: var(--basalt-text-primary); }
+  :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link, .basalt-link-go, .basalt-back-link a):focus-visible .basalt-go-arrow { color: var(--basalt-text-primary); transform: translateX(calc(var(--_travel) * var(--_flip) * var(--basalt-space-0-5))); }
+  @media (hover: hover) {
+    :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link, .basalt-link-go, .basalt-back-link a):hover .basalt-go-arrow { color: var(--basalt-text-primary); transform: translateX(calc(var(--_travel) * var(--_flip) * var(--basalt-space-0-5))); }
+  }
+  /* A press is the hover ink (m1, P8); the arrow's 2px travel stays hover's and focus's. */
+  :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link, .basalt-link-go, .basalt-back-link a):active .basalt-go-arrow { color: var(--basalt-text-primary); }
+  :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link):focus-visible .basalt-external { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link):hover .basalt-external { color: var(--basalt-text-primary); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link):active .basalt-external { color: var(--basalt-text-primary); }
   :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link, .basalt-link-tile-link, .basalt-back-link a):focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); border-radius: var(--basalt-radius-sm); }
 
   /* The arrow link: a Link on a line of its own. No underline, weight 500, the arrow is its cue, a 44px target. */
   .basalt-link-go { display: inline-flex; align-items: center; gap: var(--basalt-space-2); min-height: var(--basalt-size-tap-min); font-size: var(--basalt-text-md-size); font-weight: var(--basalt-font-weight-medium); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); text-decoration: none; white-space: nowrap; }
-  .basalt-link-go:hover { text-decoration: none; }
+  @media (hover: hover) {
+    .basalt-link-go:hover { text-decoration: none; }
+  }
 
   /* The back link: one line above a title. */
   .basalt-back-link { font: var(--basalt-font-weight-regular) var(--basalt-text-base-size) / var(--basalt-text-base-line-height) var(--basalt-font-family-sans); color: var(--basalt-text-secondary); }
   .basalt-back-link a { display: inline-flex; align-items: center; gap: var(--basalt-space-2); min-height: var(--basalt-size-tap-min); color: inherit; font: inherit; text-decoration: none; transition: color var(--basalt-duration-base) var(--basalt-ease-out); }
-  .basalt-back-link a:is(:hover, :focus-visible) { color: var(--basalt-text-primary); }
+  .basalt-back-link a:focus-visible { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .basalt-back-link a:hover { color: var(--basalt-text-primary); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-back-link a:active { color: var(--basalt-text-primary); }
 
   /* The link card: a link round a picture, a heading, a sentence and a state. No rim, no level. */
   .basalt-link-card { --_arrow: var(--basalt-size-icon-lg); --_title-line: var(--basalt-display-line-height); position: relative; display: block; color: var(--basalt-text-primary); font-family: var(--basalt-font-family-sans); text-decoration: none; }
@@ -8370,7 +8592,12 @@
   .basalt-link-card-foot { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 var(--basalt-space-8); padding-block-start: var(--basalt-space-5); color: var(--basalt-text-secondary); font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); }
   .basalt-link-card-what { transition: color var(--basalt-duration-base) var(--basalt-ease-out); }
   .basalt-link-card-state { font-variant-numeric: tabular-nums; }
-  .basalt-link-card:is(:hover, :focus-visible) .basalt-link-card-what { color: var(--basalt-text-primary); }
+  .basalt-link-card:focus-visible .basalt-link-card-what { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .basalt-link-card:hover .basalt-link-card-what { color: var(--basalt-text-primary); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-link-card:active .basalt-link-card-what { color: var(--basalt-text-primary); }
   /* The compact cards (titleSize md and base, cimip-gaps-3 T1), for an app page: the title a step of the scale at 600, a 16px arrow at every width,
      the arrow still centred on the title's first line from --_title-line, and the foot a step down. The display card is unchanged. */
   .basalt-link-card[data-title-size] { --_arrow: var(--basalt-size-icon-sm); }
@@ -8394,7 +8621,11 @@
   .basalt-link-tile-media { display: block; margin-block-end: calc(var(--basalt-space-3) - var(--basalt-space-0-5)); }
   .basalt-link-tile-brand { display: block; color: var(--basalt-text-secondary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
   .basalt-link-tile-title { margin: 0; font-size: var(--basalt-text-md-size); font-weight: var(--basalt-font-weight-medium); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); }
-  .basalt-link-tile-link:hover .basalt-link-tile-title { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  @media (hover: hover) {
+    .basalt-link-tile-link:hover .basalt-link-tile-title { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-link-tile-link:active .basalt-link-tile-title { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
   .basalt-link-tile-details { display: block; color: var(--basalt-text-tertiary); font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); }
   .basalt-link-tile-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--basalt-space-2); margin-block-start: var(--basalt-space-1-5); }
 
@@ -8447,7 +8678,9 @@
   .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-actions) .basalt-panel-row:not(:has(> .basalt-panel-row-actions)) > .basalt-panel-row-end { grid-column: -3 / -1; }
   .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-actions) .basalt-panel-row:not(:has(> .basalt-panel-row-end, > .basalt-panel-row-actions)) > .basalt-panel-row-words { grid-column: -4 / -1; }
   .basalt-panel-list:has(> .basalt-panel-item > .basalt-panel-row > .basalt-panel-row-actions) .basalt-panel-row:has(> .basalt-panel-row-actions):not(:has(> .basalt-panel-row-end)) > .basalt-panel-row-words { grid-column: -4 / -2; }
-  .basalt-panel-row:not([data-split], [data-static]):hover { background-color: var(--basalt-state-hover); transition-duration: var(--basalt-duration-instant); }
+  @media (hover: hover) {
+    .basalt-panel-row:not([data-split], [data-static]):hover { background-color: var(--basalt-state-hover); transition-duration: var(--basalt-duration-instant); }
+  }
   .basalt-panel-row:not([data-split], [data-static]):active { background-color: var(--basalt-state-selected); }
   .basalt-panel-row:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
   .basalt-panel-item:first-child > .basalt-panel-row { --_row-r-start: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); border-start-start-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); border-start-end-radius: calc(var(--basalt-radius-lg) - var(--basalt-size-hairline)); }
@@ -8480,7 +8713,9 @@
   .basalt-panel-row-actions { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--basalt-space-2); align-self: start; }
   /* A small control on the title's line keeps the row's height on a fine pointer: it overhangs the 24px line by its own half difference. */
   .basalt-panel-row-actions > .basalt-button[data-size="sm"] { margin-block: calc((var(--basalt-text-base-line-height) - var(--basalt-size-control-sm)) / 2); }
-  .basalt-panel-row[data-split]:hover:not(:has(.basalt-panel-row-actions :hover, :is(a[href], button, input, select, textarea, summary, label, [role="button"], [role="link"], [role="checkbox"], [role="switch"]):not(.basalt-panel-row-trigger):hover)) { background-color: var(--basalt-state-hover); transition-duration: var(--basalt-duration-instant); }
+  @media (hover: hover) {
+    .basalt-panel-row[data-split]:hover:not(:has(.basalt-panel-row-actions :hover, :is(a[href], button, input, select, textarea, summary, label, [role="button"], [role="link"], [role="checkbox"], [role="switch"]):not(.basalt-panel-row-trigger):hover)) { background-color: var(--basalt-state-hover); transition-duration: var(--basalt-duration-instant); }
+  }
   .basalt-panel-row[data-split]:has(.basalt-panel-row-trigger:active) { background-color: var(--basalt-state-selected); }
   /* The static row: no target, no wash, no press, no pointer. */
   .basalt-panel-row[data-static] { cursor: default; }
@@ -8565,7 +8800,12 @@
   .basalt-directory-name > .basalt-external { margin-inline-start: var(--basalt-space-1-5); }
   .basalt-directory-what { color: var(--basalt-text-secondary); text-wrap: pretty; transition: color var(--basalt-duration-base) var(--basalt-ease-out); }
   .basalt-directory-state { color: var(--basalt-text-secondary); text-align: end; font-variant-numeric: tabular-nums; }
-  .basalt-directory-row:is(:hover, :focus-visible) .basalt-directory-what { color: var(--basalt-text-primary); }
+  .basalt-directory-row:focus-visible .basalt-directory-what { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .basalt-directory-row:hover .basalt-directory-what { color: var(--basalt-text-primary); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-directory-row:active .basalt-directory-what { color: var(--basalt-text-primary); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; below it a row is one column and its state starts */
   @media (width < 720px) {
     .basalt-directory-row { grid-template-columns: minmax(0, 1fr); row-gap: var(--basalt-space-0-5); padding-block: var(--basalt-space-3-5); }
@@ -8649,11 +8889,22 @@
     text-decoration-thickness: var(--basalt-size-hairline);
     transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
-  .basalt-social-link:is(:hover, :focus-visible) { color: var(--basalt-text-primary); }
-  .basalt-social-link:hover > .basalt-social-name { text-decoration-color: currentColor; }
+  .basalt-social-link:focus-visible { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .basalt-social-link:hover { color: var(--basalt-text-primary); }
+    .basalt-social-link:hover > .basalt-social-name { text-decoration-color: currentColor; }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-social-link:active { color: var(--basalt-text-primary); }
+  .basalt-social-link:active > .basalt-social-name { text-decoration-color: currentColor; }
   .basalt-social-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-social-link .basalt-external > .basalt-icon { width: var(--_external-size, var(--basalt-size-icon-sm)); height: var(--_external-size, var(--basalt-size-icon-sm)); }
-  .basalt-social-link:is(:hover, :focus-visible) .basalt-external { color: inherit; }
+  .basalt-social-link:focus-visible .basalt-external { color: inherit; }
+  @media (hover: hover) {
+    .basalt-social-link:hover .basalt-external { color: inherit; }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-social-link:active .basalt-external { color: inherit; }
   /* On touch each link is at least 44 by 44 as real layout, and the 16px gap between links becomes 8px of hit area on either side, so a
      wrapped line touches the next and never overlaps it. The row's negative margin keeps the first glyph on the content edge. */
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
@@ -8684,10 +8935,19 @@
   .basalt-profile-links:has(> li > .basalt-profile-link > .basalt-icon) .basalt-profile-link:not(:has(> .basalt-icon)) { padding-inline-start: calc(var(--basalt-space-3) + var(--basalt-size-icon-sm) + var(--basalt-space-3)); }
   .basalt-profile-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .basalt-profile-handle { color: var(--basalt-text-tertiary); font-size: var(--basalt-text-xs-size); }
-  .basalt-profile-link:hover { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .basalt-profile-link:hover { color: var(--basalt-text-primary); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-profile-link:active { color: var(--basalt-text-primary); }
   .basalt-profile-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-profile-link .basalt-external > .basalt-icon { width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); }
-  .basalt-profile-link:is(:hover, :focus-visible) .basalt-external { color: inherit; }
+  .basalt-profile-link:focus-visible .basalt-external { color: inherit; }
+  @media (hover: hover) {
+    .basalt-profile-link:hover .basalt-external { color: inherit; }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-profile-link:active .basalt-external { color: inherit; }
 
   /* Pagination (DECISIONS 222, the owner's pick of Opus's prototype): seven fixed slots, each as wide as the widest page number the list can reach (the hidden reserve row
      holds min(7, maxPages) of them, so the box never changes size and Previous and Next never move), Previous and Next always there, one row and never a wrap. */
@@ -8697,7 +8957,11 @@
   .basalt-page-link { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: var(--_basalt-control-sm, var(--basalt-size-control-sm)); min-width: var(--_basalt-control-sm, var(--basalt-size-control-sm)); padding-inline: var(--basalt-space-2-5); border-radius: var(--basalt-radius-sm); color: var(--basalt-text-secondary); text-decoration: none; font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / 1 var(--basalt-font-family-sans); font-variant-numeric: tabular-nums; }
   /* The current page is its number at 600 in primary ink on a plate (decisions 138 and 139), whether the pages are links or buttons; a page that is not current is 400 in secondary. Each number reserves its 600 width (ChosenLabel). The plate and the ink step support the weight. */
   .basalt-page-link[aria-current="page"], .basalt-pagination .basalt-button[aria-current="page"] { color: var(--basalt-text-primary); background: var(--basalt-surface-raised); box-shadow: var(--basalt-shadow-hairline); }
-  .basalt-page-link:hover:not([aria-disabled="true"]) { color: var(--basalt-text-primary); background: var(--basalt-state-hover); }
+  @media (hover: hover) {
+    .basalt-page-link:hover:not([aria-disabled="true"]) { color: var(--basalt-text-primary); background: var(--basalt-state-hover); }
+  }
+  /* A press is the next rung (m1, P8): primary ink on the selected wash. Never on the current page or a disabled one. */
+  .basalt-page-link:active:not([aria-current="page"], [aria-disabled="true"]) { color: var(--basalt-text-primary); background: var(--basalt-state-selected); transition-duration: var(--basalt-duration-instant); }
   .basalt-page-link[aria-disabled="true"] { color: var(--basalt-text-disabled); cursor: not-allowed; }
   /* A page button's number is 400 at rest: the Button's own weight is 500. */
   .basalt-pagination .basalt-button { font-weight: var(--basalt-font-weight-regular); }
@@ -9075,6 +9339,9 @@
        HighlightText. The mark elements opt out of colour adjustment so exactly these colours apply. */
     .basalt-checkbox, .basalt-radio, .basalt-switch { background: Canvas; color: ButtonText; }
     .basalt-checkbox[data-checked], .basalt-checkbox[data-indeterminate], .basalt-radio[data-checked], .basalt-switch[data-checked] { background: Highlight; color: HighlightText; }
+    /* A pressed choice keeps its state's colours through the press (m1, P8): no press paint is drawn here. */
+    :is(.basalt-checkbox, .basalt-radio, .basalt-switch):not([data-disabled], [data-readonly]):not([data-checked], [data-indeterminate]):is(:active, .basalt-choice:active > *) { background: Canvas; box-shadow: none; }
+    :is(.basalt-checkbox, .basalt-switch):not([data-disabled], [data-readonly]):is([data-checked], [data-indeterminate]):is(:active, .basalt-choice:active > *) { background: Highlight; }
     .basalt-segment[data-pressed] { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
     /* A segment's status dot is Badge's disc in forced colours: a border of half the dot, no fill and no named colour, so it follows the item (HighlightText when chosen, GrayText when disabled). */
     .basalt-segment[data-status]:not([data-status="pending"]) > .basalt-segment-dot { border: calc(var(--basalt-size-dot) / 2) solid; background: none; }
@@ -9103,11 +9370,11 @@
        every part of a lit row is HighlightText in forced colours. */
     .basalt-command .basalt-command-list:not([data-idle]) .basalt-menu-item[data-selected="true"] .basalt-menu-item-description { color: HighlightText; }
     /* The command list in the page, not in use, has no lit row: it is rest ink on Canvas, as every other row. */
-    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] { forced-color-adjust: auto; color: CanvasText; }
-    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]::before { background-color: transparent; }
-    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] :is(.basalt-menu-item-label, .basalt-menu-item-description, .basalt-menu-item-chevron, .basalt-menu-check, .basalt-icon, .basalt-text) { color: CanvasText; }
-    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] .basalt-kbd-key { background: Canvas; border-color: GrayText; color: CanvasText; }
-    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"] .basalt-kbd { color: CanvasText; }
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]:not(:active, [data-pressing]) { forced-color-adjust: auto; color: CanvasText; }
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]:not(:active, [data-pressing])::before { background-color: transparent; }
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]:not(:active, [data-pressing]) :is(.basalt-menu-item-label, .basalt-menu-item-description, .basalt-menu-item-chevron, .basalt-menu-check, .basalt-icon, .basalt-text) { color: CanvasText; }
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]:not(:active, [data-pressing]) .basalt-kbd-key { background: Canvas; border-color: GrayText; color: CanvasText; }
+    .basalt-command .basalt-command-list[data-idle] .basalt-menu-item[data-selected="true"]:not(:active, [data-pressing]) .basalt-kbd { color: CanvasText; }
     .basalt-menu-item[data-highlighted] .basalt-kbd-key,
     .basalt-command .basalt-menu-item[data-selected="true"] .basalt-kbd-key { background: Highlight; border-color: HighlightText; color: HighlightText; }
     .basalt-menu-item[data-highlighted] .basalt-kbd,
@@ -9116,6 +9383,11 @@
        contrast, so a lit danger row takes the same pairing as any other. Its words still say what it does. */
     .basalt-menu-item[data-danger][data-highlighted],
     .basalt-command .basalt-menu-item[data-danger][data-selected="true"] { color: HighlightText; }
+    /* A pressed row is the lit row (m1, P8), by :active and by data-pressing: Highlight with every part HighlightText. */
+    .basalt-menu-item:is(:active, [data-pressing]):not([data-disabled]:not([data-disabled="false"]), [aria-disabled="true"], [data-unavailable]) { forced-color-adjust: none; color: HighlightText; }
+    .basalt-menu-item:is(:active, [data-pressing]):not([data-disabled]:not([data-disabled="false"]), [aria-disabled="true"], [data-unavailable])::before { background-color: Highlight; }
+    .basalt-menu-item:is(:active, [data-pressing]):not([data-disabled]:not([data-disabled="false"]), [aria-disabled="true"], [data-unavailable]) :is(.basalt-menu-item-label, .basalt-menu-item-description, .basalt-menu-item-chevron, .basalt-menu-check, .basalt-select-check, .basalt-icon, .basalt-text, .basalt-badge, .basalt-kbd) { color: HighlightText; }
+    .basalt-menu-item:is(:active, [data-pressing]):not([data-disabled]:not([data-disabled="false"]), [aria-disabled="true"], [data-unavailable]) .basalt-kbd-key { background: Highlight; border-color: HighlightText; color: HighlightText; }
     /* A command row's marks: CanvasText at 600 at rest, HighlightText on the lit row. A row that cannot run: at rest its title and glyph are GrayText
        and the reason (with its marks) CanvasText; lit, every part is HighlightText on Highlight. */
     .basalt-command .basalt-menu-item .basalt-search-match { color: CanvasText; }
@@ -9166,23 +9438,27 @@
     .basalt-nav-dot,
     .basalt-menu-radio-dot { box-sizing: border-box; border: calc(var(--basalt-size-dot) / 2) solid; background: none; }
     .basalt-notification[data-status] .basalt-notification-mark { color: CanvasText; }
-    .basalt-notification:hover { forced-color-adjust: none; background: Highlight; color: HighlightText; }
-    .basalt-notification:hover::before { background-color: transparent; }
-    .basalt-notification:hover .basalt-notification-title,
-    .basalt-notification:hover .basalt-notification-line,
-    .basalt-notification:hover .basalt-notification-time,
-    .basalt-notification:hover .basalt-notification-mark,
-    .basalt-notification:hover .basalt-notification-count,
-    .basalt-notification:hover .basalt-notification-caret { color: HighlightText; }
+    @media (hover: hover) {
+      .basalt-notification:hover { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+      .basalt-notification:hover::before { background-color: transparent; }
+      .basalt-notification:hover :is(.basalt-notification-title, .basalt-notification-line, .basalt-notification-time, .basalt-notification-mark, .basalt-notification-count, .basalt-notification-caret) { color: HighlightText; }
+    }
+    /* A pressed entry is as its hovered one (m1, P8). */
+    .basalt-notification:is(:active, [data-pressing]) { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+    .basalt-notification:is(:active, [data-pressing])::before { background-color: transparent; }
+    .basalt-notification:is(:active, [data-pressing]) :is(.basalt-notification-title, .basalt-notification-line, .basalt-notification-time, .basalt-notification-mark, .basalt-notification-count, .basalt-notification-caret) { color: HighlightText; }
     .basalt-notification-count, .basalt-notification-caret { color: CanvasText; }
     /* A passage is the same: a hovered one is Highlight with HighlightText; a match keeps its weight (a mark's system fill is not drawn). */
-    .basalt-passage:hover { forced-color-adjust: none; background: Highlight; color: HighlightText; }
-    .basalt-passage:hover::before { background-color: transparent; }
-    .basalt-passage:hover :is(.basalt-passage-source, .basalt-passage-meta, .basalt-search-match) { color: HighlightText; }
+    @media (hover: hover) {
+      .basalt-passage:hover { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+      .basalt-passage:hover::before { background-color: transparent; }
+      .basalt-passage:hover :is(.basalt-passage-source, .basalt-passage-meta, .basalt-search-match) { color: HighlightText; }
+    }
     .basalt-search-match { color: CanvasText; background: none; }
     /* The chip: the line is a real border, so off keeps it in ButtonText. On is Highlight with every part (label, seat, both
        glyphs) named HighlightText, and it stays Highlight on hover and while pressed; the check is a shape, so it shows. */
     .basalt-chip { color: ButtonText; }
+    /* stylelint-disable-next-line basalt/hover-gate -- pins a checked chip's Highlight through hover and press; it adds no hover paint */
     .basalt-chip[data-checked], .basalt-chip[data-checked]:hover, .basalt-chip[data-checked]:active { forced-color-adjust: none; background: Highlight; border-color: Highlight; color: HighlightText; }
     .basalt-chip[data-checked] :is(.basalt-chip-label, .basalt-chip-seat, .basalt-icon) { color: HighlightText; }
     .basalt-chip[data-disabled], .basalt-chip[data-disabled] .basalt-chip-seat { color: GrayText; border-color: GrayText; }
@@ -9216,7 +9492,8 @@
        Highlight with HighlightText on, as the checked control is. */
     .basalt-choice-card::before { display: none; }
     .basalt-choice-card-box { background: Canvas; border: var(--basalt-size-hairline) solid ButtonText; box-shadow: none; color: ButtonText; }
-    .basalt-choice-card:has(> .basalt-choice-card-input:checked) .basalt-choice-card-box { forced-color-adjust: none; background: Highlight; border-color: Highlight; color: HighlightText; }
+    .basalt-choice-card:has(> .basalt-choice-card-input:checked) .basalt-choice-card-box,
+    .basalt-choice-card[data-type="checkbox"]:active:has(> .basalt-choice-card-input:checked:not(:disabled)) .basalt-choice-card-box { forced-color-adjust: none; background: Highlight; border-color: Highlight; color: HighlightText; }
     .basalt-choice-card:has(> .basalt-choice-card-input:checked) .basalt-choice-card-dot { forced-color-adjust: none; background: HighlightText; }
     .basalt-choice-card:has(> .basalt-choice-card-input:disabled) { color: GrayText; }
     .basalt-table-hint { color: CanvasText; }
@@ -9514,9 +9791,13 @@
     /* A written field holds still, as a skeleton does; a busy TextButton's underline stands still, dashed and full in its stepped-down ink, as held. */
     .basalt-input[data-writing] { animation: none; }
     .basalt-text-button[data-loading] .basalt-text-button-label { animation: none; }
-    .basalt-accordion-panel, .basalt-accordion-caret { transition: none; }
+    .basalt-accordion-panel { transition: none; }
+    /* The caret keeps its colour step (m1, P8), as the footer toggle's does. */
+    .basalt-accordion-caret { transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
+    .basalt-accordion-trigger:active:not([data-disabled]) .basalt-accordion-caret { transition-duration: var(--basalt-duration-instant); }
     /* The chip's glyph swap keeps its crossfade over duration-fast, with or without reduced motion (decision 138, C10): it is opacity only, which this mode keeps. */
     /* The arrow stays where it is, and the rest of a list is simply there: no track to grow. */
+    /* stylelint-disable-next-line basalt/hover-gate -- removes the arrow's travel under reduced motion; it adds no paint */
     :is(.basalt-link-card, .basalt-directory-row, .basalt-big-link, .basalt-link-go, .basalt-back-link a):is(:hover, :focus-visible) .basalt-go-arrow { transform: none; }
     .basalt-reveal-panel, .basalt-reveal-clip { transition: none; }
     /* A travelling spinner appears at its destination with the same fade, and does not travel. */
@@ -9535,6 +9816,7 @@
     .basalt-option-chip { border-color: ButtonText; color: ButtonText; }
     .basalt-switch-row :is(.basalt-switch-row-kind, .basalt-switch-row-seat),
     .basalt-option-chip-seat { color: ButtonText; }
+    /* stylelint-disable-next-line basalt/hover-gate -- pins a checked switch row's and option chip's Highlight through hover and press; it adds no hover paint */
     .basalt-switch-row[data-checked],
     .basalt-switch-row[data-checked]:hover,
     .basalt-switch-row[data-checked]:active,
@@ -9602,7 +9884,7 @@
     width: 100%; min-height: var(--basalt-size-control-xs); margin: 0; padding: var(--basalt-space-0-5) var(--basalt-space-2); border: 0; border-radius: var(--basalt-radius-sm);
     background: none; color: inherit; font: inherit; text-align: start; text-decoration: none; cursor: pointer;
   }
-  /* V3: the hover wash runs full bleed, as the listbox's does: a ::before that reaches the list's own edge (the list's inset, space-1-5), not the line's own box. */
+  /* V3: the hover wash runs full bleed: a ::before that reaches the list's own edge (the list's inset, space-1-5), not the line's own box. */
   .basalt-event-line { position: relative; isolation: isolate; }
   .basalt-event-line::before { content: ""; position: absolute; z-index: -1; inset-block: 0; inset-inline: calc(-1 * var(--basalt-space-1-5)); }
   @media (hover: hover) { .basalt-event-line:hover::before { background: var(--basalt-state-hover); } .basalt-event-line:hover .basalt-event-time, .basalt-event-line:hover .basalt-event-detail { color: var(--basalt-text-secondary); } }
@@ -10243,8 +10525,13 @@
   /* The number reserves its 600 width, so being the current page moves nothing. */
   .basalt-version-link-number { display: inline-flex; flex-direction: column; max-width: 100%; }
   .basalt-version-link-number::after { content: attr(data-label); height: 0; overflow: hidden; visibility: hidden; font-weight: var(--basalt-font-weight-semibold); user-select: none; pointer-events: none; }
-  .basalt-version-link:hover { color: var(--basalt-text-primary); }
-  .basalt-version-link:hover :is(.basalt-version-link-words, .basalt-version-link-date > time) { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  @media (hover: hover) {
+    .basalt-version-link:hover { color: var(--basalt-text-primary); }
+    .basalt-version-link:hover :is(.basalt-version-link-words, .basalt-version-link-date > time) { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-version-link:active { color: var(--basalt-text-primary); }
+  .basalt-version-link:active :is(.basalt-version-link-words, .basalt-version-link-date > time) { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
   .basalt-version-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-version-link[aria-current="page"] { color: var(--basalt-text-primary); }
   .basalt-version-link[aria-current="page"] .basalt-version-link-number { font-weight: var(--basalt-font-weight-semibold); }
@@ -10324,7 +10611,11 @@
   .basalt-release-meta { margin: 0; color: var(--basalt-text-secondary); font: var(--basalt-font-weight-regular) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); letter-spacing: var(--basalt-text-sm-tracking); font-variant-numeric: tabular-nums; }
   .basalt-release-badges { display: inline-flex; gap: var(--basalt-space-2); margin-inline-start: var(--basalt-space-2); vertical-align: middle; }
   .basalt-release-action-link { position: relative; z-index: 1; color: inherit; text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); border-radius: var(--basalt-radius-xs); }
-  .basalt-release-action-link:hover { color: var(--basalt-text-primary); text-decoration-color: currentColor; }
+  @media (hover: hover) {
+    .basalt-release-action-link:hover { color: var(--basalt-text-primary); text-decoration-color: currentColor; }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-release-action-link:active { color: var(--basalt-text-primary); text-decoration-color: currentColor; }
   .basalt-release-action-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-release-copy { flex: none; }
   .basalt-release-summary, .basalt-release-paragraph { margin: 0; max-width: var(--basalt-size-prose-width); font-size: var(--basalt-text-md-size); line-height: var(--basalt-text-md-line-height); letter-spacing: var(--basalt-text-md-tracking); text-wrap: pretty; }
@@ -10408,7 +10699,11 @@
      (baseline-source), so a source line of two lines stands beside the words' first line (recheck-pixels 2). */
   .basalt-text-button.basalt-release-source > .basalt-text-button-label { text-decoration: none; }
   .basalt-release-id { display: inline-block; max-width: 100%; overflow-wrap: anywhere; vertical-align: top; text-decoration: underline; text-decoration-color: var(--basalt-border-input); text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); transition: text-decoration-color var(--basalt-duration-fast) var(--basalt-ease-out); }
-  .basalt-release-source:hover .basalt-release-id { text-decoration-color: currentColor; }
+  @media (hover: hover) {
+    .basalt-release-source:hover .basalt-release-id { text-decoration-color: currentColor; }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-release-source:active .basalt-release-id { text-decoration-color: currentColor; }
   .basalt-release-action-link { white-space: nowrap; }
   .basalt-release-sources { width: var(--basalt-size-popover-max); }
   .basalt-release-sources-list { margin-block: var(--basalt-space-2) var(--basalt-space-4); }
@@ -10489,7 +10784,11 @@
   .basalt-release-index-number { color: var(--basalt-text-primary); font-family: var(--basalt-font-family-mono); font-variant-ligatures: none; letter-spacing: 0; overflow-wrap: anywhere; }
   .basalt-release-index-number[data-words] { font-family: var(--basalt-font-family-sans); }
   .basalt-release-index-link time { flex: none; color: var(--basalt-text-tertiary); }
-  .basalt-release-index-link:hover .basalt-release-index-number { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  @media (hover: hover) {
+    .basalt-release-index-link:hover .basalt-release-index-number { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-release-index-link:active .basalt-release-index-number { text-decoration: underline; text-decoration-thickness: var(--basalt-size-hairline); text-underline-offset: var(--basalt-size-underline-offset); }
   .basalt-release-index-link:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-release-index[data-form="fold"] { margin-bottom: var(--basalt-space-8); }
   .basalt-release-index[data-form="fold"] .basalt-accordion-trigger { font: var(--basalt-font-weight-medium) var(--basalt-text-sm-size) / var(--basalt-text-sm-line-height) var(--basalt-font-family-sans); }
@@ -10523,7 +10822,10 @@
   }
   @media (hover: hover) { .basalt-disclosure-row:hover:not([data-disabled]) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); } .basalt-disclosure-row:hover:not([data-disabled]) .basalt-disclosure-meta { color: var(--basalt-text-secondary); } }
   .basalt-disclosure-row:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
-  .basalt-disclosure-row[data-disabled] { color: var(--basalt-text-disabled); cursor: default; }
+  /* A press is the hover step (m1, P8): the ink lift (and in a panel list the selected wash, above). A disabled row shows not-allowed (m1, P6). */
+  .basalt-disclosure-row:active:not([data-disabled]) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+  .basalt-disclosure-row:active:not([data-disabled]) .basalt-disclosure-meta { color: var(--basalt-text-secondary); }
+  .basalt-disclosure-row[data-disabled] { color: var(--basalt-text-disabled); cursor: not-allowed; }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
   @media (pointer: coarse), (width < 720px) { .basalt-disclosure-row { min-height: var(--basalt-size-tap-min); padding-block: calc((var(--basalt-size-tap-min) - var(--basalt-text-sm-line-height)) / 2); } }
   .basalt-disclosure-mark, .basalt-disclosure-chevron { display: flex; flex: none; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); height: var(--basalt-text-sm-line-height); }
@@ -10570,7 +10872,10 @@
     .basalt-prose-disclosure-trigger:hover:not([data-disabled]) .basalt-prose-disclosure-title { text-decoration-color: currentColor; }
   }
   .basalt-prose-disclosure-trigger:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
-  .basalt-prose-disclosure-trigger[data-disabled] { color: var(--basalt-text-disabled); cursor: default; }
+  /* A press is the hover step (m1, P8): the chevron lifts and the title's underline goes to the ink. A disabled trigger shows not-allowed. */
+  .basalt-prose-disclosure-trigger:active:not([data-disabled]) .basalt-prose-disclosure-chevron { color: var(--basalt-text-primary); }
+  .basalt-prose-disclosure-trigger:active:not([data-disabled]) .basalt-prose-disclosure-title { text-decoration-color: currentColor; }
+  .basalt-prose-disclosure-trigger[data-disabled] { color: var(--basalt-text-disabled); cursor: not-allowed; }
   .basalt-prose-disclosure-trigger[data-disabled] .basalt-prose-disclosure-chevron { color: inherit; }
   .basalt-prose-disclosure-trigger:not([data-panel-open]) .basalt-prose-disclosure-chevron:dir(rtl) { transform: scaleX(-1); }
   /* stylelint-disable-next-line unit-disallowed-list -- size-breakpoint-md (720px): a media query cannot read a token; under it the touch sizes apply whatever the pointer */
@@ -10756,14 +11061,20 @@
   }
   .basalt-tray-band:focus-visible { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: calc(-1 * var(--basalt-size-focus-width)); }
   @media (hover: hover) { .basalt-tray-band:hover { background-color: var(--basalt-state-hover); transition-duration: var(--basalt-duration-instant); } }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .basalt-tray-band:active { background-color: var(--basalt-state-hover); transition-duration: var(--basalt-duration-instant); }
   .basalt-tray-summary { min-width: 0; font-weight: var(--basalt-font-weight-medium); }
   .basalt-tray-show { flex: none; color: var(--basalt-text-secondary); }
   .basalt-tray-sheet-rows { display: grid; grid-template-columns: minmax(0, 1fr); padding-block: var(--basalt-space-2); }
   .basalt-tray-sheet-rows > .basalt-tray-row { padding-inline: 0; }
   @media (forced-colors: active) {
     .basalt-tray { border-color: CanvasText; }
-    .basalt-tray-band:hover { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
-    .basalt-tray-band:hover .basalt-tray-show { color: HighlightText; }
+    @media (hover: hover) {
+      .basalt-tray-band:hover { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
+      .basalt-tray-band:hover .basalt-tray-show { color: HighlightText; }
+    }
+    .basalt-tray-band:active { forced-color-adjust: none; background-color: Highlight; color: HighlightText; }
+    .basalt-tray-band:active .basalt-tray-show { color: HighlightText; }
   }
 
   /* ---- An on-screen keyboard is up (useScreenKeyboardLayout) ----

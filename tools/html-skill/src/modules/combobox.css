@@ -42,6 +42,7 @@
     color: var(--basalt-text-secondary);
     font: var(--basalt-font-weight-regular) var(--bh-base);
     cursor: default;
+    -webkit-user-select: none;
     user-select: none;
     outline: none;
     transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
@@ -52,6 +53,10 @@
   .combobox-option[data-highlighted] { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
   .combobox-option[data-highlighted]::before { background-color: var(--panel-plate); transition-duration: var(--basalt-duration-instant); }
   .combobox-option[aria-disabled="true"] { color: var(--basalt-text-disabled); }
+  /* A press (m1, P8): everything the lit row has. On :active (a mouse, a pen, a browser that sets it under a finger) and on data-pressing, which
+     _.glide writes under a still finger (glide.js). It moves no highlight; where the shared plate is live it covers the same solid colour. */
+  .combobox-option:is(:active, [data-pressing]):not([aria-disabled="true"]) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
+  .combobox-option:is(:active, [data-pressing]):not([aria-disabled="true"])::before { background-color: var(--panel-plate); transition-duration: var(--basalt-duration-instant); }
 
   /* The check: a 16px seat on every row, holding the mark only on the chosen one (the script puts it there). */
   .combobox-check { display: inline-flex; align-items: center; justify-content: center; width: var(--basalt-size-icon-sm); flex: none; color: var(--basalt-text-primary); }
@@ -76,6 +81,7 @@
   .combobox-option-description { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--basalt-text-sm-size); line-height: var(--basalt-text-sm-line-height); color: var(--basalt-text-tertiary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
   .combobox-option[data-highlighted] .combobox-option-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
   .combobox-option[aria-disabled="true"] .combobox-option-description { color: var(--basalt-text-disabled); }
+  .combobox-option:is(:active, [data-pressing]):not([aria-disabled="true"]) .combobox-option-description { color: var(--basalt-text-secondary); transition-duration: var(--basalt-duration-instant); }
   @media (pointer: coarse), (width < %bp-md%) {
     .combobox-option { height: max(calc(var(--_h) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); }
     .combobox-option[data-described] { height: auto; min-height: max(calc(var(--_h) + var(--_desc) + 2 * var(--_inset)), var(--basalt-size-menu-row-touch)); }
@@ -91,5 +97,8 @@
     .combobox-option[data-highlighted] { forced-color-adjust: none; color: HighlightText; }
     .combobox-option[data-highlighted]::before { background-color: Highlight; }
     .combobox-option[data-highlighted] :is(.combobox-option-label, .combobox-option-description, .combobox-check) { color: HighlightText; }
+    .combobox-option:is(:active, [data-pressing]):not([aria-disabled="true"]) { forced-color-adjust: none; color: HighlightText; }
+    .combobox-option:is(:active, [data-pressing]):not([aria-disabled="true"])::before { background-color: Highlight; }
+    .combobox-option:is(:active, [data-pressing]):not([aria-disabled="true"]) :is(.combobox-option-label, .combobox-option-description, .combobox-check) { color: HighlightText; }
   }
 }

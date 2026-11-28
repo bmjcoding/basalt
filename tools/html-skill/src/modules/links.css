@@ -11,7 +11,12 @@
   .ext { white-space: nowrap; color: var(--basalt-text-secondary); transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
   /* stylelint-disable-next-line unit-disallowed-list -- an optical alignment of the new-tab arrow with the text beside it, in that text's own em */
   .ext > svg { display: inline-block; width: var(--basalt-size-icon-sm); height: var(--basalt-size-icon-sm); vertical-align: -0.15em; margin-block: calc(-1 * var(--basalt-space-1)); }
-  a:is(:hover, :focus-visible) .ext { color: inherit; }
+  a:focus-visible .ext { color: inherit; }
+  @media (hover: hover) {
+    a:hover .ext { color: inherit; }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  a:active .ext { color: inherit; }
   .btn > .ext { display: inline-flex; align-items: center; color: inherit; }
   .btn > .ext > svg { vertical-align: baseline; margin-block: 0; }
 
@@ -26,7 +31,12 @@
   /* The item is a flex box, not a line box: an inline-flex link in a line box takes its baseline from its glyph, which sat a word without a glyph 2px lower. */
   .links > li { display: flex; }
   .links > li > a:not(.btn) { display: inline-flex; align-items: center; gap: var(--basalt-space-1-5); border-radius: var(--basalt-radius-sm); color: var(--basalt-text-secondary); white-space: nowrap; transition: color var(--basalt-duration-fast) var(--basalt-ease-out); }
-  .links > li > a:not(.btn):is(:hover, :focus-visible) { color: var(--basalt-text-primary); }
+  .links > li > a:not(.btn):focus-visible { color: var(--basalt-text-primary); }
+  @media (hover: hover) {
+    .links > li > a:not(.btn):hover { color: var(--basalt-text-primary); }
+  }
+  /* A press is the hover step (m1, P8): this part has no :active rule of its own. */
+  .links > li > a:not(.btn):active { color: var(--basalt-text-primary); }
   .links[data-size="20"] > li > a > svg:not(.ext > svg) { width: var(--basalt-size-icon-md); height: var(--basalt-size-icon-md); }
   /* An icon-only row's first link is hung at the start (data-edge="start"; the script adds it), its glyph on the line, only where the box round
      the row declares room: a card's space-4 (DECISIONS 336, S9). The glyph it hangs by is the one drawn. A row that ends a card hangs its spare

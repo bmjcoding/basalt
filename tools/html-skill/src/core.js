@@ -173,7 +173,16 @@
   /** Adds a step to init. Lower orders run first: the order is the one the wiring needs (icons are drawn before a copy button reads its label). */
   function step(order, name, fn) { steps.push([order, name, fn]); }
 
+  /**
+   * One empty, passive touchstart listener on the document (m1, P8). WebKit on iOS has long painted :active under a finger only where a touch
+   * listener exists (Apple's Safari web content guide), and every press in the skill but a popup's rows is :active alone. Not checked on a phone.
+   */
+  function wireTouch() { document.addEventListener('touchstart', noop, { passive: true }); }
+  // One function, so a second init adds no second listener (the same listener is added once).
+  function noop() {}
+
   step(10, 'initTheme', initTheme);
+  step(12, 'wireTouch', wireTouch);
   step(40, 'hydrateIcons', function () { hydrateIcons(); });
   step(100, 'wirePrint', wirePrint);
 

@@ -596,6 +596,9 @@ describe("budgets", () => {
     // micro-details m2 (DECISIONS 419) adds tabular `time`, the ligature setting, the clamp's wrap, hanging quotes, theme smoothing and `.date-age-age`, which the
     // decision puts in core; the combined figure, measured on the merged tree, is in modules.json (budgets.coreReason), under the same soft-budget rule.
     // micro-details m5 (DECISIONS 405, 409): the busy .btn (busy not disabled, no press while ringed, the ring after 300ms, the held ring in the core, the forced-colours arc) takes the core to 44,388 on the merged tree, so the line moves to 44 KiB with the cap.
+    // micro-details m1 (DECISIONS 405, 409) adds the pressable set's touch-action and tap highlight on elements, summary's user-select, the bare link's hover
+    // gate and press, and the passive touchstart listener, which the decision puts in core: 44388 to 44775 bytes on the merged tree (with m5), under the same
+    // soft-budget rule (budgets.coreReason); the 44 KiB line holds.
     assert.ok(bytes < 44 * 1024, "well under 80 KiB");
   });
 

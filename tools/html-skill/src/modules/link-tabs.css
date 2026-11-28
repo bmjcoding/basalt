@@ -30,6 +30,9 @@
     white-space: nowrap;
     transition: color var(--basalt-duration-fast) var(--basalt-ease-out);
   }
+  /* A link tab never paints a selection (m1, P1). A press is the hover step (P8): primary ink, never on the current page. */
+  .link-tab { -webkit-user-select: none; user-select: none; }
+  .link-tab:active:not([aria-current]) { color: var(--basalt-text-primary); transition-duration: var(--basalt-duration-instant); }
   .link-tabs[data-size="3xl"] .link-tab { --_h: var(--basalt-size-control-3xl); }
   .link-tabs[data-size="5xl"] .link-tab { --_h: var(--basalt-size-control-5xl); }
   .link-tabs:is([data-size="3xl"], [data-size="5xl"]) .link-tab { padding-inline: var(--basalt-space-2-5); border-radius: var(--basalt-radius-md) var(--basalt-radius-md) 0 0; font-size: var(--basalt-text-md-size); }

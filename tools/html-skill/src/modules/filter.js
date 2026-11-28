@@ -165,7 +165,8 @@
         lit = row;
         if (row) row.setAttribute('data-highlighted', '');
       };
-      group.addEventListener('pointermove', function (e) { var r = e.target.closest('.filter-row'); if (r) light(r); });
+      // A finger moving over the rows scrolls them and lights nothing, as the combobox's rows do (the touch mark is glide.js's).
+      group.addEventListener('pointermove', function (e) { if (e.pointerType === 'touch') return; var r = e.target.closest('.filter-row'); if (r) light(r); });
       group.addEventListener('pointerout', function (e) { var r = e.target.closest('.filter-row'); if (r && r === lit && !r.contains(e.relatedTarget)) light(null); });
       group.addEventListener('focusin', function (e) { var r = e.target.closest('.filter-row'); if (r) light(r); });
       group.addEventListener('focusout', function (e) { var r = e.target.closest('.filter-row'); if (r && r === lit) light(null); });
@@ -278,7 +279,7 @@
         var host = pop;
         if (rows) { if (!rows.__bhFade) rows.__bhFade = _.scrollFade(rows, { axis: 'block' }); } else host = _.port(pop, 'filter-popup-scroll', { axis: 'block' });
         // The glide's host is what holds the plate: the popup, or its port when the plate moved into one.
-        pop.__unglide = _.glide(f.plate.parentElement === host ? host : pop, f.plate, { active: '[data-highlighted]', attr: 'data-highlighted' });
+        pop.__unglide = _.glide(f.plate.parentElement === host ? host : pop, f.plate, { active: '[data-highlighted]', attr: 'data-highlighted', press: '.filter-row' });
         // The search band takes focus on opening, except on touch, where it would raise the keyboard over the list.
         if (f.band && modality === 'touch') pop.focus({ preventScroll: true });
       } else {

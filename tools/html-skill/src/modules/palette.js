@@ -350,6 +350,7 @@
     }
 
     list.addEventListener('pointermove', function (e) {
+      if (e.pointerType === 'touch') return; // a finger scrolls the list and lights nothing (m1, P8: the touch mark is glide.js's)
       var row = e.target.closest('[role="option"]');
       if (row && Number(row.dataset.index) !== index) setActive(Number(row.dataset.index), false);
     });
@@ -385,7 +386,7 @@
       document.documentElement.style.overflow = 'hidden';
       // The glide listens before the palette's own key handler does, so a key has set its modality before the highlight moves (and moves the plate at once).
       if (!list.__bhFade) list.__bhFade = _.scrollFade(list, { axis: 'block' });
-      unglide = _.glide(list, plate, { active: '.row[data-active]', attr: 'data-active' });
+      unglide = _.glide(list, plate, { active: '.row[data-active]', attr: 'data-active', press: '.row[role="option"]' });
       document.addEventListener('keydown', onKey, true);
       activePalette = api;
       input.focus();

@@ -16,7 +16,44 @@
    *                 and the first key hides the plate (the ring shows) until the pointer moves again
    *   host[data-idle] counts as no lit row (the in-page command list, lit only while it is in use)
    *   kind.shape    the box inside the row that the plate hugs (the navigation's pill), if not the row's own plate (its ::before)
+   *   kind.press    the rows a still finger marks data-pressing (m1, P8; a popup's rows and the notification centre, never the navigation): a still
+   *                 finger sets no :active on a row, so from a touch pointerdown, at once, until pointerup, pointercancel, a scroll of the list or 8px
+   *                 of travel, one row at a time, the row is marked and the stylesheet paints it as the lit row. It moves no highlight, calls no
+   *                 preventDefault and leaves activation to the click; passive listeners, nothing for assistive technology, whatever the media state.
    */
+  // A row that can't run takes no press. The travel that ends one is space-2's 8px (script can't read the token).
+  var UNPRESSABLE = '[disabled], [aria-disabled="true"], [data-disabled]:not([data-disabled="false"]), [data-unavailable], :has(> input:disabled)';
+  var SLOP = 8;
+  function press(host, rows) {
+    var pressed = null, id = -1, x = 0, y = 0;
+    var pass = { capture: true, passive: true };
+    function release() { if (pressed) pressed.removeAttribute('data-pressing'); pressed = null; id = -1; }
+    function down(e) {
+      if (e.pointerType !== 'touch' || !e.isPrimary) return;
+      release();
+      var row = e.target instanceof Element ? e.target.closest(rows) : null;
+      if (!row || !host.contains(row) || row.matches(UNPRESSABLE)) return;
+      pressed = row; id = e.pointerId; x = e.clientX; y = e.clientY;
+      row.setAttribute('data-pressing', '');
+    }
+    function move(e) { if (pressed && e.pointerId === id && Math.hypot(e.clientX - x, e.clientY - y) >= SLOP) release(); }
+    function end(e) { if (e.pointerId === id) release(); }
+    host.addEventListener('pointerdown', down, pass);
+    document.addEventListener('pointermove', move, pass);
+    document.addEventListener('pointerup', end, pass);
+    document.addEventListener('pointercancel', end, pass);
+    // A scroll does not bubble; a capturing listener on the host hears its own and its ports'.
+    host.addEventListener('scroll', release, pass);
+    return function () {
+      host.removeEventListener('pointerdown', down, pass);
+      document.removeEventListener('pointermove', move, pass);
+      document.removeEventListener('pointerup', end, pass);
+      document.removeEventListener('pointercancel', end, pass);
+      host.removeEventListener('scroll', release, pass);
+      release();
+    };
+  }
+
   _.glide = function (host, plate, kind) {
     var OFF = matchMedia('(prefers-reduced-motion: reduce), (forced-colors: active), (hover: none), (pointer: coarse)');
     var ACTIVE = kind.active;
@@ -123,6 +160,7 @@
     function unhover() { var now = host.querySelector(ACTIVE); if (now) now.removeAttribute('data-hovered'); }
     if (kind.item) { host.addEventListener('pointerover', hover); host.addEventListener('pointerleave', unhover); }
 
+    var unpress = kind.press ? press(host, kind.press) : null;
     plate.dataset.state = 'off';
     var changes = new MutationObserver(settle);
     changes.observe(host, { subtree: true, childList: true, attributes: true, attributeFilter: [kind.item ? 'data-hovered' : kind.attr, 'data-idle'] });
@@ -134,6 +172,7 @@
     events.forEach(function (t) { document.addEventListener(t, input, { capture: true, passive: true }); });
     settle();
     return function () {
+      if (unpress) unpress();
       clearTimeout(leaving);
       changes.disconnect();
       resizes.disconnect();
