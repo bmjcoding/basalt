@@ -42,9 +42,11 @@ export interface DiagramFigureProps extends Omit<React.ComponentProps<"figure">,
   /**
    * The figure element's id, and the base of every id inside it: the title, the summary, the keys sentence, the list, the foot's buttons and the viewer's
    * dialog and drawing (console gap G146). With one, `aria-labelledby`, `aria-describedby` and `aria-controls` read the same on every render, in any order,
-   * so a route snapshot or an axe target can name them; two figures with different ids never share an id inside. Give each figure on a page its own: in
-   * development a second figure with the same id is a warning. Without one, the ids come from React's `useId` and follow the render order.
-   * `entrance="first-visit"` needs it too.
+   * so a route snapshot or an axe target can name them. The ids inside begin `bd-` (the id written as `[A-Za-z0-9_-]`, then `_dg`), a namespace the page
+   * keeps for Basalt, so two figures with different ids, and an id of the page's own, never meet one. Up to 64 characters an id is written whole; a longer
+   * one is bounded by a hash. Give each figure in a document its own id, and none beginning `bd-`: in development, from the figure's mount on the client,
+   * a second figure with the same id in the same document or shadow root is a warning (an iframe is a document of its own). Without one, the ids come from
+   * React's `useId` and follow the render order. `entrance="first-visit"` needs it too.
    */
   id?: string;
   /** What the diagram shows. Required: it names the figure and its drawing. */
@@ -196,8 +198,11 @@ export interface DiagramFigureInternalProps extends DiagramFigureProps {
   baseId?: string;
 }
 
-/** Development only: how many figures on the page have each id, so one id given to two figures is said (G146). Made by the first figure with an id. */
-let figureIds: Map<string, number> | undefined;
+/**
+ * Development only: how many mounted figures have each id, in each document or shadow root (the figure's root node), so one id given to two figures
+ * there is said (G146). Made by the first figure with an id; a root that goes is dropped with it.
+ */
+let figureIds: WeakMap<Node, Map<string, number>> | undefined;
 
 export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, onLayout, actions, entrance: _entrance, title: _title, heading: _heading, legend: _legend, motion: _motion, source, summary, className, style, onKeyDown, onFocus, onBlur, onPointerOver, onPointerLeave, ref: callerRef, id, ...props }: DiagramFigureInternalProps) {
   // Every id inside is built on the base (G146): the viewer's, the figure's own id where it has one, else React's useId, which follows the render order.
@@ -289,12 +294,17 @@ export function DiagramFigure({ spec, component, viewer, baseId, zoom = true, on
     if (process.env.NODE_ENV !== "production" && model.motion.firstVisit && !id) errorOnce('entrance="first-visit" needs an id: without one the entrance plays on every visit');
   }, [model, component, id]);
 
-  // One id, two figures (G146): their ids inside are the same, so a label or a list may name the other figure's. Counted while mounted, so a
-  // figure that leaves and comes back (Strict Mode's second effect included) is not a second figure.
-  // Development only: a bundler that sets NODE_ENV to production drops the block.
+  // One id, two figures (G146): their ids inside are the same, so a label or a list may name the other figure's. Counted from the mount on the client
+  // while mounted, in the figure's own document or shadow root, so a figure that leaves and comes back (Strict Mode's second effect included) is not a
+  // second figure, and a figure in an iframe is on a page of its own. Development only: a bundler that sets NODE_ENV to production drops the block.
   React.useEffect(() => {
-    if (process.env.NODE_ENV !== "production" && ownId !== undefined) {
-      const ids = (figureIds ??= new Map());
+    const fig = figRef.current;
+    if (process.env.NODE_ENV !== "production" && ownId !== undefined && fig) {
+      if (ownId.startsWith("bd-")) warnOnce(component, `the id "${ownId}" begins "bd-", which is kept for the ids Basalt writes inside a figure: give the figure an id that does not`);
+      const roots = (figureIds ??= new WeakMap());
+      const root = fig.getRootNode();
+      let ids = roots.get(root);
+      if (!ids) roots.set(root, (ids = new Map()));
       const count = (ids.get(ownId) ?? 0) + 1;
       ids.set(ownId, count);
       if (count > 1) warnOnce(component, `two figures on this page have the id "${ownId}", so the ids inside them are the same: give each figure its own id`);
