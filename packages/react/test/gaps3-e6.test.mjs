@@ -17,6 +17,8 @@ const THEMES = ["dark", "light"];
 const COARSE = { hasTouch: true, isMobile: true };
 const open = async (body, { width = 1440, height = 900, theme = "dark", ...options } = {}) => {
   const { page, errors } = await fixturePage(browser, body, { theme, viewport: { width, height }, standards: true, ...options });
+  // Mobile emulation without a viewport meta lays the page out on a 980px viewport: give it the meta an app has, so the page is as wide as the window.
+  if (options.isMobile) await page.evaluate(() => { const meta = document.createElement("meta"); meta.name = "viewport"; meta.content = "width=device-width, initial-scale=1"; document.head.append(meta); });
   await settle(page);
   page.errors = errors;
   return page;
@@ -31,9 +33,15 @@ const axe = async (page) => {
   });
 };
 const box = (locator) => locator.evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; });
+/** Two rectangles (or two points) the same within `tolerance`, number by number. */
 const near = (a, b, what, tolerance = 0.5) => {
-  for (const key of Object.keys(a)) assert.ok(Math.abs(a[key] - b[key]) <= tolerance, `${what}: ${key} ${a[key]} then ${b[key]}`);
+  for (const key of Object.keys(a)) {
+    assert.equal(typeof a[key], "number", `${what}: ${key} is a number`);
+    assert.ok(Math.abs(a[key] - b[key]) <= tolerance, `${what}: ${key} ${a[key]} then ${b[key]}`);
+  }
 };
+/** The band, its row and the page size: each rectangle compared on its own. */
+const nearParts = (a, b, what) => { for (const part of ["band", "row", "select"]) near(a[part], b[part], `${what} (${part})`); };
 
 // ---- G144: the narrow band holds its pager's seat ----
 
@@ -54,6 +62,7 @@ function List() {
   </B.ListBand>;
 }
 document.documentElement.dir = "${dir}";
+document.body.style.margin = "0";
 createRoot(document.getElementById("root")).render(<div style={{ padding: 16 }}><button type="button" id="before">Before</button><List /></div>);`;
 
 const SELECT = ".basalt-list-band-size .basalt-select-trigger";
@@ -71,6 +80,8 @@ describe("ListBand holds its pager's seat in the narrow form (G144)", () => {
     test(`at ${width}${options.hasTouch ? " on touch" : ""}: a total that arrives late (null, then 3 pages) moves nothing in the band`, async () => {
       const page = await open(LOANS(), { width, height: 844, ...options });
       const before = await parts(page);
+      // The page is the window's width (the viewport meta on touch), so the band is it less 16 on each side: 288 at 320, 358 at 390, 568 at 600.
+      assert.equal(Math.round(before.band.width), width - 32, "the band's width");
       assert.equal(await page.locator("#band").getAttribute("data-hold"), "");
       await setTotal(page, 27);
       const after = await parts(page);
@@ -83,18 +94,20 @@ describe("ListBand holds its pager's seat in the narrow form (G144)", () => {
     test(`at ${width}${options.hasTouch ? " on touch" : ""}: with keepFootRoom one page is the height of three, both ways`, async () => {
       const page = await open(LOANS({ props: "keepFootRoom", total: 4 }), { width, height: 844, ...options });
       const one = await parts(page);
+      assert.equal(Math.round(one.band.width), width - 32, "the band's width");
       await setTotal(page, 27);
       const three = await parts(page);
       near(one.band, three.band, "one page to three");
       near(one.select, three.select, "the page size, one page to three");
       await setTotal(page, 4);
-      near(await parts(page), one, "three pages back to one");
+      nearParts(await parts(page), one, "three pages back to one");
       await page.close();
     });
   }
 
   test("the held seat is unseen, inert, no tab stop and no landmark; the range is drawn on the gutter", async () => {
     const page = await open(LOANS({ props: "keepFootRoom", total: 4 }), { width: 390, height: 844, ...COARSE });
+    assert.equal(Math.round((await box(page.locator("#band"))).width), 358, "a 358 band");
     const pager = page.locator(PAGER);
     assert.equal(await pager.evaluate((el) => getComputedStyle(el).visibility), "hidden");
     assert.equal(await pager.evaluate((el) => el.inert), true, "inert");
@@ -121,7 +134,7 @@ describe("ListBand holds its pager's seat in the narrow form (G144)", () => {
       const plain = await open(LOANS({ total: 4 }), { width, height: 844, ...options });
       const range = ".basalt-list-band-row > .basalt-list-band-range [data-on]";
       near(await box(held.locator(range)), await box(plain.locator(range)), `the range at ${width}`);
-      near(await parts(held), await parts(plain), `the band at ${width}`);
+      nearParts(await parts(held), await parts(plain), `the band at ${width}`);
       await held.close();
       await plain.close();
     }
@@ -129,6 +142,7 @@ describe("ListBand holds its pager's seat in the narrow form (G144)", () => {
 
   test("under the wrap width (a 288 band on touch) the held band at one page is two rows, the page size ending the second, as with three pages", async () => {
     const page = await open(LOANS({ props: "keepFootRoom", total: 4 }), { width: 320, height: 844, ...COARSE });
+    assert.equal(Math.round((await box(page.locator("#band"))).width), 288, "a 288 band");
     const row = await box(page.locator(".basalt-list-band-row"));
     const select = await box(page.locator(".basalt-list-band-size"));
     const pager = await box(page.locator(PAGER));
@@ -150,12 +164,13 @@ describe("ListBand holds its pager's seat in the narrow form (G144)", () => {
     assert.equal(await page.locator(".basalt-list-band-row > .basalt-list-band-range").evaluate((el) => getComputedStyle(el).display), "none");
     const one = await parts(page);
     await setTotal(page, 27);
-    near(one, await parts(page), "one page to three");
+    nearParts(one, await parts(page), "one page to three");
     await page.close();
   });
 
   test("unchanged without either: a known total of one page and no keepFootRoom draws no pager and is one row at 288 (T3)", async () => {
     const page = await open(LOANS({ total: 4 }), { width: 320, height: 844, ...COARSE });
+    assert.equal(Math.round((await box(page.locator("#band"))).width), 288, "a 288 band");
     assert.equal(await page.locator("#band").getAttribute("data-hold"), null);
     assert.equal(await page.locator(PAGER).evaluate((el) => getComputedStyle(el).display), "none");
     assert.equal(await page.locator(PAGER).evaluate((el) => el.inert), false);
@@ -177,7 +192,7 @@ describe("ListBand holds its pager's seat in the narrow form (G144)", () => {
 
 const VERSION = (jsx) => `
 document.body.style.margin = "0";
-createRoot(document.getElementById("root")).render(<B.TooltipProvider><div style={{ width: 64, padding: "16px 0" }} id="rail">${jsx}</div><div id="page"><B.VersionLink id="plain" version="3.2.0" date="2026-10-02" href="/notes#v3.2.0" /></div></B.TooltipProvider>);`;
+createRoot(document.getElementById("root")).render(<B.TooltipProvider><button type="button" id="start">Start</button><div style={{ width: 64, padding: "16px 0" }} id="rail">${jsx}</div><div id="page"><B.VersionLink id="plain" version="3.2.0" date="2026-10-02" href="/notes#v3.2.0" /></div></B.TooltipProvider>);`;
 
 describe("VersionLink's place outside AppShell (G160)", () => {
   test('place="rail" draws the number alone with its whole line in its name; a link with no place is the plain line', async () => {
@@ -204,11 +219,16 @@ describe("VersionLink's place outside AppShell (G160)", () => {
     await tip.waitFor();
     assert.match((await tip.textContent()).replace(/\s+/g, " "), /Version 3\.2\.0.*Oct 2, 2026/);
     assert.equal(await link.evaluate((el) => (el.getAttribute("aria-describedby") ?? "").length > 0), true, "the tooltip describes the link");
+    // The pointer leaves: it closes.
     await page.mouse.move(700, 600);
-    await page.keyboard.press("Tab");
+    await tip.waitFor({ state: "hidden" });
+    assert.equal(await tip.count(), 0, "closed after the pointer left");
+    // From a known start, the keyboard reaches the link and the tooltip opens again on its focus.
+    await page.locator("#start").focus();
     await page.keyboard.press("Tab");
     assert.equal(await page.evaluate(() => document.activeElement?.id), "v");
     await tip.waitFor();
+    assert.match((await tip.textContent()).replace(/\s+/g, " "), /Version 3\.2\.0.*Oct 2, 2026/);
     await page.close();
   });
 
@@ -268,6 +288,7 @@ describe("IconButton's icon as a node (G161)", () => {
     assert.deepEqual([avatar.width, avatar.height], [24, 24]);
     near({ x: avatar.x - button.x, y: avatar.y - button.y }, { x: 4, y: 4 }, "centred");
     assert.equal(await page.locator("#account .basalt-button-node").getAttribute("aria-hidden"), "true");
+    assert.equal(await page.locator("#account .basalt-button-node").evaluate((el) => el.inert), true, "inert");
     assert.equal(await page.getByRole("button", { name: "Account: Rui Okafor", exact: true }).count(), 1);
     // Any element: a 10px dot in a 28 square, centred the same way.
     const sensor = await box(page.locator("#sensor"));
@@ -291,8 +312,11 @@ describe("IconButton's icon as a node (G161)", () => {
     await page.waitForTimeout(200);
     assert.match(await page.locator("#account").evaluate((el) => getComputedStyle(el).transform), /matrix\(0\.98/);
     await page.mouse.up();
-    // The hit area is the square: a point on the avatar's corner lands on the button.
-    assert.equal(await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest("button")?.id, [account.x + 1, account.y + 1]), "account");
+    // The hit area is the square: the middle of its start edge (outside the avatar, inside the 6px corner's reach) lands on the button, and so does the avatar
+    // (the element is inert, so a press on it lands on the button).
+    for (const [x, y] of [[account.x + 1, account.y + account.height / 2], [account.x + account.width / 2, account.y + account.height / 2]]) {
+      assert.equal(await page.evaluate(([px, py]) => document.elementFromPoint(px, py)?.closest("button")?.id, [x, y]), "account", `at ${x}, ${y}`);
+    }
     await page.close();
   });
 
@@ -303,6 +327,22 @@ describe("IconButton's icon as a node (G161)", () => {
     assert.deepEqual([avatar.width, avatar.height], [24, 24]);
     near({ x: avatar.x + 12, y: avatar.y + 12 }, { x: button.x + button.width / 2, y: button.y + button.height / 2 }, "centred");
     assert.ok(button.width >= 44 || (await page.locator("#account").evaluate((el) => { const a = getComputedStyle(el, "::after"); return parseFloat(a.width) >= 44 || parseFloat(a.height) >= 44; })), "a 44 target");
+    await page.close();
+  });
+
+  test("an element with a focusable part is still one tab stop: the button", async () => {
+    const page = await open(`
+document.body.style.margin = "0";
+createRoot(document.getElementById("root")).render(<div style={{ display: "flex", gap: 8, padding: 24 }}>
+  <button type="button" id="first">First</button>
+  <B.IconButton id="mark" variant="ghost" icon={<svg id="art" tabIndex={0} width={16} height={16} viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="currentColor" /></svg>} label="Studio B" />
+  <button type="button" id="last">Last</button>
+</div>);`);
+    await page.locator("#first").focus();
+    const stops = [];
+    for (let i = 0; i < 2; i++) { await page.keyboard.press("Tab"); stops.push(await page.evaluate(() => document.activeElement?.id)); }
+    assert.deepEqual(stops, ["mark", "last"], "the button once, never the element inside it");
+    assert.equal(await page.locator("#art").evaluate((el) => el.closest("[inert]") !== null), true);
     await page.close();
   });
 
