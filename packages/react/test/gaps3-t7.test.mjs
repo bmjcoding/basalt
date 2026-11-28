@@ -182,7 +182,11 @@ describe("clearance, measured after the move", () => {
 
 describe("the protected item in MentionPicker (focus stays in the field)", () => {
   const PICKER = `
-function App() { return <B.Composer label="Note" mentions={${JSON.stringify(Array.from({ length: 30 }, (_, i) => ({ label: `Grower ${i + 1}`, value: `g${i}`, description: i === 4 ? "Waters the north benches every morning before the vents open, then logs the readings; ".repeat(8) : undefined })))}} />; }
+function App() {
+  const field = React.useRef(null);
+  const options = ${JSON.stringify(Array.from({ length: 30 }, (_, i) => ({ label: `Grower ${i + 1}`, value: `g${i}`, description: i === 4 ? "Waters the north benches every morning before the vents open, then logs the readings; ".repeat(8) : undefined })))};
+  return <><B.Textarea ref={field} aria-label="Note" /><B.MentionPicker field={field} options={options} /></>;
+}
 ${render("<App />")}`;
   test("arrowing onto an option taller than the port gives no band on the side it crosses; an ordinary option brings it back; closing keeps nothing", async () => {
     const { page } = await open(PICKER);
@@ -203,49 +207,136 @@ ${render("<App />")}`;
   });
 });
 
+/** The focus colour as the page resolves it, in 8-bit sRGB. */
+const focusColour = (page) => page.evaluate(() => {
+  const probe = document.createElement("i");
+  probe.style.color = "var(--basalt-border-focus)";
+  document.body.append(probe);
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 1;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = getComputedStyle(probe).color;
+  ctx.fillRect(0, 0, 1, 1);
+  probe.remove();
+  return [...ctx.getImageData(0, 0, 1, 1).data.slice(0, 3)];
+});
+/**
+ * The ring's pixel at the middle of each side of `selector`'s border box: `at` CSS pixels outside it for a ring at +2 (3: the middle of the 2px stroke), or
+ * inside it for a ring at -2 (a negative `at`). Each is compared to the resolved focus colour within one level of rounding a channel.
+ */
+const ringOnFourSides = async (page, selector, at) => {
+  const box = await page.locator(selector).evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
+  const want = await focusColour(page);
+  const spots = [[box.x + box.w / 2, box.y - at], [box.x + box.w / 2, box.y + box.h + at - 1], [box.x - at, box.y + box.h / 2], [box.x + box.w + at - 1, box.y + box.h / 2]];
+  for (const [i, [x, y]] of spots.entries()) {
+    const [got] = await pixels(page, { x: Math.round(x), y: Math.round(y), width: 1, height: 1 });
+    assert.ok(got.every((c, k) => Math.abs(c - want[k]) <= 2), `${selector}, side ${["top", "bottom", "left", "right"][i]}: ${got} against the focus colour ${want}`);
+  }
+};
+
 describe("hosts and keyboard reach", () => {
-  test("the host's ring samples the focus colour on all four sides: CodeBlock, Terminal, a sheet body (-2), a drawer body and the pane", async () => {
-    const { page } = await open(CODE("bench.sh"));
-    await page.focus(".basalt-code-pre");
-    const ring = await page.evaluate(() => { const f = document.querySelector(".basalt-code"); const s = getComputedStyle(f); return { style: s.outlineStyle, width: s.outlineWidth, own: getComputedStyle(document.querySelector(".basalt-code-pre")).outlineStyle }; });
-    assert.deepEqual(ring, { style: "solid", width: "2px", own: "none" });
-    const box = await page.evaluate(() => { const r = document.querySelector(".basalt-code").getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
-    const focus = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--basalt-border-focus").trim());
-    for (const [x, y] of [[box.x + box.w / 2, box.y - 3], [box.x + box.w / 2, box.y + box.h + 3], [box.x - 3, box.y + box.h / 2], [box.x + box.w + 3, box.y + box.h / 2]]) {
-      const [rgb] = await pixels(page, { x: Math.round(x), y: Math.round(y), width: 1, height: 1 });
-      assert.ok(rgb, `a ring pixel at ${x},${y} (${focus})`);
-    }
+  const SHEET_BODY = `${render(`<B.Sheet defaultOpen><B.SheetContent><B.SheetHeader><B.SheetTitle>Bench log</B.SheetTitle></B.SheetHeader><B.SheetBody>${LOG.map((l) => `<p>${l}</p>`).join("")}</B.SheetBody></B.SheetContent></B.Sheet>`)}`;
+  const DRAWER_BODY = `${render(`<B.Drawer id="d" open label="Bench"><B.DrawerSection title="Log">${LOG.map((l) => `<p>${l}</p>`).join("")}</B.DrawerSection></B.Drawer>`)}`;
+  const TERMINAL = `${render(`<div style={{ width: 420 }}><B.Terminal title="Watering" lines={${JSON.stringify([{ kind: "command", text: "water --all-benches --verbose --log /var/log/greenhouse/watering-schedule-for-the-whole-season.txt" }, { kind: "output", text: LOG[0] }])}} /></div>`)}`;
+
+  for (const [name, body, port, host, at] of [
+    ["CodeBlock", CODE("bench.sh"), ".basalt-code-pre", ".basalt-code", 3],
+    ["Terminal", TERMINAL, ".basalt-terminal .basalt-code-pre", ".basalt-terminal", 3],
+    ["a sheet body", SHEET_BODY, ".basalt-sheet-body", ".basalt-sheet-body-host", -1],
+    ["a drawer body", DRAWER_BODY, ".basalt-drawer-body", ".basalt-drawer-body-host", 3],
+  ]) {
+    test(`${name}: reached by Tab, its host's ring is the focus colour on all four sides, the port draws none, and the arrow keys scroll it`, async () => {
+      for (const theme of ["dark", "light"]) {
+        const { page, errors } = await open(body, DESKTOP, theme);
+        let reached = false;
+        for (let i = 0; i < 8 && !reached; i += 1) {
+          await page.keyboard.press("Tab");
+          reached = await page.evaluate((s) => document.activeElement === document.querySelector(s), port);
+        }
+        assert.ok(reached, `${theme}: Tab reaches the port`);
+        assert.equal(await page.locator(port).evaluate((el) => getComputedStyle(el).outlineStyle), "none", "the masked port draws no ring of its own");
+        await ringOnFourSides(page, host, at);
+        const before = await page.locator(port).evaluate((el) => [el.scrollLeft, el.scrollTop]);
+        await page.keyboard.press(name === "CodeBlock" || name === "Terminal" ? "ArrowRight" : "ArrowDown");
+        await page.keyboard.press(name === "CodeBlock" || name === "Terminal" ? "ArrowRight" : "ArrowDown");
+        await frame(page);
+        const after = await page.locator(port).evaluate((el) => [el.scrollLeft, el.scrollTop]);
+        assert.ok(after[0] !== before[0] || after[1] !== before[1], `${theme}: the arrow keys scroll ${name}`);
+        assert.deepEqual(errors, []);
+        await page.close();
+      }
+    });
+  }
+
+  test("a docked tray of rows that only report, and a plain popover with a title, are stops named by their tray and their title; Tab then the arrow keys scroll them", async () => {
+    const tray = await open(`${render(`<div className="basalt-app-foot" style={{ position: "static", maxHeight: 160 }}><B.Tray label="Waiting on you" summary={(n) => n + " waiting"}>${LOG.slice(0, 10).map((l, i) => `<B.TrayRow key={${i}} stay>${l}</B.TrayRow>`).join("")}</B.Tray></div>`)}`);
+    await tray.page.keyboard.press("Tab");
+    const stop = await tray.page.evaluate(() => { const p = document.querySelector(".basalt-tray-scroll"); return { focused: document.activeElement === p, role: p.getAttribute("role"), name: document.getElementById(p.getAttribute("aria-labelledby") ?? "")?.getAttribute("aria-label") }; });
+    assert.deepEqual(stop, { focused: true, role: "region", name: "Waiting on you" });
+    await tray.page.keyboard.press("ArrowDown");
+    await frame(tray.page);
+    assert.ok(await tray.page.evaluate(() => document.querySelector(".basalt-tray-scroll").scrollTop > 0));
+    const pop = await open(`${render(`<B.Popover defaultOpen><B.PopoverTrigger>Recipe</B.PopoverTrigger><B.PopoverContent style={{ maxHeight: 200 }}><B.PopoverTitle>Sourdough</B.PopoverTitle>${LOG.map((l) => `<p>${l}</p>`).join("")}</B.PopoverContent></B.Popover>`)}`);
+    const named = await pop.page.evaluate(() => { const p = document.querySelector(".basalt-popover-scroll"); return { tab: p.getAttribute("tabindex"), role: p.getAttribute("role"), name: document.getElementById(p.getAttribute("aria-labelledby") ?? "")?.textContent }; });
+    assert.deepEqual(named, { tab: "0", role: "region", name: "Sourdough" });
+    await pop.page.focus(".basalt-popover-scroll");
+    await pop.page.keyboard.press("ArrowDown");
+    await frame(pop.page);
+    assert.ok(await pop.page.evaluate(() => document.querySelector(".basalt-popover-scroll").scrollTop > 0));
   });
 
-  test("Tab then the arrow keys scroll every text-only port (CodeBlock, Terminal, a sheet body, a drawer body)", async () => {
-    const { page } = await open(CODE());
-    await page.keyboard.press("Tab");
-    const before = await page.evaluate(() => document.querySelector(".basalt-code-pre").scrollLeft);
-    await page.keyboard.press("ArrowRight");
-    await page.keyboard.press("ArrowRight");
-    await frame(page);
-    assert.ok(await page.evaluate((b) => document.querySelector(".basalt-code-pre").scrollLeft > b, before));
-    const sheet = await open(`${render(`<B.Sheet defaultOpen><B.SheetContent><B.SheetHeader><B.SheetTitle>Log</B.SheetTitle></B.SheetHeader><B.SheetBody>${LOG.map((l) => `<p>${l}</p>`).join("")}</B.SheetBody></B.SheetContent></B.Sheet>`)}`);
-    await sheet.page.focus(".basalt-sheet-body");
-    await sheet.page.keyboard.press("ArrowDown");
-    await frame(sheet.page);
-    assert.ok(await sheet.page.evaluate(() => document.querySelector(".basalt-sheet-body").scrollTop > 0));
+  test("a port that only overflows sideways is a stop too (the command pane's body with a wide table)", async () => {
+    // Through the package's own hook: a SheetBody that holds one wide, short line and nothing focusable.
+    const sheet = await open(`${render(`<B.Sheet defaultOpen><B.SheetContent><B.SheetHeader><B.SheetTitle>Wide</B.SheetTitle></B.SheetHeader><B.SheetBody><pre style={{ margin: 0 }}>${"x".repeat(400)}</pre></B.SheetBody></B.SheetContent></B.Sheet>`)}`);
+    assert.equal(await sheet.page.locator(".basalt-sheet-body").getAttribute("tabindex"), "0");
   });
 
-  test("a menu's rim pixels are unchanged while scrolled; a Sheet with no SheetBody keeps its actions' pixels and the band ends on their divider", async () => {
+  test("a real Menu's rim pixels are unchanged while its rows scroll; a Sheet with no SheetBody keeps its actions' pixels and the band ends on their divider", async () => {
+    const menu = await open(`${render(`<B.Menu defaultOpen><B.MenuTrigger>Benches</B.MenuTrigger><B.MenuContent style={{ maxHeight: 282 }}>${LOG.slice(0, 24).map((_, i) => `<B.MenuItem>Bench ${i + 1}</B.MenuItem>`).join("")}</B.MenuContent></B.Menu>`)}`);
+    const rim = await menu.page.evaluate(() => { const r = document.querySelector(".basalt-menu").getBoundingClientRect(); return [{ x: Math.round(r.left), y: Math.round(r.top), width: Math.round(r.width), height: 1 }, { x: Math.round(r.left), y: Math.round(r.top), width: 1, height: Math.round(r.height) }]; });
+    const before = await Promise.all(rim.map((clip) => pixels(menu.page, clip)));
+    await scrollTo(menu.page, ".basalt-menu-scroll", null, 200);
+    assert.equal((await fade(menu.page, ".basalt-menu-scroll")).mode, "block");
+    assert.equal(await menu.page.locator(".basalt-menu").evaluate((el) => getComputedStyle(el).maskImage), "none", "the popup that draws the rim is never masked");
+    const after = await Promise.all(rim.map((clip) => pixels(menu.page, clip)));
+    assert.deepEqual(after, before, "the rim's pixels, top and side, while the rows scroll");
     const { page } = await open(`${render(`<B.Sheet defaultOpen><B.SheetContent><B.SheetTitle>Recipe box</B.SheetTitle>${LOG.map((l) => `<p>${l}</p>`).join("")}<B.SheetActions><B.Button>Save</B.Button></B.SheetActions></B.SheetContent></B.Sheet>`)}`);
     const actions = await page.evaluate(() => { const r = document.querySelector(".basalt-dialog-actions").getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top + 8), width: Math.round(r.width), height: Math.round(r.height - 8) }; });
     await scrollTo(page, ".basalt-sheet-scroll", null, 0);
-    const before = await pixels(page, actions);
+    const still = await pixels(page, actions);
     await scrollTo(page, ".basalt-sheet-scroll", null, 400);
-    const middle = await pixels(page, actions);
-    assert.deepEqual(middle, before, "the held actions' pixels mid-scroll");
-    const state = await fade(page, ".basalt-sheet-scroll");
+    assert.deepEqual(await pixels(page, actions), still, "the held actions' pixels mid-scroll");
     const pin = await page.evaluate(() => parseFloat(document.querySelector(".basalt-sheet-scroll").style.getPropertyValue("--_pin-b")));
     const divider = await page.evaluate(() => { const port = document.querySelector(".basalt-sheet-scroll").getBoundingClientRect(); const a = document.querySelector(".basalt-dialog-actions").getBoundingClientRect(); return port.bottom - (a.top + 6); });
     assert.ok(Math.abs(pin - divider) <= 1, `the strip ends on the divider: ${pin} against ${divider}`);
-    assert.equal(state.b, 16);
+    assert.equal((await fade(page, ".basalt-sheet-scroll")).b, 16);
   });
+});
+
+describe("fix pass 1 (Astra)", () => {
+  test("a long status peek scrolled to its end stays there while the page scrolls and the plate is placed again", async () => {
+    const { page } = await open(`${render(`<div style={{ height: 2000 }}><div style={{ position: "fixed", bottom: 0, left: 0, width: 260 }}><B.StatusBar message={{ text: ${JSON.stringify(LOG.join(" "))} }} /></div></div>`)}`);
+    await page.locator(".basalt-status-bar-message").hover();
+    await page.waitForSelector(".basalt-peek[data-open] .basalt-peek-scroll");
+    const end = await page.evaluate(() => { const p = document.querySelector(".basalt-peek-scroll"); p.scrollTop = p.scrollHeight; return p.scrollTop; });
+    await frame(page);
+    await page.mouse.wheel(0, 0);
+    await page.evaluate(() => window.scrollBy(0, 1));
+    await frame(page);
+    assert.equal(await page.evaluate(() => document.querySelector(".basalt-peek-scroll").scrollTop), end, "the port is kept and its scroll with it");
+  });
+
+  for (const chosen of [undefined, "b24"]) {
+    test(`Tab into a Listbox ${chosen ? "with a chosen option far down" : "with none chosen"}: the active descendant is in view, clear of the band, and kept`, async () => {
+      const { page } = await open(`${render(`<div style={{ height: 240, display: "flex" }}><B.Listbox label="Benches"${chosen ? ` defaultValue="${chosen}"` : ""}>{Array.from({ length: 30 }, (_, i) => <B.ListboxOption key={i} value={"b" + i} disabled={i === 0}>{"Bench " + (i + 1)}</B.ListboxOption>)}</B.Listbox></div>`)}`);
+      await page.keyboard.press("Tab");
+      await frame(page);
+      const id = await page.locator('[role="listbox"]').getAttribute("aria-activedescendant");
+      assert.ok(id, "an active descendant is named");
+      assert.equal(await page.evaluate((i) => document.getElementById(i).dataset.value, id), chosen ?? "b1", "the chosen option, or the first enabled one");
+      assert.ok(await clearOfBands(page, ".basalt-listbox-scroll", `#${id.replace(/%/g, "\\%")}`, 0), "clear of every band");
+    });
+  }
 });
 
 describe("the segmented host and port", () => {

@@ -418,7 +418,7 @@ for (const scheme of ["dark", "light"]) {
       const { page, context } = await open({ scheme });
       await page.click("#open-menu");
       await settle(page);
-      const plate = () => page.evaluate(() => { const p = document.querySelector("#menu > .plate"); const c = getComputedStyle(p); const r = p.getBoundingClientRect(); return { display: c.display, state: p.dataset.state, top: r.top, height: r.height, width: r.width, glide: document.getElementById("menu").hasAttribute("data-glide") }; });
+      const plate = () => page.evaluate(() => { const p = document.querySelector("#menu > .menu-scroll > .plate"); const c = getComputedStyle(p); const r = p.getBoundingClientRect(); return { display: c.display, state: p.dataset.state, top: r.top, height: r.height, width: r.width, glide: document.querySelector("#menu > .menu-scroll").hasAttribute("data-glide") }; });
       assert.equal((await plate()).glide, true);
       await page.hover("#m-name");
       await frames(page, 3);
@@ -819,7 +819,7 @@ describe("forced colours, reduced motion and touch", () => {
     await page.focus("#open-menu");
     await page.keyboard.press("ArrowDown");
     await frames(page, 3);
-    const row = await page.evaluate(() => { const r = document.getElementById("m-dup"); return { color: getComputedStyle(r).color, plate: getComputedStyle(r, "::before").backgroundColor, kbd: getComputedStyle(r.querySelector(".kbd")).color, chip: getComputedStyle(r.querySelector(".kbd")).backgroundColor, glide: getComputedStyle(document.querySelector("#menu > .plate")).display }; });
+    const row = await page.evaluate(() => { const r = document.getElementById("m-dup"); return { color: getComputedStyle(r).color, plate: getComputedStyle(r, "::before").backgroundColor, kbd: getComputedStyle(r.querySelector(".kbd")).color, chip: getComputedStyle(r.querySelector(".kbd")).backgroundColor, glide: getComputedStyle(document.querySelector("#menu > .menu-scroll > .plate")).display }; });
     assert.deepEqual([row.color, row.plate, row.kbd, row.chip, row.glide], [sys.HighlightText, sys.Highlight, sys.HighlightText, sys.Highlight, "none"], "each row paints its own: no shared plate");
     await page.keyboard.press("Escape");
     await page.click("#bell > .btn");
@@ -844,7 +844,7 @@ describe("forced colours, reduced motion and touch", () => {
     const heights = await page.evaluate(() => [...document.querySelectorAll("#menu .menu-item")].map((r) => r.getBoundingClientRect().height));
     assert.ok(heights.every((h) => h >= 44), heights.join(", "));
     assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#menu .kbd-group")).display), "none");
-    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#menu > .plate")).display), "none", "no shared plate on touch");
+    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#menu > .menu-scroll > .plate")).display), "none", "no shared plate on touch");
     await context.close();
   });
 

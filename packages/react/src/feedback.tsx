@@ -19,7 +19,7 @@ import { codeLanguageStatus, highlightCode, loadCodeLanguage } from "./syntax";
 import type { CodeToken } from "./syntax";
 import { inLevel, useFloatingLayer, usePanelLevel, usePopupLevel } from "./layers";
 import type { Align, ChangeDetails, CollisionAvoidance, FocusTarget, OpenChangeDetails, PartProps, PlacementOffset, PlacementProps, PopoverHandle, PopupActions, Side } from "./types";
-import { FadePort, Portless } from "./fade-port";
+import { FadePort, popupName, Portless } from "./fade-port";
 import { watchScrollFade } from "./scroll-fade";
 import { join, withClass } from "./utils";
 import { useInRequiredField } from "./field-group";
@@ -187,7 +187,7 @@ export function PopoverContent({ side = "bottom", align = "start", sideOffset = 
   return (
     <BasePopover.Portal>
       <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset} anchor={anchor} alignOffset={alignOffset} collisionAvoidance={collisionAvoidance ?? KEEP_AXIS} collisionBoundary={collisionBoundary} collisionPadding={collisionPadding} sticky={sticky} style={layer} className="basalt-positioner">
-        <BasePopover.Popup {...props} data-level={level} className={withClass("basalt-popover", className)}>{portless ? inLevel(level, children) : <FadePort className="basalt-popover-scroll">{inLevel(level, children)}</FadePort>}</BasePopover.Popup>
+        <BasePopover.Popup {...props} data-level={level} className={withClass("basalt-popover", className)}>{portless ? inLevel(level, children) : <FadePort className="basalt-popover-scroll" labelledBy={popupName}>{inLevel(level, children)}</FadePort>}</BasePopover.Popup>
       </BasePopover.Positioner>
     </BasePopover.Portal>
   );

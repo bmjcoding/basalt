@@ -97,7 +97,8 @@
   .menu-text { margin: 0; padding: 0 var(--basalt-space-3) var(--basalt-space-1); font: var(--basalt-font-weight-regular) var(--bh-sm); color: var(--basalt-text-tertiary); overflow-wrap: break-word; text-wrap: pretty; }
 
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
-    .menu[data-glide] .menu-item[data-highlighted]::before { background-color: transparent; }
+    /* The glide lives on the menu's port since cimip-gaps-3 t7 (fix 1): its data-glide is what turns the row's own plate off. */
+    :is(.menu, .menu-scroll)[data-glide] .menu-item[data-highlighted]::before { background-color: transparent; }
   }
   @media (forced-colors: active) {
     /* The lit row opts out of colour adjustment (Chromium paints a Canvas backplate behind forced text) and names a system colour for every part. */

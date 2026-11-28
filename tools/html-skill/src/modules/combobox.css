@@ -82,7 +82,7 @@
   }
 
   @media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) and (pointer: fine) {
-    .combobox-popup[data-glide] .combobox-option[data-highlighted]::before { background-color: transparent; }
+    :is(.combobox-popup, .combobox-scroll)[data-glide] .combobox-option[data-highlighted]::before { background-color: transparent; }
   }
   @media (forced-colors: active) {
     /* The lit row opts out of colour adjustment (Chromium paints a Canvas backplate behind forced text) and names a system colour for every part. The

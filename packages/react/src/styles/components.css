@@ -9993,7 +9993,9 @@
     font-family: var(--basalt-font-family-sans);
   }
   /* The port: the rows in the tray's one column, the corners the tray's. */
-  .basalt-tray-scroll { box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; border-radius: inherit; }
+  .basalt-tray-scroll { box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; border-radius: inherit; outline: none; }
+  /* While the port is a keyboard stop of its own (it overflows with nothing focusable), its ring is the tray's, at +2: the port is masked. */
+  .basalt-tray:has(> .basalt-tray-scroll:focus-visible) { outline: var(--basalt-size-focus-width) solid var(--basalt-border-focus); outline-offset: var(--basalt-size-focus-offset); }
   .basalt-tray-row {
     box-sizing: border-box;
     display: flex;

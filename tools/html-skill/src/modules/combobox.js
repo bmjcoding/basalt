@@ -93,14 +93,15 @@
     // The popup's port: its rows and the plate, scrolling and fading (cimip-gaps-3 t7). Made the first time it is asked for.
     function portOf() { return _.port(pop, 'combobox-scroll', { axis: 'block' }); }
     function visible() { return opts.filter(function (o) { return !o.node.hidden; }); }
-    function light(opt) {
+    function light(opt, byPointer) {
       if (lit) lit.node.removeAttribute('data-highlighted');
       lit = opt || null;
       if (lit) {
         lit.node.setAttribute('data-highlighted', '');
         input.setAttribute('aria-activedescendant', lit.node.id);
-        // Focus stays in the field: the lit row is brought clear of the fade and kept there (cimip-gaps-3 t7).
-        portOf().__bhFade.keep(lit.node);
+        // Focus stays in the field: a row the keys or a choice light is brought clear of the fade and kept there (cimip-gaps-3 t7). A row the pointer lights
+        // is where the pointer is: nothing scrolls under it, and nothing is kept.
+        portOf().__bhFade.keep(byPointer ? null : lit.node);
       } else { input.removeAttribute('aria-activedescendant'); portOf().__bhFade.keep(null); }
     }
     // The rows that match what is typed. The text that is the chosen label (a choice just made, or the field as it was loaded) shows every row.
@@ -215,11 +216,11 @@
     });
     pop.addEventListener('pointermove', function (e) {
       var node = e.pointerType !== 'touch' && e.target.closest('.combobox-option');
-      if (node && (!lit || lit.node !== node)) light(opts.filter(function (o) { return o.node === node; })[0]);
+      if (node && (!lit || lit.node !== node)) light(opts.filter(function (o) { return o.node === node; })[0], true);
     });
     pop.addEventListener('pointerout', function (e) {
       var node = e.target.closest('.combobox-option');
-      if (node && lit && lit.node === node && !node.contains(e.relatedTarget)) light(null);
+      if (node && lit && lit.node === node && !node.contains(e.relatedTarget)) light(null, true);
     });
 
     opts.forEach(function (o) { if (o.chosen && !selected) selected = o; });

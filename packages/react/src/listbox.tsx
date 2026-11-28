@@ -96,10 +96,12 @@ export function Listbox({ label, value, defaultValue, onValueChange, flush = fal
           // The active option is brought into view when focus arrives, as a key does; one already in view does not move the list.
           if (press) return;
           const option = chosen !== undefined ? optionOf(chosen) : root.current?.querySelector<HTMLElement>(OPTIONS) ?? undefined;
+          // The active descendant (the chosen option, or the first enabled one when none is) is brought clear of the fade and kept there (cimip-gaps-3 t7).
+          fade.current?.keep(option ?? null);
         }}
         onBlur={(event) => {
           props.onBlur?.(event);
-          if (event.target === event.currentTarget) setFocused(false);
+          if (event.target === event.currentTarget) { setFocused(false); fade.current?.keep(null); }
         }}
         onKeyDown={(event) => {
           onKeyDown?.(event);
@@ -118,6 +120,8 @@ export function Listbox({ label, value, defaultValue, onValueChange, flush = fal
           if (to < 0) return;
           event.preventDefault();
           const option = options[to];
+          // The option the keys reach is brought clear of the fade and kept there, whether or not the choice changes (cimip-gaps-3 t7).
+          fade.current?.keep(option ?? null);
           if (option?.dataset.value !== undefined && option.dataset.value !== chosen) choose(option.dataset.value);
         }}
       >

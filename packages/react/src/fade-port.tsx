@@ -139,3 +139,19 @@ export function useFadeRef<T extends HTMLElement>(options: ScrollFadeOptions = {
     else if (outer) (outer as React.MutableRefObject<T | null>).current = node;
   }, [outer]);
 }
+
+/**
+ * The name of a popover's port while it is a keyboard stop of its own: the popup's title (the id Base UI names the popup by), or else its trigger, which is
+ * given an id for it when it has none. Undefined when neither is there: the stop is then a stop with no role, as a box with no name must be.
+ */
+export function popupName(box: HTMLElement): string | undefined {
+  const popup = box.closest<HTMLElement>('[role="dialog"], .basalt-popover');
+  if (!popup) return undefined;
+  const title = popup.getAttribute("aria-labelledby");
+  if (title) return title;
+  if (!popup.id) return undefined;
+  const trigger = [...box.ownerDocument.querySelectorAll<HTMLElement>("[aria-controls]")].find((el) => el.getAttribute("aria-controls")?.split(/\s+/).includes(popup.id));
+  if (!trigger) return undefined;
+  trigger.id ||= `${popup.id}-trigger`;
+  return trigger.id;
+}

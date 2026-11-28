@@ -2,6 +2,7 @@ import { breakpoint } from "@srasyndicate/basalt-tokens/breakpoints";
 import * as React from "react";
 
 import { useFadeRef } from "./fade-port";
+import { useScrollStop } from "./scroll-stop";
 
 import { inLevel, usePanelLevel } from "./layers";
 import { Sheet, SheetBody, SheetContent, SheetHeader, SheetTitle } from "./overlays";
@@ -161,13 +162,14 @@ export function Tray({ label, summary, showLabel = "Show", closeLabel = "Close",
     if (open && (count === 0 || (!phone && wasShown.current))) setOpen(false);
     wasShown.current = shown;
   }, [open, count, phone, shown, setOpen]);
-  const port = useFadeRef<HTMLDivElement>({ axis: "block", ring: 4 });
+  const named = React.useId();
+  const sectionId = props.id ?? named;
   if (rows.length === 0) return null;
   const finalFocus = () => (emptied.current ? resolve(returnFocus) : null) ?? (band.current?.isConnected ? band.current : true);
   return (
-    <section {...props} ref={panel} aria-label={label} data-level={level} className={join("basalt-tray", className)}>
+    <section {...props} id={sectionId} ref={panel} aria-label={label} data-level={level} className={join("basalt-tray", className)}>
       {/* The port (cimip-gaps-3 t7): docked in an app's foot at its cap, the rows scroll here and fade at each edge that hides more; the rim stays the tray's. */}
-      <div ref={port} className="basalt-tray-scroll">
+      <TrayPort labelledBy={sectionId}>
       {inLevel(level, (
         <>
           {/* Under 720 the rows that wait are this band, which opens them in a sheet; from 720 it is not drawn. */}
@@ -181,7 +183,7 @@ export function Tray({ label, summary, showLabel = "Show", closeLabel = "Close",
           {phone ? all.filter((row) => row.props.stay) : all}
         </>
       ))}
-      </div>
+      </TrayPort>
       {phone ? (
         <Sheet open={shown} onOpenChange={setOpen}>
           <SheetContent side="bottom" ref={sheet} className="basalt-tray-sheet" finalFocus={finalFocus}>
@@ -210,4 +212,14 @@ export function TrayRow({ mark, actions, stay = false, className, children, ...p
       {actions != null ? <span className="basalt-tray-actions">{actions}</span> : null}
     </div>
   );
+}
+
+/**
+ * The tray's port (cimip-gaps-3 t7): the rows scroll here when the tray is docked at its cap and fade at each edge that hides more. Rows that only report
+ * hold nothing focusable, so while the port overflows with none it is a keyboard stop named by the tray; its ring is the tray's.
+ */
+function TrayPort({ labelledBy, children }: { labelledBy: string; children: React.ReactNode }) {
+  const stop = useScrollStop<HTMLDivElement>({ labelledBy });
+  const ref = useFadeRef<HTMLDivElement>({ axis: "block", ring: 4 }, stop.ref);
+  return <div {...stop.attributes} ref={ref} className="basalt-tray-scroll">{children}</div>;
 }

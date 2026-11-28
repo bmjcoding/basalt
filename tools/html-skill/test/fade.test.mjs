@@ -91,4 +91,44 @@ describe("the skill's fade", () => {
     await p.evaluate(() => { document.documentElement.dataset.fades = "off"; });
     assert.ok(await p.evaluate(() => [...document.querySelectorAll("[data-fade]")].every((el) => getComputedStyle(el).maskImage === "none")));
   });
+
+  // Astra's fix pass 1, point 4: the glide lives on the popup's port, so the lit row's own plate steps aside there, and a pointer never scrolls a combobox.
+  const POPUPS = `<title>Popups</title><main class="page">
+    <button class="btn" popovertarget="m" id="open-m">Benches</button>
+    <div class="panel float menu" popover id="m" style="max-height: 282px">${Array.from({ length: 20 }, (_, i) => `<button class="menu-item" role="menuitem"><span class="menu-item-label">Bench ${i + 1}</span></button>`).join("")}</div>
+    <div class="field"><label for="r">Recipe</label><div class="combobox"><input class="input" id="r" name="r"><ul>${Array.from({ length: 20 }, (_, i) => `<li data-value="r${i}">Recipe ${i + 1}</li>`).join("")}</ul></div></div>
+  </main>`;
+
+  test("a skill menu shows one plate while a row is lit: the glide's, and never the row's own", async () => {
+    const { page: p } = await openHtml(browser, compose(POPUPS, { fonts: false }).html, { scheme: "dark" });
+    await p.click("#open-m");
+    await p.evaluate(() => new Promise((r) => setTimeout(r, 300)));
+    const rows = p.locator("#m .menu-item");
+    await rows.nth(1).hover();
+    await rows.nth(3).hover();
+    await p.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    const state = await p.evaluate(() => {
+      const port = document.querySelector("#m > .menu-scroll");
+      const lit = document.querySelector("#m .menu-item[data-highlighted]");
+      return { glide: port.hasAttribute("data-glide"), plate: getComputedStyle(port.querySelector(":scope > .plate")).display, own: getComputedStyle(lit, "::before").backgroundColor };
+    });
+    assert.equal(state.glide, true);
+    assert.equal(state.plate, "block");
+    assert.match(state.own, /rgba\(0, 0, 0, 0\)|transparent/, "the lit row paints no plate of its own while the glide's travels");
+  });
+
+  test("a pointer moved onto a partly visible combobox option scrolls nothing; the keys still bring an option clear", async () => {
+    const { page: p } = await openHtml(browser, compose(POPUPS, { fonts: false }).html);
+    await p.focus("#r");
+    await p.keyboard.press("ArrowDown");
+    await p.evaluate(() => new Promise((r) => setTimeout(r, 300)));
+    const port = ".combobox-popup > .combobox-scroll";
+    // Scroll so an option is cut at the bottom edge, then move the pointer onto its visible part.
+    const target = await p.evaluate((s) => { const el = document.querySelector(s); el.scrollTop = 0; const box = el.getBoundingClientRect(); const cut = [...el.querySelectorAll(".combobox-option")].find((o) => { const r = o.getBoundingClientRect(); return r.top < box.bottom && r.bottom > box.bottom; }); const r = cut.getBoundingClientRect(); return { x: r.left + 20, y: Math.min(r.bottom, box.bottom) - 4 }; }, port);
+    await p.mouse.move(target.x, target.y);
+    await p.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    assert.equal(await p.evaluate((s) => document.querySelector(s).scrollTop, port), 0, "the hovered option is lit where it is");
+    for (let i = 0; i < 12; i += 1) await p.keyboard.press("ArrowDown");
+    assert.ok(await p.evaluate((s) => document.querySelector(s).scrollTop, port) > 0, "the keys move the list");
+  });
 });

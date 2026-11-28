@@ -21,7 +21,7 @@ import { revealIn, watchScrollFade } from "../../../../packages/react/src/scroll
     var own = box.hasAttribute('tabindex');
     function measure() {
       var holds = Array.prototype.some.call(box.querySelectorAll(FOCUSABLE), function (n) { return n.getClientRects().length && !n.closest('[hidden],[inert]'); });
-      var on = !own && box.scrollHeight > box.clientHeight + 1 && !holds;
+      var on = !own && (box.scrollHeight > box.clientHeight + 1 || box.scrollWidth > box.clientWidth + 1) && !holds;
       var id = name && name();
       if (on) { box.setAttribute('tabindex', '0'); if (id) { box.setAttribute('role', 'region'); box.setAttribute('aria-labelledby', id); } }
       else if (!own && box.hasAttribute('tabindex')) { box.removeAttribute('tabindex'); box.removeAttribute('role'); box.removeAttribute('aria-labelledby'); }
