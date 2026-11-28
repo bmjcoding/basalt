@@ -1592,8 +1592,9 @@
       "requires": [
         "popover"
       ],
-      "budget": 3550,
-      "usage": 500
+      "budget": 3552,
+      "usage": 500,
+      "budgetReason": "micro-details E7 (DECISIONS 405, M4; the skill's budgets are soft): 3507 to 3552 bytes, measured, for the open-state instant rule that outranks popover.css. Cap 3550 to 3552."
     },
     "toast": {
       "classes": [
@@ -1622,8 +1623,8 @@
         "Warning",
         "XCircle"
       ],
-      "budget": 16750,
-      "budgetReason": "audit-fix-c2 Sol build: 14288 to 14780 bytes (+492); observe focus before the first toast, retain the last live modal on blur, release the viewport before modal closure, preserve real keyboard composition state and keep a toast action's Escape from cancelling its native host. Cap 14350 to 14780. Return 1: 14780 to 14866 bytes (+86) for ordinary reverse Tab, clearing stale F6 returns and observing mutations only while hosted; cap 14780 to 15100, leaving 234 bytes. Return 3 and DECISIONS 156: 15031 to 15367 bytes (+336) for distinct pointer/keyboard focus restoration and the front-toast control ring while the region holds focus. Cap 15100 to 15400 (+300), leaving 33 bytes.",
+      "budget": 17757,
+      "budgetReason": "audit-fix-c2 Sol build: 14288 to 14780 bytes (+492); observe focus before the first toast, retain the last live modal on blur, release the viewport before modal closure, preserve real keyboard composition state and keep a toast action's Escape from cancelling its native host. Cap 14350 to 14780. Return 1: 14780 to 14866 bytes (+86) for ordinary reverse Tab, clearing stale F6 returns and observing mutations only while hosted; cap 14780 to 15100, leaving 234 bytes. Return 3 and DECISIONS 156: 15031 to 15367 bytes (+336) for distinct pointer/keyboard focus restoration and the front-toast control ring while the region holds focus. Cap 15100 to 15400 (+300), leaving 33 bytes. Micro-details E7 (DECISIONS 405, C2): 16742 to 17757 bytes (+1015), measured after trimming, for React's swipe (40px by distance, up or right under 720 and down or right from 720, the axis lock, the damped pull, the change of mind, pointer capture and cancel). Cap 16750 to 17757.",
       "usage": 1100,
       "builds": [
         "braille"

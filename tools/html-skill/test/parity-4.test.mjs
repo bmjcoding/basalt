@@ -607,7 +607,7 @@ for (const scheme of ["dark", "light"]) {
       await context.close();
     });
 
-    test("swiping a toast to the right dismisses it past 60px and springs back before; a press on its buttons is not a swipe", async () => {
+    test("swiping a toast to the right dismisses it past 40px (React's) and springs back before; a press on its buttons is not a swipe", async () => {
       const { page, context } = await open({ scheme });
       const clock = await freezeAnimations(page);
       await page.evaluate(() => Basalt.toast({ title: "Only copy" }));
@@ -615,7 +615,9 @@ for (const scheme of ["dark", "light"]) {
       const box = await rect(page, ".toast");
       await page.mouse.move(box.left + 40, box.top + 20);
       await page.mouse.down();
-      await page.mouse.move(box.left + 70, box.top + 20);
+      // The first move is the gesture's start (Base UI's, for the late press iOS reports); the distance is counted from it.
+      await page.mouse.move(box.left + 41, box.top + 20);
+      await page.mouse.move(box.left + 71, box.top + 20);
       await clock.advance(50);
       assert.equal(await page.evaluate(() => document.querySelector(".toast").hasAttribute("data-swiping")), true);
       assert.equal(await page.evaluate(() => document.querySelector(".toast").style.getPropertyValue("--toast-swipe-movement-x")), "30px", "it follows the pointer");
@@ -625,6 +627,7 @@ for (const scheme of ["dark", "light"]) {
       assert.equal(await page.evaluate(() => document.querySelector(".toast").style.getPropertyValue("--toast-swipe-movement-x")), "");
       await page.mouse.move(box.left + 40, box.top + 20);
       await page.mouse.down();
+      await page.mouse.move(box.left + 41, box.top + 20);
       await page.mouse.move(box.left + 160, box.top + 20);
       await page.mouse.up();
       assert.equal(await page.evaluate(() => document.querySelector(".toast").getAttribute("data-swipe-direction")), "right");

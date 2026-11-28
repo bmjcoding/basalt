@@ -182,7 +182,7 @@
   "MenuSubmenu": 181231,
   "MenuSubmenuTrigger": 184749,
   "MenuText": 359,
-  "MenuTrigger": 181640,
+  "MenuTrigger": 181680,
   "MessagePage": 846,
   "MessagesGlyph": 2976,
   "Meter": 9875,
@@ -371,7 +371,7 @@
   "TextMorph": 4681,
   "Textarea": 27723,
   "ThemeChoiceControl": 4794,
-  "ThemeMenu": 214006,
+  "ThemeMenu": 214046,
   "TimeChart": 48153,
   "TimelineDiagram": 131376,
   "ToastProvider": 93971,
@@ -475,11 +475,11 @@
   }
  },
  "package": {
-  "bytes": 1151811,
-  "gzip": 382188
+  "bytes": 1151851,
+  "gzip": 382204
  },
  "styles": {
-  "bytes": 615367,
-  "gzip": 77718
+  "bytes": 615792,
+  "gzip": 77756
  }
 }
